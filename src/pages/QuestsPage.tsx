@@ -57,21 +57,22 @@ const QuestsPage: React.FC = () => {
 
         <h2 style={{ marginTop: '20px', marginBottom: '20px' }}>🎯 Задания</h2>
 
-        {quests.map((quest) => (
-          <div key={quest.id} style={{
-            border: '2px solid #00f0ff',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '12px',
-            width: '90%',
-            backgroundColor: 'rgba(0, 0, 34, 0.8)',
-            boxShadow: '0 0 12px #00f0ff'
-          }}>
-            <h3 style={{ margin: '0 0 10px 0' }}>{quest.title}</h3>
-            <p style={{ margin: '0 0 8px 0' }}>{quest.description}</p>
-            <strong>Награда: ✨ {quest.reward} CS</strong>
-          </div>
-        ))}
+        {Array.isArray(quests) && quests.map((quest) => (
+  <div key={quest.id} style={{
+    border: '2px solid #00f0ff',
+    borderRadius: '12px',
+    padding: '15px',
+    margin: '10px 0',
+    boxShadow: '0 0 8px #00f0ff',
+    backgroundColor: 'rgba(0, 0, 34, 0.8)',
+    width: '100%',
+    maxWidth: '400px'
+  }}>
+    <h3>{quest.title}</h3>
+    <p>{quest.description}</p>
+    <strong>Награда: {quest.reward} 💠</strong>
+  </div>
+))}
       </div>
 
       {/* Нижние зафиксированные меню */}
