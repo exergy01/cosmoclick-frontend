@@ -1,12 +1,15 @@
 import React from 'react';
-import StartPage from './pages/StartPage';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <div>
-      <StartPage />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
