@@ -2,7 +2,6 @@ import React from 'react';
 import TopBar from '../components/TopBar';
 import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
-import BottomMenu from '../components/BottomMenu';
 import MainMenu from '../components/MainMenu';
 
 const HomePage: React.FC = () => {
@@ -21,7 +20,7 @@ const HomePage: React.FC = () => {
       fontFamily: 'Arial, sans-serif',
       color: '#00f0ff'
     }}>
-      {/* Верхняя часть со скроллом если нужно */}
+      {/* Верхняя часть со скроллом */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -33,8 +32,6 @@ const HomePage: React.FC = () => {
       }}>
         <TopBar />
         <ResourceButtons />
-
-        {/* Центрируем сейф */}
         <div style={{
           flex: 1,
           display: 'flex',
@@ -46,32 +43,19 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Фиксированная нижняя зона: Атака/Обмен/Задания + Главное меню */}
+      {/* Только ОДНО НИЖНЕЕ МЕНЮ */}
       <div style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
         width: '100%',
-        background: 'transparent',
-        boxShadow: 'none',
-        borderTop: 'none'
+        backgroundColor: 'rgba(0, 0, 34, 0.9)',
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        padding: '5px 0'
       }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          padding: '5px 0',
-          backgroundColor: 'rgba(0, 0, 34, 0.9)'
-        }}>
-        </div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          padding: '5px 0',
-          backgroundColor: 'rgba(0, 0, 34, 0.9)'
-        }}>
-          <MainMenu />
-        </div>
+        <MainMenu />
       </div>
     </div>
   );

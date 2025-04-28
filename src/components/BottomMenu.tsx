@@ -1,33 +1,62 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const BottomMenu: React.FC = () => {
-  const buttonStyle: React.CSSProperties = {
-    padding: '10px 20px',
-    borderRadius: '12px',
-    backgroundColor: 'transparent',
-    color: '#00f0ff',
-    border: '2px solid #00f0ff',
-    fontWeight: 'bold',
-    fontSize: '16px',
-    boxShadow: '0 0 8px #00f0ff',
-    cursor: 'pointer',
-    transition: '0.3s'
-  };
+  const navigate = useNavigate();
 
   return (
     <div style={{
-      width: '100%',
       display: 'flex',
       justifyContent: 'space-around',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 34, 0.6)',
-      borderRadius: '10px',
-      padding: '10px 0',
-      marginBottom: '20px'
+      marginBottom: '60px'
     }}>
-      <button style={buttonStyle}>⚔️ АТАКА</button>
-      <button style={buttonStyle}>🔄 ОБМЕН</button>
-      <button style={buttonStyle}>🎯 ЗАДАНИЯ</button>
+      <button
+        style={{
+          backgroundColor: 'rgba(0, 0, 34, 0.8)',
+          border: '2px solid #00f0ff',
+          borderRadius: '12px',
+          color: '#00f0ff',
+          padding: '10px 14px',
+          fontWeight: 'bold',
+          boxShadow: '0 0 8px #00f0ff',
+          width: '30%'
+        }}
+        onClick={() => alert('⚔️ Атака в разработке')}
+      >
+        ⚔️ АТАКА
+      </button>
+
+      <button
+        style={{
+          backgroundColor: 'rgba(0, 0, 34, 0.8)',
+          border: '2px solid #00f0ff',
+          borderRadius: '12px',
+          color: '#00f0ff',
+          padding: '10px 14px',
+          fontWeight: 'bold',
+          boxShadow: '0 0 8px #00f0ff',
+          width: '30%'
+        }}
+        onClick={() => alert('🔄 Обмен в разработке')}
+      >
+        🔄 ОБМЕН
+      </button>
+
+      <button
+        style={{
+          backgroundColor: 'rgba(0, 0, 34, 0.8)',
+          border: '2px solid #00f0ff',
+          borderRadius: '12px',
+          color: '#00f0ff',
+          padding: '10px 14px',
+          fontWeight: 'bold',
+          boxShadow: '0 0 8px #00f0ff',
+          width: '30%'
+        }}
+        onClick={() => navigate('/quests')} // 👉 Переход по клику
+      >
+        🎯 ЗАДАНИЯ
+      </button>
     </div>
   );
 };

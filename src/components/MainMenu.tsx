@@ -1,14 +1,17 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const MainMenu: React.FC = () => {
+  const navigate = useNavigate();
+
   const menuButtonStyle: React.CSSProperties = {
-    width: '20%', // Растянем на одинаковую ширину
+    width: '20%',
     padding: '8px 0',
     borderRadius: '12px',
     backgroundColor: 'transparent',
     color: '#00f0ff',
     border: '2px solid #00f0ff',
-    fontSize: '30px', // Размер значков 30px
+    fontSize: '30px',
     fontWeight: 'bold',
     boxShadow: '0 0 8px #00f0ff',
     display: 'flex',
@@ -19,7 +22,7 @@ const MainMenu: React.FC = () => {
   };
 
   const bottomButtonStyle: React.CSSProperties = {
-    width: '30%', // Равная ширина для 3 кнопок
+    width: '30%',
     padding: '10px 0',
     borderRadius: '12px',
     backgroundColor: 'transparent',
@@ -63,9 +66,20 @@ const MainMenu: React.FC = () => {
         width: '100%',
         marginBottom: '8px'
       }}>
-        <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>⚔️ АТАКА</button>
-        <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>🔄 ОБМЕН</button>
-        <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>🎯 ЗАДАНИЯ</button>
+        <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
+          ⚔️ АТАКА
+        </button>
+        <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
+          🔄 ОБМЕН
+        </button>
+        <button
+          style={bottomButtonStyle}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onClick={() => navigate('/quests')} // 👉 Переход на страницу ЗАДАНИЯ
+        >
+          🎯 ЗАДАНИЯ
+        </button>
       </div>
 
       {/* Нижняя строка - значки */}
@@ -76,7 +90,15 @@ const MainMenu: React.FC = () => {
       }}>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>🎮</button>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>💳</button>
-        <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>🚀</button>
+        <button
+  style={menuButtonStyle}
+  onMouseDown={handleMouseDown}
+  onMouseUp={handleMouseUp}
+  onClick={() => navigate('/')} // 👉 Переход на главную страницу
+>
+  🚀
+</button>
+
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>👥</button>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>📖</button>
       </div>
