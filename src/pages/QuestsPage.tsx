@@ -2,28 +2,38 @@ import React, { useEffect, useState } from 'react';
 import TopBar from '../components/TopBar';
 import MainMenu from '../components/MainMenu';
 import BottomMenu from '../components/BottomMenu';
-import axios from 'axios';
 
 interface Quest {
   id: number;
   title: string;
   description: string;
-  reward: number;
+  reward_ccc: number;
+  reward_cs: number;
+  reward_ton: number;
 }
 
 const QuestsPage: React.FC = () => {
   const [quests, setQuests] = useState<Quest[]>([]);
 
-  useEffect(() => {
-    const fetchQuests = async () => {
-      try {
-        const response = await axios.get('/api/quests');
-        setQuests(response.data);
-      } catch (error) {
-        console.error('Ошибка при загрузке заданий:', error);
-      }
-    };
+  const apiUrl = process.env.NODE_ENV === 'production'
+    ? 'https://cosmoclick-backend.onrender.com/api/quests'
+    : 'http://localhost:5000/api/quests';
 
+  const fetchQuests = async () => {
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setQuests(data);
+      } else {
+        console.error('Неверный формат данных:', data);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке заданий:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchQuests();
   }, []);
 
@@ -42,40 +52,40 @@ const QuestsPage: React.FC = () => {
       fontFamily: 'Arial, sans-serif',
       color: '#00f0ff'
     }}>
-      {/* Верхняя прокручиваемая часть */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '10px',
-        paddingTop: '100px', // 👉 добавили отступ под TopBar
-        paddingBottom: '120px'
-      }}>
+<div style={{
+  flex: 1,
+  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  padding: '90px 10px 130px 10px' // 👉 добавили отступ сверху (70px)
+}}>
         <TopBar />
-
-        <h2 style={{ marginTop: '20px', marginBottom: '20px' }}>🎯 Задания</h2>
-
-        {Array.isArray(quests) && quests.map((quest) => (
-  <div key={quest.id} style={{
-    border: '2px solid #00f0ff',
-    borderRadius: '12px',
-    padding: '15px',
-    margin: '10px 0',
-    boxShadow: '0 0 8px #00f0ff',
-    backgroundColor: 'rgba(0, 0, 34, 0.8)',
-    width: '100%',
-    maxWidth: '400px'
-  }}>
-    <h3>{quest.title}</h3>
-    <p>{quest.description}</p>
-    <strong>Награда: {quest.reward} 💠</strong>
-  </div>
-))}
+        <div style={{ marginTop: '10px', width: '90%' }}>
+          {quests.length > 0 ? quests.map((quest) => (
+            <div key={quest.id} style={{
+              backgroundColor: 'rgba(0, 0, 34, 0.8)',
+              border: '2px solid #00f0ff',
+              borderRadius: '12px',
+              padding: '10px',
+              marginBottom: '10px',
+              boxShadow: '0 0 10px #00f0ff'
+            }}>
+              <h3 style={{ marginBottom: '5px', fontSize: '18px' }}>{quest.title}</h3>
+              <p style={{ fontSize: '14px', marginBottom: '8px' }}>{quest.description}</p>
+              <p style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                🎁 Награды:
+                {quest.reward_ccc > 0 && ` ${quest.reward_ccc} CCC`}
+                {quest.reward_cs > 0 && ` | ${quest.reward_cs} CS`}
+                {quest.reward_ton > 0 && ` | ${quest.reward_ton} TON`}
+              </p>
+            </div>
+          )) : (
+            <p>Загрузка заданий...</p>
+          )}
+        </div>
       </div>
 
-      {/* Нижние зафиксированные меню */}
       <div style={{
         position: 'fixed',
         bottom: 0,
@@ -92,7 +102,6 @@ const QuestsPage: React.FC = () => {
           backgroundColor: 'rgba(0, 0, 34, 0.9)'
         }}>
         </div>
-
         <div style={{
           display: 'flex',
           justifyContent: 'space-around',
