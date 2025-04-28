@@ -1,41 +1,42 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const ResourceButtons: React.FC = () => {
-  const [active, setActive] = useState<string | null>(null);
+  const buttonStyle: React.CSSProperties = {
+    width: '30%', // Одинаковая ширина для каждой кнопки
+    padding: '10px 0',
+    margin: '5px',
+    borderRadius: '12px',
+    backgroundColor: 'transparent',
+    color: '#00f0ff',
+    border: '2px solid #00f0ff',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    boxShadow: '0 0 8px #00f0ff',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: '0.3s'
+  };
 
-  const buttons = ['РЕСУРСЫ', 'ДРОНЫ', 'КАРГО'];
+  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.backgroundColor = '#00f0ff';
+    e.currentTarget.style.color = '#001133';
+  };
+
+  const handleMouseUp = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.backgroundColor = 'transparent';
+    e.currentTarget.style.color = '#00f0ff';
+  };
 
   return (
     <div style={{
       display: 'flex',
-      justifyContent: 'center',
-      gap: '15px',
-      marginTop: '10px',
-      marginBottom: '20px'
+      justifyContent: 'space-around',
+      width: '100%',
+      marginBottom: '16px'
     }}>
-      {buttons.map((btn) => (
-        <button
-          key={btn}
-          onMouseDown={() => setActive(btn)}
-          onMouseUp={() => setActive(null)}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '12px',
-            backgroundColor: active === btn ? '#00f0ff' : 'transparent',
-            color: active === btn ? '#001133' : '#00f0ff',
-            border: '2px solid #00f0ff',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            boxShadow: active === btn
-              ? '0 0 20px #00f0ff'
-              : '0 0 8px #00f0ff',
-            cursor: 'pointer',
-            transition: '0.3s'
-          }}
-        >
-          {btn}
-        </button>
-      ))}
+      <button style={buttonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>РЕСУРСЫ</button>
+      <button style={buttonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>ДРОНЫ</button>
+      <button style={buttonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>КАРГО</button>
     </div>
   );
 };

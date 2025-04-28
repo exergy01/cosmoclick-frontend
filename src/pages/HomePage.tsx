@@ -29,7 +29,7 @@ const HomePage: React.FC = () => {
         flexDirection: 'column',
         alignItems: 'center',
         padding: '10px',
-        paddingBottom: '80px'
+        paddingBottom: '120px'
       }}>
         <TopBar />
         <ResourceButtons />
@@ -44,29 +44,34 @@ const HomePage: React.FC = () => {
         }}>
           <CenterPanel />
         </div>
-
-        {/* Кнопки АТАКА/ОБМЕН/ЗАДАНИЯ */}
-        <div style={{
-          width: '90%',
-          marginBottom: '10px',
-          display: 'flex',
-          justifyContent: 'space-around'
-        }}>
-          <BottomMenu />
-        </div>
       </div>
 
-      {/* Фиксированное главное меню */}
+      {/* Фиксированная нижняя зона: Атака/Обмен/Задания + Главное меню */}
       <div style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
         width: '100%',
-        height: '60px',
-        zIndex: 10,
-        backgroundColor: 'rgba(0,0,0,0.8)'
+        background: 'transparent',
+        boxShadow: 'none',
+        borderTop: 'none'
       }}>
-        <MainMenu />
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          padding: '5px 0',
+          backgroundColor: 'rgba(0, 0, 34, 0.9)'
+        }}>
+        </div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          padding: '5px 0',
+          backgroundColor: 'rgba(0, 0, 34, 0.9)'
+        }}>
+          <MainMenu />
+        </div>
       </div>
     </div>
   );
