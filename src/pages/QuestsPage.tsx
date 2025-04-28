@@ -100,10 +100,6 @@ const QuestsPage: React.FC = () => {
               <h3 style={{ marginBottom: '5px', fontSize: '18px' }}>{quest.title}</h3>
               <p style={{ fontSize: '14px', marginBottom: '8px' }}>{quest.description}</p>
               <p style={{ fontWeight: 'bold', fontSize: '16px' }}>
-                🎁 Награды:
-                {quest.reward_ccc > 0 && ` ${quest.reward_ccc} CCC`}
-                {quest.reward_cs > 0 && ` | ${quest.reward_cs} CS`}
-                {quest.reward_ton > 0 && ` | ${quest.reward_ton} TON`}
               </p>
               <button
   onClick={() => completeQuest(quest.id)}
