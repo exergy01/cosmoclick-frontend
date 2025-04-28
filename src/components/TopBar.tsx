@@ -22,14 +22,14 @@ const TopBar: React.FC = () => {
 }}>
       {/* Левая часть */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <div>💠 CCC 0,00</div>
+        <div><b>💠 CCC 0,00</b></div>
         <div>📈 CCC 0,00 в час</div>
       </div>
 
       {/* Правая часть */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-        <div>✨ CS 0,00</div>
-        <div>💎 TON 0,0000000</div>
+        <div><b>✨ CS 0,00</b></div>
+        <div><b>💎 TON 0,0000000</b></div>
       </div>
     </div>
   );

@@ -19,6 +19,32 @@ const QuestsPage: React.FC = () => {
     ? 'https://cosmoclick-backend.onrender.com/api/quests'
     : 'http://localhost:5000/api/quests';
 
+  const completeQuest = async (questId: number) => {
+    const completeUrl = process.env.NODE_ENV === 'production'
+      ? 'https://cosmoclick-backend.onrender.com/api/user-quests/complete'
+      : 'http://localhost:5000/api/user-quests/complete';
+
+    try {
+      const response = await fetch(completeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 1, // 👉 пока тестово userId = 1
+          questId
+        })
+      });
+
+      if (response.ok) {
+        alert('🎯 Задание успешно выполнено!');
+      } else {
+        alert('❌ Ошибка при выполнении задания!');
+      }
+    } catch (error) {
+      console.error('Ошибка при завершении задания:', error);
+      alert('❌ Ошибка при завершении задания!');
+    }
+  };
+
   const fetchQuests = async () => {
     try {
       const response = await fetch(apiUrl);
@@ -52,14 +78,14 @@ const QuestsPage: React.FC = () => {
       fontFamily: 'Arial, sans-serif',
       color: '#00f0ff'
     }}>
-<div style={{
-  flex: 1,
-  overflowY: 'auto',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  padding: '90px 10px 130px 10px' // 👉 добавили отступ сверху (70px)
-}}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '90px 10px 130px 10px'
+      }}>
         <TopBar />
         <div style={{ marginTop: '10px', width: '90%' }}>
           {quests.length > 0 ? quests.map((quest) => (
@@ -79,6 +105,34 @@ const QuestsPage: React.FC = () => {
                 {quest.reward_cs > 0 && ` | ${quest.reward_cs} CS`}
                 {quest.reward_ton > 0 && ` | ${quest.reward_ton} TON`}
               </p>
+              <button
+  onClick={() => completeQuest(quest.id)}
+  style={{
+    marginTop: '8px',
+    backgroundColor: 'rgba(0, 240, 255, 0.2)', // 🔵 Спокойный полупрозрачный фон
+    border: '2px solid #00f0ff',
+    borderRadius: '8px',
+    padding: '8px 16px',
+    color: '#00f0ff',
+    fontWeight: 'bold',
+    fontSize: '14px',
+    boxShadow: '0 0 6px #00f0ff',
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    gap: '10px'
+  }}
+>
+  ✅ Завершить задание 
+  <span style={{ fontSize: '13px', color: '#00f0ff' }}>
+    🎁 Награда:
+    {quest.reward_ccc > 0 && ` ${quest.reward_ccc} CCC`}
+    {quest.reward_cs > 0 && ` | ${quest.reward_cs} CS`}
+    {quest.reward_ton > 0 && ` | ${quest.reward_ton} TON`}
+  </span>
+</button>
             </div>
           )) : (
             <p>Загрузка заданий...</p>
