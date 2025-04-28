@@ -1,39 +1,32 @@
 import React from 'react';
 
 const TopBar: React.FC = () => {
-  const playerName = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'Капитан CosmoClick';
-
   return (
     <div style={{
-      width: '100%',
+      width: '90%',
+      margin: '20px auto 10px auto',
+      padding: '12px',
+      border: '2px solid #00f0ff',
+      borderRadius: '12px',
+      boxShadow: '0 0 10px #00f0ff',
+      backgroundColor: 'rgba(0, 0, 34, 0.8)',
       display: 'flex',
-      flexDirection: 'column',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '10px',
+      color: '#00f0ff',
+      fontSize: '18px',
+      fontWeight: 'bold'
     }}>
-      {/* Имя игрока */}
-      <div style={{
-        fontSize: '18px',
-        fontWeight: 'bold',
-        marginBottom: '5px',
-        color: '#00f0ff',
-        textShadow: '0 0 8px #00f0ff'
-      }}>
-        {playerName}
+      {/* Левая часть */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <div>💠 CCC 0,00</div>
+        <div>📈 CCC 0,00 в час</div>
       </div>
 
-      {/* Баланс CCC и CS */}
-      <div style={{
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'space-around',
-        backgroundColor: 'rgba(0, 0, 34, 0.7)',
-        borderRadius: '10px',
-        padding: '10px 0',
-        boxShadow: '0 0 10px #00f0ff'
-      }}>
-        <div style={{ fontSize: '16px', fontWeight: 'bold' }}>💎 0 CCC</div>
-        <div style={{ fontSize: '16px', fontWeight: 'bold' }}>✨ 0 CS</div>
+      {/* Правая часть */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+        <div>✨ CS 0,00</div>
+        <div>💎 TON 0,0000000</div>
       </div>
     </div>
   );
