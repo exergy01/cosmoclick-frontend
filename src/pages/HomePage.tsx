@@ -4,30 +4,25 @@ import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
 import BottomMenu from '../components/BottomMenu';
 import MainMenu from '../components/MainMenu';
-import axios from 'axios';
-
-declare global {
-  interface Window {
-    Telegram: any;
-  }
-}
 
 const HomePage: React.FC = () => {
   useEffect(() => {
     const initPlayer = async () => {
       try {
-        const telegram = window.Telegram?.WebApp?.initDataUnsafe;
-        const telegramId = telegram?.user?.id;
-        const nickname = telegram?.user?.username || 'Капитан';
+        const tg = (window as any).Telegram;
 
-        if (telegramId) {
-          await axios.post('/api/player/init', {
-            telegramId,
-            nickname,
-          });
-        }
+        if (!tg || !tg.WebApp || !tg.WebApp.initDataUnsafe?.user) return;
+
+        const telegramId = tg.WebApp.initDataUnsafe.user.id;
+        const nickname = tg.WebApp.initDataUnsafe.user.username || 'Капитан';
+
+        await fetch('/api/players/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id: telegramId, nickname }),
+        });
       } catch (error) {
-        console.error('Ошибка инициализации игрока:', error);
+        console.error('Ошибка при регистрации игрока:', error);
       }
     };
 
@@ -86,8 +81,7 @@ const HomePage: React.FC = () => {
           justifyContent: 'space-around',
           padding: '5px 0',
           backgroundColor: 'rgba(0, 0, 34, 0.9)'
-        }}>
-        </div>
+        }}></div>
 
         <div style={{
           display: 'flex',
