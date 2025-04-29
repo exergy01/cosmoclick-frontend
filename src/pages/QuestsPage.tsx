@@ -121,7 +121,7 @@ const QuestsPage: React.FC = () => {
     gap: '10px'
   }}
 >
-  ✅ Завершить задание 
+  ✅ Выполнить 
   <span style={{ fontSize: '13px', color: '#00f0ff' }}>
     🎁 Награда:
     {quest.reward_ccc > 0 && ` ${quest.reward_ccc} CCC`}

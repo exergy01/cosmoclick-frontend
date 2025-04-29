@@ -1,11 +1,39 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import TopBar from '../components/TopBar';
 import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
 import BottomMenu from '../components/BottomMenu';
 import MainMenu from '../components/MainMenu';
+import axios from 'axios';
+
+declare global {
+  interface Window {
+    Telegram: any;
+  }
+}
 
 const HomePage: React.FC = () => {
+  useEffect(() => {
+    const initPlayer = async () => {
+      try {
+        const telegram = window.Telegram?.WebApp?.initDataUnsafe;
+        const telegramId = telegram?.user?.id;
+        const nickname = telegram?.user?.username || 'Капитан';
+
+        if (telegramId) {
+          await axios.post('/api/player/init', {
+            telegramId,
+            nickname,
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка инициализации игрока:', error);
+      }
+    };
+
+    initPlayer();
+  }, []);
+
   return (
     <div style={{
       backgroundImage: 'url(/backgrounds/cosmo-bg-1.png)',
@@ -21,7 +49,6 @@ const HomePage: React.FC = () => {
       fontFamily: 'Arial, sans-serif',
       color: '#00f0ff'
     }}>
-      {/* Верхняя часть со скроллом если нужно */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
@@ -29,7 +56,7 @@ const HomePage: React.FC = () => {
         flexDirection: 'column',
         alignItems: 'center',
         padding: '10px',
-        paddingTop: '100px', // 👉 добавили отступ под TopBar
+        paddingTop: '100px',
         paddingBottom: '120px'
       }}>
         <TopBar />
@@ -45,7 +72,6 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Фиксированная нижняя зона */}
       <div style={{
         position: 'fixed',
         bottom: 0,
