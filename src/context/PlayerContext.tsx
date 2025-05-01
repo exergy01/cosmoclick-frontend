@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'; 
+// src/context/PlayerContext.tsx
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 interface SystemProgress {
@@ -13,6 +14,7 @@ interface PlayerData {
   username: string;
   ccc: number;
   cs: number;
+  ton: number;
   currentSystem: number;
   systems: Record<number, SystemProgress>;
 }
@@ -33,30 +35,30 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchPlayerData = async () => {
     setLoading(true);
     try {
-      const user = window.Telegram.WebApp.initDataUnsafe.user;
+      const user = (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user || {
+        id: 123456789,
+        username: 'dev_user',
+      };
+
       const telegram_id = user?.id;
       const username = user?.username || 'unknown';
 
-      if (!telegram_id) throw new Error('Telegram ID не найден');
-
-      // Пытаемся получить игрока
-      const response = await axios.get(`/api/auth/player/${telegram_id}`);
-      setPlayer(response.data);
-    } catch (error: any) {
-      // Если игрок не найден — регистрируем
-      if (error.response?.status === 404) {
-        const user = window.Telegram.WebApp.initDataUnsafe.user;
-        const telegram_id = user?.id;
-        const username = user?.username || 'unknown';
-
-        if (telegram_id) {
-          await axios.post('/api/auth/register', { telegram_id, username });
-          const newResponse = await axios.get(`/api/auth/player/${telegram_id}`);
-          setPlayer(newResponse.data);
+      try {
+        const response = await axios.get(`/api/auth/player/${telegram_id}`);
+        setPlayer(response.data);
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          const registerRes = await axios.post('/api/auth/register', {
+            telegram_id,
+            username,
+          });
+          setPlayer(registerRes.data);
+        } else {
+          console.error('Ошибка при загрузке или создании игрока:', error);
         }
-      } else {
-        console.error('Ошибка при загрузке или создании игрока:', error);
       }
+    } catch (e) {
+      console.error('Ошибка инициализации пользователя:', e);
     } finally {
       setLoading(false);
     }
