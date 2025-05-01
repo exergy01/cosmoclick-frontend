@@ -1,5 +1,4 @@
-// src/context/PlayerContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
 interface SystemProgress {
@@ -39,26 +38,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         id: 123456789,
         username: 'dev_user',
       };
-
-      const telegram_id = user?.id;
-      const username = user?.username || 'unknown';
+      const telegram_id = user.id;
+      const username = user.username || 'unknown';
 
       try {
         const response = await axios.get(`/api/auth/player/${telegram_id}`);
         setPlayer(response.data);
       } catch (error: any) {
         if (error.response?.status === 404) {
-          const registerRes = await axios.post('/api/auth/register', {
-            telegram_id,
-            username,
-          });
+          const registerRes = await axios.post('/api/auth/register', { telegram_id, username });
           setPlayer(registerRes.data);
+        } else if (error.response?.status === 400) {
+          const retry = await axios.get(`/api/auth/player/${telegram_id}`);
+          setPlayer(retry.data);
         } else {
           console.error('Ошибка при загрузке или создании игрока:', error);
         }
       }
-    } catch (e) {
-      console.error('Ошибка инициализации пользователя:', e);
+    } catch (error) {
+      console.error('Ошибка при получении данных Telegram:', error);
     } finally {
       setLoading(false);
     }
