@@ -1,83 +1,56 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// src/context/PlayerContext.tsx
+import React, { createContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
-interface SystemProgress {
-  asteroids: number[];
-  drones: number[];
-  cargo: { level: number };
-}
-
-interface PlayerData {
+interface Player {
   id: number;
   telegram_id: string;
-  username: string;
   ccc: number;
   cs: number;
   ton: number;
   current_system: number;
-  systems: Record<number, SystemProgress>;
+  drones: Record<string, number[]>;
+  cargo: Record<string, { level: number }>;
+  asteroids: Record<string, number[]>;
 }
 
 interface PlayerContextType {
-  player: PlayerData | null;
+  player: Player | null;
   loading: boolean;
-  setPlayer: React.Dispatch<React.SetStateAction<PlayerData | null>>;
-  refreshPlayer: () => Promise<void>;
 }
 
-const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
+export const PlayerContext = createContext<PlayerContextType>({
+  player: null,
+  loading: true,
+});
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [player, setPlayer] = useState<PlayerData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  const fetchPlayerData = async () => {
-    setLoading(true);
-    let telegram_id = '';
-    let username = '';
-
-    const telegramUser = window?.Telegram?.WebApp?.initDataUnsafe?.user;
-
-    if (telegramUser) {
-      telegram_id = telegramUser.id.toString();
-      username = telegramUser.username || 'unknown';
-    } else {
-      telegram_id = 'local_123456789';
-      username = 'LocalTester';
-    }
-
-    try {
-      const response = await axios.get(`/api/player/by-telegram/${telegram_id}`);
-      setPlayer(response.data);
-    } catch (error: any) {
-      console.warn('⚠️ Игрок не найден, пробуем зарегистрировать...');
-
-      try {
-        const response = await axios.post(`/api/player/register`, { telegram_id, username });
-        setPlayer(response.data);
-      } catch (registerError) {
-        console.error('❌ Ошибка при регистрации игрока:', registerError);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPlayerData();
+    const fetchPlayer = async () => {
+      try {
+        const isTelegram = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const telegramId = isTelegram
+          ? window.Telegram.WebApp.initDataUnsafe.user.id.toString()
+          : 'local_123456789';
+
+        const res = await axios.get(`/user/${telegramId}`);
+        setPlayer(res.data);
+      } catch (err) {
+        console.error('Ошибка при получении/создании игрока:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlayer();
   }, []);
 
   return (
-    <PlayerContext.Provider value={{ player, loading, setPlayer, refreshPlayer: fetchPlayerData }}>
+    <PlayerContext.Provider value={{ player, loading }}>
       {children}
     </PlayerContext.Provider>
   );
-};
-
-export const usePlayer = (): PlayerContextType => {
-  const context = useContext(PlayerContext);
-  if (!context) {
-    throw new Error('usePlayer должен использоваться внутри PlayerProvider');
-  }
-  return context;
 };
