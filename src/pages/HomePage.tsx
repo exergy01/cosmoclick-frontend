@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import TopBar from '../components/TopBar';
 import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
-import BottomMenu from '../components/BottomMenu';
 import MainMenu from '../components/MainMenu';
 
 const HomePage: React.FC = () => {
