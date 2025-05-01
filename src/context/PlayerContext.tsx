@@ -36,35 +36,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let telegram_id = '';
     let username = '';
 
-    try {
-      const isTelegram = typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp;
-      if (isTelegram) {
-        telegram_id = window.Telegram.WebApp.initDataUnsafe.user?.id.toString() || '';
-        username = window.Telegram.WebApp.initDataUnsafe.user?.username || 'unknown';
-      } else {
-        telegram_id = 'local_123456789';
-        username = 'LocalTester';
-      }
+    const telegramUser = window?.Telegram?.WebApp?.initDataUnsafe?.user;
 
-      const res = await axios.get(`/api/player/${telegram_id}`);
-      setPlayer(res.data);
+    if (telegramUser) {
+      telegram_id = telegramUser.id.toString();
+      username = telegramUser.username || 'unknown';
+    } else {
+      telegram_id = 'local_123456789';
+      username = 'LocalTester';
+    }
+
+    try {
+      const response = await axios.get(`/api/player/by-telegram/${telegram_id}`);
+      setPlayer(response.data);
     } catch (error: any) {
       console.warn('⚠️ Игрок не найден, пробуем зарегистрировать...');
 
       try {
-        const isTelegram = typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp;
-        if (isTelegram) {
-          telegram_id = window.Telegram.WebApp.initDataUnsafe.user?.id.toString() || '';
-          username = window.Telegram.WebApp.initDataUnsafe.user?.username || 'unknown';
-        } else {
-          telegram_id = 'local_123456789';
-          username = 'LocalTester';
-        }
-
-        const res = await axios.post('/api/auth/register', { telegram_id, username });
-        setPlayer(res.data);
-      } catch (regErr) {
-        console.error('❌ Ошибка при регистрации игрока:', regErr);
+        const response = await axios.post(`/api/player/register`, { telegram_id, username });
+        setPlayer(response.data);
+      } catch (registerError) {
+        console.error('❌ Ошибка при регистрации игрока:', registerError);
       }
     } finally {
       setLoading(false);
