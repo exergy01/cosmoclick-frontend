@@ -34,14 +34,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchPlayerData = async () => {
     setLoading(true);
     try {
-      const isTelegram = typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user;
+      const tgUser = window?.Telegram?.WebApp?.initDataUnsafe?.user;
+      const isTelegram = tgUser && tgUser.id;
 
       let telegram_id = '';
       let username = 'unknown';
 
       if (isTelegram) {
-        telegram_id = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-        username = window.Telegram.WebApp.initDataUnsafe.user.username || 'unknown';
+        telegram_id = tgUser.id.toString();
+        username = tgUser.username || 'unknown';
       } else {
         telegram_id = 'local_123456789';
         username = 'LocalTester';
@@ -52,14 +53,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error: any) {
       if (error.response?.status === 404) {
         try {
-          const isTelegram = typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user;
+          const tgUser = window?.Telegram?.WebApp?.initDataUnsafe?.user;
+          const isTelegram = tgUser && tgUser.id;
 
           let telegram_id = '';
           let username = 'unknown';
 
           if (isTelegram) {
-            telegram_id = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-            username = window.Telegram.WebApp.initDataUnsafe.user.username || 'unknown';
+            telegram_id = tgUser.id.toString();
+            username = tgUser.username || 'unknown';
           } else {
             telegram_id = 'local_123456789';
             username = 'LocalTester';
