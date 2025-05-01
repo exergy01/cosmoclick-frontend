@@ -1,5 +1,4 @@
-// src/context/PlayerContext.tsx
-import React, { createContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
 interface Player {
@@ -19,7 +18,7 @@ interface PlayerContextType {
   loading: boolean;
 }
 
-export const PlayerContext = createContext<PlayerContextType>({
+const PlayerContext = createContext<PlayerContextType>({
   player: null,
   loading: true,
 });
@@ -31,15 +30,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const fetchPlayer = async () => {
       try {
-        const isTelegram = window.Telegram?.WebApp?.initDataUnsafe?.user;
-        const telegramId = isTelegram
-          ? window.Telegram.WebApp.initDataUnsafe.user.id.toString()
-          : 'local_123456789';
+        const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const telegramId = telegramUser?.id?.toString() ?? 'local_123456789';
 
         const res = await axios.get(`/user/${telegramId}`);
         setPlayer(res.data);
       } catch (err) {
-        console.error('Ошибка при получении/создании игрока:', err);
+        console.error('❌ Ошибка при получении/создании игрока:', err);
       } finally {
         setLoading(false);
       }
@@ -54,3 +51,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     </PlayerContext.Provider>
   );
 };
+
+// 🔄 Добавим usePlayer
+export const usePlayer = () => useContext(PlayerContext);
+
+export { PlayerContext };
