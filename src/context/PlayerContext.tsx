@@ -35,17 +35,16 @@ export const usePlayer = () => useContext(PlayerContext);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<Player | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    const fetchPlayer = async () => {
+    if (isFetching) return; // Предотвращаем повторные вызовы
+
+    setIsFetching(true);
+
+    const fetchPlayer = async (telegramId: string) => {
       try {
-        const telegramWebApp = window.Telegram?.WebApp;
-        const telegramUser = telegramWebApp?.initDataUnsafe?.user;
-        console.log('Telegram WebApp data:', { telegramWebApp: !!telegramWebApp, user: telegramUser });
-
-        const telegramId = telegramUser?.id ? telegramUser.id.toString() : 'local_123456789';
         console.log('Fetching player with telegramId:', telegramId);
-
         const res = await axios.get(`https://cosmoclick-backend.onrender.com/player/${telegramId}`);
         console.log('Player response:', res.data);
         setPlayer(res.data);
@@ -55,11 +54,50 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           response: err.response?.data,
           status: err.response?.status,
         });
+      } finally {
+        setIsFetching(false);
       }
     };
 
-    fetchPlayer();
-  }, []); // Пустой массив зависимостей для вызова один раз
+    const tryFetchTelegramId = () => {
+      const telegramWebApp = window.Telegram?.WebApp;
+      const telegramUser = telegramWebApp?.initDataUnsafe?.user;
+      console.log('Telegram WebApp data:', {
+        telegramWebApp: !!telegramWebApp,
+        initDataUnsafe: telegramWebApp?.initDataUnsafe,
+        user: telegramUser,
+      });
+
+      const telegramId = telegramUser?.id ? telegramUser.id.toString() : 'local_123456789';
+      fetchPlayer(telegramId);
+    };
+
+    console.log('Checking if telegram-web-app.js is loaded:', !!window.Telegram);
+    tryFetchTelegramId();
+
+    let interval: NodeJS.Timeout | null = null;
+    if (!window.Telegram?.WebApp) {
+      interval = setInterval(() => {
+        if (window.Telegram?.WebApp) {
+          console.log('Telegram WebApp initialized after delay');
+          tryFetchTelegramId();
+          clearInterval(interval!);
+        }
+      }, 500);
+
+      setTimeout(() => {
+        if (interval && !window.Telegram?.WebApp) {
+          console.warn('Telegram WebApp not initialized after 10s, using local_123456789');
+          fetchPlayer('local_123456789');
+          clearInterval(interval);
+        }
+      }, 10000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []); // Пустой массив зависимостей
 
   return (
     <PlayerContext.Provider value={{ player, setPlayer }}>
