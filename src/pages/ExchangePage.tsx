@@ -152,13 +152,10 @@ const ExchangePage: React.FC = () => {
             border: '2px solid #00f0ff',
             borderRadius: '12px',
             padding: '10px',
-            marginBottom: '10px',
+            marginBottom: '20px', // Увеличен разрыв
             boxShadow: '0 0 10px #00f0ff'
           }}>
             <h3 style={{ marginBottom: '5px', fontSize: '18px' }}>Обмен CCC на CS</h3>
-            <p style={{ fontSize: '14px', marginBottom: '8px' }}>
-              Доступно: {player ? Math.floor(player.ccc * 100) / 100 : 0} CCC
-            </p>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <input
                 type="number"
@@ -224,13 +221,10 @@ const ExchangePage: React.FC = () => {
             border: '2px solid #00f0ff',
             borderRadius: '12px',
             padding: '10px',
-            marginBottom: '10px',
+            marginBottom: '20px', // Увеличен разрыв
             boxShadow: '0 0 10px #00f0ff'
           }}>
             <h3 style={{ marginBottom: '5px', fontSize: '18px' }}>Обмен CS на CCC</h3>
-            <p style={{ fontSize: '14px', marginBottom: '8px' }}>
-              Доступно: {player ? Math.floor(player.cs * 100) / 100 : 0} CS
-            </p>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
               <input
                 type="number"
