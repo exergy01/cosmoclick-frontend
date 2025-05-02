@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 
 interface Cargo {
@@ -36,11 +36,19 @@ export const usePlayer = () => useContext(PlayerContext);
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<Player | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (isFetching) return; // Предотвращаем повторные вызовы
-
+    if (hasFetched.current || isFetching) return;
+    hasFetched.current = true;
     setIsFetching(true);
+
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-web-app.js';
+    script.async = true;
+    script.onload = () => console.log('telegram-web-app.js loaded');
+    script.onerror = () => console.error('Failed to load telegram-web-app.js');
+    document.head.appendChild(script);
 
     const fetchPlayer = async (telegramId: string) => {
       try {
@@ -61,11 +69,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const tryFetchTelegramId = () => {
       const telegramWebApp = window.Telegram?.WebApp;
-      const telegramUser = telegramWebApp?.initDataUnsafe?.user;
+      const initDataUnsafe = telegramWebApp?.initDataUnsafe;
+      const telegramUser = initDataUnsafe?.user;
       console.log('Telegram WebApp data:', {
         telegramWebApp: !!telegramWebApp,
-        initDataUnsafe: telegramWebApp?.initDataUnsafe,
+        initDataUnsafe,
         user: telegramUser,
+        initData: window.Telegram?.WebApp?.initData,
       });
 
       const telegramId = telegramUser?.id ? telegramUser.id.toString() : 'local_123456789';
@@ -97,7 +107,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, []); // Пустой массив зависимостей
+  }, []);
 
   return (
     <PlayerContext.Provider value={{ player, setPlayer }}>
