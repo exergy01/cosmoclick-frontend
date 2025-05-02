@@ -6,63 +6,61 @@ interface Player {
   telegram_id: string;
   nickname: string | null;
   created_at: string;
-  ccc: number;
-  cs: number;
-  ton: number;
+  ccc: string;
+  cs: string;
+  ton: string;
   current_system: number;
-  energy?: number;
-  asteroidresources?: number;
-  cargoccc?: number;
-  cargolevel?: number;
   drones: any[];
+  cargo: {
+    level: number;
+    capacity: number;
+    autoCollect: boolean;
+  };
   asteroids: any[];
-  tasks?: any;
 }
 
 interface PlayerContextType {
   player: Player | null;
-  loading: boolean;
-  refreshPlayer: () => void;
+  setPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
 }
 
-export const PlayerContext = createContext<PlayerContextType>({
-  player: null,
-  loading: true,
-  refreshPlayer: () => {},
-});
-
-export const usePlayer = () => useContext(PlayerContext);
+const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchPlayer = async () => {
-    try {
-      const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
-      const telegramId = user?.id ? user.id.toString() : 'local_123456789';
-
-      const res = await axios.get(`http://localhost:3000/player/${telegramId}`);
-      setPlayer(res.data);
-    } catch (error: any) {
-      console.error('❌ Ошибка при получении/создании игрока:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const fetchPlayer = async () => {
+      try {
+        const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+
+        if (!user || !user.id) {
+          console.warn('⚠️ WebApp не инициализирован в Telegram. Пропускаем загрузку игрока.');
+          return;
+        }
+
+        const telegramId = user.id.toString();
+        const res = await axios.get(`http://localhost:5000/player/${telegramId}`);
+        setPlayer(res.data);
+      } catch (error: any) {
+        console.error("❌ Ошибка при получении/создании игрока:", error);
+      }
+    };
+
     fetchPlayer();
   }, []);
 
-  const refreshPlayer = () => {
-    setLoading(true);
-    fetchPlayer();
-  };
-
   return (
-    <PlayerContext.Provider value={{ player, loading, refreshPlayer }}>
+    <PlayerContext.Provider value={{ player, setPlayer }}>
       {children}
     </PlayerContext.Provider>
   );
+};
+
+export const usePlayer = () => {
+  const context = useContext(PlayerContext);
+  if (!context) {
+    throw new Error('usePlayer must be used within a PlayerProvider');
+  }
+  return context;
 };
