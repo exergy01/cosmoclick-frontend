@@ -1,4 +1,7 @@
-interface TelegramWebApp {
+export {};
+
+declare global {
+  interface TelegramWebApp {
     initData: string;
     initDataUnsafe: {
       user?: {
@@ -11,13 +14,12 @@ interface TelegramWebApp {
     };
     [key: string]: any;
   }
-  
+
   interface Telegram {
     WebApp: TelegramWebApp;
   }
-  
-  declare global {
-    interface Window {
-      Telegram: Telegram;
-    }
+
+  interface Window {
+    Telegram?: Telegram;
   }
+}

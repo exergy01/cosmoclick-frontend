@@ -76,6 +76,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         initDataUnsafe,
         user: telegramUser,
         initData: telegramWebApp?.initData || 'No initData',
+        rawInitDataUnsafe: JSON.stringify(initDataUnsafe),
       });
 
       const telegramId = telegramUser?.id ? telegramUser.id.toString() : 'local_123456789';
