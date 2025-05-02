@@ -14,14 +14,22 @@ interface Exchange {
   timestamp: string;
 }
 
+interface TonExchange {
+  id: number;
+  type: 'CS_TO_TON' | 'TON_TO_CS';
+  amount_from: number;
+  amount_to: number;
+  timestamp: string;
+}
+
 export interface Player {
   id: number;
   telegram_id: string;
   nickname: string | null;
   created_at: string;
-  ccc: number; // Изменено на number
-  cs: number; // Изменено на number
-  ton: number; // Изменено на number
+  ccc: number;
+  cs: number;
+  ton: number;
   current_system: number;
   drones: Drone[];
   cargo: {
@@ -29,7 +37,7 @@ export interface Player {
     capacity: number;
     autoCollect: boolean;
   };
-  asteroids: number[]; // Предполагаем, что это массив чисел
+  asteroids: number[];
 }
 
 interface PlayerContextType {
@@ -37,6 +45,8 @@ interface PlayerContextType {
   setPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
   exchanges: Exchange[];
   setExchanges: React.Dispatch<React.SetStateAction<Exchange[]>>;
+  tonExchanges: TonExchange[];
+  setTonExchanges: React.Dispatch<React.SetStateAction<TonExchange[]>>;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -44,6 +54,7 @@ const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<Player | null>(null);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [tonExchanges, setTonExchanges] = useState<TonExchange[]>([]);
 
   const apiUrl = process.env.NODE_ENV === 'production'
     ? 'https://cosmoclick-backend.onrender.com'
@@ -55,7 +66,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const telegramId =
           window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
         const res = await axios.get(`${apiUrl}/player/${telegramId}`);
-        // Преобразуем строки в числа
         const playerData = {
           ...res.data,
           ccc: parseFloat(res.data.ccc),
@@ -83,12 +93,28 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
+    const fetchTonExchanges = async () => {
+      try {
+        const telegramId =
+          window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
+        const res = await axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`);
+        if (Array.isArray(res.data)) {
+          setTonExchanges(res.data);
+        } else {
+          console.error('Неверный формат данных TON-обменов:', res.data);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке истории TON-обменов:', error);
+      }
+    };
+
     fetchPlayer();
     fetchExchanges();
+    fetchTonExchanges();
   }, []);
 
   return (
-    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges }}>
+    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges }}>
       {children}
     </PlayerContext.Provider>
   );

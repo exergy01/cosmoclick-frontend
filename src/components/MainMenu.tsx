@@ -59,7 +59,6 @@ const MainMenu: React.FC = () => {
       flexDirection: 'column',
       alignItems: 'center'
     }}>
-      {/* Верхняя строка - АТАКА / ОБМЕН / ЗАДАНИЯ */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-around',
@@ -73,7 +72,7 @@ const MainMenu: React.FC = () => {
           style={bottomButtonStyle}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
-          onClick={() => navigate('/exchange')} // Переход на страницу ОБМЕН
+          onClick={() => navigate('/exchange')}
         >
           🔄 ОБМЕН
         </button>
@@ -81,25 +80,31 @@ const MainMenu: React.FC = () => {
           style={bottomButtonStyle}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
-          onClick={() => navigate('/quests')} // Переход на страницу ЗАДАНИЯ
+          onClick={() => navigate('/quests')}
         >
           🎯 ЗАДАНИЯ
         </button>
       </div>
 
-      {/* Нижняя строка - значки */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-around',
         width: '100%'
       }}>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>🎮</button>
-        <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>💳</button>
         <button
           style={menuButtonStyle}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
-          onClick={() => navigate('/')} // Переход на главную страницу
+          onClick={() => navigate('/wallet')}
+        >
+          💳
+        </button>
+        <button
+          style={menuButtonStyle}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onClick={() => navigate('/')}
         >
           🚀
         </button>
