@@ -10,7 +10,7 @@ const WalletPage: React.FC = () => {
   const [csToTonAmount, setCsToTonAmount] = useState('');
   const [tonToCsAmount, setTonToCsAmount] = useState('');
   const [tonConnectUI] = useTonConnectUI();
-  const walletAddress = useTonAddress();
+  const walletAddress = useTonAddress() || 'UQ1234567890abcdef1234567890abcdef1234567890abcdef1234'; // Фиктивный адрес для теста
 
   // Курсы обмена
   const csToTonRate = 0.1; // 1 CS = 0.1 TON
@@ -97,16 +97,19 @@ const WalletPage: React.FC = () => {
     }
 
     try {
+      // Закомментировано для теста без реальной транзакции
+      /*
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 60,
         messages: [
           {
-            address: 'YOUR_SERVER_WALLET_ADDRESS', // Укажи адрес серверного кошелька
-            amount: (amountTON * 1e9).toString(), // TON в нанотонах
+            address: 'YOUR_SERVER_WALLET_ADDRESS',
+            amount: (amountTON * 1e9).toString(),
           },
         ],
       };
       await tonConnectUI.sendTransaction(transaction);
+      */
 
       const response = await axios.post(`${apiUrl}/exchange-ton-to-cs`, {
         telegramId: player.telegram_id,
@@ -123,7 +126,7 @@ const WalletPage: React.FC = () => {
       });
       setTonExchanges([exchange, ...tonExchanges]);
       setTonToCsAmount('');
-      alert('🎯 Обмен успешен!');
+      alert('🎯 Обмен успешен (тестовый режим)!');
     } catch (error) {
       console.error('Ошибка при обмене TON на CS:', error);
       alert('❌ Ошибка при обмене!');
