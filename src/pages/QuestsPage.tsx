@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import TopBar from '../components/TopBar';
 import MainMenu from '../components/MainMenu';
-import BottomMenu from '../components/BottomMenu';
 
 interface Quest {
   id: number;

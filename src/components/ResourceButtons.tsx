@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios';
-import { usePlayer } from '../contexts/PlayerContext';
+import { usePlayer } from '../context/PlayerContext'; // Исправлен путь
 
 const ResourceButtons: React.FC = () => {
   const { player, setPlayer } = usePlayer();

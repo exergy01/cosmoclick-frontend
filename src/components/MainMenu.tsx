@@ -69,14 +69,19 @@ const MainMenu: React.FC = () => {
         <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
           ⚔️ АТАКА
         </button>
-        <button style={bottomButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>
+        <button
+          style={bottomButtonStyle}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onClick={() => navigate('/exchange')} // Переход на страницу ОБМЕН
+        >
           🔄 ОБМЕН
         </button>
         <button
           style={bottomButtonStyle}
           onMouseDown={handleMouseDown}
           onMouseUp={handleMouseUp}
-          onClick={() => navigate('/quests')} // 👉 Переход на страницу ЗАДАНИЯ
+          onClick={() => navigate('/quests')} // Переход на страницу ЗАДАНИЯ
         >
           🎯 ЗАДАНИЯ
         </button>
@@ -91,14 +96,13 @@ const MainMenu: React.FC = () => {
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>🎮</button>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>💳</button>
         <button
-  style={menuButtonStyle}
-  onMouseDown={handleMouseDown}
-  onMouseUp={handleMouseUp}
-  onClick={() => navigate('/')} // 👉 Переход на главную страницу
->
-  🚀
-</button>
-
+          style={menuButtonStyle}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onClick={() => navigate('/')} // Переход на главную страницу
+        >
+          🚀
+        </button>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>👥</button>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>📖</button>
       </div>

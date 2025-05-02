@@ -1,118 +1,103 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
-interface Cargo {
-  level: number;
-  capacity: number;
-  autoCollect: boolean;
+interface Drone {
+  id: number;
+  system: number;
 }
 
-interface Player {
+interface Exchange {
+  id: number;
+  type: 'CCC_TO_CS' | 'CS_TO_CCC';
+  amount_from: number;
+  amount_to: number;
+  timestamp: string;
+}
+
+export interface Player {
   id: number;
   telegram_id: string;
   nickname: string | null;
   created_at: string;
-  ccc: number;
-  cs: number;
-  ton: number;
+  ccc: number; // Изменено на number
+  cs: number; // Изменено на number
+  ton: number; // Изменено на number
   current_system: number;
-  drones: any[];
-  cargo: Cargo;
-  asteroids: any[];
+  drones: Drone[];
+  cargo: {
+    level: number;
+    capacity: number;
+    autoCollect: boolean;
+  };
+  asteroids: number[]; // Предполагаем, что это массив чисел
 }
 
 interface PlayerContextType {
   player: Player | null;
   setPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
+  exchanges: Exchange[];
+  setExchanges: React.Dispatch<React.SetStateAction<Exchange[]>>;
 }
 
-const PlayerContext = createContext<PlayerContextType>({
-  player: null,
-  setPlayer: () => {},
-});
-
-export const usePlayer = () => useContext(PlayerContext);
+const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<Player | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
-  const hasFetched = useRef(false);
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
+
+  const apiUrl = process.env.NODE_ENV === 'production'
+    ? 'https://cosmoclick-backend.onrender.com'
+    : 'http://localhost:5000';
 
   useEffect(() => {
-    if (hasFetched.current || isFetching) return;
-    hasFetched.current = true;
-    setIsFetching(true);
-
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-web-app.js';
-    script.async = true;
-    script.onload = () => console.log('telegram-web-app.js loaded');
-    script.onerror = () => console.error('Failed to load telegram-web-app.js');
-    document.head.appendChild(script);
-
-    const fetchPlayer = async (telegramId: string) => {
+    const fetchPlayer = async () => {
       try {
-        console.log('Fetching player with telegramId:', telegramId);
-        const res = await axios.get(`https://cosmoclick-backend.onrender.com/player/${telegramId}`);
-        console.log('Player response:', res.data);
-        setPlayer(res.data);
-      } catch (err: any) {
-        console.error('❌ Ошибка при получении/создании игрока:', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-        });
-      } finally {
-        setIsFetching(false);
+        const telegramId =
+          window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
+        const res = await axios.get(`${apiUrl}/player/${telegramId}`);
+        // Преобразуем строки в числа
+        const playerData = {
+          ...res.data,
+          ccc: parseFloat(res.data.ccc),
+          cs: parseFloat(res.data.cs),
+          ton: parseFloat(res.data.ton),
+        };
+        setPlayer(playerData);
+      } catch (error) {
+        console.error('Ошибка при получении данных игрока:', error);
       }
     };
 
-    const tryFetchTelegramId = () => {
-      const telegramWebApp = window.Telegram?.WebApp;
-      const initDataUnsafe = telegramWebApp?.initDataUnsafe;
-      const telegramUser = initDataUnsafe?.user;
-      console.log('Telegram WebApp data:', {
-        telegramWebApp: !!telegramWebApp,
-        initDataUnsafe,
-        user: telegramUser,
-        initData: telegramWebApp?.initData || 'No initData',
-        rawInitDataUnsafe: JSON.stringify(initDataUnsafe),
-      });
-
-      const telegramId = telegramUser?.id ? telegramUser.id.toString() : 'local_123456789';
-      fetchPlayer(telegramId);
+    const fetchExchanges = async () => {
+      try {
+        const telegramId =
+          window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
+        const res = await axios.get(`${apiUrl}/exchange-history/${telegramId}`);
+        if (Array.isArray(res.data)) {
+          setExchanges(res.data);
+        } else {
+          console.error('Неверный формат данных обменов:', res.data);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке истории обменов:', error);
+      }
     };
 
-    console.log('Checking if telegram-web-app.js is loaded:', !!window.Telegram);
-    tryFetchTelegramId();
-
-    let interval: NodeJS.Timeout | null = null;
-    if (!window.Telegram?.WebApp) {
-      interval = setInterval(() => {
-        if (window.Telegram?.WebApp) {
-          console.log('Telegram WebApp initialized after delay');
-          tryFetchTelegramId();
-          clearInterval(interval!);
-        }
-      }, 500);
-
-      setTimeout(() => {
-        if (interval && !window.Telegram?.WebApp) {
-          console.warn('Telegram WebApp not initialized after 10s, using local_123456789');
-          fetchPlayer('local_123456789');
-          clearInterval(interval);
-        }
-      }, 10000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    fetchPlayer();
+    fetchExchanges();
   }, []);
 
   return (
-    <PlayerContext.Provider value={{ player, setPlayer }}>
+    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges }}>
       {children}
     </PlayerContext.Provider>
   );
+};
+
+export const usePlayer = () => {
+  const context = useContext(PlayerContext);
+  if (!context) {
+    throw new Error('usePlayer must be used within a PlayerProvider');
+  }
+  return context;
 };
