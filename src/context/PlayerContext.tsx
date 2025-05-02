@@ -9,46 +9,38 @@ interface Player {
   ccc: number;
   cs: number;
   ton: number;
+  energy?: number;
   current_system: number;
   drones: any[];
   asteroids: any[];
   cargo: {
+    ccc: number;
     level: number;
-    capacity: number;
-    autoCollect: boolean;
   };
 }
 
-interface PlayerContextProps {
+interface PlayerContextType {
   player: Player | null;
   setPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
-  loading: boolean;
 }
 
-const PlayerContext = createContext<PlayerContextProps>({
-  player: null,
-  setPlayer: () => {},
-  loading: true,
-});
-
-export const usePlayer = () => useContext(PlayerContext);
+const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [player, setPlayer] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPlayer = async () => {
       try {
-        const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
-        const telegramId = `${telegramUser?.id ?? 'local_123456789'}`; // Всегда строка
+        const isTelegram = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const telegramId = isTelegram
+          ? window.Telegram.WebApp.initDataUnsafe.user.id.toString()
+          : 'local_123456789';
 
-        const response = await axios.get(`http://localhost:3000/player/${telegramId}`);
-        setPlayer(response.data);
-      } catch (error) {
-        console.error('❌ Ошибка при получении/создании игрока:', error);
-      } finally {
-        setLoading(false);
+        const res = await axios.get(`http://localhost:3000/player/${telegramId}`);
+        setPlayer(res.data);
+      } catch (err: any) {
+        console.error('❌ Ошибка при получении/создании игрока:', err);
       }
     };
 
@@ -56,8 +48,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   return (
-    <PlayerContext.Provider value={{ player, setPlayer, loading }}>
+    <PlayerContext.Provider value={{ player, setPlayer }}>
       {children}
     </PlayerContext.Provider>
   );
+};
+
+export const usePlayer = (): PlayerContextType => {
+  const context = useContext(PlayerContext);
+  if (!context) {
+    throw new Error('usePlayer must be used within a PlayerProvider');
+  }
+  return context;
 };
