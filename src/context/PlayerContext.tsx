@@ -1,6 +1,29 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 
+// Расширяем тип TelegramWebApp для поддержки initData
+interface TelegramWebApp {
+  initData: string;
+  initDataUnsafe: {
+    user?: {
+      id: number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+      language_code?: string;
+    };
+  };
+  [key: string]: any;
+}
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp: TelegramWebApp;
+    };
+  }
+}
+
 interface Cargo {
   level: number;
   capacity: number;
@@ -75,7 +98,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         telegramWebApp: !!telegramWebApp,
         initDataUnsafe,
         user: telegramUser,
-        initData: window.Telegram?.WebApp?.initData,
+        initData: telegramWebApp?.initData || 'No initData',
       });
 
       const telegramId = telegramUser?.id ? telegramUser.id.toString() : 'local_123456789';
