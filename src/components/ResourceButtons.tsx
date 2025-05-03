@@ -1,9 +1,16 @@
 import React from 'react';
 import axios from 'axios';
-import { usePlayer } from '../context/PlayerContext'; // Исправлен путь
+import { usePlayer } from '../context/PlayerContext';
+import { useNavigate } from 'react-router-dom';
+
+interface Drone {
+  id: number;
+  system: number;
+}
 
 const ResourceButtons: React.FC = () => {
   const { player, setPlayer } = usePlayer();
+  const navigate = useNavigate();
 
   const buttonStyle: React.CSSProperties = {
     width: '30%',
@@ -33,14 +40,14 @@ const ResourceButtons: React.FC = () => {
 
   const buyDrone = async () => {
     if (!player) return;
-    const cost = 500; // Стоимость дрона в ccc
+    const cost = 500;
     if (player.ccc < cost) {
       alert('Недостаточно CCC для покупки дрона!');
       return;
     }
 
     try {
-      const updatedDrones = [...player.drones, { id: player.drones.length + 1, system: player.current_system }];
+      const updatedDrones = [...player.drones, { id: player.drones.length + 1, system: player.current_system || 1 }];
       const updatedPlayer = {
         ...player,
         ccc: player.ccc - cost,
@@ -61,7 +68,7 @@ const ResourceButtons: React.FC = () => {
 
   const upgradeCargo = async () => {
     if (!player) return;
-    const cost = 1000; // Стоимость улучшения карго в ccc
+    const cost = 1000;
     if (player.ccc < cost) {
       alert('Недостаточно CCC для улучшения карго!');
       return;
@@ -93,7 +100,7 @@ const ResourceButtons: React.FC = () => {
 
   const toggleAutoCollect = async () => {
     if (!player) return;
-    const cost = 2000; // Стоимость включения autoCollect в ccc
+    const cost = 2000;
     if (player.ccc < cost) {
       alert('Недостаточно CCC для включения автосбора!');
       return;
@@ -122,6 +129,10 @@ const ResourceButtons: React.FC = () => {
     }
   };
 
+  if (!player) {
+    return null;
+  }
+
   return (
     <div
       style={{
@@ -135,31 +146,32 @@ const ResourceButtons: React.FC = () => {
         style={buttonStyle}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onClick={() => navigate('/shop?tab=resources')}
       >
         РЕСУРСЫ<br />
-        CCC: {player?.ccc ?? '0'}<br />
-        CS: {player?.cs ?? '0'}<br />
-        TON: {player?.ton ?? '0'}
+        CCC: {player.ccc ?? '0'}<br />
+        CS: {player.cs ?? '0'}<br />
+        TON: {player.ton ?? '0'}
       </button>
       <button
         style={buttonStyle}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        onClick={buyDrone}
+        onClick={() => navigate('/shop?tab=drones')}
       >
         ДРОНЫ<br />
-        Кол-во: {player?.drones.length ?? '0'}
+        Кол-во: {player.drones.length ?? '0'}
       </button>
       <button
         style={buttonStyle}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
-        onClick={player?.cargo.autoCollect ? toggleAutoCollect : upgradeCargo}
+        onClick={() => navigate('/shop?tab=cargo')}
       >
         КАРГО<br />
-        Уровень: {player?.cargo.level ?? '1'}<br />
-        Вместимость: {player?.cargo.capacity ?? '0'}<br />
-        Автосбор: {player?.cargo.autoCollect ? 'Вкл' : 'Выкл'}
+        Уровень: {player.cargo.level ?? '1'}<br />
+        Вместимость: {player.cargo.capacity ?? '0'}<br />
+        Автосбор: {player.cargo.autoCollect ? 'Вкл' : 'Выкл'}
       </button>
     </div>
   );

@@ -3,8 +3,11 @@ import TopBar from '../components/TopBar';
 import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
 import MainMenu from '../components/MainMenu';
+import { usePlayer } from '../context/PlayerContext';
 
 const HomePage: React.FC = () => {
+  const { player, loading, error } = usePlayer();
+
   useEffect(() => {
     const initPlayer = async () => {
       try {
@@ -54,16 +57,26 @@ const HomePage: React.FC = () => {
         paddingBottom: '120px'
       }}>
         <TopBar />
-        <ResourceButtons />
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%'
-        }}>
-          <CenterPanel />
-        </div>
+        {loading ? (
+          <p style={{ textAlign: 'center', fontSize: '16px' }}>Загрузка...</p>
+        ) : error ? (
+          <p style={{ textAlign: 'center', fontSize: '16px', color: '#ff5555' }}>{error}</p>
+        ) : player ? (
+          <>
+            <ResourceButtons />
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%'
+            }}>
+              <CenterPanel />
+            </div>
+          </>
+        ) : (
+          <p style={{ textAlign: 'center', fontSize: '16px' }}>Игрок не загружен</p>
+        )}
       </div>
 
       <div style={{
@@ -78,14 +91,6 @@ const HomePage: React.FC = () => {
         <div style={{
           display: 'flex',
           justifyContent: 'space-around',
-          padding: '5px 0',
-          backgroundColor: 'rgba(0, 0, 34, 0.9)'
-        }}></div>
-
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
           padding: '5px 0',
           backgroundColor: 'rgba(0, 0, 34, 0.9)'
         }}>
