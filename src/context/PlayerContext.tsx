@@ -40,6 +40,29 @@ export interface Player {
   asteroids: number[];
 }
 
+interface UserQuest {
+  id: number;
+  user_id: string;
+  quest_id: number;
+  status: string;
+  progress: number;
+  title: string;
+  description: string;
+  reward_type: string;
+  reward_amount: number;
+  required_amount: number;
+  type: string;
+  metadata?: {
+    channel?: string;
+    message_id?: number;
+    reaction?: string;
+    bot?: string;
+    link?: string;
+    ref?: string;
+    ad_slot?: number;
+  };
+}
+
 interface PlayerContextType {
   player: Player | null;
   setPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
@@ -47,6 +70,8 @@ interface PlayerContextType {
   setExchanges: React.Dispatch<React.SetStateAction<Exchange[]>>;
   tonExchanges: TonExchange[];
   setTonExchanges: React.Dispatch<React.SetStateAction<TonExchange[]>>;
+  quests: UserQuest[];
+  setQuests: React.Dispatch<React.SetStateAction<UserQuest[]>>;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -55,16 +80,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [player, setPlayer] = useState<Player | null>(null);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [tonExchanges, setTonExchanges] = useState<TonExchange[]>([]);
+  const [quests, setQuests] = useState<UserQuest[]>([]);
 
   const apiUrl = process.env.NODE_ENV === 'production'
     ? 'https://cosmoclick-backend.onrender.com'
     : 'http://localhost:5000';
 
   useEffect(() => {
+    const telegramId =
+      window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
+
     const fetchPlayer = async () => {
       try {
-        const telegramId =
-          window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
         const res = await axios.get(`${apiUrl}/player/${telegramId}`);
         const playerData = {
           ...res.data,
@@ -80,8 +107,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const fetchExchanges = async () => {
       try {
-        const telegramId =
-          window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
         const res = await axios.get(`${apiUrl}/exchange-history/${telegramId}`);
         if (Array.isArray(res.data)) {
           setExchanges(res.data);
@@ -95,8 +120,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const fetchTonExchanges = async () => {
       try {
-        const telegramId =
-          window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() ?? 'local_123456789';
         const res = await axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`);
         if (Array.isArray(res.data)) {
           setTonExchanges(res.data);
@@ -108,13 +131,27 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
+    const fetchQuests = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/api/user-quests/${telegramId}`);
+        if (Array.isArray(res.data)) {
+          setQuests(res.data);
+        } else {
+          console.error('Неверный формат данных квестов:', res.data);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке квестов:', error);
+      }
+    };
+
     fetchPlayer();
     fetchExchanges();
     fetchTonExchanges();
+    fetchQuests();
   }, []);
 
   return (
-    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges }}>
+    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests }}>
       {children}
     </PlayerContext.Provider>
   );
