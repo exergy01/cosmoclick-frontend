@@ -108,7 +108,14 @@ const MainMenu: React.FC = () => {
         >
           🚀
         </button>
-        <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>👥</button>
+        <button
+          style={menuButtonStyle}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onClick={() => navigate('/referrals')}
+        >
+          👥
+        </button>
         <button style={menuButtonStyle} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp}>📖</button>
       </div>
     </div>

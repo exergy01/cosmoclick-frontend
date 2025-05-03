@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 
 interface Drone {
@@ -38,6 +38,8 @@ export interface Player {
     autoCollect: boolean;
   };
   asteroids: number[];
+  referral_link?: string;
+  referrals_count?: number;
 }
 
 interface UserQuest {
@@ -72,6 +74,10 @@ interface PlayerContextType {
   setTonExchanges: React.Dispatch<React.SetStateAction<TonExchange[]>>;
   quests: UserQuest[];
   setQuests: React.Dispatch<React.SetStateAction<UserQuest[]>>;
+  generateReferralLink: () => Promise<void>;
+  getReferralStats: () => Promise<void>;
+  loading: boolean;
+  error: string | null;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -81,6 +87,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [tonExchanges, setTonExchanges] = useState<TonExchange[]>([]);
   const [quests, setQuests] = useState<UserQuest[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasFetchedStats, setHasFetchedStats] = useState<boolean>(false);
 
   const apiUrl = process.env.NODE_ENV === 'production'
     ? 'https://cosmoclick-backend.onrender.com'
@@ -92,6 +101,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const fetchPlayer = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`${apiUrl}/player/${telegramId}`);
         const playerData = {
           ...res.data,
@@ -100,58 +110,110 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           ton: parseFloat(res.data.ton),
         };
         setPlayer(playerData);
-      } catch (error) {
-        console.error('Ошибка при получении данных игрока:', error);
+      } catch (err: any) {
+        setError(`Ошибка при получении данных игрока: ${err.message}`);
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
 
     const fetchExchanges = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`${apiUrl}/exchange-history/${telegramId}`);
         if (Array.isArray(res.data)) {
           setExchanges(res.data);
         } else {
           console.error('Неверный формат данных обменов:', res.data);
         }
-      } catch (error) {
-        console.error('Ошибка при загрузке истории обменов:', error);
+      } catch (err: any) {
+        setError(`Ошибка при загрузке истории обменов: ${err.message}`);
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
 
     const fetchTonExchanges = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`);
         if (Array.isArray(res.data)) {
           setTonExchanges(res.data);
         } else {
           console.error('Неверный формат данных TON-обменов:', res.data);
         }
-      } catch (error) {
-        console.error('Ошибка при загрузке истории TON-обменов:', error);
+      } catch (err: any) {
+        setError(`Ошибка при загрузке истории TON-обменов: ${err.message}`);
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
 
     const fetchQuests = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`${apiUrl}/api/user-quests/${telegramId}`);
         if (Array.isArray(res.data)) {
           setQuests(res.data);
         } else {
           console.error('Неверный формат данных квестов:', res.data);
         }
-      } catch (error) {
-        console.error('Ошибка при загрузке квестов:', error);
+      } catch (err: any) {
+        setError(`Ошибка при загрузке квестов: ${err.message}`);
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchPlayer();
-    fetchExchanges();
-    fetchTonExchanges();
-    fetchQuests();
+    const fetchData = async () => {
+      await Promise.all([
+        fetchPlayer(),
+        fetchExchanges(),
+        fetchTonExchanges(),
+        fetchQuests(),
+      ]);
+    };
+
+    fetchData();
   }, []);
 
+  const generateReferralLink = useCallback(async () => {
+    if (!player) return;
+    try {
+      setLoading(true);
+      const res = await axios.post(`${apiUrl}/generate-referral`, {
+        telegramId: player.telegram_id,
+      });
+      setPlayer(prev => prev ? { ...prev, referral_link: res.data.link } : prev);
+    } catch (err: any) {
+      setError(`Ошибка при генерации реферальной ссылки: ${err.message}`);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [player, apiUrl]);
+
+  const getReferralStats = useCallback(async () => {
+    if (!player || hasFetchedStats) return;
+    try {
+      setLoading(true);
+      const res = await axios.get(`${apiUrl}/referrals/${player.telegram_id}`);
+      setPlayer(prev => prev ? { ...prev, referrals_count: res.data.count } : prev);
+      setHasFetchedStats(true);
+    } catch (err: any) {
+      setError(`Ошибка при загрузке статистики рефералов: ${err.message}`);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [player, apiUrl, hasFetchedStats]);
+
   return (
-    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests }}>
+    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests, generateReferralLink, getReferralStats, loading, error }}>
       {children}
     </PlayerContext.Provider>
   );
