@@ -73,7 +73,37 @@ const ShopPage = () => {
 
       if (data.success) {
         alert('Покупка успешна!');
-        refetch();
+        let updatedPlayer = { ...player! };
+
+        if (itemType === 'asteroid') {
+          updatedPlayer = {
+            ...updatedPlayer,
+            cs: (updatedPlayer.cs || 0) - price,
+            asteroids: [...(updatedPlayer.asteroids || []), itemId],
+          };
+        } else if (itemType === 'drone') {
+          updatedPlayer = {
+            ...updatedPlayer,
+            cs: (updatedPlayer.cs || 0) - price,
+            drones: [...(updatedPlayer.drones || []), { id: itemId, system: updatedPlayer.current_system || 1 }],
+          };
+        } else if (itemType === 'cargo') {
+          const currentCargo = updatedPlayer.cargo || { level: 0, capacity: 0, autoCollect: false };
+          const cargoItem = cargoData.find(c => c.level === itemId);
+          updatedPlayer = {
+            ...updatedPlayer,
+            cs: (updatedPlayer.cs || 0) - price,
+            cargo: {
+              ...currentCargo,
+              level: itemId,
+              capacity: cargoItem?.capacity || currentCargo.capacity,
+              autoCollect: currentCargo.autoCollect,
+            },
+          };
+        }
+
+        setPlayer(updatedPlayer); // Обновляем локальное состояние
+        refetch(); // Синхронизируем с сервером
       } else {
         alert(`Ошибка: ${data.error}`);
       }
@@ -81,6 +111,14 @@ const ShopPage = () => {
       console.error('Purchase error:', error);
       alert(`Ошибка: ${(error as Error).message}`);
     }
+  };
+
+  const calculateTotalAsteroidCapacity = () => {
+    if (!fetchedPlayer?.asteroids) return 0;
+    return fetchedPlayer.asteroids.reduce((total, asteroidId) => {
+      const asteroid = asteroidData.find(a => a.id === asteroidId);
+      return total + (asteroid ? asteroid.capacity : 0);
+    }, 0);
   };
 
   const renderItems = (items: any[], type: string, playerItems: any) => {
@@ -106,7 +144,7 @@ const ShopPage = () => {
       const itemLabel = type === 'cargo'
         ? `УРОВЕНЬ ${item.level}\n${item.capacity === Infinity ? 'АВТО' : `${item.capacity} CCC`}\n${item.price} CS`
         : type === 'drone'
-        ? `Дрон №${item.id}\n${item.cccPerDay} CCC в сутки\n${item.price} CS`
+        ? `БОТ №${item.id}\n${item.cccPerDay} CCC/СУТКИ\n${item.price} CS`
         : `АСТЕРОИДЫ\n№${item.id}\n${item.capacity} CCC\n${item.price} CS`;
 
       return (
@@ -199,26 +237,7 @@ const ShopPage = () => {
           )}
         </div>
       </div>
-
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        background: 'transparent',
-        boxShadow: 'none',
-        borderTop: 'none'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          padding: '5px 0',
-          backgroundColor: 'rgba(0, 0, 34, 0.9)'
-        }}>
-          <MainMenu activeTab={activeTab} />
-        </div>
-      </div>
+      <MainMenu />
     </div>
   );
 };

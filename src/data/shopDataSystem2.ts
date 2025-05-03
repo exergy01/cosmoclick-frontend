@@ -1,0 +1,41 @@
+export const asteroidData = [
+    { id: 1, price: 55, capacity: 1600 },
+    { id: 2, price: 55, capacity: 2300 },
+    { id: 3, price: 55, capacity: 3500 },
+    { id: 4, price: 55, capacity: 5200 },
+    { id: 5, price: 55, capacity: 7800 },
+    { id: 6, price: 55, capacity: 11600 },
+    { id: 7, price: 55, capacity: 17400 },
+    { id: 8, price: 55, capacity: 26100 },
+    { id: 9, price: 55, capacity: 39100 },
+    { id: 10, price: 55, capacity: 58600 },
+    { id: 11, price: 55, capacity: 87900 },
+    { id: 12, price: 55, capacity: 98900 }
+  ];
+  
+  export const droneData = [
+    { id: 1, price: 1, cccPerDay: 96 },
+    { id: 2, price: 9, cccPerDay: 129 },
+    { id: 3, price: 17, cccPerDay: 174 },
+    { id: 4, price: 25, cccPerDay: 236 },
+    { id: 5, price: 34, cccPerDay: 318 },
+    { id: 6, price: 43, cccPerDay: 430 },
+    { id: 7, price: 52, cccPerDay: 581 },
+    { id: 8, price: 61, cccPerDay: 784 },
+    { id: 9, price: 70, cccPerDay: 1059 },
+    { id: 10, price: 80, cccPerDay: 1430 },
+    { id: 11, price: 90, cccPerDay: 1930 },
+    { id: 12, price: 100, cccPerDay: 2606 },
+    { id: 13, price: 110, cccPerDay: 3518 },
+    { id: 14, price: 120, cccPerDay: 4750 },
+    { id: 15, price: 130, cccPerDay: 6595 }
+  ];
+  
+  export const cargoData = [
+    { level: 1, price: 1, capacity: 50 },
+    { level: 2, price: 5, capacity: 200 },
+    { level: 3, price: 15, capacity: 2000 },
+    { level: 4, price: 45, capacity: 20000 },
+    { level: 5, price: 100, capacity: Infinity } // Автосбор
+  ];
+  

@@ -1,7 +1,8 @@
 import React from 'react';
 import axios from 'axios';
 import { usePlayer } from '../context/PlayerContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { asteroidData } from '../data/shopDataSystem1';
 
 interface Drone {
   id: number;
@@ -11,6 +12,9 @@ interface Drone {
 const ResourceButtons: React.FC = () => {
   const { player, setPlayer } = usePlayer();
   const navigate = useNavigate();
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  const activeTab = query.get('tab') || 'resources';
 
   const buttonStyle: React.CSSProperties = {
     width: '30%',
@@ -21,21 +25,44 @@ const ResourceButtons: React.FC = () => {
     color: '#00f0ff',
     border: '2px solid #00f0ff',
     fontSize: '16px',
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     boxShadow: '0 0 8px #00f0ff',
     textAlign: 'center',
     cursor: 'pointer',
     transition: '0.3s',
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = '#00f0ff';
-    e.currentTarget.style.color = '#001133';
+  const getButtonStyle = (tab: string): React.CSSProperties => ({
+    ...buttonStyle,
+    boxShadow: activeTab === tab ? 'inset 0 0 10px #00f0ff, 0 0 8px #00f0ff' : '0 0 8px #00f0ff',
+  });
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
+    if (!isActive) {
+      e.currentTarget.style.backgroundColor = '#00f0ff';
+      e.currentTarget.style.color = '#001133';
+    }
   };
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = 'transparent';
-    e.currentTarget.style.color = '#00f0ff';
+  const handleMouseUp = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
+    if (!isActive) {
+      e.currentTarget.style.backgroundColor = 'transparent';
+      e.currentTarget.style.color = '#00f0ff';
+    }
+  };
+
+  const calculateTotalAsteroidCapacity = () => {
+    if (!player?.asteroids) return 0;
+    return player.asteroids.reduce((total: number, asteroidId: number) => {
+      const asteroid = asteroidData.find(a => a.id === asteroidId);
+      return total + (asteroid ? asteroid.capacity : 0);
+    }, 0);
+  };
+
+  const calculateRemainingResources = () => {
+    const totalCapacity = calculateTotalAsteroidCapacity();
+    const currentCCC = player?.ccc ?? 0;
+    return Math.max(0, totalCapacity - currentCCC);
   };
 
   const buyDrone = async () => {
@@ -143,35 +170,32 @@ const ResourceButtons: React.FC = () => {
       }}
     >
       <button
-        style={buttonStyle}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
+        style={getButtonStyle('resources')}
+        onMouseDown={(e) => handleMouseDown(e, activeTab === 'resources')}
+        onMouseUp={(e) => handleMouseUp(e, activeTab === 'resources')}
         onClick={() => navigate('/shop?tab=resources')}
       >
-        РЕСУРСЫ<br />
-        CCC: {player.ccc ?? '0'}<br />
-        CS: {player.cs ?? '0'}<br />
-        TON: {player.ton ?? '0'}
+        РЕСУРСЫ<br /><br />
+        {player.asteroids.length ?? '0'} / 12<br /><br />
+        {calculateRemainingResources()} CCC
       </button>
       <button
-        style={buttonStyle}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
+        style={getButtonStyle('drones')}
+        onMouseDown={(e) => handleMouseDown(e, activeTab === 'drones')}
+        onMouseUp={(e) => handleMouseUp(e, activeTab === 'drones')}
         onClick={() => navigate('/shop?tab=drones')}
       >
-        ДРОНЫ<br />
-        Кол-во: {player.drones.length ?? '0'}
+        ДРОНЫ<br /><br />
+        {player.drones.length ?? '0'} / 15
       </button>
       <button
-        style={buttonStyle}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
+        style={getButtonStyle('cargo')}
+        onMouseDown={(e) => handleMouseDown(e, activeTab === 'cargo')}
+        onMouseUp={(e) => handleMouseUp(e, activeTab === 'cargo')}
         onClick={() => navigate('/shop?tab=cargo')}
       >
-        КАРГО<br />
-        Уровень: {player.cargo.level ?? '1'}<br />
-        Вместимость: {player.cargo.capacity ?? '0'}<br />
-        Автосбор: {player.cargo.autoCollect ? 'Вкл' : 'Выкл'}
+        КАРГО<br /><br />
+        {player.cargo.level ?? '0'} / 5
       </button>
     </div>
   );

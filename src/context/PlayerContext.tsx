@@ -40,6 +40,7 @@ export interface Player {
   asteroids: number[];
   referral_link?: string;
   referrals_count?: number;
+  lastCollectionTime?: number; // Добавляем поле для времени последнего сбора
 }
 
 interface UserQuest {
@@ -108,6 +109,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           ccc: parseFloat(res.data.ccc),
           cs: parseFloat(res.data.cs),
           ton: parseFloat(res.data.ton),
+          lastCollectionTime: res.data.lastCollectionTime || Date.now(), // Устанавливаем значение по умолчанию
         };
         setPlayer(playerData);
       } catch (err: any) {

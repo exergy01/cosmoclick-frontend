@@ -5,6 +5,8 @@ const MainMenu: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+  const query = new URLSearchParams(location.search);
+  const activeTab = query.get('tab') || '';
 
   const menuButtonStyle: React.CSSProperties = {
     width: '20%',
@@ -14,7 +16,7 @@ const MainMenu: React.FC = () => {
     color: '#00f0ff',
     border: '2px solid #00f0ff',
     fontSize: '30px',
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     boxShadow: '0 0 8px #00f0ff',
     display: 'flex',
     justifyContent: 'center',
@@ -30,7 +32,7 @@ const MainMenu: React.FC = () => {
     backgroundColor: 'transparent',
     color: '#00f0ff',
     border: '2px solid #00f0ff',
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     fontSize: '16px',
     boxShadow: '0 0 8px #00f0ff',
     cursor: 'pointer',
@@ -52,11 +54,15 @@ const MainMenu: React.FC = () => {
     }
   };
 
-  const getButtonStyle = (baseStyle: React.CSSProperties, path: string): React.CSSProperties => ({
-    ...baseStyle,
-    backgroundColor: currentPath === path ? '#00f0ff' : 'transparent',
-    color: currentPath === path ? '#001133' : '#00f0ff'
-  });
+  const getButtonStyle = (baseStyle: React.CSSProperties, path: string, tab?: string): React.CSSProperties => {
+    const isActive = tab
+      ? currentPath === '/shop' && activeTab === tab
+      : currentPath === path;
+    return {
+      ...baseStyle,
+      boxShadow: isActive ? 'inset 0 0 10px #00f0ff, 0 0 8px #00f0ff' : '0 0 8px #00f0ff',
+    };
+  };
 
   return (
     <div style={{
