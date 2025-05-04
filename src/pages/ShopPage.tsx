@@ -18,28 +18,6 @@ interface Player {
   asteroids: number[];
 }
 
-const apiUrl = 'http://localhost:5000';
-
-const fetchShopData = async (telegramId: string): Promise<Player> => {
-  const response = await fetch(`${apiUrl}/player/${telegramId}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch player data: ${response.status} ${response.statusText}`);
-  }
-  const data = await response.json();
-  console.log('Fetched player data:', data);
-  if (!data.asteroids || typeof data.asteroids === 'string') {
-    data.asteroids = data.asteroids ? JSON.parse(data.asteroids) : [];
-  }
-  if (!data.drones || typeof data.drones === 'string') {
-    data.drones = data.drones ? JSON.parse(data.drones) : [];
-  }
-  if (!data.cargo || typeof data.cargo === 'string') {
-    data.cargo = data.cargo ? JSON.parse(data.cargo) : { level: 0, capacity: 0, autoCollect: false };
-  }
-  console.log('Processed player data:', data);
-  return data;
-};
-
 const ShopPage = () => {
   const { player, setPlayer } = usePlayer();
   const location = useLocation();
@@ -51,9 +29,24 @@ const ShopPage = () => {
     setActiveTab(query.get('tab') || 'asteroids');
   }, [location.search]);
 
+  const apiUrl = process.env.NODE_ENV === 'production'
+    ? 'https://cosmoclick-backend.onrender.com'
+    : 'http://localhost:5000';
+
   const { data: fetchedPlayer, error, refetch, isLoading } = useQuery<Player, Error>({
     queryKey: ['player', player?.telegram_id],
-    queryFn: () => fetchShopData(player?.telegram_id!),
+    queryFn: () => fetch(`${apiUrl}/api/player/${player?.telegram_id}`).then(res => {
+      if (!res.ok) throw new Error(`Failed to fetch player data: ${res.status} ${res.statusText}`);
+      return res.json();
+    }).then(data => {
+      console.log('Fetched player data:', data);
+      return {
+        ...data,
+        asteroids: Array.isArray(data.asteroids) ? data.asteroids : JSON.parse(data.asteroids || '[]'),
+        drones: Array.isArray(data.drones) ? data.drones : JSON.parse(data.drones || '[]'),
+        cargo: typeof data.cargo === 'string' ? JSON.parse(data.cargo) : data.cargo || { level: 0, capacity: 0, autoCollect: false },
+      };
+    }),
     enabled: !!player?.telegram_id,
   });
 
@@ -102,8 +95,8 @@ const ShopPage = () => {
           };
         }
 
-        setPlayer(updatedPlayer); // Обновляем локальное состояние
-        refetch(); // Синхронизируем с сервером
+        setPlayer(updatedPlayer);
+        refetch();
       } else {
         alert(`Ошибка: ${data.error}`);
       }
@@ -219,7 +212,7 @@ const ShopPage = () => {
             <p style={{ textAlign: 'center', fontSize: '16px' }}>Загрузка...</p>
           ) : error ? (
             <p style={{ textAlign: 'center', fontSize: '16px', color: '#ff5555' }}>
-              Ошибка: ${error.message}
+              Ошибка: {error.message}
             </p>
           ) : fetchedPlayer ? (
             <>
