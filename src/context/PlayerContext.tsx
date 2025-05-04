@@ -40,7 +40,7 @@ export interface Player {
   asteroids: number[];
   referral_link?: string;
   referrals_count?: number;
-  lastCollectionTime?: number; // Добавляем поле для времени последнего сбора
+  lastCollectionTime?: number;
 }
 
 interface UserQuest {
@@ -103,13 +103,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const fetchPlayer = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${apiUrl}/player/${telegramId}`);
+        const res = await axios.get(`${apiUrl}/api/player/${telegramId}`);
         const playerData = {
           ...res.data,
           ccc: parseFloat(res.data.ccc),
           cs: parseFloat(res.data.cs),
           ton: parseFloat(res.data.ton),
-          lastCollectionTime: res.data.lastCollectionTime || Date.now(), // Устанавливаем значение по умолчанию
+          lastCollectionTime: res.data.lastCollectionTime || Date.now(),
         };
         setPlayer(playerData);
       } catch (err: any) {

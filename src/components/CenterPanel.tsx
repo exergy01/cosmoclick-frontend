@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer, Player } from '../context/PlayerContext';
 import axios from 'axios';
 
-// Типы для данных системы
 interface DroneData {
   id: number;
   cccPerDay: number;
@@ -37,12 +36,16 @@ interface Drone {
 
 const CenterPanel: React.FC = () => {
   const { player, setPlayer } = usePlayer();
-  const [lastCollectionTime, setLastCollectionTime] = useState<number>(Date.now());
+  const [accumulatedCCC, setAccumulatedCCC] = useState<number>(0);
   const [isPressed, setIsPressed] = useState<boolean>(false);
-  const [pendingCCC, setPendingCCC] = useState<number>(0);
   const [systemData, setSystemData] = useState<SystemData>({ droneData: [], asteroidData: [], cargoData: [] });
-  const animationFrameId = useRef<number | null>(null);
-  const startTime = useRef<number>(0);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const lastPlayerData = useRef<Player | null>(player);
+
+  // Сохранение последнего известного состояния
+  useEffect(() => {
+    if (player) lastPlayerData.current = player;
+  }, [player]);
 
   // Динамическая загрузка данных системы
   useEffect(() => {
@@ -65,22 +68,22 @@ const CenterPanel: React.FC = () => {
   }, [player?.current_system]);
 
   const calculateMiningSpeed = () => {
-    if (!player?.drones || player.drones.length === 0 || !systemData.droneData.length) return 0;
-    const currentSystem = player.current_system || 1;
-    const activeDrones = player.drones.filter(drone => drone.system === currentSystem);
+    if (!lastPlayerData.current?.drones || lastPlayerData.current.drones.length === 0 || !systemData.droneData.length) return 0;
+    const currentSystem = lastPlayerData.current.current_system || 1;
+    const activeDrones = lastPlayerData.current.drones.filter(drone => drone.system === currentSystem);
     if (activeDrones.length === 0) return 0;
     const totalCCCPerSecond = activeDrones.reduce((total: number, drone: Drone) => {
       const droneInfo = systemData.droneData.find(d => d.id === drone.id);
       if (!droneInfo) return total;
       return total + (droneInfo.cccPerDay / (24 * 60 * 60));
     }, 0);
-    return totalCCCPerSecond || 0.04405; // Базовая скорость
+    return totalCCCPerSecond || 0.04405;
   };
 
   const calculateRemainingResources = () => {
-    if (!player?.asteroids || player.asteroids.length === 0 || !systemData.asteroidData.length) return 0;
-    const currentSystem = player.current_system || 1;
-    const activeAsteroids = player.asteroids.filter((asteroidId: number) => {
+    if (!lastPlayerData.current?.asteroids || lastPlayerData.current.asteroids.length === 0 || !systemData.asteroidData.length) return 0;
+    const currentSystem = lastPlayerData.current.current_system || 1;
+    const activeAsteroids = lastPlayerData.current.asteroids.filter((asteroidId: number) => {
       const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
       return asteroid && (asteroid.system || 1) === currentSystem;
     });
@@ -88,74 +91,93 @@ const CenterPanel: React.FC = () => {
       const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
       return total + (asteroid ? asteroid.capacity : 0);
     }, 0);
-    return Math.max(0, totalCapacity - (player.ccc || 0));
+    return Math.max(0, totalCapacity - (lastPlayerData.current.ccc || 0));
   };
 
-  const animateMining = () => {
-    if (!player || !player.drones || player.drones.length === 0 || !player.asteroids || player.asteroids.length === 0) return;
-
-    const animate = (currentTime: number) => {
-      if (!startTime.current) startTime.current = currentTime;
-      const elapsed = (currentTime - startTime.current) / 1000;
-      const miningSpeed = calculateMiningSpeed();
-      const newPendingCCC = miningSpeed * elapsed;
-      const remainingResources = calculateRemainingResources();
-      const cargoCapacity = player.cargo?.capacity || 50;
-
-      if (newPendingCCC >= 0 && remainingResources > newPendingCCC && (player.ccc || 0) + newPendingCCC <= cargoCapacity) {
-        setPendingCCC(newPendingCCC);
-      } else {
-        const maxPending = Math.min(cargoCapacity - (player.ccc || 0), remainingResources);
-        setPendingCCC(Math.min(newPendingCCC, maxPending));
-      }
-
-      animationFrameId.current = requestAnimationFrame(animate);
-    };
-
-    if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-    animationFrameId.current = requestAnimationFrame(animate);
-  };
-
+  // Синхронизация с сервером при изменении ключевых данных
   useEffect(() => {
-    if (!player || !systemData.droneData.length) return;
-    console.log('Player:', player);
-    console.log('lastCollectionTime:', player.lastCollectionTime);
-    setLastCollectionTime(player.lastCollectionTime || Date.now());
-    const elapsed = (Date.now() - (player.lastCollectionTime || Date.now())) / 1000;
-    const initialCCC = calculateMiningSpeed() * elapsed;
-    console.log('Initial CCC:', initialCCC, 'Mining Speed:', calculateMiningSpeed(), 'Elapsed:', elapsed);
-    setPendingCCC(initialCCC > 0 ? initialCCC : 0);
-    startTime.current = 0;
-    animateMining();
-  }, [player, systemData]);
+    const syncPlayerData = async () => {
+      if (!player || !player.telegram_id || isSyncing) return;
+      setIsSyncing(true);
+      try {
+        const res = await axios.get(`https://cosmoclick-backend.onrender.com/api/player/${player.telegram_id}`);
+        setPlayer(res.data);
+      } catch (err: any) {
+        console.error('Ошибка синхронизации данных игрока:', err);
+        if (err.response?.status === 404) {
+          // Создание нового игрока
+          const newPlayer = {
+            telegram_id: player.telegram_id,
+            nickname: null,
+            ccc: 0,
+            cs: 0,
+            ton: 0,
+            current_system: 1,
+            auto_collect: false,
+            drones: [],
+            asteroids: [],
+            cargo: { level: 1, capacity: 50, price: 0, system: 1 },
+            lastCollectionTime: Date.now()
+          };
+          try {
+            const createRes = await axios.post('https://cosmoclick-backend.onrender.com/api/player', newPlayer);
+            setPlayer(createRes.data);
+            lastPlayerData.current = createRes.data;
+          } catch (createErr) {
+            console.error('Ошибка создания игрока:', createErr);
+          }
+        } else if (lastPlayerData.current) {
+          setPlayer(lastPlayerData.current);
+        }
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+    syncPlayerData();
+  }, [player?.drones?.length, player?.asteroids?.length, player?.cargo?.level, player?.telegram_id]);
+
+  // Накопление CCC
+  useEffect(() => {
+    if (!lastPlayerData.current || !systemData.droneData.length || isSyncing) return;
+    const miningSpeed = calculateMiningSpeed();
+    const interval = setInterval(() => {
+      setAccumulatedCCC(prev => {
+        const remainingResources = calculateRemainingResources();
+        const cargoCapacity = lastPlayerData.current!.cargo.capacity || 50;
+        const newCCC = prev + miningSpeed;
+        if (newCCC >= 0 && remainingResources > newCCC && (lastPlayerData.current!.ccc || 0) + newCCC <= cargoCapacity) {
+          return newCCC;
+        }
+        return Math.min(Math.max(newCCC, 0), remainingResources, cargoCapacity - (lastPlayerData.current!.ccc || 0));
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lastPlayerData.current, systemData, isSyncing]);
 
   const collectCCC = async () => {
-    if (!player || pendingCCC <= 0) return;
+    if (!lastPlayerData.current || accumulatedCCC <= 0) return;
     const remainingResources = calculateRemainingResources();
-    const cargoCapacity = player.cargo?.capacity || 50;
-
-    if (remainingResources > 0 && (player.ccc || 0) + pendingCCC <= cargoCapacity) {
-      const updatedCCC = (player.ccc || 0) + pendingCCC;
+    const cargoCapacity = lastPlayerData.current.cargo.capacity || 50;
+    if (remainingResources > 0 && (lastPlayerData.current.ccc || 0) + accumulatedCCC <= cargoCapacity) {
+      const updatedCCC = (lastPlayerData.current.ccc || 0) + accumulatedCCC;
       const updatedPlayer = {
-        ...player,
+        ...lastPlayerData.current,
         ccc: updatedCCC,
         lastCollectionTime: Date.now(),
-        drones: [...player.drones],
-        asteroids: [...player.asteroids],
-        cargo: { ...player.cargo }
+        drones: [...lastPlayerData.current.drones],
+        asteroids: [...lastPlayerData.current.asteroids],
+        cargo: { ...lastPlayerData.current.cargo }
       };
       try {
         const res = await axios.put(
-          `https://cosmoclick-backend.onrender.com/api/player/${player.telegram_id}`,
+          `https://cosmoclick-backend.onrender.com/api/player/${lastPlayerData.current.telegram_id}`,
           updatedPlayer
         );
         setPlayer(res.data);
       } catch (err) {
         console.error('Ошибка записи в базу:', err);
       }
-      setPendingCCC(0);
-      startTime.current = 0;
-      animateMining();
+      setAccumulatedCCC(0);
     }
   };
 
@@ -170,7 +192,6 @@ const CenterPanel: React.FC = () => {
       width: '100%',
       paddingRight: '20px'
     }}>
-      {/* Сейф */}
       <div
         style={{
           width: '240px',
@@ -193,15 +214,13 @@ const CenterPanel: React.FC = () => {
         onMouseLeave={() => setIsPressed(false)}
       >
       </div>
-
-      {/* Счётчик */}
       <div style={{
         fontSize: '36px',
         fontFamily: 'Cursive, Orbitron, sans-serif',
         color: '#00f0ff',
         textShadow: '0 0 8px #00f0ff'
       }}>
-        {pendingCCC.toFixed(4)}
+        {accumulatedCCC.toFixed(4)}
       </div>
     </div>
   );
