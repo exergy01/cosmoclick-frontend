@@ -1,22 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 
 const StartPage: React.FC = () => {
-  const { loading } = usePlayer();
-  const [progress, setProgress] = useState(0);
+  const { loadProgress, loading } = usePlayer();
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100 || !loading) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-
-    return () => clearInterval(interval);
+    if (!loading) {
+      // Дополнительная задержка 500 мс для плавного перехода
+      const timer = setTimeout(() => {}, 500);
+      return () => clearTimeout(timer);
+    }
   }, [loading]);
 
   return (
@@ -25,7 +18,8 @@ const StartPage: React.FC = () => {
       width: '100vw',
       height: '100vh',
       display: 'flex',
-      justifyContent: 'center',
+      flexDirection: 'column',
+      justifyContent: 'flex-end',
       alignItems: 'center',
       overflow: 'hidden',
     }}>
@@ -42,30 +36,35 @@ const StartPage: React.FC = () => {
       />
       <div style={{
         textAlign: 'center',
-        color: 'white',
+        color: '#00f0ff',
         zIndex: 1,
+        marginBottom: '20px',
+        width: '90%',
       }}>
         <div style={{
-          width: '200px',
+          width: '100%',
           height: '20px',
-          backgroundColor: '#333',
+          backgroundColor: 'rgba(0, 0, 34, 0.8)',
+          border: '2px solid #00f0ff',
           borderRadius: '10px',
           overflow: 'hidden',
-          margin: '0 auto 10px',
+          boxShadow: '0 0 8px #00f0ff',
         }}>
           <div style={{
             height: '100%',
-            width: `${progress}%`,
-            backgroundColor: '#4caf50',
+            width: `${loadProgress}%`,
+            backgroundColor: '#00f0ff',
+            boxShadow: '0 0 10px #00f0ff',
             transition: 'width 0.3s ease',
           }} />
         </div>
         <p style={{
           fontSize: '1.2rem',
           fontWeight: 'bold',
-          textShadow: '0 0 5px rgba(0, 0, 0, 0.7)',
+          textShadow: '0 0 5px #00f0ff',
+          marginTop: '5px',
         }}>
-          Loading... {progress}%
+          Loading... {loadProgress}%
         </p>
       </div>
     </div>

@@ -97,6 +97,7 @@ interface PlayerContextType {
   refreshPlayer: () => Promise<void>;
   loading: boolean;
   error: string | null;
+  loadProgress: number;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -111,6 +112,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [hasFetchedStats, setHasFetchedStats] = useState<boolean>(false);
   const [lastPath, setLastPath] = useState<string>(window.location.pathname);
   const [systemData, setSystemData] = useState<{ droneData: DroneData[], asteroidData: AsteroidData[] }>({ droneData: [], asteroidData: [] });
+  const [loadProgress, setLoadProgress] = useState<number>(0);
   const lastUpdateTime = useRef<number>(Date.now());
   const miningSpeedRef = useRef<number>(0);
   const isFetchingRef = useRef<boolean>(false);
@@ -144,14 +146,32 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     isFetchingRef.current = true;
     try {
       setLoading(true);
+      setLoadProgress(0);
       const now = Date.now();
 
-      const [playerRes, exchangesRes, tonExchangesRes, questsRes] = await Promise.all([
+      const requests = [
         axios.get(`${apiUrl}/api/player/${telegramId}`),
         axios.get(`${apiUrl}/exchange-history/${telegramId}`),
         axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`),
         axios.get(`${apiUrl}/api/user-quests/${telegramId}`),
-      ]);
+      ];
+
+      const results = await Promise.allSettled(requests);
+      let completed = 0;
+
+      const [playerRes, exchangesRes, tonExchangesRes, questsRes] = results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          completed += 25; // 100% / 4 запроса = 25% за каждый
+          setLoadProgress(completed);
+          return result.value;
+        }
+        console.error(`Request ${index + 1} failed:`, result.reason);
+        return null;
+      });
+
+      if (!playerRes) {
+        throw new Error('Failed to fetch player data');
+      }
 
       let serverPlayer = {
         ...playerRes.data,
@@ -176,9 +196,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const updatedPlayer = { ...serverPlayer, cargoCCC: adjustedCargoCCC, lastUpdateTime: now };
       setPlayer(updatedPlayer);
-      setExchanges(exchangesRes.data);
-      setTonExchanges(tonExchangesRes.data);
-      setQuests(questsRes.data);
+      setExchanges(exchangesRes?.data || []);
+      setTonExchanges(tonExchangesRes?.data || []);
+      setQuests(questsRes?.data || []);
       lastUpdateTime.current = now;
       miningSpeedRef.current = miningSpeed;
 
@@ -218,6 +238,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setQuests([]);
           lastUpdateTime.current = now;
           miningSpeedRef.current = calculateMiningSpeed(createdPlayer);
+          setLoadProgress(100);
           return createdPlayer;
         } catch (createErr: any) {
           setError(`Ошибка создания игрока: ${createErr.message}`);
@@ -227,6 +248,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } finally {
       setLoading(false);
+      setLoadProgress(100);
       isFetchingRef.current = false;
     }
     return null;
@@ -241,6 +263,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
       setError('Запустите приложение через Telegram');
       setLoading(false);
+      setLoadProgress(100);
       return;
     }
 
@@ -383,7 +406,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [player, apiUrl]);
 
   return (
-    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests, generateReferralLink, getReferralStats, safeCollect, refreshPlayer, loading, error }}>
+    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests, generateReferralLink, getReferralStats, safeCollect, refreshPlayer, loading, error, loadProgress }}>
       {children}
     </PlayerContext.Provider>
   );
