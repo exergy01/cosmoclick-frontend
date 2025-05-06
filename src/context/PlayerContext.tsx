@@ -119,7 +119,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const apiUrl = 'https://cosmoclick-backend.onrender.com';
 
-  const calculateMiningSpeed = (player: Player) => {
+  const calculateMiningSpeed = (player: Player): number => {
     if (!player.drones || player.drones.length === 0 || !systemData.droneData.length) {
       return 0;
     }
@@ -137,6 +137,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return total + cccPerSecond;
     }, 0);
     return totalCCCPerSecond > 0 ? totalCCCPerSecond : 0.0001;
+  };
+
+  const calculateRemainingResources = (player: Player): number => {
+    if (!player.asteroids || player.asteroids.length === 0 || !systemData.asteroidData.length) {
+      return Infinity;
+    }
+    const currentSystem = player.current_system || 1;
+    const activeAsteroids = player.asteroids.filter((asteroidId: number) => {
+      const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
+      return asteroid && (asteroid.system || 1) === currentSystem;
+    });
+    const totalCapacity = activeAsteroids.reduce((total: number, asteroidId: number) => {
+      const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
+      return total + (asteroid ? asteroid.capacity : 0);
+    }, 0);
+    return Math.max(0, totalCapacity - (player.cargoCCC || 0));
   };
 
   const fetchAllData = useCallback(async (telegramId: string) => {
@@ -161,7 +177,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const [playerRes, exchangesRes, tonExchangesRes, questsRes] = results.map((result, index) => {
         if (result.status === 'fulfilled') {
-          completed += 25; // 100% / 4 запроса = 25% за каждый
+          completed += 25;
           setLoadProgress(completed);
           return result.value;
         }
@@ -186,15 +202,21 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const elapsedTime = (now - serverPlayer.lastUpdateTime) / 1000;
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
-      if (elapsedTime > 0) {
+      if (elapsedTime > 0 && miningSpeed > 0) {
         const offlineCCC = miningSpeed * elapsedTime;
+        const cargoCapacity = serverPlayer.cargo?.capacity || 1000;
+        const remainingResources = calculateRemainingResources(serverPlayer);
         adjustedCargoCCC = Math.min(
-          serverPlayer.cargo.capacity || 1000,
-          Math.max(0, serverPlayer.cargoCCC + offlineCCC)
+          cargoCapacity,
+          Math.min(remainingResources, serverPlayer.cargoCCC + offlineCCC)
         );
       }
 
-      const updatedPlayer = { ...serverPlayer, cargoCCC: adjustedCargoCCC, lastUpdateTime: now };
+      const updatedPlayer = {
+        ...serverPlayer,
+        cargoCCC: adjustedCargoCCC,
+        lastUpdateTime: now,
+      };
       setPlayer(updatedPlayer);
       setExchanges(exchangesRes?.data || []);
       setTonExchanges(tonExchangesRes?.data || []);
@@ -289,47 +311,43 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadSystemData();
   }, [player?.current_system]);
 
-  const calculateRemainingResources = () => {
-    if (!player?.asteroids || player.asteroids.length === 0 || !systemData.asteroidData.length) {
-      return Infinity;
-    }
-    const currentSystem = player.current_system || 1;
-    const activeAsteroids = player.asteroids.filter((asteroidId: number) => {
-      const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
-      return asteroid && (asteroid.system || 1) === currentSystem;
-    });
-    const totalCapacity = activeAsteroids.reduce((total: number, asteroidId: number) => {
-      const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
-      return total + (asteroid ? asteroid.capacity : 0);
-    }, 0);
-    return Math.max(0, totalCapacity - (player.cargoCCC || 0));
-  };
-
   useEffect(() => {
     if (!player || !systemData.droneData.length) {
       return;
     }
+
     const miningSpeed = miningSpeedRef.current || calculateMiningSpeed(player);
     if (miningSpeed === 0) {
       return;
     }
 
     const intervalId = setInterval(() => {
-      if (player) {
-        const now = Date.now();
-        const deltaTime = (now - lastUpdateTime.current) / 1000;
-        if (deltaTime < 0) {
-          lastUpdateTime.current = now;
-          return;
-        }
-        const cargoCapacity = player.cargo?.capacity || 1000;
-        const remainingResources = calculateRemainingResources();
-        const increment = miningSpeed * deltaTime;
-        const maxCCC = Math.min(remainingResources, cargoCapacity - player.cargoCCC);
-        const newCargoCCC = Math.min(Math.max(player.cargoCCC + increment, 0), maxCCC);
-        setPlayer(prev => prev ? { ...prev, cargoCCC: newCargoCCC } : prev);
+      if (!player) return;
+
+      const now = Date.now();
+      const deltaTime = (now - lastUpdateTime.current) / 1000;
+      if (deltaTime <= 0) {
         lastUpdateTime.current = now;
+        return;
       }
+
+      setPlayer(prev => {
+        if (!prev) return prev;
+
+        const cargoCapacity = prev.cargo?.capacity || 1000;
+        const remainingResources = calculateRemainingResources(prev);
+        const increment = miningSpeed * deltaTime;
+        const maxCCC = Math.min(remainingResources, cargoCapacity);
+        const newCargoCCC = Math.min(maxCCC, prev.cargoCCC + increment);
+
+        return {
+          ...prev,
+          cargoCCC: newCargoCCC,
+          lastUpdateTime: now,
+        };
+      });
+
+      lastUpdateTime.current = now;
     }, 1000);
 
     return () => clearInterval(intervalId);
@@ -390,7 +408,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ccc: parseFloat(res.data.player.ccc),
         cargoCCC: 0,
         cs: parseFloat(res.data.player.cs),
-        ton: parseFloat(res.data.player.ton),
+        ton: parseFloat(res.data.ton || 0),
         lastCollectionTime: new Date(res.data.player.last_collection_time).getTime() || now,
         lastUpdateTime: now,
       };
