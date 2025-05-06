@@ -204,7 +204,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         ? serverPlayer.lastUpdateTime
         : (serverPlayer.lastCollectionTime || (now - 3600000));
 
-      const elapsedTime = (now - effectiveLastUpdate) / 1000;
+      const elapsedTime = Math.max(0, (now - effectiveLastUpdate) / 1000);
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
 
@@ -390,7 +390,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPlayer(updatedPlayer);
       lastUpdateTime.current = now;
       miningSpeedRef.current = miningSpeed;
-      const elapsedTime = (now - updatedPlayer.lastUpdateTime) / 1000;
+      const elapsedTime = Math.max(0, (now - updatedPlayer.lastUpdateTime) / 1000);
       setDebugData({
         lastUpdateTime: updatedPlayer.lastUpdateTime,
         cargoCCC: 0,
