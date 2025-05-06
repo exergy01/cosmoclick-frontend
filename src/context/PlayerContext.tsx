@@ -200,10 +200,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      // Используем lastCollectionTime как запасной вариант, если lastUpdateTime некорректно
       const effectiveLastUpdate = serverPlayer.lastUpdateTime && (now - serverPlayer.lastUpdateTime) > 0
         ? serverPlayer.lastUpdateTime
-        : (serverPlayer.lastCollectionTime || (now - 3600000)); // По умолчанию час назад, если нет данных
+        : (serverPlayer.lastCollectionTime || (now - 3600000));
 
       const elapsedTime = (now - effectiveLastUpdate) / 1000;
       const miningSpeed = calculateMiningSpeed(serverPlayer);
@@ -377,19 +376,29 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         accumulatedCCC,
         lastUpdateTime: now
       });
+      const miningSpeed = calculateMiningSpeed(player);
       const updatedPlayer = {
         ...player,
         ...res.data.player,
         ccc: parseFloat(res.data.player.ccc),
         cargoCCC: 0,
         cs: parseFloat(res.data.player.cs),
-        ton: parseFloat(res.data.ton || 0),
+        ton: parseFloat(res.data.player.ton || 0),
         lastCollectionTime: new Date(res.data.player.last_collection_time).getTime() || now,
-        lastUpdateTime: now,
+        lastUpdateTime: new Date(res.data.player.last_update_time || now).getTime(),
       };
       setPlayer(updatedPlayer);
       lastUpdateTime.current = now;
-      miningSpeedRef.current = calculateMiningSpeed(updatedPlayer);
+      miningSpeedRef.current = miningSpeed;
+      const elapsedTime = (now - updatedPlayer.lastUpdateTime) / 1000;
+      setDebugData({
+        lastUpdateTime: updatedPlayer.lastUpdateTime,
+        cargoCCC: 0,
+        miningSpeed,
+        elapsedTime,
+        offlineCCC: elapsedTime > 0 && miningSpeed > 0 ? miningSpeed * elapsedTime : 0,
+        adjustedCargoCCC: 0,
+      });
     } catch (err: any) {
       setError(`Ошибка при сборе сейфом: ${err.message}`);
       throw err;
