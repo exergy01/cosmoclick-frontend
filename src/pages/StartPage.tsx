@@ -1,16 +1,31 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
+
+const MIN_LOADING_TIME = 2000; // Минимальное время загрузки 2 секунды
 
 const StartPage: React.FC = () => {
   const { loadProgress, loading } = usePlayer();
+  const [displayProgress, setDisplayProgress] = useState(0);
+  const [startTime] = useState(Date.now());
 
   useEffect(() => {
-    if (!loading) {
-      // Дополнительная задержка 500 мс для плавного перехода
-      const timer = setTimeout(() => {}, 500);
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const timeProgress = Math.min((elapsed / MIN_LOADING_TIME) * 100, 100);
+      const cappedProgress = Math.min(loadProgress, timeProgress);
+      setDisplayProgress(Math.floor(cappedProgress));
+
+      if (elapsed >= MIN_LOADING_TIME && loadProgress >= 100 && !loading) {
+        // Готово к переходу
+        return;
+      }
+
+      const timer = setTimeout(updateProgress, 100);
       return () => clearTimeout(timer);
-    }
-  }, [loading]);
+    };
+
+    updateProgress();
+  }, [loadProgress, loading, startTime]);
 
   return (
     <div style={{
@@ -52,7 +67,7 @@ const StartPage: React.FC = () => {
         }}>
           <div style={{
             height: '100%',
-            width: `${loadProgress}%`,
+            width: `${displayProgress}%`,
             backgroundColor: '#00f0ff',
             boxShadow: '0 0 10px #00f0ff',
             transition: 'width 0.3s ease',
@@ -64,7 +79,7 @@ const StartPage: React.FC = () => {
           textShadow: '0 0 5px #00f0ff',
           marginTop: '5px',
         }}>
-          Loading... {loadProgress}%
+          Loading... {displayProgress}%
         </p>
       </div>
     </div>
