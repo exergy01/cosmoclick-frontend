@@ -103,8 +103,8 @@ const CenterPanel: React.FC = () => {
     }}>
       <div
         style={{
-          width: '120px',
-          height: '120px',
+          width: '150px',
+          height: '150px',
           backgroundImage: 'url(/images/safe.png)',
           backgroundSize: 'contain',
           backgroundRepeat: 'no-repeat',

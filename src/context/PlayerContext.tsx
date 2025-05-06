@@ -150,11 +150,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
       return asteroid && (asteroid.system || 1) === currentSystem;
     });
+    const totalExtracted = player.cargoCCC || 0;
     const totalCapacity = activeAsteroids.reduce((total: number, asteroidId: number) => {
       const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
       return total + (asteroid ? asteroid.capacity : 0);
     }, 0);
-    return Math.max(0, totalCapacity - (player.cargoCCC || 0));
+    return Math.max(0, totalCapacity - totalExtracted);
   };
 
   const fetchAllData = useCallback(async (telegramId: string) => {
@@ -210,7 +211,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       if (elapsedTime > 0 && miningSpeed > 0) {
         const offlineCCC = miningSpeed * elapsedTime;
-        const cargoCapacity = serverPlayer.cargo?.capacity || 1000;
+        const cargoCapacity = serverPlayer.cargo?.capacity || 50; // Ограничение карго (50 на 1 уровне)
         const remainingResources = calculateRemainingResources(serverPlayer);
         adjustedCargoCCC = Math.min(
           cargoCapacity,
@@ -248,7 +249,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       isFetchingRef.current = false;
     }
     return null;
-  }, [apiUrl, systemData.droneData]);
+  }, [apiUrl, systemData.droneData, systemData.asteroidData]);
 
   const refreshPlayer = useCallback(async () => {
     if (!player?.telegram_id) return;
@@ -308,10 +309,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPlayer(prev => {
         if (!prev) return prev;
 
-        const cargoCapacity = prev.cargo?.capacity || 1000;
+        const cargoCapacity = prev.cargo?.capacity || 50; // Ограничение карго
         const remainingResources = calculateRemainingResources(prev);
         const increment = miningSpeed * deltaTime;
-        const maxCCC = Math.min(remainingResources, cargoCapacity);
+        const maxCCC = Math.min(cargoCapacity, remainingResources);
         const newCargoCCC = Math.min(maxCCC, prev.cargoCCC + increment);
 
         return {
@@ -325,7 +326,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [player?.id, systemData.droneData.length, player?.drones?.length, player?.current_system]);
+  }, [player?.id, systemData.droneData.length, player?.drones?.length, player?.current_system, systemData.asteroidData]);
 
   useEffect(() => {
     const handlePathChange = () => {
