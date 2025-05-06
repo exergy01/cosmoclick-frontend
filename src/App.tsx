@@ -14,7 +14,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-const MIN_START_PAGE_TIME = 6000; // 6 секунд
+const MIN_START_PAGE_TIME = 5000; // 5 секунд
 
 const AppWithQuery = () => {
   const location = useLocation();

@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 
-const MIN_LOADING_TIME = 5000; // 5 секунд
-
 const StartPage: React.FC = () => {
   const [displayProgress, setDisplayProgress] = useState(0);
   const [startTime] = useState(Date.now());
@@ -9,10 +7,10 @@ const StartPage: React.FC = () => {
   useEffect(() => {
     const updateProgress = () => {
       const elapsed = Date.now() - startTime;
-      const timeProgress = (elapsed / MIN_LOADING_TIME) * 100;
+      const timeProgress = (elapsed / 5000) * 100; // Синхронизировано с App.tsx
       setDisplayProgress(Math.min(Math.floor(timeProgress), 100));
 
-      if (elapsed < MIN_LOADING_TIME) {
+      if (timeProgress < 100) {
         const timer = setTimeout(updateProgress, 100);
         return () => clearTimeout(timer);
       }
@@ -23,7 +21,9 @@ const StartPage: React.FC = () => {
 
   return (
     <div style={{
-      position: 'relative',
+      position: 'fixed',
+      top: 0,
+      left: 0,
       width: '100vw',
       height: '100vh',
       display: 'flex',
@@ -31,14 +31,18 @@ const StartPage: React.FC = () => {
       justifyContent: 'flex-end',
       alignItems: 'center',
       overflow: 'hidden',
+      margin: 0,
+      padding: 0,
     }}>
       <img
         src="/backgrounds/startpage_bg.png"
         alt="Game Cover"
         style={{
           position: 'absolute',
-          width: '100%',
-          height: '100%',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
           objectFit: 'fill',
           zIndex: -1,
         }}
@@ -49,6 +53,7 @@ const StartPage: React.FC = () => {
         zIndex: 1,
         marginBottom: '20px',
         width: '90%',
+        overflow: 'hidden',
       }}>
         <div style={{
           width: '100%',
@@ -72,6 +77,7 @@ const StartPage: React.FC = () => {
           fontWeight: 'bold',
           textShadow: '0 0 5px #00f0ff',
           marginTop: '5px',
+          marginBottom: 0,
         }}>
           Loading... {displayProgress}%
         </p>
