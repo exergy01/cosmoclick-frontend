@@ -115,9 +115,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const miningSpeedRef = useRef<number>(0);
   const isFetchingRef = useRef<boolean>(false);
 
-  const apiUrl = process.env.NODE_ENV === 'production'
-    ? 'https://cosmoclick-backend.onrender.com'
-    : '/api';
+  const apiUrl = 'https://cosmoclick-backend.onrender.com';
 
   const calculateMiningSpeed = (player: Player) => {
     if (!player.drones || player.drones.length === 0 || !systemData.droneData.length) {
@@ -155,7 +153,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.log('Fetching player data for telegramId:', telegramId);
 
       const now = Date.now();
-      const checkRes = await axios.get(`${apiUrl}/player/${telegramId}`);
+      const checkRes = await axios.get(`${apiUrl}/api/player/${telegramId}`);
       console.log('Raw response from server:', checkRes.data);
       let serverPlayer = {
         ...checkRes.data,
@@ -195,7 +193,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const now = Date.now();
         const newPlayer = {
           telegram_id: telegramId,
-          nickname: null,
+          nickname: window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'Капитан',
           ccc: 1000,
           cargoCCC: 0,
           cs: 500,
@@ -209,7 +207,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
         try {
           console.log('Creating new player:', newPlayer);
-          const createRes = await axios.post(`${apiUrl}/player`, newPlayer);
+          const createRes = await axios.post(`${apiUrl}/api/auth/register`, newPlayer);
           console.log('Raw create response:', createRes.data);
           let createdPlayer = {
             ...createRes.data,
@@ -244,7 +242,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       await Promise.all([
         axios.get(`${apiUrl}/exchange-history/${telegramId}`).then(res => setExchanges(res.data)),
         axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`).then(res => setTonExchanges(res.data)),
-        axios.get(`${apiUrl}/user-quests/${telegramId}`).then(res => setQuests(res.data)),
+        axios.get(`${apiUrl}/api/user-quests/${telegramId}`).then(res => setQuests(res.data)),
       ]);
     } catch (err: any) {
       console.error('Ошибка загрузки дополнительных данных:', err);
@@ -406,7 +404,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setLoading(true);
       const now = Date.now();
-      const res = await axios.post(`${apiUrl}/player/${player.telegram_id}/safe-collect`, { 
+      const res = await axios.post(`${apiUrl}/api/player/${player.telegram_id}/safe-collect`, { 
         accumulatedCCC,
         lastUpdateTime: now
       });

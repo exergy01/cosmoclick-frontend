@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import axios from 'axios';
 import TopBar from '../components/TopBar';
 import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
@@ -6,30 +7,33 @@ import MainMenu from '../components/MainMenu';
 import { usePlayer } from '../context/PlayerContext';
 
 const HomePage: React.FC = () => {
-  const { player, loading, error } = usePlayer();
+  const { player, loading, error, refreshPlayer } = usePlayer();
 
   useEffect(() => {
     const initPlayer = async () => {
       try {
         const tg = (window as any).Telegram;
+        if (!tg || !tg.WebApp || !tg.WebApp.initDataUnsafe?.user) {
+          console.error('Telegram WebApp not initialized');
+          return;
+        }
 
-        if (!tg || !tg.WebApp || !tg.WebApp.initDataUnsafe?.user) return;
-
-        const telegramId = tg.WebApp.initDataUnsafe.user.id;
+        const telegramId = tg.WebApp.initDataUnsafe.user.id.toString();
         const nickname = tg.WebApp.initDataUnsafe.user.username || 'Капитан';
 
-        await fetch('/api/players/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_id: telegramId, nickname }),
+        await axios.post('https://cosmoclick-backend.onrender.com/api/auth/register', {
+          telegram_id: telegramId,
+          username: nickname,
         });
+
+        await refreshPlayer();
       } catch (error) {
         console.error('Ошибка при регистрации игрока:', error);
       }
     };
 
     initPlayer();
-  }, []);
+  }, [refreshPlayer]);
 
   return (
     <div style={{
