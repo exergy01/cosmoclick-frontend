@@ -161,6 +161,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     isFetchingRef.current = true;
     try {
+      console.log('Starting fetchAllData for', telegramId); // Проверка вызова
       setLoading(true);
       setLoadProgress(0);
       const now = Date.now();
