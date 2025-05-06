@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { usePlayer } from '../context/PlayerContext';
 
-const MIN_LOADING_TIME = 6000; // Жёсткое ограничение 6 секунд
+const MIN_LOADING_TIME = 6000; // 6 секунд
 
 const StartPage: React.FC = () => {
   const [displayProgress, setDisplayProgress] = useState(0);

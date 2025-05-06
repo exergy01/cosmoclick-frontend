@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import QuestsPage from './pages/QuestsPage';
@@ -11,9 +11,10 @@ import StartPage from './pages/StartPage';
 import { PlayerProvider } from './context/PlayerContext';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { usePlayer } from './context/PlayerContext';
 
 const queryClient = new QueryClient();
+
+const MIN_START_PAGE_TIME = 6000; // 6 секунд
 
 const AppWithQuery = () => {
   const location = useLocation();
@@ -34,13 +35,21 @@ const AppWithQuery = () => {
 };
 
 const App: React.FC = () => {
-  const { loading, error } = usePlayer();
+  const [showStartPage, setShowStartPage] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowStartPage(false);
+    }, MIN_START_PAGE_TIME);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <TonConnectUIProvider manifestUrl="https://cosmoclick-frontend.vercel.app/tonconnect-manifest.json">
       <QueryClientProvider client={queryClient}>
         <PlayerProvider>
-          {loading || error ? <StartPage /> : (
+          {showStartPage ? <StartPage /> : (
             <Router>
               <AppWithQuery />
             </Router>
