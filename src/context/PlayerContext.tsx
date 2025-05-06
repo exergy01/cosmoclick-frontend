@@ -119,70 +119,66 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const calculateMiningSpeed = (player: Player) => {
     if (!player.drones || player.drones.length === 0 || !systemData.droneData.length) {
-      console.log('No drones or system data:', { drones: player.drones, droneData: systemData.droneData });
       return 0;
     }
     const currentSystem = player.current_system || 1;
     const activeDrones = player.drones.filter(drone => drone.system === currentSystem);
     if (activeDrones.length === 0) {
-      console.log('No active drones for current system:', currentSystem);
       return 0;
     }
     const totalCCCPerSecond = activeDrones.reduce((total: number, drone: Drone) => {
       const droneInfo = systemData.droneData.find(d => d.id === drone.id);
       if (!droneInfo) {
-        console.log(`Drone ${drone.id} not found in system data`);
         return total;
       }
       const cccPerSecond = droneInfo.cccPerDay / (24 * 60 * 60);
-      console.log(`Drone ${drone.id} mining speed: ${cccPerSecond} CCC/second`);
       return total + cccPerSecond;
     }, 0);
-    console.log('Total mining speed:', totalCCCPerSecond, 'for', activeDrones.length, 'drones');
     return totalCCCPerSecond > 0 ? totalCCCPerSecond : 0.0001;
   };
 
-  const fetchData = useCallback(async (telegramId: string) => {
+  const fetchAllData = useCallback(async (telegramId: string) => {
     if (isFetchingRef.current) {
-      console.log('Fetch already in progress, skipping...');
       return player;
     }
     isFetchingRef.current = true;
     try {
       setLoading(true);
-      console.log('Fetching player data for telegramId:', telegramId);
-
       const now = Date.now();
-      const checkRes = await axios.get(`${apiUrl}/api/player/${telegramId}`);
-      console.log('Raw response from server:', checkRes.data);
+
+      const [playerRes, exchangesRes, tonExchangesRes, questsRes] = await Promise.all([
+        axios.get(`${apiUrl}/api/player/${telegramId}`),
+        axios.get(`${apiUrl}/exchange-history/${telegramId}`),
+        axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`),
+        axios.get(`${apiUrl}/api/user-quests/${telegramId}`),
+      ]);
+
       let serverPlayer = {
-        ...checkRes.data,
-        ccc: parseFloat(checkRes.data.ccc || 0),
-        cargoCCC: parseFloat(checkRes.data.cargoCCC || 0),
-        cs: parseFloat(checkRes.data.cs || 0),
-        ton: parseFloat(checkRes.data.ton || 0),
-        lastCollectionTime: new Date(checkRes.data.last_collection_time || now).getTime(),
-        lastUpdateTime: new Date(checkRes.data.last_update_time || now).getTime(),
+        ...playerRes.data,
+        ccc: parseFloat(playerRes.data.ccc || 0),
+        cargoCCC: parseFloat(playerRes.data.cargoCCC || 0),
+        cs: parseFloat(playerRes.data.cs || 0),
+        ton: parseFloat(playerRes.data.ton || 0),
+        lastCollectionTime: new Date(playerRes.data.last_collection_time || now).getTime(),
+        lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
       const elapsedTime = (now - serverPlayer.lastUpdateTime) / 1000;
-      console.log('Elapsed time (seconds):', elapsedTime, 'since last update:', new Date(serverPlayer.lastUpdateTime).toISOString());
-
       const miningSpeed = calculateMiningSpeed(serverPlayer);
-      console.log('Calculated mining speed:', miningSpeed, 'CCC/second');
       let adjustedCargoCCC = serverPlayer.cargoCCC;
       if (elapsedTime > 0) {
         const offlineCCC = miningSpeed * elapsedTime;
-        console.log('Offline CCC accumulated:', offlineCCC);
         adjustedCargoCCC = Math.min(
           serverPlayer.cargo.capacity || 1000,
           Math.max(0, serverPlayer.cargoCCC + offlineCCC)
         );
-        console.log('Adjusted cargoCCC after offline mining:', adjustedCargoCCC);
       }
 
       const updatedPlayer = { ...serverPlayer, cargoCCC: adjustedCargoCCC, lastUpdateTime: now };
       setPlayer(updatedPlayer);
+      setExchanges(exchangesRes.data);
+      setTonExchanges(tonExchangesRes.data);
+      setQuests(questsRes.data);
       lastUpdateTime.current = now;
       miningSpeedRef.current = miningSpeed;
 
@@ -206,9 +202,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           lastUpdateTime: now,
         };
         try {
-          console.log('Creating new player:', newPlayer);
           const createRes = await axios.post(`${apiUrl}/api/auth/register`, newPlayer);
-          console.log('Raw create response:', createRes.data);
           let createdPlayer = {
             ...createRes.data,
             ccc: parseFloat(createRes.data.ccc || 0),
@@ -218,17 +212,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             lastCollectionTime: now,
             lastUpdateTime: now,
           };
-
-          const miningSpeed = calculateMiningSpeed(createdPlayer);
           setPlayer(createdPlayer);
+          setExchanges([]);
+          setTonExchanges([]);
+          setQuests([]);
           lastUpdateTime.current = now;
-          miningSpeedRef.current = miningSpeed;
-
+          miningSpeedRef.current = calculateMiningSpeed(createdPlayer);
           return createdPlayer;
         } catch (createErr: any) {
-          console.error('Create player error:', createErr.message, createErr.response?.data);
           setError(`Ошибка создания игрока: ${createErr.message}`);
         }
+      } else {
+        setError(`Ошибка загрузки данных: ${err.message}`);
       }
     } finally {
       setLoading(false);
@@ -237,56 +232,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return null;
   }, [apiUrl, systemData.droneData]);
 
-  const fetchAdditionalData = useCallback(async (telegramId: string) => {
-    try {
-      await Promise.all([
-        axios.get(`${apiUrl}/exchange-history/${telegramId}`).then(res => setExchanges(res.data)),
-        axios.get(`${apiUrl}/ton-exchange-history/${telegramId}`).then(res => setTonExchanges(res.data)),
-        axios.get(`${apiUrl}/api/user-quests/${telegramId}`).then(res => setQuests(res.data)),
-      ]);
-    } catch (err: any) {
-      console.error('Ошибка загрузки дополнительных данных:', err);
-      setExchanges([]);
-      setTonExchanges([]);
-      setQuests([]);
-    }
-  }, [apiUrl]);
-
   const refreshPlayer = useCallback(async () => {
     if (!player?.telegram_id) return;
-    const updatedPlayer = await fetchData(player.telegram_id);
-    if (updatedPlayer) {
-      await fetchAdditionalData(player.telegram_id);
-    }
-    setLoading(false);
-  }, [fetchData, fetchAdditionalData, player]);
+    await fetchAllData(player.telegram_id);
+  }, [fetchAllData, player]);
 
   useEffect(() => {
     if (!window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-      console.error('Telegram WebApp not initialized or user ID missing');
       setError('Запустите приложение через Telegram');
       setLoading(false);
       return;
     }
 
     const telegramId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-    console.log('Using telegramId:', telegramId);
-    console.log('Telegram WebApp data:', window.Telegram?.WebApp);
-
-    fetchData(telegramId).then(updatedPlayer => {
-      if (updatedPlayer) {
-        fetchAdditionalData(telegramId);
-      } else {
-        console.error('Failed to load or create player');
-      }
-      setLoading(false);
-    });
-  }, [fetchData, fetchAdditionalData]);
+    fetchAllData(telegramId);
+  }, [fetchAllData]);
 
   useEffect(() => {
+    if (!player) return;
+    const systemId = player.current_system || 1;
     const loadSystemData = async () => {
-      if (!player) return;
-      const systemId = player.current_system || 1;
       try {
         const module = await import(`../data/shopDataSystem${systemId}.ts`);
         const data = {
@@ -294,9 +259,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           asteroidData: module.asteroidData,
         };
         setSystemData(data);
-        console.log('Loaded system data:', data);
       } catch (err) {
-        console.error(`Ошибка загрузки данных системы ${systemId}:`, err);
         setSystemData({ droneData: [], asteroidData: [] });
       }
     };
@@ -305,7 +268,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const calculateRemainingResources = () => {
     if (!player?.asteroids || player.asteroids.length === 0 || !systemData.asteroidData.length) {
-      console.log('No asteroids, infinite resources');
       return Infinity;
     }
     const currentSystem = player.current_system || 1;
@@ -317,29 +279,23 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const asteroid = systemData.asteroidData.find(a => a.id === asteroidId);
       return total + (asteroid ? asteroid.capacity : 0);
     }, 0);
-    const remaining = Math.max(0, totalCapacity - (player.cargoCCC || 0));
-    console.log('Remaining resources:', remaining);
-    return remaining;
+    return Math.max(0, totalCapacity - (player.cargoCCC || 0));
   };
 
   useEffect(() => {
     if (!player || !systemData.droneData.length) {
-      console.log('Skipping update: player or systemData not ready', { player, droneDataLength: systemData.droneData.length });
       return;
     }
     const miningSpeed = miningSpeedRef.current || calculateMiningSpeed(player);
     if (miningSpeed === 0) {
-      console.log('Mining speed is 0, interval not started');
       return;
     }
-    console.log('Starting interval with mining speed:', miningSpeed);
 
     const intervalId = setInterval(() => {
       if (player) {
         const now = Date.now();
         const deltaTime = (now - lastUpdateTime.current) / 1000;
         if (deltaTime < 0) {
-          console.warn('Negative deltaTime detected, skipping update:', deltaTime);
           lastUpdateTime.current = now;
           return;
         }
@@ -348,7 +304,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const increment = miningSpeed * deltaTime;
         const maxCCC = Math.min(remainingResources, cargoCapacity - player.cargoCCC);
         const newCargoCCC = Math.min(Math.max(player.cargoCCC + increment, 0), maxCCC);
-        console.log('Updating cargoCCC:', { deltaTime, increment, newCargoCCC, maxCCC });
         setPlayer(prev => prev ? { ...prev, cargoCCC: newCargoCCC } : prev);
         lastUpdateTime.current = now;
       }
@@ -378,7 +333,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPlayer(prev => prev ? { ...prev, referral_link: res.data.link } : prev);
     } catch (err: any) {
       setError(`Ошибка при генерации реферальной ссылки: ${err.message}`);
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -393,7 +347,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setHasFetchedStats(true);
     } catch (err: any) {
       setError(`Ошибка при загрузке статистики рефералов: ${err.message}`);
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -421,10 +374,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPlayer(updatedPlayer);
       lastUpdateTime.current = now;
       miningSpeedRef.current = calculateMiningSpeed(updatedPlayer);
-      console.log('Player updated after safeCollect:', updatedPlayer);
     } catch (err: any) {
       setError(`Ошибка при сборе сейфом: ${err.message}`);
-      console.error(err);
       throw err;
     } finally {
       setLoading(false);

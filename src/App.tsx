@@ -6,10 +6,12 @@ import ExchangePage from './pages/ExchangePage';
 import WalletPage from './pages/WalletPage';
 import ReferralPage from './pages/ReferralPage';
 import ShopPage from './pages/ShopPage';
+import AlphabetPage from './pages/AlphabetPage';
+import StartPage from './pages/StartPage';
 import { PlayerProvider } from './context/PlayerContext';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AlphabetPage from './pages/AlphabetPage';
+import { usePlayer } from './context/PlayerContext';
 
 const queryClient = new QueryClient();
 
@@ -32,13 +34,17 @@ const AppWithQuery = () => {
 };
 
 const App: React.FC = () => {
+  const { loading, error } = usePlayer();
+
   return (
     <TonConnectUIProvider manifestUrl="https://cosmoclick-frontend.vercel.app/tonconnect-manifest.json">
       <QueryClientProvider client={queryClient}>
         <PlayerProvider>
-          <Router>
-            <AppWithQuery />
-          </Router>
+          {loading || error ? <StartPage /> : (
+            <Router>
+              <AppWithQuery />
+            </Router>
+          )}
         </PlayerProvider>
       </QueryClientProvider>
     </TonConnectUIProvider>
