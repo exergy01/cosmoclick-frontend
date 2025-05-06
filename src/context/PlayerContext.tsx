@@ -200,7 +200,12 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      const elapsedTime = (now - serverPlayer.lastUpdateTime) / 1000;
+      // Используем lastCollectionTime как запасной вариант, если lastUpdateTime некорректно
+      const effectiveLastUpdate = serverPlayer.lastUpdateTime && (now - serverPlayer.lastUpdateTime) > 0
+        ? serverPlayer.lastUpdateTime
+        : (serverPlayer.lastCollectionTime || (now - 3600000)); // По умолчанию час назад, если нет данных
+
+      const elapsedTime = (now - effectiveLastUpdate) / 1000;
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
 
@@ -225,7 +230,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setTonExchanges(tonExchangesRes?.data || []);
       setQuests(questsRes?.data || []);
       setDebugData({
-        lastUpdateTime: serverPlayer.lastUpdateTime,
+        lastUpdateTime: effectiveLastUpdate,
         cargoCCC: serverPlayer.cargoCCC,
         miningSpeed,
         elapsedTime,
