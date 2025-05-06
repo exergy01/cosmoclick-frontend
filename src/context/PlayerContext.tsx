@@ -199,17 +199,33 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
+      console.log('Server data:', {
+        lastUpdateTime: serverPlayer.lastUpdateTime,
+        cargoCCC: serverPlayer.cargoCCC,
+        miningSpeed: calculateMiningSpeed(serverPlayer),
+      });
+
       const elapsedTime = (now - serverPlayer.lastUpdateTime) / 1000;
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
+
       if (elapsedTime > 0 && miningSpeed > 0) {
         const offlineCCC = miningSpeed * elapsedTime;
         const cargoCapacity = serverPlayer.cargo?.capacity || 1000;
         const remainingResources = calculateRemainingResources(serverPlayer);
         adjustedCargoCCC = Math.min(
           cargoCapacity,
-          Math.min(remainingResources, serverPlayer.cargoCCC + offlineCCC)
+          remainingResources,
+          serverPlayer.cargoCCC + offlineCCC
         );
+        console.log('Offline calculation:', {
+          elapsedTime,
+          miningSpeed,
+          offlineCCC,
+          cargoCapacity,
+          remainingResources,
+          adjustedCargoCCC,
+        });
       }
 
       const updatedPlayer = {
