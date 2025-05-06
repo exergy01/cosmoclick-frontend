@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 
-const MIN_LOADING_TIME = 2000; // Минимальное время загрузки 2 секунды
+const MIN_LOADING_TIME = 5000; // Минимальное время загрузки 5 секунды
 
 const StartPage: React.FC = () => {
   const { loadProgress, loading } = usePlayer();
