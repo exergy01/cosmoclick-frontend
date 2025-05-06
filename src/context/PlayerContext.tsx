@@ -119,6 +119,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const apiUrl = 'https://cosmoclick-backend.onrender.com';
 
+  const logToLocalStorage = (key: string, data: any) => {
+    try {
+      const timestamp = new Date().toISOString();
+      const logEntry = { timestamp, data };
+      const existingLogs = localStorage.getItem('gameLogs') ? JSON.parse(localStorage.getItem('gameLogs')!) : [];
+      existingLogs.push({ key, logEntry });
+      localStorage.setItem('gameLogs', JSON.stringify(existingLogs));
+    } catch (err) {
+      // Игнорируем ошибки записи, если localStorage недоступен
+    }
+  };
+
   const calculateMiningSpeed = (player: Player): number => {
     if (!player.drones || player.drones.length === 0 || !systemData.droneData.length) {
       return 0;
@@ -161,7 +173,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     isFetchingRef.current = true;
     try {
-      console.log('Starting fetchAllData for', telegramId); // Проверка вызова
+      logToLocalStorage('Starting fetchAllData', telegramId);
       setLoading(true);
       setLoadProgress(0);
       const now = Date.now();
@@ -182,7 +194,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setLoadProgress(completed);
           return result.value;
         }
-        console.error(`Request ${index + 1} failed:`, result.reason);
+        logToLocalStorage(`Request ${index + 1} failed`, result.reason?.message || 'Unknown error');
         return null;
       });
 
@@ -200,7 +212,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      console.log('Server data:', {
+      logToLocalStorage('Server data', {
         lastUpdateTime: serverPlayer.lastUpdateTime,
         cargoCCC: serverPlayer.cargoCCC,
         miningSpeed: calculateMiningSpeed(serverPlayer),
@@ -219,7 +231,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           remainingResources,
           serverPlayer.cargoCCC + offlineCCC
         );
-        console.log('Offline calculation:', {
+        logToLocalStorage('Offline calculation', {
           elapsedTime,
           miningSpeed,
           offlineCCC,
@@ -243,7 +255,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return updatedPlayer;
     } catch (err: any) {
-      console.error('Fetch error:', err.message, err.response?.status, err.response?.data);
+      logToLocalStorage('Fetch error', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
       if (err.response?.status === 404) {
         const now = Date.now();
         const newPlayer = {
