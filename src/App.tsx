@@ -36,6 +36,16 @@ const AppWithQuery = () => {
 
 const App: React.FC = () => {
   const [showStartPage, setShowStartPage] = useState(true);
+  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -49,10 +59,32 @@ const App: React.FC = () => {
     <TonConnectUIProvider manifestUrl="https://cosmoclick-frontend.vercel.app/tonconnect-manifest.json">
       <QueryClientProvider client={queryClient}>
         <PlayerProvider>
-          {showStartPage ? <StartPage /> : (
-            <Router>
-              <AppWithQuery />
-            </Router>
+          {isPortrait ? (
+            showStartPage ? <StartPage /> : (
+              <Router>
+                <AppWithQuery />
+              </Router>
+            )
+          ) : (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: '#000022',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              color: '#00f0ff',
+              fontFamily: 'Arial, sans-serif',
+              fontSize: '1.5rem',
+              textShadow: '0 0 5px #00f0ff',
+              zIndex: 9999,
+            }}>
+              Пожалуйста, поверните устройство в вертикальное положение
+            </div>
           )}
         </PlayerProvider>
       </QueryClientProvider>

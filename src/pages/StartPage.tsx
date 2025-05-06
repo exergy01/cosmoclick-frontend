@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const MIN_LOADING_TIME = 6000; // 6 секунд
+const MIN_LOADING_TIME = 5000; // 5 секунд
 
 const StartPage: React.FC = () => {
   const [displayProgress, setDisplayProgress] = useState(0);
@@ -39,7 +39,7 @@ const StartPage: React.FC = () => {
           position: 'absolute',
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
+          objectFit: 'fill',
           zIndex: -1,
         }}
       />
