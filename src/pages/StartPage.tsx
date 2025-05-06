@@ -1,31 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 
-const MIN_LOADING_TIME = 5000; // Минимальное время загрузки 5 секунды
+const MIN_LOADING_TIME = 6000; // Жёсткое ограничение 6 секунд
 
 const StartPage: React.FC = () => {
-  const { loadProgress, loading } = usePlayer();
   const [displayProgress, setDisplayProgress] = useState(0);
   const [startTime] = useState(Date.now());
 
   useEffect(() => {
     const updateProgress = () => {
       const elapsed = Date.now() - startTime;
-      const timeProgress = Math.min((elapsed / MIN_LOADING_TIME) * 100, 100);
-      const cappedProgress = Math.min(loadProgress, timeProgress);
-      setDisplayProgress(Math.floor(cappedProgress));
+      const timeProgress = (elapsed / MIN_LOADING_TIME) * 100;
+      setDisplayProgress(Math.min(Math.floor(timeProgress), 100));
 
-      if (elapsed >= MIN_LOADING_TIME && loadProgress >= 100 && !loading) {
-        // Готово к переходу
-        return;
+      if (elapsed < MIN_LOADING_TIME) {
+        const timer = setTimeout(updateProgress, 100);
+        return () => clearTimeout(timer);
       }
-
-      const timer = setTimeout(updateProgress, 100);
-      return () => clearTimeout(timer);
     };
 
     updateProgress();
-  }, [loadProgress, loading, startTime]);
+  }, [startTime]);
 
   return (
     <div style={{
