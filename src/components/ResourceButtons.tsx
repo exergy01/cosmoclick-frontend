@@ -18,7 +18,7 @@ const ResourceButtons: React.FC = () => {
 
   const buttonStyle: React.CSSProperties = {
     width: '30%',
-    padding: '10px 0',
+    padding: '10px 5px',
     margin: '5px',
     borderRadius: '12px',
     backgroundColor: 'transparent',
@@ -30,6 +30,13 @@ const ResourceButtons: React.FC = () => {
     textAlign: 'center',
     cursor: 'pointer',
     transition: '0.3s',
+    whiteSpace: 'normal',
+    overflowWrap: 'break-word',
+    lineHeight: '1.2',
+    '@media (max-width: 600px)': {
+      fontSize: '14px',
+      padding: '8px 4px',
+    },
   };
 
   const getButtonStyle = (tab: string): React.CSSProperties => ({
