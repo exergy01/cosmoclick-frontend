@@ -98,6 +98,7 @@ interface PlayerContextType {
   loading: boolean;
   error: string | null;
   loadProgress: number;
+  debugData: { lastUpdateTime?: number; cargoCCC?: number; miningSpeed?: number; elapsedTime?: number; offlineCCC?: number; adjustedCargoCCC?: number } | null;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -116,20 +117,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const lastUpdateTime = useRef<number>(Date.now());
   const miningSpeedRef = useRef<number>(0);
   const isFetchingRef = useRef<boolean>(false);
+  const [debugData, setDebugData] = useState<{ lastUpdateTime?: number; cargoCCC?: number; miningSpeed?: number; elapsedTime?: number; offlineCCC?: number; adjustedCargoCCC?: number } | null>(null);
 
   const apiUrl = 'https://cosmoclick-backend.onrender.com';
-
-  const logToLocalStorage = (key: string, data: any) => {
-    try {
-      const timestamp = new Date().toISOString();
-      const logEntry = { timestamp, data };
-      const existingLogs = localStorage.getItem('gameLogs') ? JSON.parse(localStorage.getItem('gameLogs')!) : [];
-      existingLogs.push({ key, logEntry });
-      localStorage.setItem('gameLogs', JSON.stringify(existingLogs));
-    } catch (err) {
-      // Игнорируем ошибки записи, если localStorage недоступен
-    }
-  };
 
   const calculateMiningSpeed = (player: Player): number => {
     if (!player.drones || player.drones.length === 0 || !systemData.droneData.length) {
@@ -173,7 +163,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     isFetchingRef.current = true;
     try {
-      logToLocalStorage('Starting fetchAllData', telegramId);
       setLoading(true);
       setLoadProgress(0);
       const now = Date.now();
@@ -194,7 +183,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setLoadProgress(completed);
           return result.value;
         }
-        logToLocalStorage(`Request ${index + 1} failed`, result.reason?.message || 'Unknown error');
         return null;
       });
 
@@ -212,12 +200,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      logToLocalStorage('Server data', {
-        lastUpdateTime: serverPlayer.lastUpdateTime,
-        cargoCCC: serverPlayer.cargoCCC,
-        miningSpeed: calculateMiningSpeed(serverPlayer),
-      });
-
       const elapsedTime = (now - serverPlayer.lastUpdateTime) / 1000;
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
@@ -231,14 +213,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           remainingResources,
           serverPlayer.cargoCCC + offlineCCC
         );
-        logToLocalStorage('Offline calculation', {
-          elapsedTime,
-          miningSpeed,
-          offlineCCC,
-          cargoCapacity,
-          remainingResources,
-          adjustedCargoCCC,
-        });
       }
 
       const updatedPlayer = {
@@ -250,57 +224,20 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setExchanges(exchangesRes?.data || []);
       setTonExchanges(tonExchangesRes?.data || []);
       setQuests(questsRes?.data || []);
+      setDebugData({
+        lastUpdateTime: serverPlayer.lastUpdateTime,
+        cargoCCC: serverPlayer.cargoCCC,
+        miningSpeed,
+        elapsedTime,
+        offlineCCC: elapsedTime > 0 && miningSpeed > 0 ? miningSpeed * elapsedTime : 0,
+        adjustedCargoCCC,
+      });
       lastUpdateTime.current = now;
       miningSpeedRef.current = miningSpeed;
 
       return updatedPlayer;
     } catch (err: any) {
-      logToLocalStorage('Fetch error', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-      if (err.response?.status === 404) {
-        const now = Date.now();
-        const newPlayer = {
-          telegram_id: telegramId,
-          nickname: window.Telegram?.WebApp?.initDataUnsafe?.user?.username || 'Капитан',
-          ccc: 1000,
-          cargoCCC: 0,
-          cs: 500,
-          ton: 0,
-          current_system: 1,
-          drones: [],
-          asteroids: [],
-          cargo: { level: 1, capacity: 1000, autoCollect: false },
-          lastCollectionTime: now,
-          lastUpdateTime: now,
-        };
-        try {
-          const createRes = await axios.post(`${apiUrl}/api/auth/register`, newPlayer);
-          let createdPlayer = {
-            ...createRes.data,
-            ccc: parseFloat(createRes.data.ccc || 0),
-            cargoCCC: 0,
-            cs: parseFloat(createRes.data.cs || 0),
-            ton: parseFloat(createRes.data.ton || 0),
-            lastCollectionTime: now,
-            lastUpdateTime: now,
-          };
-          setPlayer(createdPlayer);
-          setExchanges([]);
-          setTonExchanges([]);
-          setQuests([]);
-          lastUpdateTime.current = now;
-          miningSpeedRef.current = calculateMiningSpeed(createdPlayer);
-          setLoadProgress(100);
-          return createdPlayer;
-        } catch (createErr: any) {
-          setError(`Ошибка создания игрока: ${createErr.message}`);
-        }
-      } else {
-        setError(`Ошибка загрузки данных: ${err.message}`);
-      }
+      setError(`Ошибка загрузки данных: ${err.message}`);
     } finally {
       setLoading(false);
       setLoadProgress(100);
@@ -457,7 +394,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [player, apiUrl]);
 
   return (
-    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests, generateReferralLink, getReferralStats, safeCollect, refreshPlayer, loading, error, loadProgress }}>
+    <PlayerContext.Provider value={{ player, setPlayer, exchanges, setExchanges, tonExchanges, setTonExchanges, quests, setQuests, generateReferralLink, getReferralStats, safeCollect, refreshPlayer, loading, error, loadProgress, debugData }}>
       {children}
     </PlayerContext.Provider>
   );
