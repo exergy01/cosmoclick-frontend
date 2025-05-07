@@ -137,8 +137,8 @@ const ShopPage = () => {
       const itemLabel = type === 'cargo'
         ? `УРОВЕНЬ ${item.level}\n${item.capacity === Infinity ? 'АВТО' : `${item.capacity} CCC`}\n${item.price} CS`
         : type === 'drone'
-        ? `БОТ №${item.id}\n${item.cccPerDay} CCC/СУТКИ\n${item.price} CS`
-        : `АСТЕРОИДЫ\n№${item.id}\n${item.capacity} CCC\n${item.price} CS`;
+        ? `Бот №${item.id}\n${item.cccPerDay} CCC/СУТКИ\n${item.price} CS`
+        : `Астероид\n№${item.id}\n${item.capacity} CCC\n${item.price} CS`;
 
       return (
         <button
