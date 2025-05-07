@@ -98,7 +98,7 @@ interface PlayerContextType {
   loading: boolean;
   error: string | null;
   loadProgress: number;
-  debugData: { lastUpdateTime?: number; cargoCCC?: number; miningSpeed?: number; elapsedTime?: number; offlineCCC?: number; adjustedCargoCCC?: number } | null;
+  debugData: { lastUpdateTime?: number; cargoCCC?: number; miningSpeed?: number; elapsedTime?: number; adjustedCargoCCC?: number } | null;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -117,7 +117,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const lastUpdateTime = useRef<number>(Date.now());
   const miningSpeedRef = useRef<number>(0);
   const isFetchingRef = useRef<boolean>(false);
-  const [debugData, setDebugData] = useState<{ lastUpdateTime?: number; cargoCCC?: number; miningSpeed?: number; elapsedTime?: number; offlineCCC?: number; adjustedCargoCCC?: number } | null>(null);
+  const [debugData, setDebugData] = useState<{ lastUpdateTime?: number; cargoCCC?: number; miningSpeed?: number; elapsedTime?: number; adjustedCargoCCC?: number } | null>(null);
 
   const apiUrl = 'https://cosmoclick-backend.onrender.com';
 
@@ -201,10 +201,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      // Используем более раннее время, если сервер возвращает текущее
-      const effectiveLastUpdate = serverPlayer.lastUpdateTime && (serverPlayer.lastUpdateTime < now - 60000) 
-        ? serverPlayer.lastUpdateTime 
-        : (serverPlayer.lastCollectionTime || (now - 3600000)); // Минимум час назад, если данных нет
+      // Локальное сохранение последнего известного cargoCCC
+      const lastKnownCargoCCC = localStorage.getItem(`cargoCCC_${telegramId}`) ? parseFloat(localStorage.getItem(`cargoCCC_${telegramId}`) || '0') : 0;
+      const effectiveLastUpdate = serverPlayer.lastCollectionTime || (now - 3600000); // Берем время последнего сбора или час назад
       const elapsedTime = Math.max(0, (now - effectiveLastUpdate) / 1000);
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
@@ -213,7 +212,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const offlineCCC = miningSpeed * elapsedTime;
         const cargoCapacity = serverPlayer.cargo?.capacity || 50;
         const remainingResources = calculateRemainingResources(serverPlayer);
-        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, serverPlayer.cargoCCC + offlineCCC);
+        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, lastKnownCargoCCC + offlineCCC);
       }
 
       const updatedPlayer = {
@@ -221,6 +220,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         cargoCCC: adjustedCargoCCC,
         lastUpdateTime: now,
       };
+      // Сохраняем текущее cargoCCC в localStorage
+      localStorage.setItem(`cargoCCC_${telegramId}`, adjustedCargoCCC.toString());
       setPlayer(updatedPlayer);
       setExchanges(exchangesRes?.data || []);
       setTonExchanges(tonExchangesRes?.data || []);
@@ -230,7 +231,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         cargoCCC: serverPlayer.cargoCCC,
         miningSpeed,
         elapsedTime,
-        offlineCCC: elapsedTime > 0 && miningSpeed > 0 ? miningSpeed * elapsedTime : 0,
         adjustedCargoCCC,
       });
       lastUpdateTime.current = now;
@@ -385,15 +385,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(res.data.player.last_update_time || now).getTime(),
       };
       setPlayer(updatedPlayer);
+      localStorage.setItem(`cargoCCC_${player.telegram_id}`, '0');
       lastUpdateTime.current = now;
       miningSpeedRef.current = miningSpeed;
-      const elapsedTime = Math.max(0, (now - updatedPlayer.lastUpdateTime) / 1000);
       setDebugData({
         lastUpdateTime: updatedPlayer.lastUpdateTime,
         cargoCCC: 0,
         miningSpeed,
-        elapsedTime,
-        offlineCCC: elapsedTime > 0 && miningSpeed > 0 ? miningSpeed * elapsedTime : 0,
+        elapsedTime: 0,
         adjustedCargoCCC: 0,
       });
     } catch (err: any) {
