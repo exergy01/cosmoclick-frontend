@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import TopBar from '../components/TopBar';
 import MainMenu from '../components/MainMenu';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer } from './context/PlayerContext';
 
 const ReferralPage: React.FC = () => {
   const { player, generateReferralLink, getReferralStats, loading, error, setPlayer } = usePlayer();
