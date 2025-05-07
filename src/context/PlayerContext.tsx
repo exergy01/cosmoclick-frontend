@@ -194,7 +194,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       let serverPlayer = {
         ...playerRes.data,
         ccc: parseFloat(playerRes.data.ccc || 0),
-        cargoCCC: parseFloat(playerRes.data.cargoCCC || 0),
+        cargoCCC: 0, // Игнорируем серверное cargoCCC
         cs: parseFloat(playerRes.data.cs || 0),
         ton: parseFloat(playerRes.data.ton || 0),
         lastCollectionTime: new Date(playerRes.data.last_collection_time || now).getTime(),
@@ -204,13 +204,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const effectiveLastUpdate = serverPlayer.lastCollectionTime || (now - 3600000);
       const elapsedTime = Math.max(0, (now - effectiveLastUpdate) / 1000);
       const miningSpeed = calculateMiningSpeed(serverPlayer);
-      let adjustedCargoCCC = serverPlayer.cargoCCC;
+      let adjustedCargoCCC = 0;
 
       if (elapsedTime > 0 && miningSpeed > 0) {
         const offlineCCC = miningSpeed * elapsedTime;
         const cargoCapacity = serverPlayer.cargo?.capacity || 50;
         const remainingResources = calculateRemainingResources(serverPlayer);
-        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, serverPlayer.cargoCCC + offlineCCC);
+        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, offlineCCC);
       }
 
       const updatedPlayer = {
@@ -224,7 +224,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setQuests(questsRes?.data || []);
       setDebugData({
         lastUpdateTime: effectiveLastUpdate,
-        cargoCCC: serverPlayer.cargoCCC,
+        cargoCCC: 0,
         miningSpeed,
         elapsedTime,
         adjustedCargoCCC,
