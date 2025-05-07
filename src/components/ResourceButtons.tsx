@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer } from './context/PlayerContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { asteroidData } from '../data/shopDataSystem1';
 
