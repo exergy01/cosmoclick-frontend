@@ -201,23 +201,16 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      const effectiveLastUpdate = serverPlayer.lastUpdateTime && (now - serverPlayer.lastUpdateTime) > 0
-        ? serverPlayer.lastUpdateTime
-        : (serverPlayer.lastCollectionTime || (now - 3600000));
-
+      const effectiveLastUpdate = serverPlayer.lastUpdateTime || (serverPlayer.lastCollectionTime || (now - 3600000));
       const elapsedTime = Math.max(0, (now - effectiveLastUpdate) / 1000);
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
 
       if (elapsedTime > 0 && miningSpeed > 0) {
         const offlineCCC = miningSpeed * elapsedTime;
-        const cargoCapacity = serverPlayer.cargo?.capacity || 50; // Ограничение карго (50 на 1 уровне)
+        const cargoCapacity = serverPlayer.cargo?.capacity || 50;
         const remainingResources = calculateRemainingResources(serverPlayer);
-        adjustedCargoCCC = Math.min(
-          cargoCapacity,
-          remainingResources,
-          serverPlayer.cargoCCC + offlineCCC
-        );
+        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, serverPlayer.cargoCCC + offlineCCC);
       }
 
       const updatedPlayer = {
@@ -309,7 +302,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPlayer(prev => {
         if (!prev) return prev;
 
-        const cargoCapacity = prev.cargo?.capacity || 50; // Ограничение карго
+        const cargoCapacity = prev.cargo?.capacity || 50;
         const remainingResources = calculateRemainingResources(prev);
         const increment = miningSpeed * deltaTime;
         const maxCCC = Math.min(cargoCapacity, remainingResources);
