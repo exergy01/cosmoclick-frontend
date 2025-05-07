@@ -90,6 +90,16 @@ const CenterPanel: React.FC = () => {
     }
   };
 
+  // Отладочные данные
+  const debugInfo = debugData ? `
+    Last Update: ${new Date(debugData.lastUpdateTime || 0).toLocaleString()}
+    CargoCCC: ${debugData.cargoCCC || 0}
+    Mining Speed: ${debugData.miningSpeed || 0} CCC/s
+    Elapsed Time: ${(debugData.elapsedTime || 0).toFixed(2)} s
+    Offline CCC: ${(debugData.offlineCCC || 0).toFixed(4)}
+    Adjusted CargoCCC: ${debugData.adjustedCargoCCC || 0}
+  ` : 'No debug data';
+
   return (
     <div style={{
       marginTop: '20px',
@@ -129,6 +139,15 @@ const CenterPanel: React.FC = () => {
         textShadow: '0 0 8px #00f0ff'
       }}>
         {(player?.cargoCCC || 0).toFixed(4)}
+      </div>
+      {/* Отладочная информация */}
+      <div style={{
+        fontSize: '12px',
+        color: '#00f0ff',
+        textShadow: '0 0 4px #00f0ff',
+        whiteSpace: 'pre-wrap'
+      }}>
+        {debugInfo}
       </div>
     </div>
   );
