@@ -8,7 +8,7 @@ import ReferralPage from './pages/ReferralPage';
 import ShopPage from './pages/ShopPage';
 import AlphabetPage from './pages/AlphabetPage';
 import StartPage from './pages/StartPage';
-import { PlayerProvider } from '../context/PlayerContext';
+import { PlayerProvider } from './context/PlayerContext';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
