@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { usePlayer, Player } from './context/PlayerContext';
+import { usePlayer, Player } from '../context/PlayerContext';
 import axios from 'axios';
 
 interface DroneData {

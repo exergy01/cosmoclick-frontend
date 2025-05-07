@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import TopBar from '../components/TopBar';
 import MainMenu from '../components/MainMenu';
-import { usePlayer } from './context/PlayerContext';
+import { usePlayer } from '../context/PlayerContext';
 import { TonConnectButton, useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
 const TonExchangePage: React.FC = () => {

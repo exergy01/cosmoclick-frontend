@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { usePlayer } from './context/PlayerContext';
+import { usePlayer } from '../context/PlayerContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { asteroidData, droneData, cargoData } from '../data/shopDataSystem1';
 import TopBar from '../components/TopBar';

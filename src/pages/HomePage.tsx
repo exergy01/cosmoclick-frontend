@@ -3,7 +3,7 @@ import TopBar from '../components/TopBar';
 import ResourceButtons from '../components/ResourceButtons';
 import CenterPanel from '../components/CenterPanel';
 import MainMenu from '../components/MainMenu';
-import { usePlayer } from './context/PlayerContext';
+import { usePlayer } from '../context/PlayerContext';
 
 const HomePage: React.FC = () => {
   const { player, loading, error } = usePlayer();
