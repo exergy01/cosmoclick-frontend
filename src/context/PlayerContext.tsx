@@ -211,12 +211,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const cargoCapacity = serverPlayer.cargo?.capacity || 50;
         const remainingResources = calculateRemainingResources(serverPlayer);
         adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, serverPlayer.cargoCCC + offlineCCC);
-        // Обновляем серверное значение cargoCCC
-        await axios.put(`${apiUrl}/api/player/${telegramId}`, {
-          ...serverPlayer,
-          cargoCCC: adjustedCargoCCC,
-          lastUpdateTime: now,
-        });
       }
 
       const updatedPlayer = {
@@ -240,6 +234,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       return updatedPlayer;
     } catch (err: any) {
+      console.error('[fetchAllData] Error:', err.response?.data || err.message);
       setError(`Ошибка загрузки данных: ${err.message}`);
     } finally {
       setLoading(false);
@@ -346,6 +341,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const res = await axios.post(`${apiUrl}/generate-referral`, { telegramId: player.telegram_id });
       setPlayer(prev => prev ? { ...prev, referral_link: res.data.link } : prev);
     } catch (err: any) {
+      console.error('[generateReferralLink] Error:', err.response?.data || err.message);
       setError(`Ошибка при генерации реферальной ссылки: ${err.message}`);
     } finally {
       setLoading(false);
@@ -360,6 +356,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setPlayer(prev => prev ? { ...prev, referrals_count: res.data.count } : prev);
       setHasFetchedStats(true);
     } catch (err: any) {
+      console.error('[getReferralStats] Error:', err.response?.data || err.message);
       setError(`Ошибка при загрузке статистики рефералов: ${err.message}`);
     } finally {
       setLoading(false);
@@ -397,6 +394,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         adjustedCargoCCC: 0,
       });
     } catch (err: any) {
+      console.error('[safeCollect] Error:', err.response?.data || err.message);
       setError(`Ошибка при сборе сейфом: ${err.message}`);
       throw err;
     } finally {
