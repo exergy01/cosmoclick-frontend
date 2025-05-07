@@ -58,7 +58,7 @@ const CenterPanel: React.FC = () => {
       setPlayer({
         ...res.data,
         ccc: parseFloat(res.data.ccc),
-        cargoCCC: player.cargoCCC, // Сохраняем текущее значение cargoCCC
+        cargoCCC: player.cargoCCC,
         cs: parseFloat(res.data.cs),
         ton: parseFloat(res.data.ton),
         lastCollectionTime: new Date(res.data.last_collection_time).getTime() || Date.now(),
@@ -90,13 +90,11 @@ const CenterPanel: React.FC = () => {
     }
   };
 
-  // Отладочные данные
   const debugInfo = debugData ? `
     Last Update: ${new Date(debugData.lastUpdateTime || 0).toLocaleString()}
     CargoCCC: ${debugData.cargoCCC || 0}
     Mining Speed: ${debugData.miningSpeed || 0} CCC/s
     Elapsed Time: ${(debugData.elapsedTime || 0).toFixed(2)} s
-    Offline CCC: ${(debugData.offlineCCC || 0).toFixed(4)}
     Adjusted CargoCCC: ${debugData.adjustedCargoCCC || 0}
   ` : 'No debug data';
 
@@ -140,7 +138,6 @@ const CenterPanel: React.FC = () => {
       }}>
         {(player?.cargoCCC || 0).toFixed(4)}
       </div>
-      {/* Отладочная информация */}
       <div style={{
         fontSize: '12px',
         color: '#00f0ff',

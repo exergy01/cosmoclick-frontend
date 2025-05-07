@@ -201,9 +201,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      // Локальное сохранение последнего известного cargoCCC
-      const lastKnownCargoCCC = localStorage.getItem(`cargoCCC_${telegramId}`) ? parseFloat(localStorage.getItem(`cargoCCC_${telegramId}`) || '0') : 0;
-      const effectiveLastUpdate = serverPlayer.lastCollectionTime || (now - 3600000); // Берем время последнего сбора или час назад
+      const effectiveLastUpdate = serverPlayer.lastCollectionTime || (now - 3600000);
       const elapsedTime = Math.max(0, (now - effectiveLastUpdate) / 1000);
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
@@ -212,7 +210,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const offlineCCC = miningSpeed * elapsedTime;
         const cargoCapacity = serverPlayer.cargo?.capacity || 50;
         const remainingResources = calculateRemainingResources(serverPlayer);
-        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, lastKnownCargoCCC + offlineCCC);
+        adjustedCargoCCC = Math.min(cargoCapacity, remainingResources, serverPlayer.cargoCCC + offlineCCC);
+        // Обновляем серверное значение cargoCCC
+        await axios.put(`${apiUrl}/api/player/${telegramId}`, {
+          ...serverPlayer,
+          cargoCCC: adjustedCargoCCC,
+          lastUpdateTime: now,
+        });
       }
 
       const updatedPlayer = {
@@ -220,8 +224,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         cargoCCC: adjustedCargoCCC,
         lastUpdateTime: now,
       };
-      // Сохраняем текущее cargoCCC в localStorage
-      localStorage.setItem(`cargoCCC_${telegramId}`, adjustedCargoCCC.toString());
       setPlayer(updatedPlayer);
       setExchanges(exchangesRes?.data || []);
       setTonExchanges(tonExchangesRes?.data || []);
@@ -385,7 +387,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(res.data.player.last_update_time || now).getTime(),
       };
       setPlayer(updatedPlayer);
-      localStorage.setItem(`cargoCCC_${player.telegram_id}`, '0');
       lastUpdateTime.current = now;
       miningSpeedRef.current = miningSpeed;
       setDebugData({
