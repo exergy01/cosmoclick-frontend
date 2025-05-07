@@ -16,32 +16,23 @@ const ResourceButtons: React.FC = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get('tab') || 'resources';
 
-  const buttonStyle: React.CSSProperties = {
+  const getButtonStyle = (isActive: boolean, isSmallScreen: boolean): React.CSSProperties => ({
     width: '30%',
-    padding: '10px 5px',
+    padding: isSmallScreen ? '8px 4px' : '10px 5px',
     margin: '5px',
     borderRadius: '12px',
     backgroundColor: 'transparent',
     color: '#00f0ff',
     border: '2px solid #00f0ff',
-    fontSize: '16px',
+    fontSize: isSmallScreen ? '14px' : '16px',
     fontWeight: 'normal',
-    boxShadow: '0 0 8px #00f0ff',
+    boxShadow: isActive ? 'inset 0 0 10px #00f0ff, 0 0 8px #00f0ff' : '0 0 8px #00f0ff',
     textAlign: 'center',
     cursor: 'pointer',
     transition: '0.3s',
     whiteSpace: 'normal',
     overflowWrap: 'break-word',
     lineHeight: '1.2',
-    '@media (max-width: 600px)': {
-      fontSize: '14px',
-      padding: '8px 4px',
-    },
-  };
-
-  const getButtonStyle = (tab: string): React.CSSProperties => ({
-    ...buttonStyle,
-    boxShadow: activeTab === tab ? 'inset 0 0 10px #00f0ff, 0 0 8px #00f0ff' : '0 0 8px #00f0ff',
   });
 
   const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>, isActive: boolean) => {
@@ -167,6 +158,9 @@ const ResourceButtons: React.FC = () => {
     return null;
   }
 
+  // Определяем, является ли экран маленьким (менее 600px шириной)
+  const isSmallScreen = window.innerWidth <= 600;
+
   return (
     <div
       style={{
@@ -177,7 +171,7 @@ const ResourceButtons: React.FC = () => {
       }}
     >
       <button
-        style={getButtonStyle('resources')}
+        style={getButtonStyle(activeTab === 'resources', isSmallScreen)}
         onMouseDown={(e) => handleMouseDown(e, activeTab === 'resources')}
         onMouseUp={(e) => handleMouseUp(e, activeTab === 'resources')}
         onClick={() => navigate('/shop?tab=resources')}
@@ -187,7 +181,7 @@ const ResourceButtons: React.FC = () => {
         {calculateRemainingResources()} CCC
       </button>
       <button
-        style={getButtonStyle('drones')}
+        style={getButtonStyle(activeTab === 'drones', isSmallScreen)}
         onMouseDown={(e) => handleMouseDown(e, activeTab === 'drones')}
         onMouseUp={(e) => handleMouseUp(e, activeTab === 'drones')}
         onClick={() => navigate('/shop?tab=drones')}
@@ -196,7 +190,7 @@ const ResourceButtons: React.FC = () => {
         {player.drones.length ?? '0'} / 15
       </button>
       <button
-        style={getButtonStyle('cargo')}
+        style={getButtonStyle(activeTab === 'cargo', isSmallScreen)}
         onMouseDown={(e) => handleMouseDown(e, activeTab === 'cargo')}
         onMouseUp={(e) => handleMouseUp(e, activeTab === 'cargo')}
         onClick={() => navigate('/shop?tab=cargo')}
