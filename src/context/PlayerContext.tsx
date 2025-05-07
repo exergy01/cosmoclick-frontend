@@ -201,7 +201,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         lastUpdateTime: new Date(playerRes.data.last_update_time || now).getTime(),
       };
 
-      const effectiveLastUpdate = serverPlayer.lastUpdateTime || (serverPlayer.lastCollectionTime || (now - 3600000));
+      // Используем более раннее время, если сервер возвращает текущее
+      const effectiveLastUpdate = serverPlayer.lastUpdateTime && (serverPlayer.lastUpdateTime < now - 60000) 
+        ? serverPlayer.lastUpdateTime 
+        : (serverPlayer.lastCollectionTime || (now - 3600000)); // Минимум час назад, если данных нет
       const elapsedTime = Math.max(0, (now - effectiveLastUpdate) / 1000);
       const miningSpeed = calculateMiningSpeed(serverPlayer);
       let adjustedCargoCCC = serverPlayer.cargoCCC;
