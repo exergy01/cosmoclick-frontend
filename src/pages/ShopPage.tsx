@@ -11,7 +11,7 @@ interface Item {
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
-  const { player, cccCounter, currentSystem, buyAsteroid, buyDrone, buyCargo, totalCollected, setCccCounter, refreshPlayer, safeCollect, asteroidTotal, remaining } = usePlayer();
+  const { player, cccCounter, currentSystem, buyAsteroid, buyDrone, buyCargo, totalCollected, setCccCounter, refreshPlayer, safeCollect, asteroidTotal, remaining, setPlayer } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
   const initialTab = (location.state as { tab?: string })?.tab || 'asteroid';
@@ -25,14 +25,33 @@ const ShopPage: React.FC = () => {
     try {
       const responseDrones = await fetch(`http://localhost:5000/api/shop/drones/${player.telegram_id}/${currentSystem}`);
       const responseAsteroids = await fetch(`http://localhost:5000/api/shop/asteroids/${player.telegram_id}/${currentSystem}`);
-      if (!responseDrones.ok) throw new Error(`Drones API error: ${responseDrones.status}`);
-      if (!responseAsteroids.ok) throw new Error(`Asteroids API error: ${responseAsteroids.status}`);
+      if (!responseDrones.ok && responseDrones.status === 404) {
+        await registerNewPlayer();
+        return { drones: [], asteroids: [] };
+      }
+      if (!responseAsteroids.ok && responseAsteroids.status === 404) {
+        await registerNewPlayer();
+        return { drones: [], asteroids: [] };
+      }
+      if (!responseDrones.ok || !responseAsteroids.ok) throw new Error(`API error: ${responseDrones.status || responseAsteroids.status}`);
       const dronesData: Item[] = await responseDrones.json();
       const asteroidsData: Item[] = await responseAsteroids.json();
       return { drones: dronesData, asteroids: asteroidsData };
     } catch (err: unknown) {
       console.error('Failed to fetch player items:', err instanceof Error ? err.message : err);
       return { drones: [], asteroids: [] };
+    }
+  };
+
+  const registerNewPlayer = async () => {
+    if (!player?.telegram_id) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/register/${player.telegram_id}`, { method: 'POST' });
+      if (!response.ok) throw new Error(`Registration failed: ${response.status}`);
+      const newPlayerData = await response.json();
+      setPlayer(newPlayerData);
+    } catch (err: unknown) {
+      console.error('Registration error:', err instanceof Error ? err.message : err);
     }
   };
 

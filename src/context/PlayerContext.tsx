@@ -167,12 +167,23 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
+  const registerNewPlayer = async (telegramId: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/register/${telegramId}`);
+      if (!response.data) throw new Error('Registration failed');
+      return response.data;
+    } catch (err: any) {
+      console.error('Registration error:', err.message);
+      throw err;
+    }
+  };
+
   const fetchPlayer = async (telegramId: string) => {
     try {
       setLoading(true);
       const response = await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
       const playerData = response.data;
-      const cargoLevel = playerData.cargo_levels.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
+      const cargoLevel = playerData.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...playerData,
         cargo_level: cargoLevel,
@@ -181,6 +192,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         referrals: playerData.referrals || [],
         honor_board: playerData.honor_board || [],
         drones: playerData.drones || [],
+        cargo_levels: playerData.cargo_levels || [],
       });
       setError(null);
     } catch (err: any) {
@@ -196,7 +208,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setLoading(true);
       const response = await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
       const playerData = response.data;
-      const cargoLevel = playerData.cargo_levels.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
+      const cargoLevel = playerData.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...playerData,
         cargo_level: cargoLevel,
@@ -205,6 +217,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         referrals: playerData.referrals || [],
         honor_board: playerData.honor_board || [],
         drones: playerData.drones || [],
+        cargo_levels: playerData.cargo_levels || [],
       });
       if (playerData.last_collection_time?.[currentSystem]) {
         setStartTime(new Date(playerData.last_collection_time[currentSystem]).getTime());
@@ -227,8 +240,17 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setError(t('no_telegram_id'));
         return;
       }
-      const playerResponse = await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
-      const playerData = playerResponse.data;
+      let playerData;
+      try {
+        const playerResponse = await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
+        playerData = playerResponse.data;
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          playerData = await registerNewPlayer(telegramId);
+        } else {
+          throw err;
+        }
+      }
 
       let referrals: Referral[] = [];
       let honorBoard: HonorBoardEntry[] = [];
@@ -246,7 +268,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         console.error('Failed to fetch honor board:', err);
       }
 
-      const cargoLevel = playerData.cargo_levels.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
+      const cargoLevel = playerData.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...playerData,
         referrals,
@@ -255,6 +277,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         last_collection_time: playerData.last_collection_time || {},
         collected_by_system: playerData.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
         drones: playerData.drones || [],
+        cargo_levels: playerData.cargo_levels || [],
       });
       setCurrentSystem(playerData.systems[0] || 1);
       if (playerData.last_collection_time?.[currentSystem]) {
@@ -313,6 +336,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         referrals: player?.referrals || [],
         honor_board: player?.honor_board || [],
         drones: response.data.drones || [],
+        cargo_levels: response.data.cargo_levels || [],
       });
       setError(null);
     } catch (err: any) {
@@ -334,13 +358,16 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         price,
         system: currentSystem,
       });
+      const cargoLevel = response.data.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...response.data,
+        cargo_level: cargoLevel,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
         referrals: player?.referrals || [],
         honor_board: player?.honor_board || [],
         drones: response.data.drones || [],
+        cargo_levels: response.data.cargo_levels || [],
       });
       setError(null);
     } catch (err: any) {
@@ -363,13 +390,16 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         price,
         system: currentSystem,
       });
+      const cargoLevel = response.data.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...response.data,
+        cargo_level: cargoLevel,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
         referrals: player?.referrals || [],
         honor_board: player?.honor_board || [],
         drones: response.data.drones || [],
+        cargo_levels: response.data.cargo_levels || [],
       });
       setError(null);
     } catch (err: any) {
@@ -393,13 +423,16 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         system: currentSystem,
         cargo_capacity: capacity,
       });
+      const cargoLevel = response.data.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...response.data,
+        cargo_level: cargoLevel,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
         referrals: player?.referrals || [],
         honor_board: player?.honor_board || [],
         drones: response.data.drones || [],
+        cargo_levels: response.data.cargo_levels || [],
       });
       setError(null);
     } catch (err: any) {
@@ -421,7 +454,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         id,
         price,
       });
-      const cargoLevel = response.data.cargo_levels.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
+      const cargoLevel = response.data.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...response.data,
         cargo_level: cargoLevel,
@@ -430,6 +463,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         referrals: player?.referrals || [],
         honor_board: player?.honor_board || [],
         drones: response.data.drones || [],
+        cargo_levels: response.data.cargo_levels || [],
       });
       setCurrentSystem(id);
       setError(null);
@@ -451,7 +485,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         system,
       });
       const updatedPlayer = response.data;
-      const cargoLevel = updatedPlayer.cargo_levels.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
+      const cargoLevel = updatedPlayer.cargo_levels?.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
         ...updatedPlayer,
         cargo_level: cargoLevel,
@@ -460,6 +494,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         referrals: player?.referrals || [],
         honor_board: player?.honor_board || [],
         drones: updatedPlayer.drones || [],
+        cargo_levels: updatedPlayer.cargo_levels || [],
       });
       setCccCounter(prev => ({ ...prev, [system]: 0 }));
       setStartTime(new Date(updatedPlayer.last_collection_time[system]).getTime());
@@ -479,7 +514,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return;
       }
       const response = await axios.post(`${API_URL}/api/referrals/create`, { telegramId });
-      setPlayer({ ...player!, referral_link: response.data.referral_link, referrals: player?.referrals || [], honor_board: player?.honor_board || [], drones: player?.drones || [] });
+      setPlayer({ ...player!, referral_link: response.data.referral_link, referrals: player?.referrals || [], honor_board: player?.honor_board || [], drones: player?.drones || [], cargo_levels: player?.cargo_levels || [] });
     } catch (err: any) {
       setError(t('failed_to_generate_referral_link'));
     }
@@ -493,7 +528,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return;
       }
       const response = await axios.get(`${API_URL}/api/referrals/stats/${telegramId}`);
-      setPlayer({ ...player!, referrals_count: response.data.referrals_count, referrals: player?.referrals || [], honor_board: player?.honor_board || [], drones: player?.drones || [] });
+      setPlayer({ ...player!, referrals_count: response.data.referrals_count, referrals: player?.referrals || [], honor_board: player?.honor_board || [], drones: player?.drones || [], cargo_levels: player?.cargo_levels || [] });
     } catch (err: any) {
       setError(t('failed_to_fetch_referral_stats'));
     }
