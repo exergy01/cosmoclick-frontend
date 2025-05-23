@@ -20,40 +20,20 @@ const StartPage: React.FC = () => {
   const [timeoutElapsed, setTimeoutElapsed] = useState(false);
 
   useEffect(() => {
-    const minDelayTimer = setTimeout(() => {
-      setMinDelayElapsed(true);
-    }, 3000);
-
-    const timeoutTimer = setTimeout(() => {
-      setTimeoutElapsed(true);
-    }, 10000); // Таймаут 10 секунд
-
+    const minDelayTimer = setTimeout(() => setMinDelayElapsed(true), 3000);
+    const timeoutTimer = setTimeout(() => setTimeoutElapsed(true), 10000);
     const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev < 100) return prev + (100 / 30);
-        return 100;
-      });
+      setProgress((prev) => (prev < 100 ? prev + (100 / 30) : 100));
     }, 100);
 
-    if (!player && !loading && !error) {
-      fetchInitialData();
-    }
-
-    if (player && !player.language && !loading && !error) {
-      setShowLanguageModal(true);
-    }
-
-    if (player?.language && i18n.language !== player.language) {
-      i18n.changeLanguage(player.language);
-    }
+    if (!player && !loading && !error) fetchInitialData();
+    if (player && !player.language && !loading && !error) setShowLanguageModal(true);
+    if (player?.language && i18n.language !== player.language) i18n.changeLanguage(player.language);
 
     const allDataLoaded = player && player.language;
-    if ((minDelayElapsed && !loading && (allDataLoaded || timeoutElapsed)) && !error) {
-      if (timeoutElapsed && !allDataLoaded) {
-        navigate('/', { replace: true }); // Резервный путь
-      } else {
-        navigate('/', { replace: true });
-      }
+    if ((minDelayElapsed && !loading && (allDataLoaded || timeoutElapsed)) || error) {
+      if (timeoutElapsed && !allDataLoaded) navigate('/', { replace: true });
+      else navigate('/', { replace: true });
     }
 
     return () => {
@@ -66,17 +46,14 @@ const StartPage: React.FC = () => {
   const handleLanguageSelect = async (lang: string) => {
     try {
       const telegramId = player?.telegram_id || getTelegramId();
-      if (!telegramId) {
-        return;
-      }
-
+      if (!telegramId) return;
       await axios.post(`${API_URL}/api/player/language`, { telegramId, language: lang });
       i18n.changeLanguage(lang);
       setShowLanguageModal(false);
       setSelectedLanguage(lang);
       fetchInitialData();
     } catch (err) {
-      console.error('StartPage: Failed to set language:', err);
+      console.error('Failed to set language:', err);
     }
   };
 
@@ -190,16 +167,12 @@ const StartPage: React.FC = () => {
                     margin: '10px',
                     background: 'transparent',
                     border: `2px solid ${colorStyle}`,
-                    boxShadow: selectedLanguage === lang ? `0 0 20px ${colorStyle}` : `0 0 10px ${colorStyle}`,
+                    boxShadow: selectedLanguage === lang ? `0 0 10px ${colorStyle}` : 'none',
                     color: '#fff',
-                    borderRadius: '5px',
                     cursor: 'pointer',
-                    transition: 'transform 0.3s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 >
-                  {lang === 'en' ? 'English' : 'Русский'}
+                  {lang.toUpperCase()}
                 </button>
               ))}
             </div>

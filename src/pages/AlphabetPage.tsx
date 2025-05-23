@@ -1,4 +1,3 @@
-// src/pages/AlphabetPage.tsx
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
@@ -9,6 +8,20 @@ import { droneData } from '../data/shopDataSystem1';
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
+
+interface Drone {
+  id: number;
+  system: number;
+}
+
+interface Player {
+  drones: Drone[];
+  telegram_id?: string;
+  ccc?: number | string;
+  cs?: number | string;
+  ton?: number | string;
+  color?: string;
+}
 
 const AlphabetPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -37,7 +50,7 @@ const AlphabetPage: React.FC = () => {
         return;
       }
       const response = await axios.post(`${apiUrl}/api/player/color`, { telegramId: player.telegram_id, color });
-      setPlayer({ ...player, color: response.data.color }); // Обновляем цвет сразу
+      setPlayer({ ...player, color: response.data.color });
       await refreshPlayer();
     } catch (err) {
       console.error('AlphabetPage: Failed to set color:', err);
@@ -45,10 +58,10 @@ const AlphabetPage: React.FC = () => {
   };
 
   const calculateMiningSpeed = (): number => {
-    if (!player) return 0;
+    if (!player || !player.drones) return 0;
     return player.drones
-      .filter(d => d.system === currentSystem)
-      .reduce((sum, d) => {
+      .filter((d: Drone) => d.system === currentSystem)
+      .reduce((sum: number, d: Drone) => {
         const item = droneData.find(item => item.id === d.id && item.system === d.system);
         return sum + (item?.cccPerDay || 0) / 24;
       }, 0);

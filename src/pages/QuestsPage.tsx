@@ -55,7 +55,8 @@ const QuestsPage = () => {
         ...player,
         ccc: Number(player.ccc) + 10,
         ad_views: (player.ad_views || 0) + 1,
-        last_ad_reset: player.last_ad_reset || new Date().toISOString()
+        last_ad_reset: player.last_ad_reset || new Date().toISOString(),
+        drones: player.drones || [],
       };
       const res = await axios.put(`${apiUrl}/api/player/${player.telegram_id}`, updatedPlayer);
       setPlayer(res.data);

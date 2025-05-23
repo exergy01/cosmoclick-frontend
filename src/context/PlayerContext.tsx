@@ -41,8 +41,6 @@ interface Player {
   ton: number | string;
   auto_collect: boolean;
   last_collection_time: { [system: string]: string };
-  asteroids: { id: number; system: number }[];
-  drones: { id: number; system: number }[];
   systems: number[];
   referral_link: string;
   referrer_id: string | null;
@@ -63,6 +61,7 @@ interface Player {
   color?: string;
   cargo_levels: { system: number; level: number }[];
   collected_by_system: { [key: string]: number };
+  drones?: { id: number; system: number }[];
 }
 
 interface PlayerContextType {
@@ -133,20 +132,18 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const telegramId = getTelegramId();
     if (telegramId && player) {
       updateCounter(telegramId);
-      const interval = setInterval(() => updateCounter(telegramId), 5000); // Увеличен до 5 секунд
+      const interval = setInterval(() => updateCounter(telegramId), 5000);
       return () => clearInterval(interval);
     }
   }, [currentSystem, player]);
 
   const updateCounter = async (telegramId: string) => {
     try {
-      console.log('Updating counter for telegramId:', telegramId, 'system:', currentSystem);
       const response = await axios.post(`${API_URL}/api/safe/update-counter`, {
         telegramId,
         last_collection_time: new Date().toISOString(),
         system: currentSystem,
       });
-      console.log('Response from update-counter:', response.data);
       setCccCounter(prev => ({ ...prev, [currentSystem]: Number(response.data.cccCounter || 0) }));
       setAsteroidTotal(Number(response.data.asteroidTotal || 0));
       const collected = response.data.collected_by_system?.[currentSystem.toString()] || 0;
@@ -154,7 +151,6 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setRemaining(Number(response.data.asteroidTotal || 0) - Number(collected));
       setError(null);
     } catch (err: any) {
-      console.error('Error in updateCounter:', err);
       setError(t('failed_to_update_counter'));
     }
   };
@@ -182,6 +178,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         cargo_level: cargoLevel,
         last_collection_time: playerData.last_collection_time || {},
         collected_by_system: playerData.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: playerData.referrals || [],
+        honor_board: playerData.honor_board || [],
+        drones: playerData.drones || [],
       });
       setError(null);
     } catch (err: any) {
@@ -203,6 +202,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         cargo_level: cargoLevel,
         last_collection_time: playerData.last_collection_time || {},
         collected_by_system: playerData.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: playerData.referrals || [],
+        honor_board: playerData.honor_board || [],
+        drones: playerData.drones || [],
       });
       if (playerData.last_collection_time?.[currentSystem]) {
         setStartTime(new Date(playerData.last_collection_time[currentSystem]).getTime());
@@ -228,11 +230,21 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const playerResponse = await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
       const playerData = playerResponse.data;
 
-      const referralsResponse = await axios.get(`${API_URL}/api/referrals/list/${telegramId}`);
-      const referrals = referralsResponse.data || [];
+      let referrals: Referral[] = [];
+      let honorBoard: HonorBoardEntry[] = [];
+      try {
+        const referralsResponse = await axios.get(`${API_URL}/api/referrals/list/${telegramId}`);
+        referrals = referralsResponse.data || [];
+      } catch (err) {
+        console.error('Failed to fetch referrals:', err);
+      }
 
-      const honorBoardResponse = await axios.get(`${API_URL}/api/referrals/honor-board`);
-      const honorBoard = honorBoardResponse.data || [];
+      try {
+        const honorBoardResponse = await axios.get(`${API_URL}/api/referrals/honor-board`);
+        honorBoard = honorBoardResponse.data || [];
+      } catch (err) {
+        console.error('Failed to fetch honor board:', err);
+      }
 
       const cargoLevel = playerData.cargo_levels.find((c: { system: number }) => c.system === currentSystem)?.level || 0;
       setPlayer({
@@ -242,6 +254,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         cargo_level: cargoLevel,
         last_collection_time: playerData.last_collection_time || {},
         collected_by_system: playerData.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        drones: playerData.drones || [],
       });
       setCurrentSystem(playerData.systems[0] || 1);
       if (playerData.last_collection_time?.[currentSystem]) {
@@ -297,6 +310,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ...response.data,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: player?.referrals || [],
+        honor_board: player?.honor_board || [],
+        drones: response.data.drones || [],
       });
       setError(null);
     } catch (err: any) {
@@ -322,6 +338,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ...response.data,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: player?.referrals || [],
+        honor_board: player?.honor_board || [],
+        drones: response.data.drones || [],
       });
       setError(null);
     } catch (err: any) {
@@ -348,6 +367,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ...response.data,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: player?.referrals || [],
+        honor_board: player?.honor_board || [],
+        drones: response.data.drones || [],
       });
       setError(null);
     } catch (err: any) {
@@ -375,6 +397,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ...response.data,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: player?.referrals || [],
+        honor_board: player?.honor_board || [],
+        drones: response.data.drones || [],
       });
       setError(null);
     } catch (err: any) {
@@ -402,6 +427,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         cargo_level: cargoLevel,
         last_collection_time: response.data.last_collection_time || {},
         collected_by_system: response.data.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: player?.referrals || [],
+        honor_board: player?.honor_board || [],
+        drones: response.data.drones || [],
       });
       setCurrentSystem(id);
       setError(null);
@@ -429,6 +457,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         cargo_level: cargoLevel,
         last_collection_time: updatedPlayer.last_collection_time || {},
         collected_by_system: updatedPlayer.collected_by_system || { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+        referrals: player?.referrals || [],
+        honor_board: player?.honor_board || [],
+        drones: updatedPlayer.drones || [],
       });
       setCccCounter(prev => ({ ...prev, [system]: 0 }));
       setStartTime(new Date(updatedPlayer.last_collection_time[system]).getTime());
@@ -448,7 +479,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return;
       }
       const response = await axios.post(`${API_URL}/api/referrals/create`, { telegramId });
-      setPlayer({ ...player!, referral_link: response.data.referral_link });
+      setPlayer({ ...player!, referral_link: response.data.referral_link, referrals: player?.referrals || [], honor_board: player?.honor_board || [], drones: player?.drones || [] });
     } catch (err: any) {
       setError(t('failed_to_generate_referral_link'));
     }
@@ -462,7 +493,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return;
       }
       const response = await axios.get(`${API_URL}/api/referrals/stats/${telegramId}`);
-      setPlayer({ ...player!, referrals_count: response.data.referrals_count });
+      setPlayer({ ...player!, referrals_count: response.data.referrals_count, referrals: player?.referrals || [], honor_board: player?.honor_board || [], drones: player?.drones || [] });
     } catch (err: any) {
       setError(t('failed_to_fetch_referral_stats'));
     }
