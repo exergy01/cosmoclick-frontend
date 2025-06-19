@@ -1,4 +1,4 @@
-// API для работы с игроком (ИСПРАВЛЕНО для CS + СОЗДАНИЕ ИГРОКА)
+// API для работы с игроком (ПОЛНОЕ ИСПРАВЛЕНИЕ)
 import axios from 'axios';
 import { API_URL, fetchWithRetry } from './apiConfig';
 
@@ -7,7 +7,7 @@ export interface CollectData {
   last_collection_time: { [system: string]: string };
   system: number;
   collected_ccc?: number;
-  collected_cs?: number; // 🔥 ДОБАВЛЕНО: поддержка CS
+  collected_cs?: number;
 }
 
 // 🆕 НОВЫЙ ИНТЕРФЕЙС для создания игрока
@@ -28,14 +28,24 @@ export const playerApi = {
     return await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
   },
 
-  // 🆕 НОВАЯ ФУНКЦИЯ: Создать/получить игрока с реальными данными Telegram
+  // 🆕 КРИТИЧЕСКИ ВАЖНАЯ ФУНКЦИЯ: Создать/получить игрока с реальными данными Telegram
   createOrGetPlayer: async (data: CreatePlayerData) => {
     console.log('🔍 playerApi.createOrGetPlayer вызван с данными:', data);
     
-    return await axios.post(`${API_URL}/api/auth/player`, {
+    // 🚨 ДИАГНОСТИКА ЗАПРОСА
+    console.log('📡 Отправляем POST запрос на /api/auth/player');
+    console.log('📡 Данные запроса:', {
       telegramId: data.telegramId,
       telegramData: data.telegramData
     });
+    
+    const response = await axios.post(`${API_URL}/api/auth/player`, {
+      telegramId: data.telegramId,
+      telegramData: data.telegramData
+    });
+    
+    console.log('✅ playerApi.createOrGetPlayer ответ:', response.data);
+    return response;
   },
 
   // Обновить данные игрока
@@ -65,16 +75,14 @@ export const playerApi = {
     });
   },
 
-  // 🔥 ИСПРАВЛЕНО: Сбор ресурсов из сейфа с поддержкой CS
+  // Сбор ресурсов из сейфа с поддержкой CS
   safeCollect: async (data: CollectData) => {
-    // 🔥 ИСПРАВЛЕНО: правильно формируем тело запроса
     const requestBody: any = {
       telegramId: data.telegramId,
       last_collection_time: data.last_collection_time || { "1": new Date().toISOString() },
       system: data.system,
     };
 
-    // 🔥 ИСПРАВЛЕНО: добавляем правильное поле в зависимости от системы
     if (data.system === 4) {
       requestBody.collected_cs = data.collected_cs;
       console.log('🔍 playerApi: отправляем collected_cs =', data.collected_cs);
