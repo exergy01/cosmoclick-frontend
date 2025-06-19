@@ -22,82 +22,99 @@ declare global {
   }
 }
 
+// 🔥 НОВАЯ функция: парсинг данных из URL hash
+const parseUrlHash = (): any => {
+  try {
+    if (typeof window === 'undefined') return null;
+    
+    const hash = window.location.hash;
+    console.log('🔗 URL hash:', hash.slice(0, 100) + '...');
+    
+    if (!hash.includes('tgWebAppData=')) {
+      console.log('❌ tgWebAppData не найден в URL');
+      return null;
+    }
+    
+    // Извлекаем tgWebAppData
+    const params = new URLSearchParams(hash.slice(1));
+    const tgWebAppData = params.get('tgWebAppData');
+    
+    if (!tgWebAppData) {
+      console.log('❌ tgWebAppData пустой');
+      return null;
+    }
+    
+    console.log('📊 tgWebAppData найден:', tgWebAppData.slice(0, 100) + '...');
+    
+    // Декодируем URL
+    const decodedData = decodeURIComponent(tgWebAppData);
+    console.log('🔓 Декодированные данные:', decodedData.slice(0, 100) + '...');
+    
+    // Парсим параметры
+    const dataParams = new URLSearchParams(decodedData);
+    const userStr = dataParams.get('user');
+    
+    if (!userStr) {
+      console.log('❌ Параметр user не найден');
+      return null;
+    }
+    
+    console.log('👤 User string:', userStr);
+    
+    // Парсим JSON пользователя
+    const user = JSON.parse(userStr);
+    console.log('✅ Parsed user:', user);
+    
+    return {
+      user: user,
+      query_id: dataParams.get('query_id'),
+      auth_date: dataParams.get('auth_date'),
+      hash: dataParams.get('hash')
+    };
+    
+  } catch (error) {
+    console.error('❌ Ошибка парсинга URL hash:', error);
+    return null;
+  }
+};
+
 // 🔥 УЛУЧШЕННОЕ получение Telegram ID
 export const getTelegramId = (): string => {
   try {
-    console.log('🔍 Проверка Telegram WebApp...');
+    console.log('🔍 Получение Telegram ID...');
     
-    // Проверяем доступность Telegram WebApp
-    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const webApp = window.Telegram.WebApp;
-      
-      console.log('📱 Telegram WebApp найден:', {
-        version: webApp.version,
-        hasInitData: !!webApp.initData,
-        hasInitDataUnsafe: !!webApp.initDataUnsafe,
-        initDataLength: webApp.initData?.length || 0
-      });
-      
-      // Инициализируем WebApp
-      if (webApp.ready) {
-        webApp.ready();
-        console.log('✅ Telegram WebApp готов');
-      }
-      
-      if (webApp.expand) {
-        webApp.expand();
-        console.log('📱 Telegram WebApp развернут');
-      }
-      
-      // Пытаемся получить ID пользователя
-      const userId = webApp.initDataUnsafe?.user?.id;
-      if (userId) {
-        console.log('🎯 Реальный Telegram ID получен:', userId);
-        return userId.toString();
-      }
-      
-      // Если initDataUnsafe пустой, проверяем initData
-      if (webApp.initData) {
-        console.log('📊 InitData доступен, длина:', webApp.initData.length);
-        // Можно попробовать парсить initData, но это сложнее
-      }
-      
-      console.warn('⚠️ Telegram WebApp найден, но пользователь недоступен');
-    } else {
-      console.log('❌ Telegram WebApp недоступен');
+    // 1. Сначала пробуем стандартный WebApp API
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+      const userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+      console.log('✅ ID из WebApp API:', userId);
+      return userId.toString();
     }
     
-    // 🔥 Проверяем URL параметры (для Web версии через ссылку)
+    // 2. Парсим данные из URL hash
+    const urlData = parseUrlHash();
+    if (urlData?.user?.id) {
+      console.log('✅ ID из URL hash:', urlData.user.id);
+      return urlData.user.id.toString();
+    }
+    
+    // 3. Проверяем URL параметры
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const startParam = urlParams.get('start');
-      const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
-      
       if (startParam) {
-        console.log('🔗 ID из URL start параметра:', startParam);
+        console.log('✅ ID из URL start параметра:', startParam);
         return startParam;
-      }
-      
-      if (tgWebAppStartParam) {
-        console.log('🔗 ID из tgWebAppStartParam:', tgWebAppStartParam);
-        return tgWebAppStartParam;
       }
     }
     
-    // 🔥 Для разработки используем тестовый ID
+    // 4. Fallback для разработки
     if (process.env.NODE_ENV === 'development') {
       console.log('🧪 Development режим - тестовый ID');
       return '123456789';
     }
     
-    // 🔥 В продакшене если в браузере - тестовый ID
-    const isInBrowser = !window.Telegram?.WebApp?.initData;
-    if (isInBrowser) {
-      console.log('🌐 Браузерная версия - тестовый ID');
-      return '123456789';
-    }
-    
-    console.warn('⚠️ Не удалось получить Telegram ID, используем fallback');
+    // 5. Fallback для браузера
+    console.log('🌐 Fallback - тестовый ID');
     return '123456789';
     
   } catch (error) {
@@ -106,23 +123,40 @@ export const getTelegramId = (): string => {
   }
 };
 
-// 🔥 УЛУЧШЕННОЕ получение данных пользователя
+// 🔥 НОВАЯ функция: получение данных пользователя
 export const getTelegramUser = () => {
   try {
+    console.log('👤 Получение данных пользователя...');
+    
+    // 1. Из WebApp API
     if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user) {
       const user = window.Telegram.WebApp.initDataUnsafe.user;
-      console.log('👤 Данные пользователя Telegram:', user);
-      
+      console.log('✅ Пользователь из WebApp API:', user);
       return {
         id: user.id?.toString() || '123456789',
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         username: user.username || '',
-        languageCode: user.language_code || 'en'
+        languageCode: user.language_code || 'ru'
       };
     }
     
-    console.log('👤 Используем тестовые данные пользователя');
+    // 2. Из URL hash
+    const urlData = parseUrlHash();
+    if (urlData?.user) {
+      const user = urlData.user;
+      console.log('✅ Пользователь из URL hash:', user);
+      return {
+        id: user.id?.toString() || '123456789',
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        username: user.username || '',
+        languageCode: user.language_code || 'ru'
+      };
+    }
+    
+    // 3. Fallback
+    console.log('🔄 Fallback пользователь');
     return {
       id: '123456789',
       firstName: 'Test',
@@ -130,27 +164,24 @@ export const getTelegramUser = () => {
       username: 'testuser',
       languageCode: 'ru'
     };
+    
   } catch (error) {
     console.error('❌ Ошибка получения данных пользователя:', error);
     return {
       id: '123456789',
       firstName: 'Test',
-      lastName: 'User', 
+      lastName: 'User',
       username: 'testuser',
       languageCode: 'ru'
     };
   }
 };
 
-// Получение языка пользователя из Telegram
+// Получение языка пользователя
 export const getTelegramLanguage = (): string => {
   try {
-    const language = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-    if (language) {
-      console.log('🌐 Язык из Telegram:', language);
-      return language;
-    }
-    return 'ru';
+    const user = getTelegramUser();
+    return user.languageCode || 'ru';
   } catch (error) {
     console.error('❌ Ошибка получения языка:', error);
     return 'ru';
@@ -159,29 +190,49 @@ export const getTelegramLanguage = (): string => {
 
 // Проверка доступности Telegram WebApp
 export const isTelegramWebApp = (): boolean => {
-  const isWebApp = typeof window !== 'undefined' && !!window.Telegram?.WebApp;
-  console.log('🔍 Проверка Telegram WebApp:', isWebApp);
+  // Проверяем либо WebApp API, либо данные в URL
+  const hasWebApp = typeof window !== 'undefined' && !!window.Telegram?.WebApp;
+  const hasUrlData = typeof window !== 'undefined' && window.location.hash.includes('tgWebAppData=');
+  
+  const isWebApp = hasWebApp || hasUrlData;
+  console.log('🔍 Проверка Telegram WebApp:', { hasWebApp, hasUrlData, isWebApp });
   return isWebApp;
 };
 
-// 🔥 НОВАЯ функция: отладочная информация
+// 🔥 НОВАЯ функция: получение всех данных для диагностики
 export const getTelegramDebugInfo = () => {
   if (typeof window === 'undefined') {
     return { error: 'Window недоступен' };
   }
   
   const webApp = window.Telegram?.WebApp;
+  const urlData = parseUrlHash();
+  const user = getTelegramUser();
   
   return {
+    // WebApp API
     hasTelegram: !!window.Telegram,
     hasWebApp: !!webApp,
-    version: webApp?.version,
+    webAppVersion: webApp?.version,
     hasInitData: !!webApp?.initData,
     initDataLength: webApp?.initData?.length || 0,
     hasInitDataUnsafe: !!webApp?.initDataUnsafe,
-    hasUser: !!webApp?.initDataUnsafe?.user,
-    userId: webApp?.initDataUnsafe?.user?.id,
-    userAgent: navigator.userAgent,
-    url: window.location.href
+    hasWebAppUser: !!webApp?.initDataUnsafe?.user,
+    webAppUserId: webApp?.initDataUnsafe?.user?.id,
+    
+    // URL данные
+    hasUrlData: !!urlData,
+    urlUserId: urlData?.user?.id,
+    urlUserName: urlData?.user?.first_name,
+    urlUsername: urlData?.user?.username,
+    
+    // Финальные данные
+    finalId: getTelegramId(),
+    finalUser: user,
+    
+    // Браузер
+    userAgent: navigator.userAgent.slice(0, 100),
+    url: window.location.href.slice(0, 100),
+    hash: window.location.hash.slice(0, 100)
   };
 };
