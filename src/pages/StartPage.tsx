@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { getTelegramId } from '../utils/telegram';
+import { getTelegramId, getTelegramUser, getTelegramUserData } from '../utils/telegram';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
@@ -21,6 +21,22 @@ const StartPage: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+
+  // 🔍 ДИАГНОСТИКА TELEGRAM ДАННЫХ
+  useEffect(() => {
+    console.log('🚨 === ДИАГНОСТИКА TELEGRAM ДАННЫХ ===');
+    console.log('1. window.Telegram существует:', !!window.Telegram);
+    console.log('2. window.Telegram.WebApp существует:', !!window.Telegram?.WebApp);
+    console.log('3. initDataUnsafe существует:', !!window.Telegram?.WebApp?.initDataUnsafe);
+    console.log('4. user существует:', !!window.Telegram?.WebApp?.initDataUnsafe?.user);
+    console.log('5. ПОЛНЫЙ объект user:', window.Telegram?.WebApp?.initDataUnsafe?.user);
+    console.log('6. URL location.hash:', window.location.hash);
+    console.log('7. URL location.search:', window.location.search);
+    console.log('8. getTelegramId():', getTelegramId());
+    console.log('9. getTelegramUser():', getTelegramUser());
+    console.log('10. getTelegramUserData():', getTelegramUserData());
+    console.log('🚨 === КОНЕЦ ДИАГНОСТИКИ ===');
+  }, []);
 
   // 🔥 ВСЕГДА показываем StartPage минимум 4 секунды
   useEffect(() => {
@@ -77,7 +93,9 @@ const StartPage: React.FC = () => {
     if (player && !loading) {
       console.log('📦 StartPage: Данные игрока загружены', {
         hasLanguage: !!player.language,
-        telegramId: player.telegram_id
+        telegramId: player.telegram_id,
+        username: player.username,
+        first_name: player.first_name
       });
       setDataLoaded(true);
       
@@ -190,7 +208,7 @@ const StartPage: React.FC = () => {
           }}
         >
           {player && player.language ? 
-            t('welcome_player', { username: player.username || `User${player.telegram_id?.slice(-4) || 'Unknown'}` }) :
+            t('welcome_player', { username: player.username || player.first_name || `User${player.telegram_id?.slice(-4) || 'Unknown'}` }) :
             'CosmoClick Loading...'
           }
         </h1>
@@ -213,6 +231,8 @@ const StartPage: React.FC = () => {
           <div style={{color: '#00ff00', fontWeight: 'bold', marginBottom: '5px'}}>🔍 ДИАГНОСТИКА:</div>
           <div>Telegram ID: <span style={{color: '#ffff00'}}>{getTelegramId()}</span></div>
           <div>Player loaded: {player ? '✅' : '❌'}</div>
+          <div>Player username: <span style={{color: '#ffff00'}}>{player?.username || 'N/A'}</span></div>
+          <div>Player first_name: <span style={{color: '#ffff00'}}>{player?.first_name || 'N/A'}</span></div>
           <div>Data loaded: {dataLoaded ? '✅' : '❌'}</div>
           <div>Min delay: {minDelayElapsed ? '✅' : '❌'}</div>
           <div>Progress: {progress}%</div>
@@ -233,6 +253,7 @@ const StartPage: React.FC = () => {
           <div style={{color: '#ff9900', fontWeight: 'bold'}}>🌐 БРАУЗЕР INFO:</div>
           <div>User Agent: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? navigator.userAgent.slice(0, 50) + '...' : 'N/A'}</span></div>
           <div>URL: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? window.location.href : 'N/A'}</span></div>
+          <div>Hash: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? window.location.hash.slice(0, 30) + '...' : 'N/A'}</span></div>
           <div>Is Mobile: {typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? '✅' : '❌'}</div>
         </div>
         
