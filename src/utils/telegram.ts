@@ -78,7 +78,7 @@ const parseUrlHash = (): any => {
   }
 };
 
-// 🔥 УЛУЧШЕННОЕ получение Telegram ID
+// 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: получение Telegram ID БЕЗ FALLBACK на ваш ID
 export const getTelegramId = (): string => {
   try {
     console.log('🔍 Получение Telegram ID...');
@@ -107,23 +107,28 @@ export const getTelegramId = (): string => {
       }
     }
     
-    // 4. 🔥 СПЕЦИАЛЬНЫЙ FALLBACK ДЛЯ ВАШЕГО ID
+    // 🚨 КРИТИЧЕСКИ ВАЖНО: НЕ ИСПОЛЬЗУЕМ FALLBACK НА ВАШ ID!
+    // 4. Для разработки используем случайный тестовый ID
     if (process.env.NODE_ENV === 'development') {
-      console.log('🧪 Development режим - ваш тестовый ID');
-      return '2097930691'; // ВАШ РЕАЛЬНЫЙ ID
+      const testId = Math.floor(Math.random() * 1000000000).toString();
+      console.log('🧪 Development режим - случайный тестовый ID:', testId);
+      return testId;
     }
     
-    // 5. Fallback для браузера
-    console.log('🌐 Fallback - ваш тестовый ID');
-    return '2097930691'; // ВАШ РЕАЛЬНЫЙ ID
+    // 5. Если ничего не найдено - генерируем случайный ID
+    const randomId = Math.floor(Math.random() * 1000000000).toString();
+    console.log('🆘 Fallback - случайный ID:', randomId);
+    return randomId;
     
   } catch (error) {
     console.error('❌ Ошибка получения Telegram ID:', error);
-    return '2097930691'; // ВАШ РЕАЛЬНЫЙ ID
+    const errorId = Math.floor(Math.random() * 1000000000).toString();
+    console.log('💥 Error fallback - случайный ID:', errorId);
+    return errorId;
   }
 };
 
-// 🔥 НОВАЯ функция: получение данных пользователя С ВАШИМИ РЕАЛЬНЫМИ ДАННЫМИ
+// 🔥 ИСПРАВЛЕННАЯ функция: получение данных пользователя БЕЗ FALLBACK на ваши данные
 export const getTelegramUser = () => {
   try {
     console.log('👤 Получение данных пользователя...');
@@ -133,11 +138,11 @@ export const getTelegramUser = () => {
       const user = window.Telegram.WebApp.initDataUnsafe.user;
       console.log('✅ Пользователь из WebApp API:', user);
       return {
-        id: user.id?.toString() || '2097930691',
+        id: user.id?.toString() || getTelegramId(),
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         username: user.username || '',
-        languageCode: user.language_code || 'ru'
+        languageCode: user.language_code || 'en'
       };
     }
     
@@ -147,32 +152,34 @@ export const getTelegramUser = () => {
       const user = urlData.user;
       console.log('✅ Пользователь из URL hash:', user);
       return {
-        id: user.id?.toString() || '2097930691',
+        id: user.id?.toString() || getTelegramId(),
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         username: user.username || '',
-        languageCode: user.language_code || 'ru'
+        languageCode: user.language_code || 'en'
       };
     }
     
-    // 3. 🔥 FALLBACK С ВАШИМИ РЕАЛЬНЫМИ ДАННЫМИ
-    console.log('🔄 Fallback - ваши реальные данные');
+    // 3. 🚨 КРИТИЧЕСКИ ВАЖНО: ГЕНЕРИРУЕМ СЛУЧАЙНОГО ПОЛЬЗОВАТЕЛЯ
+    const userId = getTelegramId();
+    console.log('🔄 Fallback - случайный пользователь для ID:', userId);
     return {
-      id: '2097930691',
-      firstName: 'TeplodarExergy',
+      id: userId,
+      firstName: `User${userId.slice(-4)}`,
       lastName: '',
-      username: 'teplodar01',
-      languageCode: 'ru'
+      username: `user${userId.slice(-4)}`,
+      languageCode: 'en'
     };
     
   } catch (error) {
     console.error('❌ Ошибка получения данных пользователя:', error);
+    const userId = getTelegramId();
     return {
-      id: '2097930691',
-      firstName: 'TeplodarExergy',
+      id: userId,
+      firstName: `User${userId.slice(-4)}`,
       lastName: '',
-      username: 'teplodar01',
-      languageCode: 'ru'
+      username: `user${userId.slice(-4)}`,
+      languageCode: 'en'
     };
   }
 };
@@ -193,10 +200,10 @@ export const getTelegramUserData = () => {
 export const getTelegramLanguage = (): string => {
   try {
     const user = getTelegramUser();
-    return user.languageCode || 'ru';
+    return user.languageCode || 'en';
   } catch (error) {
     console.error('❌ Ошибка получения языка:', error);
-    return 'ru';
+    return 'en';
   }
 };
 
