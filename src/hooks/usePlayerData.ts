@@ -1,4 +1,4 @@
-// Хук для управления данными игрока (ОКОНЧАТЕЛЬНОЕ ИСПРАВЛЕНИЕ)
+// Хук для управления данными игрока (ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ)
 import { useState } from 'react';
 import { playerApi, referralApi } from '../services';
 import { createPlayerWithDefaults } from '../utils/dataTransforms';
@@ -7,12 +7,11 @@ import { getTelegramId, getTelegramUserData } from '../utils/telegram';
 interface Player {
   telegram_id: string;
   username: string;
-  first_name?: string; // 🆕 ДОБАВЛЕНО
+  first_name?: string;
   language?: string;
   ccc: number | string;
   cs: number | string;
   ton: number | string;
-  // ... остальные поля
   [key: string]: any;
 }
 
@@ -21,7 +20,7 @@ export const usePlayerData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🆕 НОВАЯ ФУНКЦИЯ: Создание/получение игрока с реальными данными Telegram
+  // Создание/получение игрока с реальными данными Telegram
   const createOrGetPlayer = async (telegramId: string, telegramData?: any) => {
     try {
       console.log('🚀 usePlayerData.createOrGetPlayer начался');
@@ -41,7 +40,7 @@ export const usePlayerData = () => {
     }
   };
 
-  // Загрузка игрока
+  // Загрузка игрока ЧЕРЕЗ СТАРЫЙ ЭНДПОИНТ
   const fetchPlayer = async (telegramId: string, currentSystem: number = 1) => {
     try {
       setLoading(true);
@@ -108,10 +107,10 @@ export const usePlayerData = () => {
     }
   };
 
-  // 🔄 СТАРАЯ ФУНКЦИЯ: Регистрация нового игрока (теперь использует новую логику)
+  // Регистрация нового игрока
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      console.log('🔄 registerNewPlayer вызвана (перенаправляем на новую логику)');
+      console.log('🔄 registerNewPlayer вызвана (используем новую логику)');
       const telegramData = getTelegramUserData();
       const response = await createOrGetPlayer(telegramId, telegramData);
       
@@ -125,14 +124,13 @@ export const usePlayerData = () => {
     }
   };
 
-  // 🔥 КРИТИЧЕСКИ ВАЖНАЯ ФУНКЦИЯ: Загрузка полных данных игрока
+  // 🔥 КРИТИЧЕСКИ ВАЖНО: ВСЕГДА ИСПОЛЬЗУЕМ НОВЫЙ ЭНДПОИНТ
   const fetchInitialData = async () => {
     try {
       setLoading(true);
       const telegramId = getTelegramId();
       const telegramData = getTelegramUserData();
       
-      // 🚨 КРИТИЧЕСКАЯ ДИАГНОСТИКА
       console.log('🚨 === ДИАГНОСТИКА fetchInitialData ===');
       console.log('telegramId:', telegramId);
       console.log('telegramData:', telegramData);
@@ -145,30 +143,16 @@ export const usePlayerData = () => {
       
       console.log(`🚀 fetchInitialData: Запуск для telegramId: ${telegramId}`);
 
-      let playerData;
-      try {
-        // 🔥 СНАЧАЛА ПРОБУЕМ ПОЛУЧИТЬ СУЩЕСТВУЮЩЕГО ИГРОКА
-        console.log('🔍 Попытка получить существующего игрока...');
-        const playerResponse = await playerApi.fetchPlayer(telegramId);
-        console.log('✅ Существующий игрок найден:', playerResponse.data);
-        playerData = playerResponse.data;
-      } catch (err: any) {
-        console.log('❌ Игрок не найден:', err.message);
-        if (err.response?.status === 404) {
-          // 🆕 КРИТИЧЕСКИ ВАЖНО: ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ СОЗДАНИЯ
-          console.log('🆕 Создание нового игрока с реальными данными Telegram...');
-          console.log('📱 Передаем telegramData:', telegramData);
-          
-          playerData = await createOrGetPlayer(telegramId, telegramData);
-          console.log('✅ Новый игрок создан с данными:', {
-            telegram_id: playerData.telegram_id,
-            username: playerData.username,
-            first_name: playerData.first_name
-          });
-        } else {
-          throw err;
-        }
-      }
+      // 🔥 ВАЖНО: ВСЕГДА ИСПОЛЬЗУЕМ НОВЫЙ ЭНДПОИНТ
+      console.log('🆕 Используем НОВЫЙ эндпоинт createOrGetPlayer');
+      console.log('📱 Передаем telegramData:', telegramData);
+      
+      const playerData = await createOrGetPlayer(telegramId, telegramData);
+      console.log('✅ Игрок создан/получен с данными:', {
+        telegram_id: playerData.telegram_id,
+        username: playerData.username,
+        first_name: playerData.first_name
+      });
 
       // Загружаем рефералов и доску почета
       let referrals: any[] = [];
@@ -194,8 +178,9 @@ export const usePlayerData = () => {
       if (!playerData.referral_link) {
         try {
           await referralApi.generateReferralLink(telegramId);
-          const updatedResponse = await playerApi.fetchPlayer(telegramId);
-          playerData = updatedResponse.data;
+          // Получаем обновленные данные через НОВЫЙ эндпоинт
+          const updatedPlayerData = await createOrGetPlayer(telegramId, telegramData);
+          playerData.referral_link = updatedPlayerData.referral_link;
         } catch (err) {
           console.error('Failed to generate referral link:', err);
         }
@@ -242,6 +227,6 @@ export const usePlayerData = () => {
     refreshPlayer,
     fetchInitialData,
     registerNewPlayer,
-    createOrGetPlayer, // 🆕 НОВАЯ ФУНКЦИЯ
+    createOrGetPlayer,
   };
 };
