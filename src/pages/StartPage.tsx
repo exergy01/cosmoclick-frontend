@@ -84,8 +84,8 @@ const StartPage: React.FC = () => {
       });
       setDataLoaded(true);
       
-      // 🔥 ПРОСТАЯ ЛОГИКА: если язык 'en' (по умолчанию) - значит новый игрок
-      const isPlayerNew = player.language === 'en';
+      // 🔥 ПРОСТАЯ ЛОГИКА: если языка НЕТ (null) - значит новый игрок
+      const isPlayerNew = !player.language;
       
       console.log('🔍 Проверка нового игрока:', {
         language: player.language,
