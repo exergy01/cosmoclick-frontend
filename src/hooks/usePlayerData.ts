@@ -1,4 +1,4 @@
-// Хук для управления данными игрока (С ПОДДЕРЖКОЙ СОЗДАНИЯ С TELEGRAM ДАННЫМИ)
+// Хук для управления данными игрока (ОКОНЧАТЕЛЬНОЕ ИСПРАВЛЕНИЕ)
 import { useState } from 'react';
 import { playerApi, referralApi } from '../services';
 import { createPlayerWithDefaults } from '../utils/dataTransforms';
@@ -125,11 +125,19 @@ export const usePlayerData = () => {
     }
   };
 
-  // 🔥 ОБНОВЛЕННАЯ ФУНКЦИЯ: Загрузка полных данных игрока с новой логикой создания
+  // 🔥 КРИТИЧЕСКИ ВАЖНАЯ ФУНКЦИЯ: Загрузка полных данных игрока
   const fetchInitialData = async () => {
     try {
       setLoading(true);
       const telegramId = getTelegramId();
+      const telegramData = getTelegramUserData();
+      
+      // 🚨 КРИТИЧЕСКАЯ ДИАГНОСТИКА
+      console.log('🚨 === ДИАГНОСТИКА fetchInitialData ===');
+      console.log('telegramId:', telegramId);
+      console.log('telegramData:', telegramData);
+      console.log('🚨 === КОНЕЦ ДИАГНОСТИКИ ===');
+      
       if (!telegramId) {
         setError('No telegram ID');
         return;
@@ -147,13 +155,16 @@ export const usePlayerData = () => {
       } catch (err: any) {
         console.log('❌ Игрок не найден:', err.message);
         if (err.response?.status === 404) {
-          // 🆕 ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ СОЗДАНИЯ С РЕАЛЬНЫМИ ДАННЫМИ
+          // 🆕 КРИТИЧЕСКИ ВАЖНО: ИСПОЛЬЗУЕМ НОВУЮ ЛОГИКУ СОЗДАНИЯ
           console.log('🆕 Создание нового игрока с реальными данными Telegram...');
-          const telegramData = getTelegramUserData();
-          console.log('📱 Данные для создания игрока:', telegramData);
+          console.log('📱 Передаем telegramData:', telegramData);
           
           playerData = await createOrGetPlayer(telegramId, telegramData);
-          console.log('✅ Новый игрок создан:', playerData);
+          console.log('✅ Новый игрок создан с данными:', {
+            telegram_id: playerData.telegram_id,
+            username: playerData.username,
+            first_name: playerData.first_name
+          });
         } else {
           throw err;
         }
@@ -205,7 +216,8 @@ export const usePlayerData = () => {
       console.log('✅ fetchInitialData: Данные игрока успешно загружены:', {
         telegram_id: normalizedPlayer.telegram_id,
         username: normalizedPlayer.username,
-        first_name: normalizedPlayer.first_name
+        first_name: normalizedPlayer.first_name,
+        language: normalizedPlayer.language
       });
       return normalizedPlayer;
     } catch (err: any) {
@@ -215,7 +227,7 @@ export const usePlayerData = () => {
       throw err;
     } finally {
       setLoading(false);
-      console.log('🏁 fetchInitialData завершен, loading:', loading);
+      console.log('🏁 fetchInitialData завершен');
     }
   };
 
