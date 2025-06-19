@@ -6,19 +6,21 @@ import i18n from './i18n';
 import { AppProvider } from './context/AppProvider';
 import StartPage from './pages/StartPage';
 
-// 🔥 ПРОСТОЙ ТЕСТ MainPage
+// Простой тест MainPage
 const SimpleMainPage = () => {
   return React.createElement('div', {style: {padding: '20px', textAlign: 'center'}},
     React.createElement('h1', {style: {color: 'green', fontSize: '30px'}}, 'MAIN PAGE WORKS!'),
-    React.createElement('p', {}, 'Простая версия главной страницы'),
+    React.createElement('p', {}, 'Игра загружена успешно! 🎮'),
+    React.createElement('p', {}, 'Скоро здесь будет система TON стейкинга'),
     React.createElement('a', {href: '/start', style: {color: 'blue'}}, 'Назад на StartPage')
   );
 };
 
 const AppContent = () => {
   return React.createElement(Routes, {},
-    React.createElement(Route, {path: '/', element: React.createElement(SimpleMainPage)}),
-    React.createElement(Route, {path: '/start', element: React.createElement(StartPage)})
+    // 🔥 ИСПРАВЛЕНО: StartPage как главная страница
+    React.createElement(Route, {path: '/', element: React.createElement(StartPage)}),
+    React.createElement(Route, {path: '/main', element: React.createElement(SimpleMainPage)})
   );
 };
 
