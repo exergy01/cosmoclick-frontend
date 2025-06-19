@@ -84,22 +84,17 @@ const StartPage: React.FC = () => {
       });
       setDataLoaded(true);
       
-      // 🔥 ОПРЕДЕЛЯЕМ НОВЫЙ ЛИ ИГРОК (если язык 'en' и только что создан)
-      const createdAt = new Date(player.created_at || Date.now()).getTime();
-      const now = Date.now();
-      const minutesAgo = (now - createdAt) / (1000 * 60);
-      const isPlayerNew = player.language === 'en' && minutesAgo < 5; // Создан менее 5 минут назад
+      // 🔥 ПРОСТАЯ ЛОГИКА: если язык 'en' (по умолчанию) - значит новый игрок
+      const isPlayerNew = player.language === 'en';
       
       console.log('🔍 Проверка нового игрока:', {
         language: player.language,
-        createdAt: player.created_at,
-        minutesAgo: Math.round(minutesAgo),
         isPlayerNew
       });
       
       setIsNewPlayer(isPlayerNew);
       
-      // Устанавливаем язык БЕЗ перезагрузки если есть и игрок НЕ новый
+      // Устанавливаем язык БЕЗ перезагрузки если игрок НЕ новый
       if (player.language && i18n.language !== player.language && !isPlayerNew) {
         console.log(`🌐 StartPage: Смена языка на ${player.language} без перезагрузки`);
         i18n.changeLanguage(player.language);
