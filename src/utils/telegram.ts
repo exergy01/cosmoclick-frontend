@@ -107,24 +107,19 @@ export const getTelegramId = (): string => {
       }
     }
     
-    // 🚨 КРИТИЧЕСКИ ВАЖНО: НЕ ИСПОЛЬЗУЕМ FALLBACK НА ВАШ ID!
-    // 4. Для разработки используем случайный тестовый ID
+    // 4. Fallback для разработки
     if (process.env.NODE_ENV === 'development') {
-      const testId = Math.floor(Math.random() * 1000000000).toString();
-      console.log('🧪 Development режим - случайный тестовый ID:', testId);
-      return testId;
+      console.log('🧪 Development режим - тестовый ID');
+      return '123456789';
     }
     
-    // 5. Если ничего не найдено - генерируем случайный ID
-    const randomId = Math.floor(Math.random() * 1000000000).toString();
-    console.log('🆘 Fallback - случайный ID:', randomId);
-    return randomId;
+    // 5. Если ничего не найдено - возвращаем null (пусть система покажет ошибку)
+    console.log('❌ Telegram ID не найден нигде!');
+    return '';
     
   } catch (error) {
     console.error('❌ Ошибка получения Telegram ID:', error);
-    const errorId = Math.floor(Math.random() * 1000000000).toString();
-    console.log('💥 Error fallback - случайный ID:', errorId);
-    return errorId;
+    return '';
   }
 };
 
@@ -160,9 +155,14 @@ export const getTelegramUser = () => {
       };
     }
     
-    // 3. 🚨 КРИТИЧЕСКИ ВАЖНО: ГЕНЕРИРУЕМ СЛУЧАЙНОГО ПОЛЬЗОВАТЕЛЯ
+    // 3. Fallback для разработки
     const userId = getTelegramId();
-    console.log('🔄 Fallback - случайный пользователь для ID:', userId);
+    if (!userId) {
+      console.log('❌ Нет Telegram ID - не можем создать пользователя');
+      return null;
+    }
+    
+    console.log('🔄 Fallback пользователь для ID:', userId);
     return {
       id: userId,
       firstName: `User${userId.slice(-4)}`,
@@ -174,6 +174,9 @@ export const getTelegramUser = () => {
   } catch (error) {
     console.error('❌ Ошибка получения данных пользователя:', error);
     const userId = getTelegramId();
+    if (!userId) {
+      return null;
+    }
     return {
       id: userId,
       firstName: `User${userId.slice(-4)}`,
@@ -187,6 +190,9 @@ export const getTelegramUser = () => {
 // 🆕 НОВАЯ функция для получения данных в формате backend
 export const getTelegramUserData = () => {
   const user = getTelegramUser();
+  if (!user) {
+    return null;
+  }
   return {
     id: parseInt(user.id),
     first_name: user.firstName,
@@ -200,7 +206,7 @@ export const getTelegramUserData = () => {
 export const getTelegramLanguage = (): string => {
   try {
     const user = getTelegramUser();
-    return user.languageCode || 'en';
+    return user?.languageCode || 'en';
   } catch (error) {
     console.error('❌ Ошибка получения языка:', error);
     return 'en';
