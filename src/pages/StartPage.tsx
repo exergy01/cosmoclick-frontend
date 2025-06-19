@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { getTelegramId, getTelegramUser, getTelegramUserData } from '../utils/telegram';
+import { getTelegramId, getTelegramUserData } from '../utils/telegram';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
@@ -16,27 +16,13 @@ const StartPage: React.FC = () => {
   const [minDelayElapsed, setMinDelayElapsed] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [timeoutElapsed, setTimeoutElapsed] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-
-  // 🔍 ДИАГНОСТИКА TELEGRAM ДАННЫХ
-  useEffect(() => {
-    console.log('🚨 === ДИАГНОСТИКА TELEGRAM ДАННЫХ ===');
-    console.log('1. window.Telegram существует:', !!window.Telegram);
-    console.log('2. window.Telegram.WebApp существует:', !!window.Telegram?.WebApp);
-    console.log('3. initDataUnsafe существует:', !!window.Telegram?.WebApp?.initDataUnsafe);
-    console.log('4. user существует:', !!window.Telegram?.WebApp?.initDataUnsafe?.user);
-    console.log('5. ПОЛНЫЙ объект user:', window.Telegram?.WebApp?.initDataUnsafe?.user);
-    console.log('6. URL location.hash:', window.location.hash);
-    console.log('7. URL location.search:', window.location.search);
-    console.log('8. getTelegramId():', getTelegramId());
-    console.log('9. getTelegramUser():', getTelegramUser());
-    console.log('10. getTelegramUserData():', getTelegramUserData());
-    console.log('🚨 === КОНЕЦ ДИАГНОСТИКИ ===');
-  }, []);
+  const [isNewPlayer, setIsNewPlayer] = useState(false);
 
   // 🔥 ВСЕГДА показываем StartPage минимум 4 секунды
   useEffect(() => {
@@ -99,6 +85,10 @@ const StartPage: React.FC = () => {
       });
       setDataLoaded(true);
       
+      // 🔥 ОПРЕДЕЛЯЕМ НОВЫЙ ЛИ ИГРОК (если язык по умолчанию 'en' и нет настроек)
+      const isPlayerNew = !player.language || player.language === 'en';
+      setIsNewPlayer(isPlayerNew);
+      
       // Устанавливаем язык если есть
       if (player.language && i18n.language !== player.language) {
         console.log(`🌐 StartPage: Смена языка на ${player.language}`);
@@ -111,9 +101,9 @@ const StartPage: React.FC = () => {
   useEffect(() => {
     if (hasNavigated) return;
 
-    // Показываем модальное окно выбора языка если нужно
-    if (player && !player.language && !loading && !error && !showLanguageModal) {
-      console.log('🌐 StartPage: Показ модального окна выбора языка');
+    // 🔥 НОВАЯ ЛОГИКА: Показываем выбор языка для новых игроков
+    if (player && isNewPlayer && !loading && !error && !showLanguageModal && !showWelcomeModal) {
+      console.log('🌐 StartPage: Показ модального окна выбора языка для нового игрока');
       setShowLanguageModal(true);
       return;
     }
@@ -131,22 +121,21 @@ const StartPage: React.FC = () => {
       hasNavigated,
       progress,
       canNavigate,
-      hasLanguage: !!player?.language
+      hasLanguage: !!player?.language,
+      isNewPlayer
     });
 
     // Переходим на главную после минимальной задержки и загрузки данных
-    if (canNavigate || (timeoutElapsed && !error)) {
-      if (allDataLoaded) {
-        console.log('✅ StartPage: Переход на главную - данные загружены');
-        setHasNavigated(true);
-        navigate('/', { replace: true });
-      } else if (timeoutElapsed) {
-        console.log('⏰ StartPage: Переход на главную - тайм-аут');
-        setHasNavigated(true);
-        navigate('/', { replace: true });
-      }
+    if (canNavigate && !showLanguageModal && !showWelcomeModal) {
+      console.log('✅ StartPage: Переход на главную - данные загружены');
+      setHasNavigated(true);
+      navigate('/', { replace: true });
+    } else if (timeoutElapsed && !error && !showLanguageModal && !showWelcomeModal) {
+      console.log('⏰ StartPage: Переход на главную - тайм-аут');
+      setHasNavigated(true);
+      navigate('/', { replace: true });
     }
-  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal]);
+  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal, isNewPlayer]);
 
   const handleLanguageSelect = async (lang: string) => {
     try {
@@ -164,13 +153,20 @@ const StartPage: React.FC = () => {
       setShowLanguageModal(false);
       setSelectedLanguage(lang);
       
-      console.log('🔄 StartPage: Обновление данных игрока после выбора языка');
-      await fetchInitialData();
+      // 🔥 ПОКАЗЫВАЕМ ПРИВЕТСТВЕННОЕ МОДАЛЬНОЕ ОКНО ПОСЛЕ ВЫБОРА ЯЗЫКА
+      setTimeout(() => {
+        setShowWelcomeModal(true);
+      }, 500);
+      
     } catch (err) {
       console.error('❌ StartPage: Не удалось установить язык:', err);
       setShowLanguageModal(false);
       setError('Не удалось установить язык');
     }
+  };
+
+  const handleWelcomeClose = () => {
+    setShowWelcomeModal(false);
   };
 
   const colorStyle = player?.color || '#00f0ff';
@@ -208,54 +204,10 @@ const StartPage: React.FC = () => {
           }}
         >
           {player && player.language ? 
-            t('welcome_player', { username: player.username || player.first_name || `User${player.telegram_id?.slice(-4) || 'Unknown'}` }) :
+            t('welcome_player', { username: player.first_name || player.username || `User${player.telegram_id?.slice(-4) || 'Unknown'}` }) :
             'CosmoClick Loading...'
           }
         </h1>
-
-        {/* 🔥 ПОЛНАЯ ДИАГНОСТИКА TELEGRAM */}
-        <div style={{
-          position: 'absolute',
-          top: '100px',
-          left: '20px',
-          background: 'rgba(0,0,0,0.9)',
-          padding: '15px',
-          borderRadius: '8px',
-          fontSize: '12px',
-          color: '#fff',
-          maxWidth: '350px',
-          overflowY: 'auto',
-          maxHeight: '300px',
-          border: '1px solid #333'
-        }}>
-          <div style={{color: '#00ff00', fontWeight: 'bold', marginBottom: '5px'}}>🔍 ДИАГНОСТИКА:</div>
-          <div>Telegram ID: <span style={{color: '#ffff00'}}>{getTelegramId()}</span></div>
-          <div>Player loaded: {player ? '✅' : '❌'}</div>
-          <div>Player username: <span style={{color: '#ffff00'}}>{player?.username || 'N/A'}</span></div>
-          <div>Player first_name: <span style={{color: '#ffff00'}}>{player?.first_name || 'N/A'}</span></div>
-          <div>Data loaded: {dataLoaded ? '✅' : '❌'}</div>
-          <div>Min delay: {minDelayElapsed ? '✅' : '❌'}</div>
-          <div>Progress: {progress}%</div>
-          
-          <hr style={{margin: '10px 0', borderColor: '#666'}} />
-          <div style={{color: '#00ffff', fontWeight: 'bold'}}>📱 TELEGRAM DEBUG:</div>
-          <div>Has window.Telegram: {typeof window !== 'undefined' && window.Telegram ? '✅' : '❌'}</div>
-          <div>Has WebApp: {typeof window !== 'undefined' && window.Telegram?.WebApp ? '✅' : '❌'}</div>
-          <div>WebApp version: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && window.Telegram?.WebApp?.version || 'N/A'}</span></div>
-          <div>Has initData: {typeof window !== 'undefined' && window.Telegram?.WebApp?.initData ? '✅' : '❌'}</div>
-          <div>InitData length: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && (window.Telegram?.WebApp?.initData?.length || 0)}</span></div>
-          <div>Has initDataUnsafe: {typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe ? '✅' : '❌'}</div>
-          <div>Has user: {typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user ? '✅' : '❌'}</div>
-          <div>User ID: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'N/A')}</span></div>
-          <div>User name: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && (window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'N/A')}</span></div>
-          
-          <hr style={{margin: '10px 0', borderColor: '#666'}} />
-          <div style={{color: '#ff9900', fontWeight: 'bold'}}>🌐 БРАУЗЕР INFO:</div>
-          <div>User Agent: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? navigator.userAgent.slice(0, 50) + '...' : 'N/A'}</span></div>
-          <div>URL: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? window.location.href : 'N/A'}</span></div>
-          <div>Hash: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? window.location.hash.slice(0, 30) + '...' : 'N/A'}</span></div>
-          <div>Is Mobile: {typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? '✅' : '❌'}</div>
-        </div>
         
         {error && (
           <p
@@ -305,6 +257,7 @@ const StartPage: React.FC = () => {
           </p>
         </div>
 
+        {/* 🌐 МОДАЛЬНОЕ ОКНО ВЫБОРА ЯЗЫКА */}
         {showLanguageModal && (
           <div
             style={{
@@ -322,31 +275,155 @@ const StartPage: React.FC = () => {
           >
             <div
               style={{
-                background: 'rgba(255, 255, 252, 0.1)',
-                padding: '20px',
-                borderRadius: '10px',
+                background: 'rgba(0, 0, 20, 0.9)',
+                padding: '30px',
+                borderRadius: '15px',
                 textAlign: 'center',
-                boxShadow: `0 0 10px ${colorStyle}`,
+                boxShadow: `0 0 20px ${colorStyle}`,
+                border: `2px solid ${colorStyle}`,
+                maxWidth: '400px',
+                margin: '20px'
               }}
             >
-              <h2 style={{ color: colorStyle }}>{t('select_language')}</h2>
-              {['en', 'ru'].map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => handleLanguageSelect(lang)}
-                  style={{
-                    padding: '10px 20px',
-                    margin: '10px',
-                    background: 'transparent',
-                    border: `2px solid ${colorStyle}`,
-                    boxShadow: selectedLanguage === lang ? `0 0 10px ${colorStyle}` : 'none',
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {lang.toUpperCase()}
-                </button>
-              ))}
+              <h2 style={{ color: colorStyle, marginBottom: '20px' }}>
+                🌐 Choose Language / Выберите язык
+              </h2>
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                {[
+                  { code: 'en', flag: '🇺🇸', name: 'English' },
+                  { code: 'ru', flag: '🇷🇺', name: 'Русский' }
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => handleLanguageSelect(lang.code)}
+                    style={{
+                      padding: '15px 20px',
+                      background: 'transparent',
+                      border: `2px solid ${colorStyle}`,
+                      borderRadius: '10px',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = colorStyle;
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    <span style={{ fontSize: '24px' }}>{lang.flag}</span>
+                    <span>{lang.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🎮 МОДАЛЬНОЕ ОКНО ПРИВЕТСТВИЯ И ЭКСКУРСА */}
+        {showWelcomeModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '0',
+              left: '0',
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0, 0, 0, 0.9)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+          >
+            <div
+              style={{
+                background: 'rgba(0, 0, 40, 0.95)',
+                padding: '30px',
+                borderRadius: '20px',
+                textAlign: 'center',
+                boxShadow: `0 0 30px ${colorStyle}`,
+                border: `3px solid ${colorStyle}`,
+                maxWidth: '500px',
+                maxHeight: '80vh',
+                overflowY: 'auto'
+              }}
+            >
+              <h2 style={{ color: colorStyle, marginBottom: '20px', fontSize: '24px' }}>
+                🚀 {t('welcome_to_cosmoclick') || 'Добро пожаловать в CosmoClick!'}
+              </h2>
+              
+              <div style={{ textAlign: 'left', lineHeight: '1.6', fontSize: '16px', marginBottom: '25px' }}>
+                <p style={{ marginBottom: '15px' }}>
+                  🌟 <strong>{t('game_description') || 'CosmoClick - это космическая игра-кликер, где вы:'}</strong>
+                </p>
+                
+                <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                  <li style={{ marginBottom: '8px' }}>
+                    🪨 {t('buy_asteroids') || 'Покупаете астероиды для добычи ресурсов'}
+                  </li>
+                  <li style={{ marginBottom: '8px' }}>
+                    🤖 {t('buy_drones') || 'Покупаете дронов для автоматической добычи'}
+                  </li>
+                  <li style={{ marginBottom: '8px' }}>
+                    📦 {t('buy_cargo') || 'Улучшаете карго для хранения ресурсов'}
+                  </li>
+                  <li style={{ marginBottom: '8px' }}>
+                    🌌 {t('unlock_systems') || 'Открываете новые звездные системы'}
+                  </li>
+                  <li style={{ marginBottom: '8px' }}>
+                    💎 {t('stake_ton') || 'Стейкаете TON в системе 5 для получения прибыли'}
+                  </li>
+                </ul>
+                
+                <p style={{ marginBottom: '15px' }}>
+                  💰 <strong>{t('currencies') || 'Валюты:'}:</strong>
+                </p>
+                
+                <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
+                  <li>🔸 <strong>CCC</strong> - {t('ccc_description') || 'основная валюта для систем 1-3'}</li>
+                  <li>🔹 <strong>CS</strong> - {t('cs_description') || 'продвинутая валюта для системы 4'}</li>
+                  <li>💎 <strong>TON</strong> - {t('ton_description') || 'криптовалюта для стейкинга в системе 5'}</li>
+                </ul>
+                
+                <p style={{ textAlign: 'center', color: colorStyle, fontWeight: 'bold' }}>
+                  {t('start_journey') || 'Начните свое космическое путешествие прямо сейчас!'}
+                </p>
+              </div>
+              
+              <button
+                onClick={handleWelcomeClose}
+                style={{
+                  padding: '15px 30px',
+                  background: colorStyle,
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#000',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = `0 0 20px ${colorStyle}`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                🚀 {t('start_game') || 'Начать игру!'}
+              </button>
             </div>
           </div>
         )}
