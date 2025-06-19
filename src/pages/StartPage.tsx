@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePlayer } from '../context/PlayerContext';
+import { useNewPlayer } from '../context/NewPlayerContext'; // 🔥 ИСПРАВЛЕНО
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getTelegramId } from '../utils/telegram';
@@ -10,7 +10,7 @@ const API_URL = process.env.NODE_ENV === 'production'
   : 'http://localhost:5000';
 
 const StartPage: React.FC = () => {
-  const { player, loading, error, setError, fetchInitialData } = usePlayer();
+  const { player, loading, error, setError, fetchInitialData } = useNewPlayer(); // 🔥 ИСПРАВЛЕНО
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [minDelayElapsed, setMinDelayElapsed] = useState(false);
@@ -20,22 +20,31 @@ const StartPage: React.FC = () => {
   const [timeoutElapsed, setTimeoutElapsed] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false); // ДОБАВЛЕНО: Флаг загрузки данных
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // ИСПРАВЛЕНО: Минимальная задержка 4 секунды + прогресс
+  // 🔥 ВСЕГДА показываем StartPage минимум 4 секунды
   useEffect(() => {
-    const minDelayTimer = setTimeout(() => setMinDelayElapsed(true), 4000); // Увеличено до 4 сек
-    const timeoutTimer = setTimeout(() => setTimeoutElapsed(true), 15000); // Увеличено до 15 сек
+    console.log('🎬 StartPage: Запуск таймеров');
+    const minDelayTimer = setTimeout(() => {
+      console.log('⏰ StartPage: Минимальная задержка 4 сек прошла');
+      setMinDelayElapsed(true);
+    }, 4000);
+    
+    const timeoutTimer = setTimeout(() => {
+      console.log('⏰ StartPage: Тайм-аут 15 сек прошел');
+      setTimeoutElapsed(true);
+    }, 15000);
+    
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev < 90) {
-          return prev + 3; // Медленнее прогресс
+          return prev + 3;
         } else if (dataLoaded && prev < 100) {
-          return prev + 10; // Быстрее в конце когда данные загружены
+          return prev + 10;
         }
         return prev;
       });
-    }, 150); // Медленнее обновление
+    }, 150);
 
     return () => {
       clearTimeout(minDelayTimer);
@@ -44,7 +53,7 @@ const StartPage: React.FC = () => {
     };
   }, [dataLoaded]);
 
-  // ИСПРАВЛЕНО: Очистка ошибки через 3 секунды
+  // Очистка ошибки через 3 секунды
   useEffect(() => {
     if (error) {
       const errorTimer = setTimeout(() => {
@@ -54,44 +63,47 @@ const StartPage: React.FC = () => {
     }
   }, [error, setError]);
 
-  // Инициализация данных
+  // 🔥 ИСПРАВЛЕНО: Инициализация данных
   useEffect(() => {
-    if (!isInitialized && !loading) {
-      console.log('Инициализация: запуск fetchInitialData');
+    if (!isInitialized) {
+      console.log('🚀 StartPage: Запуск fetchInitialData');
       fetchInitialData();
       setIsInitialized(true);
     }
-  }, [fetchInitialData, isInitialized, loading]);
+  }, [fetchInitialData, isInitialized]);
 
-  // ИСПРАВЛЕНО: Отслеживание загрузки данных
+  // 🔥 ИСПРАВЛЕНО: Отслеживание загрузки данных
   useEffect(() => {
-    if (player && player.language && !loading) {
-      console.log('Данные игрока полностью загружены');
+    if (player && !loading) {
+      console.log('📦 StartPage: Данные игрока загружены', {
+        hasLanguage: !!player.language,
+        telegramId: player.telegram_id
+      });
       setDataLoaded(true);
       
-      // Устанавливаем язык сразу как получили данные
-      if (i18n.language !== player.language) {
-        console.log(`Смена языка на ${player.language}`);
+      // Устанавливаем язык если есть
+      if (player.language && i18n.language !== player.language) {
+        console.log(`🌐 StartPage: Смена языка на ${player.language}`);
         i18n.changeLanguage(player.language);
       }
     }
   }, [player, loading, i18n]);
 
-  // ИСПРАВЛЕНО: Навигация только после минимальной задержки И загрузки данных
+  // 🔥 ИСПРАВЛЕНО: Логика навигации - всегда ждем минимум 4 секунды
   useEffect(() => {
-    if (hasNavigated) return; // Если уже навигировали, не делаем ничего
+    if (hasNavigated) return;
 
     // Показываем модальное окно выбора языка если нужно
     if (player && !player.language && !loading && !error && !showLanguageModal) {
-      console.log('Показ модального окна для выбора языка');
+      console.log('🌐 StartPage: Показ модального окна выбора языка');
       setShowLanguageModal(true);
-      return; // Не переходим пока не выберут язык
+      return;
     }
 
-    const allDataLoaded = !!(player && player.language && dataLoaded);
+    const allDataLoaded = !!(player && dataLoaded);
     const canNavigate = minDelayElapsed && allDataLoaded && progress >= 100;
     
-    console.log('Проверка условий перехода:', { 
+    console.log('🔍 StartPage: Проверка условий перехода:', { 
       minDelayElapsed, 
       loading, 
       allDataLoaded, 
@@ -100,21 +112,18 @@ const StartPage: React.FC = () => {
       error, 
       hasNavigated,
       progress,
-      canNavigate
+      canNavigate,
+      hasLanguage: !!player?.language
     });
 
-    // Переходим только если прошла минимальная задержка И данные загружены И прогресс 100%
+    // 🔥 ИСПРАВЛЕНО: Переходим на главную после минимальной задержки и загрузки данных
     if (canNavigate || (timeoutElapsed && !error)) {
-      if (timeoutElapsed && !allDataLoaded && !error) {
-        console.log('Тайм-аут истёк, но данные не загружены, переход на /');
+      if (allDataLoaded) {
+        console.log('✅ StartPage: Переход на главную - данные загружены');
         setHasNavigated(true);
         navigate('/', { replace: true });
-      } else if (allDataLoaded) {
-        console.log('Все данные загружены и задержка прошла, переход на /main');
-        setHasNavigated(true);
-        navigate('/main', { replace: true });
-      } else if (error && error !== 'Не удалось купить астероид') {
-        console.log('Произошла критическая ошибка, переход на /');
+      } else if (timeoutElapsed) {
+        console.log('⏰ StartPage: Переход на главную - тайм-аут');
         setHasNavigated(true);
         navigate('/', { replace: true });
       }
@@ -125,19 +134,22 @@ const StartPage: React.FC = () => {
     try {
       const telegramId = player?.telegram_id || getTelegramId();
       if (!telegramId) {
-        console.error('Не удалось получить telegramId');
+        console.error('❌ StartPage: Не удалось получить telegramId');
         return;
       }
-      console.log(`Выбор языка: ${lang}, telegramId: ${telegramId}`);
+      console.log(`🌐 StartPage: Выбор языка ${lang}, telegramId: ${telegramId}`);
+      
       const response = await axios.post(`${API_URL}/api/player/language`, { telegramId, language: lang });
-      console.log('Ответ от API:', response.data);
+      console.log('✅ StartPage: Ответ от API:', response.data);
+      
       await i18n.changeLanguage(lang);
       setShowLanguageModal(false);
       setSelectedLanguage(lang);
-      console.log('Обновление данных игрока после выбора языка');
+      
+      console.log('🔄 StartPage: Обновление данных игрока после выбора языка');
       await fetchInitialData();
     } catch (err) {
-      console.error('Не удалось установить язык:', err);
+      console.error('❌ StartPage: Не удалось установить язык:', err);
       setShowLanguageModal(false);
       setError('Не удалось установить язык');
     }
@@ -163,25 +175,43 @@ const StartPage: React.FC = () => {
           position: 'relative',
         }}
       >
-        {/* ИСПРАВЛЕНО: Приветствие на правильном языке */}
+        {/* Приветствие */}
         <h1
           style={{
             fontSize: '2rem',
-            color: 'black',
+            color: 'white',
             textShadow: `0 0 10px ${colorStyle}, 0 0 20px ${colorStyle}`,
             textAlign: 'center',
             whiteSpace: 'pre-line',
             position: 'absolute',
             top: '20px',
-            opacity: dataLoaded ? 1 : 0.7, // Плавное появление
+            opacity: dataLoaded ? 1 : 0.7,
             transition: 'opacity 0.5s ease'
           }}
         >
           {player && player.language ? 
             t('welcome_player', { username: player.username || `User${player.telegram_id?.slice(-4) || 'Unknown'}` }) :
-            'Loading...'
+            'CosmoClick Loading...'
           }
         </h1>
+
+        {/* 🔥 ДОБАВЛЕНО: Отладочная информация */}
+        <div style={{
+          position: 'absolute',
+          top: '100px',
+          left: '20px',
+          background: 'rgba(0,0,0,0.7)',
+          padding: '10px',
+          borderRadius: '5px',
+          fontSize: '12px',
+          color: '#fff'
+        }}>
+          <div>Telegram ID: {getTelegramId()}</div>
+          <div>Player loaded: {player ? '✅' : '❌'}</div>
+          <div>Data loaded: {dataLoaded ? '✅' : '❌'}</div>
+          <div>Min delay: {minDelayElapsed ? '✅' : '❌'}</div>
+          <div>Progress: {progress}%</div>
+        </div>
         
         {error && (
           <p
@@ -189,14 +219,14 @@ const StartPage: React.FC = () => {
               fontSize: '1.2rem',
               color: '#ff4d4d',
               textShadow: '0 0 10px #ff4d4d',
-              marginTop: '60px',
+              marginTop: '200px',
             }}
           >
             {error}
           </p>
         )}
         
-        {/* ИСПРАВЛЕНО: Прогресс бар с лучшей логикой */}
+        {/* Прогресс бар */}
         <div
           style={{
             width: '80%',

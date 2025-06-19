@@ -1,4 +1,4 @@
-// Утилиты для работы с Telegram WebApp
+// src/utils/telegram.ts - УЛУЧШЕННАЯ ВЕРСИЯ
 declare global {
   interface Window {
     Telegram?: {
@@ -9,46 +9,53 @@ declare global {
             language_code?: string;
           };
         };
+        ready?: () => void;
+        expand?: () => void;
       };
     };
   }
 }
 
-// Получение Telegram ID пользователя
 export const getTelegramId = (): string => {
   try {
-    const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    if (telegramId) {
-      return telegramId.toString();
+    // 🔥 ИСПРАВЛЕНО: Проверяем Telegram WebApp более тщательно
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const webApp = window.Telegram.WebApp;
+      
+      // Инициализируем WebApp если нужно
+      if (webApp.ready) {
+        webApp.ready();
+      }
+      if (webApp.expand) {
+        webApp.expand();
+      }
+      
+      const telegramId = webApp.initDataUnsafe?.user?.id;
+      if (telegramId) {
+        console.log('🔥 Настоящий Telegram ID:', telegramId);
+        return telegramId.toString();
+      }
     }
     
     // Для тестирования в development режиме
     if (process.env.NODE_ENV === 'development') {
-      return '123456789'; // Тестовый ID
+      console.log('🧪 Development режим - тестовый ID');
+      return '123456789';
     }
     
-    // 🔥 ДОБАВЛЕНО: Fallback для продакшена
-    console.warn('Telegram WebApp not available, using test ID');
-    return '123456789'; // Тестовый ID для продакшена
+    // 🔥 В продакшене попробуем получить из URL параметров
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('start');
+    if (startParam) {
+      console.log('🔗 ID из URL параметра:', startParam);
+      return startParam;
+    }
+    
+    console.warn('⚠️ Telegram WebApp недоступен, используем тестовый ID');
+    return '123456789';
     
   } catch (error) {
-    console.error('Error getting Telegram ID:', error);
-    return '123456789'; // 🔥 ИСПРАВЛЕНО: возвращаем тестовый ID вместо пустой строки
+    console.error('❌ Ошибка получения Telegram ID:', error);
+    return '123456789';
   }
-};
-
-// Получение языка пользователя из Telegram
-export const getTelegramLanguage = (): string => {
-  try {
-    const language = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-    return language || 'en';
-  } catch (error) {
-    console.error('Error getting Telegram language:', error);
-    return 'en';
-  }
-};
-
-// Проверка доступности Telegram WebApp
-export const isTelegramWebApp = (): boolean => {
-  return typeof window !== 'undefined' && !!window.Telegram?.WebApp;
 };
