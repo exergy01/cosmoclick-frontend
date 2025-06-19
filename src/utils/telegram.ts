@@ -107,23 +107,23 @@ export const getTelegramId = (): string => {
       }
     }
     
-    // 4. Fallback для разработки
+    // 4. 🔥 СПЕЦИАЛЬНЫЙ FALLBACK ДЛЯ ВАШЕГО ID
     if (process.env.NODE_ENV === 'development') {
-      console.log('🧪 Development режим - тестовый ID');
-      return '123456789';
+      console.log('🧪 Development режим - ваш тестовый ID');
+      return '2097930691'; // ВАШ РЕАЛЬНЫЙ ID
     }
     
     // 5. Fallback для браузера
-    console.log('🌐 Fallback - тестовый ID');
-    return '123456789';
+    console.log('🌐 Fallback - ваш тестовый ID');
+    return '2097930691'; // ВАШ РЕАЛЬНЫЙ ID
     
   } catch (error) {
     console.error('❌ Ошибка получения Telegram ID:', error);
-    return '123456789';
+    return '2097930691'; // ВАШ РЕАЛЬНЫЙ ID
   }
 };
 
-// 🔥 НОВАЯ функция: получение данных пользователя
+// 🔥 НОВАЯ функция: получение данных пользователя С ВАШИМИ РЕАЛЬНЫМИ ДАННЫМИ
 export const getTelegramUser = () => {
   try {
     console.log('👤 Получение данных пользователя...');
@@ -133,7 +133,7 @@ export const getTelegramUser = () => {
       const user = window.Telegram.WebApp.initDataUnsafe.user;
       console.log('✅ Пользователь из WebApp API:', user);
       return {
-        id: user.id?.toString() || '123456789',
+        id: user.id?.toString() || '2097930691',
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         username: user.username || '',
@@ -147,7 +147,7 @@ export const getTelegramUser = () => {
       const user = urlData.user;
       console.log('✅ Пользователь из URL hash:', user);
       return {
-        id: user.id?.toString() || '123456789',
+        id: user.id?.toString() || '2097930691',
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         username: user.username || '',
@@ -155,26 +155,38 @@ export const getTelegramUser = () => {
       };
     }
     
-    // 3. Fallback
-    console.log('🔄 Fallback пользователь');
+    // 3. 🔥 FALLBACK С ВАШИМИ РЕАЛЬНЫМИ ДАННЫМИ
+    console.log('🔄 Fallback - ваши реальные данные');
     return {
-      id: '123456789',
-      firstName: 'Test',
-      lastName: 'User',
-      username: 'testuser',
+      id: '2097930691',
+      firstName: 'TeplodarExergy',
+      lastName: '',
+      username: 'teplodar01',
       languageCode: 'ru'
     };
     
   } catch (error) {
     console.error('❌ Ошибка получения данных пользователя:', error);
     return {
-      id: '123456789',
-      firstName: 'Test',
-      lastName: 'User',
-      username: 'testuser',
+      id: '2097930691',
+      firstName: 'TeplodarExergy',
+      lastName: '',
+      username: 'teplodar01',
       languageCode: 'ru'
     };
   }
+};
+
+// 🆕 НОВАЯ функция для получения данных в формате backend
+export const getTelegramUserData = () => {
+  const user = getTelegramUser();
+  return {
+    id: parseInt(user.id),
+    first_name: user.firstName,
+    last_name: user.lastName,
+    username: user.username,
+    language_code: user.languageCode
+  };
 };
 
 // Получение языка пользователя

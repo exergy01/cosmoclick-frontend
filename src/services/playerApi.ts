@@ -1,4 +1,4 @@
-// API для работы с игроком (ИСПРАВЛЕНО для CS)
+// API для работы с игроком (ИСПРАВЛЕНО для CS + СОЗДАНИЕ ИГРОКА)
 import axios from 'axios';
 import { API_URL, fetchWithRetry } from './apiConfig';
 
@@ -10,10 +10,32 @@ export interface CollectData {
   collected_cs?: number; // 🔥 ДОБАВЛЕНО: поддержка CS
 }
 
+// 🆕 НОВЫЙ ИНТЕРФЕЙС для создания игрока
+export interface CreatePlayerData {
+  telegramId: string;
+  telegramData?: {
+    id: number;
+    first_name: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+  };
+}
+
 export const playerApi = {
   // Получить данные игрока
   fetchPlayer: async (telegramId: string) => {
     return await fetchWithRetry(`${API_URL}/api/player/${telegramId}`);
+  },
+
+  // 🆕 НОВАЯ ФУНКЦИЯ: Создать/получить игрока с реальными данными Telegram
+  createOrGetPlayer: async (data: CreatePlayerData) => {
+    console.log('🔍 playerApi.createOrGetPlayer вызван с данными:', data);
+    
+    return await axios.post(`${API_URL}/api/auth/player`, {
+      telegramId: data.telegramId,
+      telegramData: data.telegramData
+    });
   },
 
   // Обновить данные игрока
@@ -21,8 +43,10 @@ export const playerApi = {
     return await axios.post(`${API_URL}/api/player/${telegramId}`, data);
   },
 
-  // Регистрация нового игрока
+  // 🔄 СТАРАЯ ФУНКЦИЯ: Регистрация нового игрока (оставлена для совместимости)
   registerNewPlayer: async (telegramId: string) => {
+    console.log('⚠️ playerApi.registerNewPlayer (старая функция) вызвана для:', telegramId);
+    
     return await axios.post(`${API_URL}/api/register/${telegramId}`, {
       telegram_id: telegramId,
       username: `User${telegramId.slice(-4)}`,
