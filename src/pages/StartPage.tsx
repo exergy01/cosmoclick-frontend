@@ -121,11 +121,11 @@ const StartPage: React.FC = () => {
       if (allDataLoaded) {
         console.log('✅ StartPage: Переход на главную - данные загружены');
         setHasNavigated(true);
-        navigate('/main', { replace: true });
+        navigate('/', { replace: true });
       } else if (timeoutElapsed) {
         console.log('⏰ StartPage: Переход на главную - тайм-аут');
         setHasNavigated(true);
-        navigate('/main', { replace: true });
+        navigate('/', { replace: true });
       }
     }
   }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal]);
