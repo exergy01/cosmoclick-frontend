@@ -3,14 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
-import { getTelegramId, getTelegramUserData } from '../utils/telegram';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
 const StartPage: React.FC = () => {
-  const { player, loading, error, setError, fetchInitialData } = useNewPlayer();
+  const { player, loading, error, setError, fetchInitialData, setPlayer } = useNewPlayer();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [minDelayElapsed, setMinDelayElapsed] = useState(false);
@@ -85,13 +84,24 @@ const StartPage: React.FC = () => {
       });
       setDataLoaded(true);
       
-      // 🔥 ОПРЕДЕЛЯЕМ НОВЫЙ ЛИ ИГРОК (если язык по умолчанию 'en' и нет настроек)
-      const isPlayerNew = !player.language || player.language === 'en';
+      // 🔥 ОПРЕДЕЛЯЕМ НОВЫЙ ЛИ ИГРОК (если язык 'en' и только что создан)
+      const createdAt = new Date(player.created_at || Date.now()).getTime();
+      const now = Date.now();
+      const minutesAgo = (now - createdAt) / (1000 * 60);
+      const isPlayerNew = player.language === 'en' && minutesAgo < 5; // Создан менее 5 минут назад
+      
+      console.log('🔍 Проверка нового игрока:', {
+        language: player.language,
+        createdAt: player.created_at,
+        minutesAgo: Math.round(minutesAgo),
+        isPlayerNew
+      });
+      
       setIsNewPlayer(isPlayerNew);
       
-      // Устанавливаем язык если есть
-      if (player.language && i18n.language !== player.language) {
-        console.log(`🌐 StartPage: Смена языка на ${player.language}`);
+      // Устанавливаем язык БЕЗ перезагрузки если есть и игрок НЕ новый
+      if (player.language && i18n.language !== player.language && !isPlayerNew) {
+        console.log(`🌐 StartPage: Смена языка на ${player.language} без перезагрузки`);
         i18n.changeLanguage(player.language);
       }
     }
@@ -139,19 +149,27 @@ const StartPage: React.FC = () => {
 
   const handleLanguageSelect = async (lang: string) => {
     try {
-      const telegramId = player?.telegram_id || getTelegramId();
+      const telegramId = player?.telegram_id;
       if (!telegramId) {
         console.error('❌ StartPage: Не удалось получить telegramId');
         return;
       }
       console.log(`🌐 StartPage: Выбор языка ${lang}, telegramId: ${telegramId}`);
       
+      // 🔥 ИСПРАВЛЕНО: НЕ перезагружаем данные, только обновляем язык
       const response = await axios.post(`${API_URL}/api/player/language`, { telegramId, language: lang });
       console.log('✅ StartPage: Ответ от API:', response.data);
       
+      // Обновляем язык локально БЕЗ перезагрузки
       await i18n.changeLanguage(lang);
-      setShowLanguageModal(false);
       setSelectedLanguage(lang);
+      
+      // Обновляем объект игрока локально
+      if (player) {
+        setPlayer({ ...player, language: lang });
+      }
+      
+      setShowLanguageModal(false);
       
       // 🔥 ПОКАЗЫВАЕМ ПРИВЕТСТВЕННОЕ МОДАЛЬНОЕ ОКНО ПОСЛЕ ВЫБОРА ЯЗЫКА
       setTimeout(() => {
