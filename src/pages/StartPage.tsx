@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNewPlayer } from '../context/NewPlayerContext'; // 🔥 ИСПРАВЛЕНО
+import { useNewPlayer } from '../context/NewPlayerContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { getTelegramId } from '../utils/telegram';
@@ -10,7 +10,7 @@ const API_URL = process.env.NODE_ENV === 'production'
   : 'http://localhost:5000';
 
 const StartPage: React.FC = () => {
-  const { player, loading, error, setError, fetchInitialData } = useNewPlayer(); // 🔥 ИСПРАВЛЕНО
+  const { player, loading, error, setError, fetchInitialData } = useNewPlayer();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [minDelayElapsed, setMinDelayElapsed] = useState(false);
@@ -63,7 +63,7 @@ const StartPage: React.FC = () => {
     }
   }, [error, setError]);
 
-  // 🔥 ИСПРАВЛЕНО: Инициализация данных
+  // Инициализация данных
   useEffect(() => {
     if (!isInitialized) {
       console.log('🚀 StartPage: Запуск fetchInitialData');
@@ -72,7 +72,7 @@ const StartPage: React.FC = () => {
     }
   }, [fetchInitialData, isInitialized]);
 
-  // 🔥 ИСПРАВЛЕНО: Отслеживание загрузки данных
+  // Отслеживание загрузки данных
   useEffect(() => {
     if (player && !loading) {
       console.log('📦 StartPage: Данные игрока загружены', {
@@ -89,7 +89,7 @@ const StartPage: React.FC = () => {
     }
   }, [player, loading, i18n]);
 
-  // 🔥 ИСПРАВЛЕНО: Логика навигации - всегда ждем минимум 4 секунды
+  // Логика навигации - всегда ждем минимум 4 секунды
   useEffect(() => {
     if (hasNavigated) return;
 
@@ -116,16 +116,16 @@ const StartPage: React.FC = () => {
       hasLanguage: !!player?.language
     });
 
-    // 🔥 ИСПРАВЛЕНО: Переходим на главную после минимальной задержки и загрузки данных
+    // Переходим на главную после минимальной задержки и загрузки данных
     if (canNavigate || (timeoutElapsed && !error)) {
       if (allDataLoaded) {
         console.log('✅ StartPage: Переход на главную - данные загружены');
         setHasNavigated(true);
-        navigate('/', { replace: true });
+        navigate('/main', { replace: true });
       } else if (timeoutElapsed) {
         console.log('⏰ StartPage: Переход на главную - тайм-аут');
         setHasNavigated(true);
-        navigate('/', { replace: true });
+        navigate('/main', { replace: true });
       }
     }
   }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal]);
@@ -195,22 +195,45 @@ const StartPage: React.FC = () => {
           }
         </h1>
 
-        {/* 🔥 ДОБАВЛЕНО: Отладочная информация */}
+        {/* 🔥 ПОЛНАЯ ДИАГНОСТИКА TELEGRAM */}
         <div style={{
           position: 'absolute',
           top: '100px',
           left: '20px',
-          background: 'rgba(0,0,0,0.7)',
-          padding: '10px',
-          borderRadius: '5px',
+          background: 'rgba(0,0,0,0.9)',
+          padding: '15px',
+          borderRadius: '8px',
           fontSize: '12px',
-          color: '#fff'
+          color: '#fff',
+          maxWidth: '350px',
+          overflowY: 'auto',
+          maxHeight: '300px',
+          border: '1px solid #333'
         }}>
-          <div>Telegram ID: {getTelegramId()}</div>
+          <div style={{color: '#00ff00', fontWeight: 'bold', marginBottom: '5px'}}>🔍 ДИАГНОСТИКА:</div>
+          <div>Telegram ID: <span style={{color: '#ffff00'}}>{getTelegramId()}</span></div>
           <div>Player loaded: {player ? '✅' : '❌'}</div>
           <div>Data loaded: {dataLoaded ? '✅' : '❌'}</div>
           <div>Min delay: {minDelayElapsed ? '✅' : '❌'}</div>
           <div>Progress: {progress}%</div>
+          
+          <hr style={{margin: '10px 0', borderColor: '#666'}} />
+          <div style={{color: '#00ffff', fontWeight: 'bold'}}>📱 TELEGRAM DEBUG:</div>
+          <div>Has window.Telegram: {typeof window !== 'undefined' && window.Telegram ? '✅' : '❌'}</div>
+          <div>Has WebApp: {typeof window !== 'undefined' && window.Telegram?.WebApp ? '✅' : '❌'}</div>
+          <div>WebApp version: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && window.Telegram?.WebApp?.version || 'N/A'}</span></div>
+          <div>Has initData: {typeof window !== 'undefined' && window.Telegram?.WebApp?.initData ? '✅' : '❌'}</div>
+          <div>InitData length: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && (window.Telegram?.WebApp?.initData?.length || 0)}</span></div>
+          <div>Has initDataUnsafe: {typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe ? '✅' : '❌'}</div>
+          <div>Has user: {typeof window !== 'undefined' && window.Telegram?.WebApp?.initDataUnsafe?.user ? '✅' : '❌'}</div>
+          <div>User ID: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && (window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'N/A')}</span></div>
+          <div>User name: <span style={{color: '#ffff00'}}>{typeof window !== 'undefined' && (window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || 'N/A')}</span></div>
+          
+          <hr style={{margin: '10px 0', borderColor: '#666'}} />
+          <div style={{color: '#ff9900', fontWeight: 'bold'}}>🌐 БРАУЗЕР INFO:</div>
+          <div>User Agent: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? navigator.userAgent.slice(0, 50) + '...' : 'N/A'}</span></div>
+          <div>URL: <span style={{fontSize: '10px', wordBreak: 'break-all'}}>{typeof window !== 'undefined' ? window.location.href : 'N/A'}</span></div>
+          <div>Is Mobile: {typeof window !== 'undefined' && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? '✅' : '❌'}</div>
         </div>
         
         {error && (
