@@ -106,19 +106,6 @@ const StartPage: React.FC = () => {
   useEffect(() => {
     if (hasNavigated) return;
 
-    // В useEffect где проверяется показ модального окна, добавьте:
-console.log('🚨 УСЛОВИЯ ПОКАЗА МОДАЛЬНОГО ОКНА:', {
-  player: !!player,
-  isNewPlayer,
-  loading,
-  error,
-  showLanguageModal,
-  showWelcomeModal,
-  hasNavigated,
-  'player.language': player?.language,
-  'должно показать': player && isNewPlayer && !loading && !error && !showLanguageModal && !showWelcomeModal
-});
-
     // 🔥 НОВАЯ ЛОГИКА: Показываем выбор языка для новых игроков
     if (player && isNewPlayer && !loading && !error && !showLanguageModal && !showWelcomeModal) {
       console.log('🌐 StartPage: Показ модального окна выбора языка для нового игрока');
@@ -234,6 +221,35 @@ console.log('🚨 УСЛОВИЯ ПОКАЗА МОДАЛЬНОГО ОКНА:', {
             'CosmoClick Loading...'
           }
         </h1>
+
+        {/* 🔍 ДИАГНОСТИКА НА ЭКРАНЕ */}
+        {player && (
+          <div style={{
+            position: 'absolute',
+            top: '100px',
+            left: '10px',
+            background: 'rgba(0,0,0,0.8)',
+            padding: '10px',
+            borderRadius: '5px',
+            fontSize: '12px',
+            color: '#fff',
+            border: '1px solid #ff0000'
+          }}>
+            <div>Player ID: {player.telegram_id}</div>
+            <div>Language: {player.language || 'NULL'}</div>
+            <div>isNewPlayer: {isNewPlayer ? 'YES' : 'NO'}</div>
+            <div>Loading: {loading ? 'YES' : 'NO'}</div>
+            <div>Error: {error || 'NO'}</div>
+            <div>showLanguageModal: {showLanguageModal ? 'YES' : 'NO'}</div>
+            <div>showWelcomeModal: {showWelcomeModal ? 'YES' : 'NO'}</div>
+            <div>hasNavigated: {hasNavigated ? 'YES' : 'NO'}</div>
+            <div>dataLoaded: {dataLoaded ? 'YES' : 'NO'}</div>
+            <div>minDelayElapsed: {minDelayElapsed ? 'YES' : 'NO'}</div>
+            <div style={{color: '#ff0000', fontWeight: 'bold'}}>
+              ДОЛЖЕН ПОКАЗАТЬ: {player && isNewPlayer && !loading && !error && !showLanguageModal && !showWelcomeModal ? 'YES' : 'NO'}
+            </div>
+          </div>
+        )}
         
         {error && (
           <p
