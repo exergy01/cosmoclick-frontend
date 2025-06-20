@@ -30,10 +30,14 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     fetchInitialData,
   } = usePlayerData();
 
-  // Обновление языка при изменении игрока
+  // 🔥 ИСПРАВЛЕНО: НЕ МЕНЯЕМ ЯЗЫК АВТОМАТИЧЕСКИ ДЛЯ НОВЫХ ИГРОКОВ!
   React.useEffect(() => {
-    if (player?.language && i18n.language !== player.language) {
+    // ТОЛЬКО если язык установлен И игрок не новый
+    if (player?.language && player.language !== null && i18n.language !== player.language) {
+      console.log(`🌐 NewPlayerContext: Автоматическая смена языка на ${player.language}`);
       i18n.changeLanguage(player.language);
+    } else if (!player?.language) {
+      console.log('🌐 NewPlayerContext: Язык не установлен - НЕ меняем автоматически');
     }
   }, [player, i18n]);
 
