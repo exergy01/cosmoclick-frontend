@@ -106,6 +106,19 @@ const StartPage: React.FC = () => {
   useEffect(() => {
     if (hasNavigated) return;
 
+    // В useEffect где проверяется показ модального окна, добавьте:
+console.log('🚨 УСЛОВИЯ ПОКАЗА МОДАЛЬНОГО ОКНА:', {
+  player: !!player,
+  isNewPlayer,
+  loading,
+  error,
+  showLanguageModal,
+  showWelcomeModal,
+  hasNavigated,
+  'player.language': player?.language,
+  'должно показать': player && isNewPlayer && !loading && !error && !showLanguageModal && !showWelcomeModal
+});
+
     // 🔥 НОВАЯ ЛОГИКА: Показываем выбор языка для новых игроков
     if (player && isNewPlayer && !loading && !error && !showLanguageModal && !showWelcomeModal) {
       console.log('🌐 StartPage: Показ модального окна выбора языка для нового игрока');
