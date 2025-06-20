@@ -84,11 +84,12 @@ const StartPage: React.FC = () => {
       });
       setDataLoaded(true);
       
-      // 🔥 ПРОСТАЯ ЛОГИКА: если языка НЕТ (null) - значит новый игрок
-      const isPlayerNew = !player.language;
+      // 🔥 ЖЕСТКАЯ ЛОГИКА: если язык 'en' И нет имени - значит новый игрок
+      const isPlayerNew = player.language === 'en' && (!player.first_name || player.first_name.startsWith('User'));
       
       console.log('🔍 Проверка нового игрока:', {
         language: player.language,
+        first_name: player.first_name,
         isPlayerNew
       });
       
