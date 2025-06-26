@@ -1,7 +1,6 @@
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { AppProvider } from './context/AppProvider';
-import { useNewPlayer } from './context/NewPlayerContext';
+import { usePlayer } from './context/PlayerContext';
 import MainPage from './pages/MainPage';
 import ShopPage from './pages/ShopPage';
 import StartPage from './pages/StartPage';
@@ -13,9 +12,8 @@ import WalletPage from './pages/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
 
-// Компонент для логики приложения (внутри провайдеров)
-const AppContent: React.FC = () => {
-  const { player, loading, error, fetchInitialData } = useNewPlayer();
+const App: React.FC = () => {
+  const { player, loading, error, fetchInitialData } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,15 +45,6 @@ const AppContent: React.FC = () => {
         <Route path="/alphabet" element={<AlphabetPage />} />
       </Routes>
     </Suspense>
-  );
-};
-
-// Главный компонент приложения
-const App: React.FC = () => {
-  return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
   );
 };
 
