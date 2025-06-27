@@ -122,58 +122,113 @@ const ShopPage: React.FC = () => {
     }
   }, [fetchShopItems]);
 
-  // Функция покупки с новой логикой
-  const buyItem = async (type: string, id: number, price: number) => {
-    if (!player?.telegram_id) {
-      console.error('No telegram_id found for player');
-      return;
-    }
-    
-    if (isLoading) return;
-    
-    setIsLoading(true);
-    
-    try {
-      // Покупка товара через новые контексты
-      if (type === 'asteroid') {
-        await buyAsteroid(id, price, currentSystem);
-        // 🔥 СПЕЦИАЛЬНЫЙ СБРОС для астероидов
-        resetForNewAsteroid(currentSystem);
-      } else if (type === 'drones') {
-        await buyDrone(id, price, currentSystem);
+// Функция покупки с улучшенной обработкой ошибок
+const buyItem = async (type: string, id: number, price: number) => {
+  if (!player?.telegram_id) {
+    console.error('No telegram_id found for player');
+    return;
+  }
+  
+  if (isLoading) return;
+  
+  // 🔥 ПРОВЕРКА БАЛАНСА ПЕРЕД ПОКУПКОЙ
+  const currencyToCheck = currentSystem >= 1 && currentSystem <= 4 ? 'cs' : 
+                         currentSystem >= 5 && currentSystem <= 7 ? 'ton' : 'ccc';
+  
+  let currentBalance = 0;
+  let currencyName = '';
+  
+  if (currencyToCheck === 'cs') {
+    currentBalance = parseFloat(player.cs?.toString() || '0');
+    currencyName = 'CS';
+  } else if (currencyToCheck === 'ton') {
+    currentBalance = parseFloat(player.ton?.toString() || '0');
+    currencyName = 'TON';
+  } else {
+    currentBalance = parseFloat(player.ccc?.toString() || '0');
+    currencyName = 'CCC';
+  }
+  
+  if (currentBalance < price) {
+    const itemName = getItemName(type, id, currentSystem);
+    alert(`💰 Недостаточно средств!\n\n` +
+          `🛒 Товар: ${itemName}\n` +
+          `💎 Цена: ${price} ${currencyName}\n` +
+          `💰 У вас: ${currentBalance.toFixed(2)} ${currencyName}\n` +
+          `❌ Не хватает: ${(price - currentBalance).toFixed(2)} ${currencyName}\n\n` +
+          `💡 Соберите больше ресурсов или обменяйте валюту!`);
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  try {
+    // Покупка товара через новые контексты
+    if (type === 'asteroid') {
+      await buyAsteroid(id, price, currentSystem);
+      // 🔥 СПЕЦИАЛЬНЫЙ СБРОС для астероидов
+      resetForNewAsteroid(currentSystem);
+    } else if (type === 'drones') {
+      await buyDrone(id, price, currentSystem);
+      
+      // 🎉 ПРОВЕРЯЕМ ДОСТИЖЕНИЕ 15 ДРОНОВ (ДЛЯ СИСТЕМ 1-4)
+      if (player.drones && currentSystem >= 1 && currentSystem <= 4) {
+        const systemDrones = player.drones.filter((d: any) => d.system === currentSystem);
+        const newDroneCount = systemDrones.length + 1; // +1 за только что купленный
         
-        // 🎉 ПРОВЕРЯЕМ ДОСТИЖЕНИЕ 15 ДРОНОВ (ДЛЯ СИСТЕМ 1-4)
-        if (player.drones && currentSystem >= 1 && currentSystem <= 4) {
-          const systemDrones = player.drones.filter((d: any) => d.system === currentSystem);
-          const newDroneCount = systemDrones.length + 1; // +1 за только что купленный
-          
-          if (newDroneCount === 15) {
-            alert(`🎉 СКРЫТОЕ ЗАДАНИЕ ВЫПОЛНЕНО! 🎉\n\nВы собрали полную коллекцию дронов в системе ${currentSystem}!\n\n🚀 Бонус: +1% к скорости добычи!\n\nТеперь ваши дроны работают еще эффективнее!`);
-          }
+        if (newDroneCount === 15) {
+          alert(`🎉 СКРЫТОЕ ЗАДАНИЕ ВЫПОЛНЕНО! 🎉\n\nВы собрали полную коллекцию дронов в системе ${currentSystem}!\n\n🚀 Бонус: +1% к скорости добычи!\n\nТеперь ваши дроны работают еще эффективнее!`);
         }
-        
-        // Обычный сброс для дронов
-        resetCleanCounter(currentSystem);
-      } else if (type === 'cargo') {
-        const cargoItem = shopItems.cargo.find((item: Item) => item.id === id && item.system === currentSystem);
-        if (!cargoItem?.capacity) throw new Error('Invalid cargo capacity');
-        const capacityValue = typeof cargoItem.capacity === 'string' ? parseFloat(cargoItem.capacity) : cargoItem.capacity;
-        await buyCargo(id, price, capacityValue, currentSystem);
-        // Обычный сброс для дронов и карго
-        resetCleanCounter(currentSystem);
       }
       
-      // Обновляем товары магазина
-      await fetchShopItems();
-      
-    } catch (err: any) {
-      console.error(`Failed to buy ${type}:`, err);
-      const errorMessage = err instanceof Error ? err.message : 'Не удалось купить';
-      alert(errorMessage);
-    } finally {
-      setIsLoading(false);
+      // Обычный сброс для дронов
+      resetCleanCounter(currentSystem);
+    } else if (type === 'cargo') {
+      const cargoItem = shopItems.cargo.find((item: Item) => item.id === id && item.system === currentSystem);
+      if (!cargoItem?.capacity) throw new Error('Invalid cargo capacity');
+      const capacityValue = typeof cargoItem.capacity === 'string' ? parseFloat(cargoItem.capacity) : cargoItem.capacity;
+      await buyCargo(id, price, capacityValue, currentSystem);
+      // Обычный сброс для дронов и карго
+      resetCleanCounter(currentSystem);
     }
-  };
+    
+    // 🎉 УСПЕШНАЯ ПОКУПКА
+    const itemName = getItemName(type, id, currentSystem);
+    alert(`✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n💰 Потрачено: ${price} ${currencyName}`);
+    
+    // Обновляем товары магазина
+    await fetchShopItems();
+    
+  } catch (err: any) {
+    console.error(`Failed to buy ${type}:`, err);
+    
+    // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
+    let errorMessage = '';
+    const itemName = getItemName(type, id, currentSystem);
+    
+    if (err.response?.data?.error) {
+      const serverError = err.response.data.error;
+      
+      if (serverError.includes('Insufficient funds') || serverError.includes('Not enough')) {
+        errorMessage = `💰 Недостаточно средств для покупки!\n\n🛒 Товар: ${itemName}\n💎 Цена: ${price} ${currencyName}`;
+      } else if (serverError.includes('already purchased')) {
+        errorMessage = `⚠️ Товар уже куплен!\n\n🛒 ${itemName} уже есть в вашем арсенале.`;
+      } else if (serverError.includes('Player not found')) {
+        errorMessage = `❌ Ошибка игрока!\n\nПопробуйте перезагрузить страницу.`;
+      } else {
+        errorMessage = `❌ Ошибка сервера!\n\n${serverError}`;
+      }
+    } else if (err.message) {
+      errorMessage = `❌ Ошибка покупки!\n\n${err.message}`;
+    } else {
+      errorMessage = `❌ Неизвестная ошибка!\n\nПопробуйте еще раз или перезагрузите страницу.`;
+    }
+    
+    alert(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Функция для получения локализованного названия товара
   const getItemName = (type: string, id: number, system: number): string => {
