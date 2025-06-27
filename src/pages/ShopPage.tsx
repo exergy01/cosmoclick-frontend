@@ -571,8 +571,8 @@ const buyItem = async (type: string, id: number, price: number) => {
               onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('asteroid', item.id, item.price || 0)}
               disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
               style={{
-                width: 'calc(33,33% - 5px)', // 🔥 2 кнопки в ряд с учетом gap
-                minWidth: '100px', // минимальная ширина
+                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд с учетом gap
+                minWidth: '140px', // минимальная ширина
                 padding: '12px 8px',
                 background: item.isPurchased 
                   ? 'rgba(0, 255, 0, 0.2)' 
