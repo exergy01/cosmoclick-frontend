@@ -66,21 +66,24 @@ const StartPage: React.FC = () => {
             registration_language: lang 
           });
         }
+        
+        // Меняем язык в i18n
+        console.log('🌐 Смена языка в i18n на:', lang);
+        await i18n.changeLanguage(lang);
+        
+        setShowLanguageModal(false);
+        
+        // Показываем сообщение об успехе
+        if (response.data && response.data.language === lang) {
+          alert(`✅ Язык успешно изменен на: ${lang}`);
+        } else {
+          alert(`❌ Ошибка: язык в ответе не совпадает. Ответ: ${JSON.stringify(response.data)}`);
+        }
+        
       } else {
         console.error('❌ Нет telegram_id!');
-      }
-      
-      // Меняем язык в i18n
-      console.log('🌐 Смена языка в i18n на:', lang);
-      await i18n.changeLanguage(lang);
-      
-      setShowLanguageModal(false);
-      
-      // Показываем сообщение об успехе или ошибке
-      if (response.data.success) {
-        alert(`✅ Язык успешно изменен на: ${lang}`);
-      } else {
-        alert(`❌ Ошибка сервера: ${JSON.stringify(response.data)}`);
+        alert('❌ Нет telegram_id!');
+        return;
       }
       
       // Переход на главную через 2 секунды
@@ -93,7 +96,7 @@ const StartPage: React.FC = () => {
       
     } catch (err: any) {
       console.error('❌ Ошибка установки языка:', err);
-      alert(`Ошибка: ${err.response?.data?.error || err.message}`);
+      alert(`❌ Ошибка: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -106,7 +109,7 @@ const StartPage: React.FC = () => {
           backgroundImage: `url(/assets/startpage_bg.png)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          backgroundRepeat: 'no-root',
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
