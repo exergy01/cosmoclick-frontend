@@ -196,7 +196,7 @@ const buyItem = async (type: string, id: number, price: number) => {
           `❌ Не хватает: ${(price - currentBalance).toFixed(2)} ${currencyName}\n\n` +
           `💡 Соберите больше ресурсов или обменяйте валюту!`;
     
-    // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT (до выяснения правильных методов)
+    // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
     alert(message);
     return;
   }
@@ -220,7 +220,7 @@ const buyItem = async (type: string, id: number, price: number) => {
         if (newDroneCount === 15) {
           const achievementMessage = `🎉 СКРЫТОЕ ЗАДАНИЕ ВЫПОЛНЕНО! 🎉\n\nВы собрали полную коллекцию дронов в системе ${currentSystem}!\n\n🚀 Бонус: +1% к скорости добычи!\n\nТеперь ваши дроны работают еще эффективнее!`;
           
-          // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
+          // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
           alert(achievementMessage);
         }
       }
@@ -240,7 +240,7 @@ const buyItem = async (type: string, id: number, price: number) => {
     const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
     const successMessage = `✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n🌌 Система: ${currentSystem}\n💰 Потрачено: ${price} ${currencyName}`;
     
-    // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
+    // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
     alert(successMessage);
     
     // Обновляем товары магазина
@@ -271,7 +271,7 @@ const buyItem = async (type: string, id: number, price: number) => {
       errorMessage = `❌ Неизвестная ошибка!\n\nПопробуйте еще раз или перезагрузите страницу.`;
     }
     
-    // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
+    // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ ОБ ОШИБКЕ
     alert(errorMessage);
   } finally {
     setIsLoading(false);
