@@ -11,66 +11,109 @@ const apiUrl = process.env.NODE_ENV === 'production'
   : 'http://localhost:5000';
 
 interface QuestData {
-  id: number;
-  name: string;
+  quest_id: number;
+  quest_name: string;
+  quest_type: string;
+  description: string;
   reward_cs: number;
+  quest_data?: any;
   completed: boolean;
 }
-
-interface AdQuestData {
-  id: number;
-  name: string;
-  reward_ccc: number;
-  completed: boolean;
-}
-
-const initialQuests: QuestData[] = [
-  { id: 1, name: 'quest_1', reward_cs: 5, completed: false },
-  { id: 2, name: 'quest_2', reward_cs: 5, completed: false },
-  { id: 3, name: 'quest_3', reward_cs: 5, completed: false }
-];
-
-const adQuests: AdQuestData[] = Array(5)
-  .fill(null)
-  .map((_, i) => ({
-    id: i + 4,
-    name: 'watch_ad',
-    reward_ccc: 10,
-    completed: false
-  }));
 
 const QuestsPage: React.FC = () => {
   const { t } = useTranslation();
   const { player, setPlayer, currentSystem } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
-  const [quests, setQuests] = useState<any[]>([]);
-  const [totalPerHour, setTotalPerHour] = useState({ totalCccPerHour: 0, totalCsPerHour: 0 });
+  
+  const [quests, setQuests] = useState<QuestData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [linkTimers, setLinkTimers] = useState<{[key: number]: number}>({});
+  const [completingQuest, setCompletingQuest] = useState<number | null>(null);
 
-  const calculateTotalPerHour = useCallback(async () => {
-    if (!player || !player.drones || !player.telegram_id) return { ccc: 0, cs: 0, ton: 0 };
+  // Загрузка заданий из базы
+  const loadQuests = useCallback(async () => {
+    if (!player?.telegram_id) return;
+    
     try {
-      const dronesData = await axios.get(`${apiUrl}/api/shop/drones/${player.telegram_id}`).then(res => res.data);
-      const totalCccPerHour = player.drones.reduce((sum: number, d: any) => {
-        const drone = dronesData.find((item: any) => item.id === d.id && item.system === d.system);
-        return sum + (drone?.cccPerDay ? drone.cccPerDay / 24 : 0);
-      }, 0);
-      return { ccc: Number(totalCccPerHour.toFixed(5)), cs: 0, ton: 0 };
-    } catch (err) {
-      console.error('Error fetching drones for total per hour:', err);
-      return { ccc: 0, cs: 0, ton: 0 };
+      setLoading(true);
+      const response = await axios.get(`${apiUrl}/api/quests/${player.telegram_id}`);
+      if (response.data.success) {
+        setQuests(response.data.quests);
+        console.log(`✅ Загружено ${response.data.quests.length} заданий`);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки заданий:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [player?.drones, player?.telegram_id]);
+  }, [player?.telegram_id]);
 
   useEffect(() => {
-    const fetchTotalPerHour = async () => {
-      const { ccc: totalCccPerHour } = await calculateTotalPerHour();
-      setTotalPerHour({ totalCccPerHour, totalCsPerHour: 0 });
-    };
-    fetchTotalPerHour();
-  }, [calculateTotalPerHour]);
+    loadQuests();
+  }, [loadQuests]);
 
-  const watchAd = async (questId: number) => {
+  // Обработка клика по ссылке
+  const handleLinkClick = (questId: number, url: string) => {
+    // Открываем ссылку в новой вкладке
+    window.open(url, '_blank');
+    
+    // Запускаем таймер на 30 секунд
+    setLinkTimers(prev => ({ ...prev, [questId]: 30 }));
+    
+    const timer = setInterval(() => {
+      setLinkTimers(prev => {
+        const newTime = (prev[questId] || 0) - 1;
+        if (newTime <= 0) {
+          clearInterval(timer);
+          return { ...prev, [questId]: 0 };
+        }
+        return { ...prev, [questId]: newTime };
+      });
+    }, 1000);
+  };
+
+  // Выполнение задания
+  const completeQuest = async (questId: number) => {
+    if (!player?.telegram_id || completingQuest) return;
+    
+    try {
+      setCompletingQuest(questId);
+      
+      const response = await axios.post(`${apiUrl}/api/quests/complete`, {
+        telegramId: player.telegram_id,
+        questId: questId
+      });
+      
+      if (response.data.success) {
+        // Обновляем локальные данные игрока
+        setPlayer({
+          ...player,
+          cs: Number(player.cs) + Number(response.data.reward_cs)
+        });
+        
+        // Обновляем список заданий
+        setQuests(prev => prev.map(quest => 
+          quest.quest_id === questId 
+            ? { ...quest, completed: true }
+            : quest
+        ));
+        
+        // Убираем таймер
+        setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
+        
+        alert(`🎉 Получено ${response.data.reward_cs} CS!`);
+      }
+    } catch (error: any) {
+      console.error('Ошибка выполнения задания:', error);
+      alert(error.response?.data?.error || 'Ошибка выполнения задания');
+    } finally {
+      setCompletingQuest(null);
+    }
+  };
+
+  // Просмотр рекламы (старая логика)
+  const watchAd = async () => {
     if ((player?.ad_views || 0) >= 5) return;
     try {
       const updatedPlayer = {
@@ -82,19 +125,9 @@ const QuestsPage: React.FC = () => {
       };
       const res = await axios.put(`${apiUrl}/api/player/${player?.telegram_id}`, updatedPlayer);
       setPlayer(res.data);
-      setQuests([
-        ...quests,
-        {
-          quest_id: questId,
-          telegram_id: player?.telegram_id,
-          completed: true,
-          reward_cs: 0,
-          timestamp: new Date().toISOString()
-        }
-      ]);
-      alert(t('ad_watched'));
+      alert(t('ad_watched') || 'Реклама просмотрена!');
     } catch (err: any) {
-      alert(t('ad_error', { error: err.response?.data?.error || err.message }));
+      alert(t('ad_error', { error: err.response?.data?.error || err.message }) || 'Ошибка рекламы');
     }
   };
 
@@ -103,6 +136,11 @@ const QuestsPage: React.FC = () => {
   if (!player) {
     return <div>Loading...</div>;
   }
+
+  // Группируем задания по типам
+  const basicQuests = quests.filter(q => q.quest_type === 'referral');
+  const partnerQuests = quests.filter(q => q.quest_type === 'partner_link');
+  const manualQuests = quests.filter(q => q.quest_type === 'manual_check');
 
   return (
     <div
@@ -133,157 +171,366 @@ const QuestsPage: React.FC = () => {
             fontSize: '2.5rem', 
             marginBottom: '30px'
           }}>
-            🎯 {t('quests')}
+            🎯 {t('quests') || 'Задания'}
           </h2>
 
-          {/* Основные квесты */}
-          <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ 
-              color: colorStyle, 
-              fontSize: '1.5rem', 
-              marginBottom: '20px',
-              textShadow: `0 0 10px ${colorStyle}`
-            }}>
-              📋 Основные задания
-            </h3>
-            {initialQuests.map(quest => (
-              <div
-                key={quest.id}
-                style={{
-                  margin: '15px auto',
-                  padding: '20px',
-                  maxWidth: '500px',
-                  background: quests.find((q: any) => q.quest_id === quest.id)?.completed 
-                    ? 'rgba(0, 255, 0, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.3)',
-                  border: `2px solid ${colorStyle}`,
-                  borderRadius: '15px',
-                  boxShadow: `0 0 20px ${colorStyle}30`,
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <h4 style={{ color: colorStyle, marginBottom: '5px' }}>{t(quest.name)}</h4>
-                    <p style={{ color: '#ccc', margin: 0 }}>
-                      🎁 Награда: {quest.reward_cs} CS
-                    </p>
-                  </div>
-                  <div style={{
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    background: quests.find((q: any) => q.quest_id === quest.id)?.completed 
-                      ? 'rgba(0, 255, 0, 0.3)' 
-                      : 'rgba(255, 165, 0, 0.3)',
-                    border: quests.find((q: any) => q.quest_id === quest.id)?.completed 
-                      ? '1px solid #00ff00' 
-                      : '1px solid #ffa500',
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold'
+          {loading ? (
+            <div style={{ color: colorStyle, fontSize: '1.2rem' }}>Загрузка заданий...</div>
+          ) : (
+            <>
+              {/* Основные задания */}
+              {basicQuests.length > 0 && (
+                <div style={{ marginBottom: '30px' }}>
+                  <h3 style={{ 
+                    color: colorStyle, 
+                    fontSize: '1.5rem', 
+                    marginBottom: '20px',
+                    textShadow: `0 0 10px ${colorStyle}`
                   }}>
-                    {quests.find((q: any) => q.quest_id === quest.id)?.completed 
-                      ? '✅ Выполнено' 
-                      : '⏳ В процессе'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Рекламные квесты */}
-          <div>
-            <h3 style={{ 
-              color: colorStyle, 
-              fontSize: '1.5rem', 
-              marginBottom: '20px',
-              textShadow: `0 0 10px ${colorStyle}`
-            }}>
-              📺 Просмотр рекламы ({(player?.ad_views || 0)}/5)
-            </h3>
-            {adQuests.map(quest => {
-              const isCompleted = (player?.ad_views || 0) >= 5 || quests.find((q: any) => q.quest_id === quest.id)?.completed;
-              const isAvailable = (player?.ad_views || 0) < 5 && !quests.find((q: any) => q.quest_id === quest.id)?.completed;
-              
-              return (
-                <div
-                  key={quest.id}
-                  style={{
-                    margin: '15px auto',
-                    padding: '20px',
-                    maxWidth: '500px',
-                    background: isCompleted 
-                      ? 'rgba(0, 255, 0, 0.2)' 
-                      : 'rgba(0, 0, 0, 0.3)',
-                    border: `2px solid ${colorStyle}`,
-                    borderRadius: '15px',
-                    boxShadow: `0 0 20px ${colorStyle}30`,
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ textAlign: 'left' }}>
-                      <h4 style={{ color: colorStyle, marginBottom: '5px' }}>{t(quest.name)}</h4>
-                      <p style={{ color: '#ccc', margin: 0 }}>
-                        🎁 Награда: {quest.reward_ccc} CCC
-                      </p>
-                    </div>
-                    <div>
-                      {isCompleted ? (
+                    📋 Основные задания
+                  </h3>
+                  {basicQuests.map(quest => (
+                    <div
+                      key={quest.quest_id}
+                      style={{
+                        margin: '15px auto',
+                        padding: '20px',
+                        maxWidth: '500px',
+                        background: quest.completed 
+                          ? 'rgba(0, 255, 0, 0.2)' 
+                          : 'rgba(0, 0, 0, 0.3)',
+                        border: `2px solid ${colorStyle}`,
+                        borderRadius: '15px',
+                        boxShadow: `0 0 20px ${colorStyle}30`,
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <h4 style={{ color: colorStyle, marginBottom: '5px' }}>{quest.quest_name}</h4>
+                          <p style={{ color: '#ccc', margin: 0, fontSize: '0.9rem' }}>
+                            {quest.description}
+                          </p>
+                          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
+                            🎁 Награда: {quest.reward_cs} CS
+                          </p>
+                        </div>
                         <div style={{
                           padding: '8px 16px',
                           borderRadius: '20px',
-                          background: 'rgba(0, 255, 0, 0.3)',
-                          border: '1px solid #00ff00',
+                          background: quest.completed 
+                            ? 'rgba(0, 255, 0, 0.3)' 
+                            : 'rgba(255, 165, 0, 0.3)',
+                          border: quest.completed 
+                            ? '1px solid #00ff00' 
+                            : '1px solid #ffa500',
                           fontSize: '0.9rem',
                           fontWeight: 'bold'
                         }}>
-                          ✅ Выполнено
+                          {quest.completed 
+                            ? '✅ Выполнено' 
+                            : '⏳ В процессе'}
                         </div>
-                      ) : isAvailable ? (
-                        <button
-                          onClick={() => watchAd(quest.id)}
-                          style={{
-                            padding: '10px 20px',
-                            background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
-                            border: `2px solid ${colorStyle}`,
-                            borderRadius: '12px',
-                            boxShadow: `0 0 15px ${colorStyle}`,
-                            color: '#fff',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            fontWeight: 'bold'
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.transform = 'scale(1.05)';
-                            e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.transform = 'scale(1)';
-                            e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
-                          }}
-                        >
-                          📺 {t('watch')}
-                        </button>
-                      ) : (
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Партнерские задания */}
+              {partnerQuests.length > 0 && (
+                <div style={{ marginBottom: '30px' }}>
+                  <h3 style={{ 
+                    color: colorStyle, 
+                    fontSize: '1.5rem', 
+                    marginBottom: '20px',
+                    textShadow: `0 0 10px ${colorStyle}`
+                  }}>
+                    🤝 Партнерские задания
+                  </h3>
+                  {partnerQuests.map(quest => {
+                    const timerValue = linkTimers[quest.quest_id];
+                    const isTimerRunning = timerValue > 0;
+                    const canClaim = timerValue === 0;
+                    
+                    return (
+                      <div
+                        key={quest.quest_id}
+                        style={{
+                          margin: '15px auto',
+                          padding: '20px',
+                          maxWidth: '500px',
+                          background: quest.completed 
+                            ? 'rgba(0, 255, 0, 0.2)' 
+                            : 'rgba(0, 0, 0, 0.3)',
+                          border: `2px solid ${colorStyle}`,
+                          borderRadius: '15px',
+                          boxShadow: `0 0 20px ${colorStyle}30`,
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ textAlign: 'left' }}>
+                            <h4 style={{ color: colorStyle, marginBottom: '5px' }}>{quest.quest_name}</h4>
+                            <p style={{ color: '#ccc', margin: 0, fontSize: '0.9rem' }}>
+                              {quest.description}
+                            </p>
+                            <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
+                              🎁 Награда: {quest.reward_cs} CS
+                            </p>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {quest.completed ? (
+                              <div style={{
+                                padding: '8px 16px',
+                                borderRadius: '20px',
+                                background: 'rgba(0, 255, 0, 0.3)',
+                                border: '1px solid #00ff00',
+                                fontSize: '0.9rem',
+                                fontWeight: 'bold'
+                              }}>
+                                ✅ Выполнено
+                              </div>
+                            ) : (
+                              <>
+                                {!isTimerRunning && !canClaim && (
+                                  <button
+                                    onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
+                                    style={{
+                                      padding: '10px 20px',
+                                      background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
+                                      border: `2px solid ${colorStyle}`,
+                                      borderRadius: '12px',
+                                      boxShadow: `0 0 15px ${colorStyle}`,
+                                      color: '#fff',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.3s ease',
+                                      fontWeight: 'bold'
+                                    }}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.transform = 'scale(1.05)';
+                                      e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                      e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
+                                    }}
+                                  >
+                                    🔗 Перейти
+                                  </button>
+                                )}
+                                
+                                {isTimerRunning && (
+                                  <div style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '20px',
+                                    background: 'rgba(255, 165, 0, 0.3)',
+                                    border: '1px solid #ffa500',
+                                    fontSize: '0.9rem',
+                                    color: '#ffa500'
+                                  }}>
+                                    ⏱️ {timerValue}с
+                                  </div>
+                                )}
+                                
+                                {canClaim && (
+                                  <button
+                                    onClick={() => completeQuest(quest.quest_id)}
+                                    disabled={completingQuest === quest.quest_id}
+                                    style={{
+                                      padding: '10px 20px',
+                                      background: `linear-gradient(135deg, #00ff0030, #00ff0060, #00ff0030)`,
+                                      border: '2px solid #00ff00',
+                                      borderRadius: '12px',
+                                      boxShadow: '0 0 15px #00ff00',
+                                      color: '#fff',
+                                      cursor: completingQuest === quest.quest_id ? 'not-allowed' : 'pointer',
+                                      transition: 'all 0.3s ease',
+                                      fontWeight: 'bold',
+                                      opacity: completingQuest === quest.quest_id ? 0.7 : 1
+                                    }}
+                                    onMouseEnter={e => {
+                                      if (completingQuest !== quest.quest_id) {
+                                        e.currentTarget.style.transform = 'scale(1.05)';
+                                        e.currentTarget.style.boxShadow = '0 0 25px #00ff00';
+                                      }
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                      e.currentTarget.style.boxShadow = '0 0 15px #00ff00';
+                                    }}
+                                  >
+                                    {completingQuest === quest.quest_id ? '⏳ Получение...' : '🎁 Получить награду'}
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Задания с ручной проверкой */}
+              {manualQuests.length > 0 && (
+                <div style={{ marginBottom: '30px' }}>
+                  <h3 style={{ 
+                    color: colorStyle, 
+                    fontSize: '1.5rem', 
+                    marginBottom: '20px',
+                    textShadow: `0 0 10px ${colorStyle}`
+                  }}>
+                    🔍 Задания с проверкой
+                  </h3>
+                  {manualQuests.map(quest => (
+                    <div
+                      key={quest.quest_id}
+                      style={{
+                        margin: '15px auto',
+                        padding: '20px',
+                        maxWidth: '500px',
+                        background: quest.completed 
+                          ? 'rgba(0, 255, 0, 0.2)' 
+                          : 'rgba(255, 165, 0, 0.1)',
+                        border: `2px solid ${quest.completed ? '#00ff00' : '#ffa500'}`,
+                        borderRadius: '15px',
+                        boxShadow: `0 0 20px ${quest.completed ? '#00ff0030' : '#ffa50030'}`,
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <h4 style={{ color: quest.completed ? '#00ff00' : '#ffa500', marginBottom: '5px' }}>
+                            {quest.quest_name}
+                          </h4>
+                          <p style={{ color: '#ccc', margin: 0, fontSize: '0.9rem' }}>
+                            {quest.description}
+                          </p>
+                          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
+                            🎁 Награда: {quest.reward_cs} CS
+                          </p>
+                        </div>
                         <div style={{
                           padding: '8px 16px',
                           borderRadius: '20px',
-                          background: 'rgba(128, 128, 128, 0.3)',
-                          border: '1px solid #888',
+                          background: quest.completed 
+                            ? 'rgba(0, 255, 0, 0.3)' 
+                            : 'rgba(255, 165, 0, 0.3)',
+                          border: quest.completed 
+                            ? '1px solid #00ff00' 
+                            : '1px solid #ffa500',
                           fontSize: '0.9rem',
-                          color: '#888'
+                          fontWeight: 'bold',
+                          color: quest.completed ? '#00ff00' : '#ffa500'
                         }}>
-                          Лимит исчерпан
+                          {quest.completed 
+                            ? '✅ Выполнено' 
+                            : '⏳ Ручная проверка'}
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
+              )}
 
-          {/* Информация о сбросе */}
+              {/* Рекламные квесты (старая система) */}
+              <div>
+                <h3 style={{ 
+                  color: colorStyle, 
+                  fontSize: '1.5rem', 
+                  marginBottom: '20px',
+                  textShadow: `0 0 10px ${colorStyle}`
+                }}>
+                  📺 Просмотр рекламы ({(player?.ad_views || 0)}/5)
+                </h3>
+                {Array(5).fill(null).map((_, index) => {
+                  const isCompleted = (player?.ad_views || 0) > index;
+                  const isAvailable = (player?.ad_views || 0) === index;
+                  
+                  return (
+                    <div
+                      key={index}
+                      style={{
+                        margin: '15px auto',
+                        padding: '20px',
+                        maxWidth: '500px',
+                        background: isCompleted 
+                          ? 'rgba(0, 255, 0, 0.2)' 
+                          : 'rgba(0, 0, 0, 0.3)',
+                        border: `2px solid ${colorStyle}`,
+                        borderRadius: '15px',
+                        boxShadow: `0 0 20px ${colorStyle}30`,
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <h4 style={{ color: colorStyle, marginBottom: '5px' }}>Просмотр рекламы #{index + 1}</h4>
+                          <p style={{ color: '#ccc', margin: 0 }}>
+                            🎁 Награда: 10 CCC
+                          </p>
+                        </div>
+                        <div>
+                          {isCompleted ? (
+                            <div style={{
+                              padding: '8px 16px',
+                              borderRadius: '20px',
+                              background: 'rgba(0, 255, 0, 0.3)',
+                              border: '1px solid #00ff00',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold'
+                            }}>
+                              ✅ Выполнено
+                            </div>
+                          ) : isAvailable ? (
+                            <button
+                              onClick={watchAd}
+                              style={{
+                                padding: '10px 20px',
+                                background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
+                                border: `2px solid ${colorStyle}`,
+                                borderRadius: '12px',
+                                boxShadow: `0 0 15px ${colorStyle}`,
+                                color: '#fff',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                fontWeight: 'bold'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
+                              }}
+                            >
+                              📺 {t('watch') || 'Смотреть'}
+                            </button>
+                          ) : (
+                            <div style={{
+                              padding: '8px 16px',
+                              borderRadius: '20px',
+                              background: 'rgba(128, 128, 128, 0.3)',
+                              border: '1px solid #888',
+                              fontSize: '0.9rem',
+                              color: '#888'
+                            }}>
+                              Заблокировано
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Информация */}
           <div style={{
             margin: '30px auto 0',
             padding: '20px',
@@ -295,9 +542,10 @@ const QuestsPage: React.FC = () => {
           }}>
             <h4 style={{ color: '#ffa500', marginBottom: '10px' }}>ℹ️ Информация</h4>
             <p style={{ color: '#ccc', fontSize: '0.9rem', margin: 0, lineHeight: '1.4' }}>
-              • Лимит просмотра рекламы: 5 раз в день<br/>
-              • Сброс лимита происходит каждые 24 часа<br/>
-              • Основные задания выполняются автоматически по мере игры
+              • Партнерские задания выполняются один раз<br/>
+              • После клика "Перейти" подождите 30 сек и нажмите "Получить награду"<br/>
+              • Реклама: лимит 5 раз в день, сброс каждые 24 часа<br/>
+              • Задания с ручной проверкой требуют подтверждения администратора
             </p>
           </div>
         </div>
