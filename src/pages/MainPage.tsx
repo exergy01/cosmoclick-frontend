@@ -170,7 +170,7 @@ const MainPage: React.FC = () => {
   };
 
   // 🔍 ДИАГНОСТИКА TELEGRAM API (временная кнопка)
-  const checkTelegramAPI = () => {
+  const checkTelegramAPI = async () => {
     const telegramInfo = {
       hasTelegram: !!window.Telegram,
       hasWebApp: !!window.Telegram?.WebApp,
@@ -182,9 +182,24 @@ const MainPage: React.FC = () => {
       `✅ Telegram объект: ${telegramInfo.hasTelegram}\n` +
       `✅ WebApp объект: ${telegramInfo.hasWebApp}\n\n` +
       `📋 Доступные методы WebApp:\n${telegramInfo.webAppMethods.join(', ')}\n\n` +
-      `Скопируйте эту информацию!`;
+      `Эта информация скопирована в буфер обмена!`;
     
-    alert(info);
+    // 🔥 КОПИРУЕМ В БУФЕР ОБМЕНА
+    try {
+      await navigator.clipboard.writeText(info);
+      alert(info + '\n\n✅ Информация скопирована в буфер обмена!');
+    } catch (err) {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = info;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      alert(info + '\n\n✅ Информация скопирована в буфер обмена (fallback)!');
+    }
+    
     console.log('Telegram API Info:', telegramInfo);
   };
 
