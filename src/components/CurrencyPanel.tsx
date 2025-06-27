@@ -75,7 +75,7 @@ const CurrencyPanel: React.FC<CurrencyPanelProps> = ({ player, currentSystem, co
         </p>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <p style={{ fontSize: '1.1rem' }}>✨ {t('cs')}: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(2)}</p>
+        <p style={{ fontSize: '1.1rem' }}>✨ {t('cs')}: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}</p>
         <p style={{ fontSize: '1.1rem' }}>💎 {t('ton')}: {(typeof player.ton === 'number' ? player.ton : parseFloat(player.ton || '0')).toFixed(9)}</p>
       </div>
     </div>
