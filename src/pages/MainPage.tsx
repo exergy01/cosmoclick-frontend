@@ -90,7 +90,9 @@ const MainPage: React.FC = () => {
       
       if (currentValue <= 0) {
         console.log('❌ Нечего собирать:', currentValue);
-        alert('Нечего собирать!');
+        
+        // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
+        alert('Нечего собирать! Подождите, пока накопятся ресурсы.');
         return;
       }
       
@@ -127,6 +129,8 @@ const MainPage: React.FC = () => {
       }
     } catch (err) {
       console.error('💥 ОШИБКА СБОРА:', err);
+      
+      // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
       alert(`Не удалось собрать: ${err}`);
     } finally {
       setIsCollecting(false); // 🔧 РАЗБЛОКИРУЕМ клики
@@ -163,6 +167,25 @@ const MainPage: React.FC = () => {
     }
     setTouchStartX(null);
     setTouchEndX(null);
+  };
+
+  // 🔍 ДИАГНОСТИКА TELEGRAM API (временная кнопка)
+  const checkTelegramAPI = () => {
+    const telegramInfo = {
+      hasTelegram: !!window.Telegram,
+      hasWebApp: !!window.Telegram?.WebApp,
+      webAppMethods: window.Telegram?.WebApp ? Object.keys(window.Telegram.WebApp) : [],
+      webAppData: window.Telegram?.WebApp || null
+    };
+    
+    const info = `🔍 TELEGRAM API ДИАГНОСТИКА:\n\n` +
+      `✅ Telegram объект: ${telegramInfo.hasTelegram}\n` +
+      `✅ WebApp объект: ${telegramInfo.hasWebApp}\n\n` +
+      `📋 Доступные методы WebApp:\n${telegramInfo.webAppMethods.join(', ')}\n\n` +
+      `Скопируйте эту информацию!`;
+    
+    alert(info);
+    console.log('Telegram API Info:', telegramInfo);
   };
 
   if (!player) return <div>Загрузка...</div>;
@@ -328,6 +351,24 @@ const MainPage: React.FC = () => {
               {amount && <span>{amount}</span>}
             </button>
           ))}
+        </div>
+
+        {/* 🔍 ВРЕМЕННАЯ КНОПКА ДИАГНОСТИКИ */}
+        <div style={{ textAlign: 'center', margin: '10px 0' }}>
+          <button 
+            onClick={checkTelegramAPI}
+            style={{
+              padding: '10px 20px',
+              background: 'rgba(255, 165, 0, 0.8)',
+              border: '2px solid #ffa500',
+              borderRadius: '10px',
+              color: '#fff',
+              fontSize: '0.9rem',
+              cursor: 'pointer'
+            }}
+          >
+            🔍 Проверить Telegram API
+          </button>
         </div>
 
         {/* Выбор системы */}

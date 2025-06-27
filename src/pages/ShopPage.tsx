@@ -188,13 +188,16 @@ const buyItem = async (type: string, id: number, price: number) => {
   
   if (currentBalance < price) {
     const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    alert(`💰 Недостаточно средств!\n\n` +
+    const message = `💰 Недостаточно средств!\n\n` +
           `🛒 Товар: ${itemName}\n` +
           `🌌 Система: ${currentSystem}\n` +
           `💎 Цена: ${price} ${currencyName}\n` +
           `💰 У вас: ${currentBalance.toFixed(2)} ${currencyName}\n` +
           `❌ Не хватает: ${(price - currentBalance).toFixed(2)} ${currencyName}\n\n` +
-          `💡 Соберите больше ресурсов или обменяйте валюту!`);
+          `💡 Соберите больше ресурсов или обменяйте валюту!`;
+    
+    // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT (до выяснения правильных методов)
+    alert(message);
     return;
   }
   
@@ -215,7 +218,10 @@ const buyItem = async (type: string, id: number, price: number) => {
         const newDroneCount = systemDrones.length + 1; // +1 за только что купленный
         
         if (newDroneCount === 15) {
-          alert(`🎉 СКРЫТОЕ ЗАДАНИЕ ВЫПОЛНЕНО! 🎉\n\nВы собрали полную коллекцию дронов в системе ${currentSystem}!\n\n🚀 Бонус: +1% к скорости добычи!\n\nТеперь ваши дроны работают еще эффективнее!`);
+          const achievementMessage = `🎉 СКРЫТОЕ ЗАДАНИЕ ВЫПОЛНЕНО! 🎉\n\nВы собрали полную коллекцию дронов в системе ${currentSystem}!\n\n🚀 Бонус: +1% к скорости добычи!\n\nТеперь ваши дроны работают еще эффективнее!`;
+          
+          // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
+          alert(achievementMessage);
         }
       }
       
@@ -232,7 +238,10 @@ const buyItem = async (type: string, id: number, price: number) => {
     
     // 🎉 УСПЕШНАЯ ПОКУПКА
     const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    alert(`✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n🌌 Система: ${currentSystem}\n💰 Потрачено: ${price} ${currencyName}`);
+    const successMessage = `✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n🌌 Система: ${currentSystem}\n💰 Потрачено: ${price} ${currencyName}`;
+    
+    // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
+    alert(successMessage);
     
     // Обновляем товары магазина
     await fetchShopItems();
@@ -262,6 +271,7 @@ const buyItem = async (type: string, id: number, price: number) => {
       errorMessage = `❌ Неизвестная ошибка!\n\nПопробуйте еще раз или перезагрузите страницу.`;
     }
     
+    // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
     alert(errorMessage);
   } finally {
     setIsLoading(false);
