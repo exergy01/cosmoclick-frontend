@@ -13,7 +13,7 @@ const StartPage: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [progress, setProgress] = useState(0);
-  const [showLanguageModal, setShowLanguageModal] = useState(true); // 🔥 ПРИНУДИТЕЛЬНО TRUE
+  const [showLanguageModal, setShowLanguageModal] = useState(false); // 🔥 ИЗМЕНЕНО: FALSE по умолчанию
   const [hasNavigated, setHasNavigated] = useState(false);
 
   // 🔥 ТЕСТ: Всегда показываем модал на 10 секунд
@@ -38,10 +38,18 @@ const StartPage: React.FC = () => {
     return () => clearInterval(progressInterval);
   }, []);
 
-  // Загрузка данных
+  // Загрузка данных и показ модала
   useEffect(() => {
     if (!player && !loading) {
+      console.log('🚀 Загружаем данные игрока...');
       fetchInitialData();
+    }
+    
+    // Показываем модал ТОЛЬКО когда игрок загружен и у него нет языка
+    if (player && player.telegram_id && (!player.language || player.language === null || player.language === 'null')) {
+      console.log('🌐 Игрок загружен, показываем модал выбора языка');
+      console.log('Player data:', { telegram_id: player.telegram_id, language: player.language });
+      setShowLanguageModal(true);
     }
   }, [player, loading, fetchInitialData]);
 
@@ -122,6 +130,10 @@ const StartPage: React.FC = () => {
       >
         <h1 style={{ fontSize: '2rem', marginBottom: '20px', textAlign: 'center' }}>
           🚀 CosmoClick Loading...
+          <br/>
+          <small style={{ fontSize: '1rem', color: '#888' }}>
+            Player: {player?.telegram_id || 'loading...'}
+          </small>
         </h1>
         
         {/* Прогресс бар */}
