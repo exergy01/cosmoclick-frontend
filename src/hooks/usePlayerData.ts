@@ -137,6 +137,10 @@ export const usePlayerData = () => {
       setLoading(true);
       const telegramId = getTelegramId();
       
+      // 🔥 ПОЛУЧАЕМ TELEGRAM ДАННЫЕ СРАЗУ
+      const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+      console.log('🔍 Telegram user data в fetchInitialData:', telegramUser);
+      
       if (!telegramId) {
         setError('No telegram ID');
         return;
@@ -149,6 +153,37 @@ export const usePlayerData = () => {
         const playerResponse = await playerApi.fetchPlayer(telegramId);
         console.log('Raw player response:', playerResponse.data);
         playerData = playerResponse.data;
+        
+        // 🔥 ЕСЛИ ИГРОК СУЩЕСТВУЕТ, НО У НЕГО ДЕФОЛТНЫЕ ИМЕНА - ОБНОВЛЯЕМ
+        if (telegramUser && playerData) {
+          const needsUpdate = (
+            playerData.first_name?.startsWith('User') || 
+            playerData.username?.startsWith('user_') ||
+            !playerData.first_name ||
+            !playerData.username
+          );
+          
+          if (needsUpdate) {
+            console.log('📝 Обновляем существующего игрока данными из Telegram');
+            try {
+              await playerApi.updatePlayer(telegramId, {
+                first_name: telegramUser.first_name || playerData.first_name,
+                username: telegramUser.username || playerData.username
+              });
+              
+              // Получаем обновленного игрока
+              const updatedResponse = await playerApi.fetchPlayer(telegramId);
+              playerData = updatedResponse.data;
+              console.log('✅ Игрок обновлен:', {
+                first_name: playerData.first_name,
+                username: playerData.username
+              });
+            } catch (updateErr) {
+              console.error('❌ Ошибка обновления игрока:', updateErr);
+            }
+          }
+        }
+        
       } catch (err: any) {
         console.log('Player fetch error:', err.message);
         if (err.response?.status === 404) {
