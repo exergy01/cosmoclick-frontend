@@ -25,7 +25,6 @@ export const usePlayerData = () => {
     try {
       setLoading(true);
       const response = await playerApi.fetchPlayer(telegramId);
-      console.log('Player data from server:', response.data);
       
       const playerData = createPlayerWithDefaults(response.data, currentSystem);
       setPlayer(playerData);
@@ -33,7 +32,6 @@ export const usePlayerData = () => {
       
       return playerData;
     } catch (err: any) {
-      console.log('Fetch player error:', err.message);
       setError(`Failed to fetch player: ${err.message}`);
       setPlayer(null);
       throw err;
@@ -47,7 +45,6 @@ export const usePlayerData = () => {
     try {
       setLoading(true);
       const response = await playerApi.fetchPlayer(telegramId);
-      console.log('Player data from server:', response.data);
       
       const playerData = createPlayerWithDefaults(response.data, currentSystem);
       setPlayer(playerData);
@@ -55,7 +52,6 @@ export const usePlayerData = () => {
       
       return playerData;
     } catch (err: any) {
-      console.log('Update player error:', err.message);
       setError(`Failed to update player: ${err.message}`);
       throw err;
     } finally {
@@ -73,7 +69,6 @@ export const usePlayerData = () => {
     
     try {
       const response = await playerApi.fetchPlayer(telegramId);
-      console.log('Player data from server (refresh):', response.data);
       
       const playerData = createPlayerWithDefaults(response.data, currentSystem);
       setPlayer(playerData);
@@ -81,7 +76,6 @@ export const usePlayerData = () => {
       
       return playerData;
     } catch (err: any) {
-      console.log('Refresh player error:', err.message);
       setError(`Failed to refresh player: ${err.message}`);
       throw err;
     }
@@ -90,22 +84,13 @@ export const usePlayerData = () => {
   // Регистрация нового игрока с данными Telegram
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      // 🔥 ПОЛУЧАЕМ ДАННЫЕ ИЗ TELEGRAM
       const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
       
-      console.log('🔍 Telegram user data:', telegramUser);
-      
-      // 🔥 ПРОСТОЙ ВЫЗОВ СТАРОГО API
       const response = await playerApi.registerNewPlayer(telegramId);
       
-      // 🔥 ЕСЛИ ЕСТЬ TELEGRAM ДАННЫЕ - ОБНОВЛЯЕМ ИГРОКА
+      // Если есть данные Telegram - обновляем игрока
       if (telegramUser && response.data) {
         try {
-          console.log('📝 Обновляем игрока данными из Telegram:', {
-            first_name: telegramUser.first_name,
-            username: telegramUser.username
-          });
-          
           await playerApi.updatePlayer(telegramId, {
             first_name: telegramUser.first_name || `User${telegramId.slice(-4)}`,
             username: telegramUser.username || `user_${telegramId}`
@@ -116,7 +101,6 @@ export const usePlayerData = () => {
           return updatedResponse.data;
         } catch (updateErr) {
           console.error('Failed to update player with Telegram data:', updateErr);
-          // Возвращаем базового игрока если обновление не удалось
           return response.data;
         }
       }
@@ -137,24 +121,20 @@ export const usePlayerData = () => {
       setLoading(true);
       const telegramId = getTelegramId();
       
-      // 🔥 ПОЛУЧАЕМ TELEGRAM ДАННЫЕ СРАЗУ
+      // Получаем данные Telegram
       const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
-      console.log('🔍 Telegram user data в fetchInitialData:', telegramUser);
       
       if (!telegramId) {
         setError('No telegram ID');
         return;
       }
-      
-      console.log(`Starting data load for telegramId: ${telegramId}`);
 
       let playerData;
       try {
         const playerResponse = await playerApi.fetchPlayer(telegramId);
-        console.log('Raw player response:', playerResponse.data);
         playerData = playerResponse.data;
         
-        // 🔥 ЕСЛИ ИГРОК СУЩЕСТВУЕТ, НО У НЕГО ДЕФОЛТНЫЕ ИМЕНА - ОБНОВЛЯЕМ
+        // Если игрок существует, но у него дефолтные имена - обновляем
         if (telegramUser && playerData) {
           const needsUpdate = (
             playerData.first_name?.startsWith('User') || 
@@ -164,7 +144,6 @@ export const usePlayerData = () => {
           );
           
           if (needsUpdate) {
-            console.log('📝 Обновляем существующего игрока данными из Telegram');
             try {
               await playerApi.updatePlayer(telegramId, {
                 first_name: telegramUser.first_name || playerData.first_name,
@@ -174,20 +153,14 @@ export const usePlayerData = () => {
               // Получаем обновленного игрока
               const updatedResponse = await playerApi.fetchPlayer(telegramId);
               playerData = updatedResponse.data;
-              console.log('✅ Игрок обновлен:', {
-                first_name: playerData.first_name,
-                username: playerData.username
-              });
             } catch (updateErr) {
-              console.error('❌ Ошибка обновления игрока:', updateErr);
+              console.error('Failed to update player with Telegram data:', updateErr);
             }
           }
         }
         
       } catch (err: any) {
-        console.log('Player fetch error:', err.message);
         if (err.response?.status === 404) {
-          console.log('Player not found, registering new player');
           playerData = await registerNewPlayer(telegramId);
         } else {
           throw err;
@@ -201,7 +174,6 @@ export const usePlayerData = () => {
       try {
         const referralsResponse = await referralApi.getReferralsList(telegramId);
         referrals = referralsResponse.data || [];
-        console.log('Referrals loaded:', referrals);
       } catch (err) {
         console.error('Failed to load referrals:', err);
       }
@@ -209,7 +181,6 @@ export const usePlayerData = () => {
       try {
         const honorBoardResponse = await referralApi.getHonorBoard();
         honorBoard = honorBoardResponse.data || [];
-        console.log('Honor board loaded:', honorBoard);
       } catch (err) {
         console.error('Failed to load honor board:', err);
       }
@@ -230,23 +201,20 @@ export const usePlayerData = () => {
         ...playerData,
         referrals,
         honor_board: honorBoard,
-        language: playerData.language, // НЕ УСТАНАВЛИВАЕМ ДЕФОЛТ!
+        language: playerData.language,
       };
 
       const normalizedPlayer = createPlayerWithDefaults(fullPlayerData, 1);
       setPlayer(normalizedPlayer);
       setError(null);
       
-      console.log('Player data successfully loaded:', normalizedPlayer);
       return normalizedPlayer;
     } catch (err: any) {
-      console.log('Fetch initial data error:', err.message);
       setError(`Failed to fetch data: ${err.message}`);
       console.error('Data loading error:', err);
       throw err;
     } finally {
       setLoading(false);
-      console.log('Data loading completed, loading:', loading);
     }
   };
 

@@ -23,18 +23,10 @@ const StartPage: React.FC = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
 
-  // ВСЕГДА показываем StartPage минимум 4 секунды
+  // Показываем StartPage минимум 4 секунды
   useEffect(() => {
-    console.log('🎬 StartPage: Запуск таймеров');
-    const minDelayTimer = setTimeout(() => {
-      console.log('⏰ StartPage: Минимальная задержка 4 сек прошла');
-      setMinDelayElapsed(true);
-    }, 4000);
-    
-    const timeoutTimer = setTimeout(() => {
-      console.log('⏰ StartPage: Тайм-аут 15 сек прошел');
-      setTimeoutElapsed(true);
-    }, 15000);
+    const minDelayTimer = setTimeout(() => setMinDelayElapsed(true), 4000);
+    const timeoutTimer = setTimeout(() => setTimeoutElapsed(true), 15000);
     
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
@@ -67,7 +59,6 @@ const StartPage: React.FC = () => {
   // Инициализация данных
   useEffect(() => {
     if (!isInitialized) {
-      console.log('🚀 StartPage: Запуск fetchInitialData');
       fetchInitialData();
       setIsInitialized(true);
     }
@@ -76,18 +67,12 @@ const StartPage: React.FC = () => {
   // Отслеживание загрузки данных
   useEffect(() => {
     if (player && !loading) {
-      console.log('📦 StartPage: Данные игрока загружены', {
-        hasLanguage: !!player.language,
-        telegramId: player.telegram_id,
-        username: player.username,
-        first_name: player.first_name
-      });
       setDataLoaded(true);
       
       const isPlayerNew = !player.language;
       setIsNewPlayer(isPlayerNew);
 
-      // Добавляем регистрацию в рефералы
+      // Регистрация в рефералы для новых игроков
       if (isPlayerNew && player.telegram_id) {
         const initData = (window as any).Telegram?.WebApp?.initData;
         const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
@@ -95,10 +80,8 @@ const StartPage: React.FC = () => {
         axios.post(`${API_URL}/api/referrals/register`, {
           telegramId: player.telegram_id,
           referrerId: referrerIdFromURL || undefined
-        }).then(() => {
-          console.log('✅ Реферал успешно зарегистрирован');
         }).catch(err => {
-          console.error('❌ Ошибка регистрации реферала:', err);
+          console.error('Failed to register referral:', err);
         });
       }
 
@@ -112,94 +95,64 @@ const StartPage: React.FC = () => {
   useEffect(() => {
     if (hasNavigated) return;
 
-    // ПОКАЗЫВАЕМ ВЫБОР ЯЗЫКА если язык НЕ УСТАНОВЛЕН
+    // Показываем выбор языка если не установлен
     if (player && !player.language && !loading && !error && !showLanguageModal && !showWelcomeModal) {
-      console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
       setShowLanguageModal(true);
       return;
     }
 
-    // НЕ ПЕРЕХОДИМ если показаны модальные окна
+    // Ждем пока модальные окна закроются
     if (showLanguageModal || showWelcomeModal) {
-      console.log('🔒 StartPage: Модальные окна открыты - ждем');
       return;
     }
 
     const allDataLoaded = !!(player && dataLoaded);
     const canNavigate = minDelayElapsed && allDataLoaded && progress >= 100;
-    
-    console.log('🔍 StartPage: Проверка условий перехода:', { 
-      minDelayElapsed, 
-      loading, 
-      allDataLoaded, 
-      dataLoaded,
-      timeoutElapsed, 
-      error, 
-      hasNavigated,
-      progress,
-      canNavigate,
-      hasLanguage: !!player?.language,
-      isNewPlayer,
-      showLanguageModal,
-      showWelcomeModal
-    });
 
     // Переходим на главную
     if (canNavigate) {
-      console.log('✅ StartPage: Переход на главную - данные загружены');
       setHasNavigated(true);
       navigate('/', { replace: true });
     } else if (timeoutElapsed && !error) {
-      console.log('⏰ StartPage: Переход на главную - тайм-аут');
       setHasNavigated(true);
       navigate('/', { replace: true });
     }
-  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal, isNewPlayer]);
+  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal]);
 
   const handleLanguageSelect = async (lang: string) => {
     try {
       const telegramId = player?.telegram_id;
       if (!telegramId) {
-        console.error('❌ StartPage: Не удалось получить telegramId');
-        alert('❌ Нет telegramId!');
+        setError('Failed to get Telegram ID');
         return;
       }
-      console.log(`🌐 StartPage: Выбор языка ${lang}, telegramId: ${telegramId}`);
       
-      // ДИАГНОСТИКА ЗАПРОСА
-      const requestData = { 
+      const response = await axios.post(`${API_URL}/api/player/language`, { 
         telegramId, 
         language: lang,
         isFirstLanguageSelection: true
-      };
-      alert(`📡 Отправляем: ${JSON.stringify(requestData)}`);
+      });
       
-      const response = await axios.post(`${API_URL}/api/player/language`, requestData);
-      console.log('✅ StartPage: Ответ от API:', response.data);
-      
-      alert(`📬 Получили ответ: registration_language = ${response.data.registration_language}`);
-      
-      // Обновляем язык локально БЕЗ перезагрузки
+      // Обновляем язык локально
       await i18n.changeLanguage(lang);
       setSelectedLanguage(lang);
       
-      // Обновляем объект игрока локально
+      // Обновляем объект игрока
       if (player) {
         setPlayer({ ...player, language: lang, registration_language: lang });
       }
       
       setShowLanguageModal(false);
       
-      // Задержка показа приветствия для смены языка
+      // Показываем приветствие через секунду
       setTimeout(() => {
         setShowWelcomeModal(true);
       }, 1000);
       
     } catch (err: any) {
-      console.error('❌ StartPage: Не удалось установить язык:', err);
-      alert(`❌ Ошибка: ${err.message}`);
+      console.error('Failed to set language:', err);
       setShowLanguageModal(false);
-      setError('Не удалось установить язык');
+      setError('Failed to set language');
     }
   };
   
@@ -296,7 +249,7 @@ const StartPage: React.FC = () => {
           </p>
         </div>
 
-        {/* МОДАЛЬНОЕ ОКНО ВЫБОРА ЯЗЫКА */}
+        {/* Модальное окно выбора языка */}
         {showLanguageModal && (
           <div
             style={{
@@ -391,7 +344,7 @@ const StartPage: React.FC = () => {
           </div>
         )}
 
-        {/* МОДАЛЬНОЕ ОКНО ПРИВЕТСТВИЯ */}
+        {/* Модальное окно приветствия */}
         {showWelcomeModal && (
           <div
             style={{
