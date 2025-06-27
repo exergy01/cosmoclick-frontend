@@ -23,7 +23,7 @@ const StartPage: React.FC = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
 
-  // 🔥 ВСЕГДА показываем StartPage минимум 4 секунды
+  // ВСЕГДА показываем StartPage минимум 4 секунды
   useEffect(() => {
     console.log('🎬 StartPage: Запуск таймеров');
     const minDelayTimer = setTimeout(() => {
@@ -74,52 +74,52 @@ const StartPage: React.FC = () => {
   }, [fetchInitialData, isInitialized]);
 
   // Отслеживание загрузки данных
-useEffect(() => {
-  if (player && !loading) {
-    console.log('📦 StartPage: Данные игрока загружены', {
-      hasLanguage: !!player.language,
-      telegramId: player.telegram_id,
-      username: player.username,
-      first_name: player.first_name
-    });
-    setDataLoaded(true);
-    
-    const isPlayerNew = !player.language;
-    setIsNewPlayer(isPlayerNew);
-
-    // 🔥 Добавляем регистрацию в рефералы
-    if (isPlayerNew && player.telegram_id) {
-      const initData = (window as any).Telegram?.WebApp?.initData;  // 🔥 ИСПРАВЛЕНО
-      const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
-
-      axios.post(`${API_URL}/api/referrals/register`, {
+  useEffect(() => {
+    if (player && !loading) {
+      console.log('📦 StartPage: Данные игрока загружены', {
+        hasLanguage: !!player.language,
         telegramId: player.telegram_id,
-        referrerId: referrerIdFromURL || undefined
-      }).then(() => {
-        console.log('✅ Реферал успешно зарегистрирован');
-      }).catch(err => {
-        console.error('❌ Ошибка регистрации реферала:', err);
+        username: player.username,
+        first_name: player.first_name
       });
-    }
+      setDataLoaded(true);
+      
+      const isPlayerNew = !player.language;
+      setIsNewPlayer(isPlayerNew);
 
-    if (player.language && i18n.language !== player.language && !isPlayerNew) {
-      i18n.changeLanguage(player.language);
-    }
-  }
-}, [player, loading, i18n]);
+      // Добавляем регистрацию в рефералы
+      if (isPlayerNew && player.telegram_id) {
+        const initData = (window as any).Telegram?.WebApp?.initData;
+        const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
 
-  // Логика навигации - всегда ждем минимум 4 секунды
+        axios.post(`${API_URL}/api/referrals/register`, {
+          telegramId: player.telegram_id,
+          referrerId: referrerIdFromURL || undefined
+        }).then(() => {
+          console.log('✅ Реферал успешно зарегистрирован');
+        }).catch(err => {
+          console.error('❌ Ошибка регистрации реферала:', err);
+        });
+      }
+
+      if (player.language && i18n.language !== player.language && !isPlayerNew) {
+        i18n.changeLanguage(player.language);
+      }
+    }
+  }, [player, loading, i18n]);
+
+  // Логика навигации
   useEffect(() => {
     if (hasNavigated) return;
 
-    // 🔥 ПОКАЗЫВАЕМ ВЫБОР ЯЗЫКА если язык НЕ УСТАНОВЛЕН
+    // ПОКАЗЫВАЕМ ВЫБОР ЯЗЫКА если язык НЕ УСТАНОВЛЕН
     if (player && !player.language && !loading && !error && !showLanguageModal && !showWelcomeModal) {
       console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
       setShowLanguageModal(true);
       return;
     }
 
-    // 🔥 НЕ ПЕРЕХОДИМ если показаны модальные окна
+    // НЕ ПЕРЕХОДИМ если показаны модальные окна
     if (showLanguageModal || showWelcomeModal) {
       console.log('🔒 StartPage: Модальные окна открыты - ждем');
       return;
@@ -144,7 +144,7 @@ useEffect(() => {
       showWelcomeModal
     });
 
-    // Переходим на главную после минимальной задержки и загрузки данных
+    // Переходим на главную
     if (canNavigate) {
       console.log('✅ StartPage: Переход на главную - данные загружены');
       setHasNavigated(true);
@@ -161,17 +161,23 @@ useEffect(() => {
       const telegramId = player?.telegram_id;
       if (!telegramId) {
         console.error('❌ StartPage: Не удалось получить telegramId');
+        alert('❌ Нет telegramId!');
         return;
       }
       console.log(`🌐 StartPage: Выбор языка ${lang}, telegramId: ${telegramId}`);
       
-      // 🔥 ИСПРАВЛЕНО: Отправляем флаг что это первый выбор языка *
-      const response = await axios.post(`${API_URL}/api/player/language`, { 
+      // ДИАГНОСТИКА ЗАПРОСА
+      const requestData = { 
         telegramId, 
         language: lang,
-        isFirstLanguageSelection: true // 🔥 НОВЫЙ ФЛАГ
-      });
+        isFirstLanguageSelection: true
+      };
+      alert(`📡 Отправляем: ${JSON.stringify(requestData)}`);
+      
+      const response = await axios.post(`${API_URL}/api/player/language`, requestData);
       console.log('✅ StartPage: Ответ от API:', response.data);
+      
+      alert(`📬 Получили ответ: registration_language = ${response.data.registration_language}`);
       
       // Обновляем язык локально БЕЗ перезагрузки
       await i18n.changeLanguage(lang);
@@ -184,13 +190,14 @@ useEffect(() => {
       
       setShowLanguageModal(false);
       
-      // 🔥 ИСПРАВЛЕНО: Задержка показа приветствия для смены языка
+      // Задержка показа приветствия для смены языка
       setTimeout(() => {
         setShowWelcomeModal(true);
-      }, 500); // Даем время на смену языка
+      }, 1000);
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ StartPage: Не удалось установить язык:', err);
+      alert(`❌ Ошибка: ${err.message}`);
       setShowLanguageModal(false);
       setError('Не удалось установить язык');
     }
@@ -198,7 +205,7 @@ useEffect(() => {
   
   const handleWelcomeClose = () => {
     setShowWelcomeModal(false);
-    setIsNewPlayer(false); // 🔥 ПОМЕЧАЕМ ЧТО УЖЕ НЕ НОВЫЙ ИГРОК!
+    setIsNewPlayer(false);
   };
 
   const colorStyle = player?.color || '#00f0ff';
@@ -289,7 +296,7 @@ useEffect(() => {
           </p>
         </div>
 
-        {/* 🌐 МОДАЛЬНОЕ ОКНО ВЫБОРА ЯЗЫКА - УЛУЧШЕННЫЙ ДИЗАЙН */}
+        {/* МОДАЛЬНОЕ ОКНО ВЫБОРА ЯЗЫКА */}
         {showLanguageModal && (
           <div
             style={{
@@ -313,8 +320,8 @@ useEffect(() => {
                 textAlign: 'center',
                 boxShadow: `0 0 30px ${colorStyle}`,
                 border: `2px solid ${colorStyle}`,
-                maxWidth: '350px', // 🔥 УМЕНЬШИЛИ ШИРИНУ
-                width: '90%', // 🔥 АДАПТИВНАЯ ШИРИНА
+                maxWidth: '350px',
+                width: '90%',
                 margin: '20px'
               }}
             >
@@ -327,10 +334,9 @@ useEffect(() => {
                 🌐 Choose Language<br/>Выберите язык
               </h2>
               
-              {/* 🔥 УЛУЧШЕННАЯ СЕТКА 2x4 */}
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)', // 2 КОЛОНКИ
+                gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '12px', 
                 justifyContent: 'center',
                 maxWidth: '280px',
@@ -349,19 +355,19 @@ useEffect(() => {
                     key={lang.code}
                     onClick={() => handleLanguageSelect(lang.code)}
                     style={{
-                      padding: '12px 8px', // 🔥 УМЕНЬШИЛИ ОТСТУПЫ
+                      padding: '12px 8px',
                       background: 'transparent',
                       border: `2px solid ${colorStyle}`,
                       borderRadius: '10px',
                       color: '#fff',
                       cursor: 'pointer',
-                      fontSize: '14px', // 🔥 УМЕНЬШИЛИ ШРИФТ
+                      fontSize: '14px',
                       transition: 'all 0.3s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '4px', // 🔥 УМЕНЬШИЛИ ОТСТУП
-                      minHeight: '70px' // 🔥 ФИКСИРОВАННАЯ ВЫСОТА
+                      gap: '4px',
+                      minHeight: '70px'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = colorStyle;
@@ -385,7 +391,7 @@ useEffect(() => {
           </div>
         )}
 
-        {/* 🎮 МОДАЛЬНОЕ ОКНО ПРИВЕТСТВИЯ */}
+        {/* МОДАЛЬНОЕ ОКНО ПРИВЕТСТВИЯ */}
         {showWelcomeModal && (
           <div
             style={{
