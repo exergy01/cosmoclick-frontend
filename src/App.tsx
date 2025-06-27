@@ -19,6 +19,17 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Инициализация Telegram Web App
+  useEffect(() => {
+    if ((window as any).Telegram?.WebApp) {
+      (window as any).Telegram.WebApp.ready();
+      console.log('Telegram Web App initialized');
+      console.log('Telegram data:', (window as any).Telegram.WebApp.initDataUnsafe);
+    } else {
+      console.log('Telegram Web App not available');
+    }
+  }, []);
+
   useEffect(() => {
     if (!player && !loading && !error && location.pathname !== '/start') {
       fetchInitialData();
