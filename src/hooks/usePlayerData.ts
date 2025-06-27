@@ -164,7 +164,7 @@ export const usePlayerData = () => {
         ...playerData,
         referrals,
         honor_board: honorBoard,
-        language: playerData.language || 'en',
+        language: playerData.language, // 🔥 ИСПРАВЛЕНО: НЕ УСТАНАВЛИВАЕМ ДЕФОЛТ!
       };
 
       const normalizedPlayer = createPlayerWithDefaults(fullPlayerData, 1);
