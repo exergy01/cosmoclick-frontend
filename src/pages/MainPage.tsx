@@ -7,6 +7,7 @@ import axios from 'axios';
 import SystemUnlockModal from '../components/SystemUnlockModal';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
+import StakingView from '../components/StakingView';
 
 // Импортируем новый чистый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
@@ -44,7 +45,7 @@ const API_URL = process.env.NODE_ENV === 'production'
 
 const MainPage: React.FC = () => {
   const { t } = useTranslation();
-  const { player } = useNewPlayer();
+  const { player, refreshPlayer } = useNewPlayer(); // 🔥 ДОБАВЛЕНО refreshPlayer
   const { 
     currentSystem, 
     setCurrentSystem, 
@@ -66,8 +67,17 @@ const MainPage: React.FC = () => {
   const [showSystemDropdown, setShowSystemDropdown] = useState(false);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
-  const [isCollecting, setIsCollecting] = useState(false); // 🔧 ДОБАВЛЕНО: состояние сбора
+  const [isCollecting, setIsCollecting] = useState(false);
   const minSwipeDistance = 50;
+
+  // 🔥 ОБРАБОТЧИК СОЗДАНИЯ НОВОГО СТЕЙКА ДЛЯ СИСТЕМЫ 5
+  const handleCreateNewStake = () => {
+    if (currentSystem === 5) {
+      // Показываем модальное окно выбора суммы для системы 5
+      setTargetSystem(5);
+      setShowUnlockModal(true);
+    }
+  };
 
   // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ СБОРА с отладкой и защитой от повторных нажатий
   const handleSafeClick = async () => {
@@ -171,10 +181,13 @@ const MainPage: React.FC = () => {
 
   if (!player) return <div>Загрузка...</div>;
 
-  // 🔥 УБИРАЕМ СИСТЕМЫ 6 И 7 - только 5 систем
+  // 🔥 ТОЛЬКО 5 СИСТЕМ (убираем 6 и 7)
   const systemNames = ['Андромеда', 'Орион', 'Млечный Путь', 'Туманность Ориона', 'Крабовидная Туманность'];
   const systemName = `Система ${currentSystem} - ${systemNames[currentSystem - 1]}`;
   const colorStyle = player.color || '#00f0ff';
+
+  // 🔥 ДОБАВЛЕНО: проверка TON системы
+  const isTonSystem = currentSystem === 5;
 
   const cargoLevel = player.cargo_levels.find((c: CargoLevel) => c.system === currentSystem);
   const cargoLevelId = cargoLevel ? cargoLevel.id : 0;
@@ -234,11 +247,24 @@ const MainPage: React.FC = () => {
     }
   };
 
-  const handleUnlockSuccess = () => {
+  // 🔥 ИСПРАВЛЕННЫЙ обработчик успешной разблокировки системы
+  const handleUnlockSuccess = async () => {
     setShowUnlockModal(false);
+    
     if (targetSystem) {
-      setCurrentSystem(targetSystem);
-      setTargetSystem(null);
+      // 🔥 КРИТИЧЕСКИ ВАЖНО: Даем время на обновление состояния после setPlayer в модальном окне
+      setTimeout(async () => {
+        try {
+          // Дополнительно обновляем данные игрока для надежности
+          await refreshPlayer();
+          console.log('✅ Данные игрока обновлены после разблокировки системы');
+        } catch (err) {
+          console.error('❌ Ошибка обновления игрока:', err);
+        }
+        
+        setCurrentSystem(targetSystem);
+        setTargetSystem(null);
+      }, 100); // Небольшая задержка для обновления состояния
     }
   };
 
@@ -274,7 +300,7 @@ const MainPage: React.FC = () => {
   }, [currentSystem, player?.asteroids, player?.asteroid_total_data, initialAsteroidTotals]);
 
   useEffect(() => {
-    if (!player) return;
+    if (!player || isTonSystem) return; // 🔥 Не создаем кнопки для TON систем
     
     fetchMaxItems().then(({ maxAsteroids, maxDrones, maxCargo }) => {
       const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem).length;
@@ -307,7 +333,7 @@ const MainPage: React.FC = () => {
         },
       ]);
     });
-  }, [player, currentSystem, cargoLevelId, initialAsteroidTotals, fetchMaxItems, getRealCargoCapacity]);
+  }, [player, currentSystem, cargoLevelId, initialAsteroidTotals, fetchMaxItems, getRealCargoCapacity, isTonSystem]);
 
   return (
     <div style={{ backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`, backgroundSize: 'cover', backgroundAttachment: 'fixed', minHeight: '100vh', color: '#fff', display: 'flex', flexDirection: 'column', padding: '10px', position: 'relative' }}
@@ -322,18 +348,7 @@ const MainPage: React.FC = () => {
 
       {/* Основной контент */}
       <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
-        {/* Кнопки магазина */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
-          {shopButtons.map(({ type, count, amount }) => (
-            <button key={type} onClick={handlePurchase(type)} style={{ flex: 1, padding: '8px 5px', background: 'rgba(0, 0, 0, 0.5)', border: `2px solid ${colorStyle}`, borderRadius: '15px', boxShadow: `0 0 10px ${colorStyle}`, color: '#fff', fontSize: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '5px', cursor: 'pointer', transition: 'transform 0.3s ease', boxSizing: 'border-box', height: 'auto' }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-              <span>{t(type)}</span>
-              <span>{count}</span>
-              {amount && <span>{amount}</span>}
-            </button>
-          ))}
-        </div>
-
+        
         {/* Выбор системы */}
         <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
           <span onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
@@ -382,60 +397,88 @@ const MainPage: React.FC = () => {
           )}
         </div>
 
-        {/* Сейф с новым счетчиком и индикатором загрузки */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '80px' }}>
-          <div 
-            style={{ 
-              position: 'relative', 
-              width: '150px', 
-              height: '150px', 
-              cursor: isCollecting ? 'wait' : 'pointer',
-              opacity: isCollecting ? 0.7 : 1
-            }} 
-            onClick={handleSafeClick}
-          >
-            <img 
-              src="/assets/safe.png" 
-              alt="Safe" 
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'contain', 
-                filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`, 
-                transition: 'transform 0.3s ease',
-                transform: isCollecting ? 'scale(0.95)' : 'scale(1)'
-              }}
-              onMouseEnter={e => !isCollecting && (e.currentTarget.style.transform = 'scale(1.1)')} 
-              onMouseLeave={e => !isCollecting && (e.currentTarget.style.transform = 'scale(1)')}
-            />
-            {/* Индикатор загрузки */}
-            {isCollecting && (
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                color: colorStyle,
-                fontSize: '2rem',
-                animation: 'spin 1s linear infinite'
-              }}>
-                ⏳
+        {/* 🔥 УСЛОВНЫЙ РЕНДЕРИНГ: TON стейкинг или обычная игра */}
+        {isTonSystem ? (
+          // TON система (5) - показываем интерфейс стейкинга
+          <StakingView 
+            player={player}
+            systemId={currentSystem}
+            colorStyle={colorStyle}
+            onSystemChange={setCurrentSystem}
+            onPlayerUpdate={refreshPlayer}
+            onCreateNewStake={handleCreateNewStake}
+          />
+        ) : (
+          // Обычные системы (1-4) - показываем стандартный интерфейс
+          <>
+            {/* Кнопки магазина */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
+              {shopButtons.map(({ type, count, amount }) => (
+                <button key={type} onClick={handlePurchase(type)} style={{ flex: 1, padding: '8px 5px', background: 'rgba(0, 0, 0, 0.5)', border: `2px solid ${colorStyle}`, borderRadius: '15px', boxShadow: `0 0 10px ${colorStyle}`, color: '#fff', fontSize: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '5px', cursor: 'pointer', transition: 'transform 0.3s ease', boxSizing: 'border-box', height: 'auto' }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+                  <span>{t(type)}</span>
+                  <span>{count}</span>
+                  {amount && <span>{amount}</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* Сейф с новым счетчиком и индикатором загрузки */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '80px' }}>
+              <div 
+                style={{ 
+                  position: 'relative', 
+                  width: '150px', 
+                  height: '150px', 
+                  cursor: isCollecting ? 'wait' : 'pointer',
+                  opacity: isCollecting ? 0.7 : 1
+                }} 
+                onClick={handleSafeClick}
+              >
+                <img 
+                  src="/assets/safe.png" 
+                  alt="Safe" 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'contain', 
+                    filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`, 
+                    transition: 'transform 0.3s ease',
+                    transform: isCollecting ? 'scale(0.95)' : 'scale(1)'
+                  }}
+                  onMouseEnter={e => !isCollecting && (e.currentTarget.style.transform = 'scale(1.1)')} 
+                  onMouseLeave={e => !isCollecting && (e.currentTarget.style.transform = 'scale(1)')}
+                />
+                {/* Индикатор загрузки */}
+                {isCollecting && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    color: colorStyle,
+                    fontSize: '2rem',
+                    animation: 'spin 1s linear infinite'
+                  }}>
+                    ⏳
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          
-          {/* Счетчик с новой логикой */}
-          <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
-            {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
-          </p>
-          
-          {/* Статус сбора */}
-          {isCollecting && (
-            <p style={{ fontSize: '1rem', color: '#ffa500', textAlign: 'center', marginTop: '5px' }}>
-              Сбор...
-            </p>
-          )}
-        </div>
+              
+              {/* Счетчик с новой логикой */}
+              <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
+                {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
+              </p>
+              
+              {/* Статус сбора */}
+              {isCollecting && (
+                <p style={{ fontSize: '1rem', color: '#ffa500', textAlign: 'center', marginTop: '5px' }}>
+                  Сбор...
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* CSS для анимации загрузки */}
