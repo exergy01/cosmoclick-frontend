@@ -90,7 +90,22 @@ export const usePlayerData = () => {
   // Регистрация нового игрока
   const registerNewPlayer = async (telegramId: string) => {
     try {
+      // 🔥 ИСПРАВЛЕНО: Получаем данные из Telegram
+      const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
       const response = await playerApi.registerNewPlayer(telegramId);
+      
+      // Если есть данные Telegram, обновляем игрока
+      if (telegramUser && response.data) {
+        try {
+          await playerApi.updatePlayer(telegramId, {
+            first_name: telegramUser.first_name || `User${telegramId.slice(-4)}`,
+            username: telegramUser.username || `user_${telegramId}`
+          });
+        } catch (err) {
+          console.error('Failed to update Telegram user data:', err);
+        }
+      }
+      
       if (!response.data) {
         throw new Error('Registration failed');
       }

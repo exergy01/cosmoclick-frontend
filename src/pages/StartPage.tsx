@@ -112,10 +112,16 @@ useEffect(() => {
   useEffect(() => {
     if (hasNavigated) return;
 
-    // 🔥 ИСПРАВЛЕННАЯ ЛОГИКА: Показываем выбор языка ТОЛЬКО если язык НЕ УСТАНОВЛЕН
+    // 🔥 ПОКАЗЫВАЕМ ВЫБОР ЯЗЫКА если язык НЕ УСТАНОВЛЕН
     if (player && !player.language && !loading && !error && !showLanguageModal && !showWelcomeModal) {
       console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
       setShowLanguageModal(true);
+      return;
+    }
+
+    // 🔥 НЕ ПЕРЕХОДИМ если показаны модальные окна
+    if (showLanguageModal || showWelcomeModal) {
+      console.log('🔒 StartPage: Модальные окна открыты - ждем');
       return;
     }
 
@@ -133,15 +139,17 @@ useEffect(() => {
       progress,
       canNavigate,
       hasLanguage: !!player?.language,
-      isNewPlayer
+      isNewPlayer,
+      showLanguageModal,
+      showWelcomeModal
     });
 
     // Переходим на главную после минимальной задержки и загрузки данных
-    if (canNavigate && !showLanguageModal && !showWelcomeModal) {
+    if (canNavigate) {
       console.log('✅ StartPage: Переход на главную - данные загружены');
       setHasNavigated(true);
       navigate('/', { replace: true });
-    } else if (timeoutElapsed && !error && !showLanguageModal && !showWelcomeModal) {
+    } else if (timeoutElapsed && !error) {
       console.log('⏰ StartPage: Переход на главную - тайм-аут');
       setHasNavigated(true);
       navigate('/', { replace: true });
