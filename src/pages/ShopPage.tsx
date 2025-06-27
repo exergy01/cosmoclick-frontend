@@ -150,9 +150,10 @@ const buyItem = async (type: string, id: number, price: number) => {
   }
   
   if (currentBalance < price) {
-    const itemName = getItemName(type, id, currentSystem);
+    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem); // 🔥 ИСПРАВЛЕНО
     alert(`💰 Недостаточно средств!\n\n` +
           `🛒 Товар: ${itemName}\n` +
+          `🌌 Система: ${currentSystem}\n` +
           `💎 Цена: ${price} ${currencyName}\n` +
           `💰 У вас: ${currentBalance.toFixed(2)} ${currencyName}\n` +
           `❌ Не хватает: ${(price - currentBalance).toFixed(2)} ${currencyName}\n\n` +
@@ -193,8 +194,8 @@ const buyItem = async (type: string, id: number, price: number) => {
     }
     
     // 🎉 УСПЕШНАЯ ПОКУПКА
-    const itemName = getItemName(type, id, currentSystem);
-    alert(`✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n💰 Потрачено: ${price} ${currencyName}`);
+    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem); // 🔥 ИСПРАВЛЕНО: используем 'drone' для дронов
+    alert(`✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n🌌 Система: ${currentSystem}\n💰 Потрачено: ${price} ${currencyName}`);
     
     // Обновляем товары магазина
     await fetchShopItems();
@@ -204,15 +205,15 @@ const buyItem = async (type: string, id: number, price: number) => {
     
     // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
     let errorMessage = '';
-    const itemName = getItemName(type, id, currentSystem);
+    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem); // 🔥 ИСПРАВЛЕНО
     
     if (err.response?.data?.error) {
       const serverError = err.response.data.error;
       
       if (serverError.includes('Insufficient funds') || serverError.includes('Not enough')) {
-        errorMessage = `💰 Недостаточно средств для покупки!\n\n🛒 Товар: ${itemName}\n💎 Цена: ${price} ${currencyName}`;
+        errorMessage = `💰 Недостаточно средств для покупки!\n\n🛒 Товар: ${itemName}\n🌌 Система: ${currentSystem}\n💎 Цена: ${price} ${currencyName}`;
       } else if (serverError.includes('already purchased')) {
-        errorMessage = `⚠️ Товар уже куплен!\n\n🛒 ${itemName} уже есть в вашем арсенале.`;
+        errorMessage = `⚠️ Товар уже куплен!\n\n🛒 ${itemName} уже есть в системе ${currentSystem}.`;
       } else if (serverError.includes('Player not found')) {
         errorMessage = `❌ Ошибка игрока!\n\nПопробуйте перезагрузить страницу.`;
       } else {
