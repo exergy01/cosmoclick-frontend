@@ -87,22 +87,37 @@ export const usePlayerData = () => {
     }
   };
 
-  // Регистрация нового игрока
+  // Регистрация нового игрока с данными Telegram
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      // 🔥 ИСПРАВЛЕНО: Получаем данные из Telegram
+      // 🔥 ПОЛУЧАЕМ ДАННЫЕ ИЗ TELEGRAM
       const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+      
+      console.log('🔍 Telegram user data:', telegramUser);
+      
+      // 🔥 ПРОСТОЙ ВЫЗОВ СТАРОГО API
       const response = await playerApi.registerNewPlayer(telegramId);
       
-      // Если есть данные Telegram, обновляем игрока
+      // 🔥 ЕСЛИ ЕСТЬ TELEGRAM ДАННЫЕ - ОБНОВЛЯЕМ ИГРОКА
       if (telegramUser && response.data) {
         try {
+          console.log('📝 Обновляем игрока данными из Telegram:', {
+            first_name: telegramUser.first_name,
+            username: telegramUser.username
+          });
+          
           await playerApi.updatePlayer(telegramId, {
             first_name: telegramUser.first_name || `User${telegramId.slice(-4)}`,
             username: telegramUser.username || `user_${telegramId}`
           });
-        } catch (err) {
-          console.error('Failed to update Telegram user data:', err);
+          
+          // Получаем обновленного игрока
+          const updatedResponse = await playerApi.fetchPlayer(telegramId);
+          return updatedResponse.data;
+        } catch (updateErr) {
+          console.error('Failed to update player with Telegram data:', updateErr);
+          // Возвращаем базового игрока если обновление не удалось
+          return response.data;
         }
       }
       
@@ -121,6 +136,7 @@ export const usePlayerData = () => {
     try {
       setLoading(true);
       const telegramId = getTelegramId();
+      
       if (!telegramId) {
         setError('No telegram ID');
         return;
@@ -179,7 +195,7 @@ export const usePlayerData = () => {
         ...playerData,
         referrals,
         honor_board: honorBoard,
-        language: playerData.language, // 🔥 ИСПРАВЛЕНО: НЕ УСТАНАВЛИВАЕМ ДЕФОЛТ!
+        language: playerData.language, // НЕ УСТАНАВЛИВАЕМ ДЕФОЛТ!
       };
 
       const normalizedPlayer = createPlayerWithDefaults(fullPlayerData, 1);
