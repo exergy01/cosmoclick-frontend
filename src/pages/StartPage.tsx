@@ -78,9 +78,11 @@ useEffect(() => {
   if (player && !loading) {
     console.log('📦 StartPage: Данные игрока загружены', {
       hasLanguage: !!player.language,
+      language: player.language,
       telegramId: player.telegram_id,
       username: player.username,
-      first_name: player.first_name
+      first_name: player.first_name,
+      fullPlayer: player
     });
     setDataLoaded(true);
     
@@ -115,6 +117,15 @@ useEffect(() => {
     // 🔥 ИСПРАВЛЕННАЯ ЛОГИКА: Показываем выбор языка ТОЛЬКО если язык НЕ УСТАНОВЛЕН
     if (player && !player.language && !loading && !error && !showLanguageModal && !showWelcomeModal) {
       console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
+      console.log('🌐 StartPage: player.language =', player.language);
+      console.log('🌐 StartPage: условия для модала:', {
+        hasPlayer: !!player,
+        hasLanguage: !!player.language,
+        loading,
+        error,
+        showLanguageModal,
+        showWelcomeModal
+      });
       setShowLanguageModal(true);
       return;
     }
