@@ -3,108 +3,143 @@ import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
+import { getTelegramId } from '../utils/telegram';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
 const StartPage: React.FC = () => {
-  const { player, loading, error, setError, fetchInitialData, setPlayer } = useNewPlayer();
+  const { player, loading, error, setError, fetchInitialData } = useNewPlayer();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const [minDelayElapsed, setMinDelayElapsed] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showLanguageModal, setShowLanguageModal] = useState(false); // 🔥 ИЗМЕНЕНО: FALSE по умолчанию
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [timeoutElapsed, setTimeoutElapsed] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  // 🔥 ТЕСТ: Всегда показываем модал на 10 секунд
+  // Минимальная задержка 4 секунды + прогресс
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!hasNavigated) {
-        console.log('🔥 ТЕСТ: Принудительный переход через 10 секунд');
+    const minDelayTimer = setTimeout(() => setMinDelayElapsed(true), 4000);
+    const timeoutTimer = setTimeout(() => setTimeoutElapsed(true), 15000);
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev < 90) {
+          return prev + 3;
+        } else if (dataLoaded && prev < 100) {
+          return prev + 10;
+        }
+        return prev;
+      });
+    }, 150);
+
+    return () => {
+      clearTimeout(minDelayTimer);
+      clearTimeout(timeoutTimer);
+      clearInterval(progressInterval);
+    };
+  }, [dataLoaded]);
+
+  // Очистка ошибки через 3 секунды
+  useEffect(() => {
+    if (error) {
+      const errorTimer = setTimeout(() => {
+        setError(null);
+      }, 3000);
+      return () => clearTimeout(errorTimer);
+    }
+  }, [error, setError]);
+
+  // Инициализация данных
+  useEffect(() => {
+    if (!isInitialized && !loading) {
+      console.log('Инициализация: запуск fetchInitialData');
+      fetchInitialData();
+      setIsInitialized(true);
+    }
+  }, [fetchInitialData, isInitialized, loading]);
+
+  // Отслеживание загрузки данных
+  useEffect(() => {
+    if (player && !loading) {
+      console.log('Данные игрока полностью загружены');
+      setDataLoaded(true);
+      
+      // Устанавливаем язык сразу как получили данные
+      if (player.language && i18n.language !== player.language) {
+        console.log(`Смена языка на ${player.language}`);
+        i18n.changeLanguage(player.language);
+      }
+    }
+  }, [player, loading, i18n]);
+
+  // Навигация только после минимальной задержки И загрузки данных
+  useEffect(() => {
+    if (hasNavigated) return;
+
+    // Показываем модальное окно выбора языка если нужно
+    if (player && !player.language && !loading && !error && !showLanguageModal) {
+      console.log('Показ модального окна для выбора языка');
+      setShowLanguageModal(true);
+      return;
+    }
+
+    const allDataLoaded = !!(player && player.language && dataLoaded);
+    const canNavigate = minDelayElapsed && allDataLoaded && progress >= 100;
+    
+    console.log('Проверка условий перехода:', { 
+      minDelayElapsed, 
+      loading, 
+      allDataLoaded, 
+      dataLoaded,
+      timeoutElapsed, 
+      error, 
+      hasNavigated,
+      progress,
+      canNavigate
+    });
+
+    // Переходим только если прошла минимальная задержка И данные загружены И прогресс 100%
+    if (canNavigate || (timeoutElapsed && !error)) {
+      if (timeoutElapsed && !allDataLoaded && !error) {
+        console.log('Тайм-аут истёк, но данные не загружены, переход на /');
+        setHasNavigated(true);
+        navigate('/', { replace: true });
+      } else if (allDataLoaded) {
+        console.log('Все данные загружены и задержка прошла, переход на /main');
+        setHasNavigated(true);
+        navigate('/main', { replace: true });
+      } else if (error && error !== 'Не удалось купить астероид') {
+        console.log('Произошла критическая ошибка, переход на /');
         setHasNavigated(true);
         navigate('/', { replace: true });
       }
-    }, 10000);
-
-    return () => clearTimeout(timer);
-  }, [hasNavigated, navigate]);
-
-  // Простой прогресс бар
-  useEffect(() => {
-    const progressInterval = setInterval(() => {
-      setProgress(prev => prev < 90 ? prev + 5 : prev);
-    }, 200);
-
-    return () => clearInterval(progressInterval);
-  }, []);
-
-  // Загрузка данных и показ модала
-  useEffect(() => {
-    if (!player && !loading) {
-      console.log('🚀 Загружаем данные игрока...');
-      fetchInitialData();
     }
-    
-    // Показываем модал ТОЛЬКО когда игрок загружен и у него нет языка
-    if (player && player.telegram_id && (!player.language || player.language === null || player.language === 'null')) {
-      console.log('🌐 Игрок загружен, показываем модал выбора языка');
-      console.log('Player data:', { telegram_id: player.telegram_id, language: player.language });
-      setShowLanguageModal(true);
-    }
-  }, [player, loading, fetchInitialData]);
+  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal]);
 
   const handleLanguageSelect = async (lang: string) => {
-    console.log('🌐 Выбран язык:', lang);
-    
     try {
-      if (player?.telegram_id) {
-        console.log('📡 Отправка запроса на сервер...');
-        const response = await axios.post(`${API_URL}/api/player/language`, { 
-          telegramId: player.telegram_id, 
-          language: lang,
-          isFirstLanguageSelection: true
-        });
-        console.log('✅ Ответ сервера:', response.data);
-        
-        // Обновляем игрока локально
-        if (player) {
-          setPlayer({ 
-            ...player, 
-            language: lang, 
-            registration_language: lang 
-          });
-        }
-        
-        // Меняем язык в i18n
-        console.log('🌐 Смена языка в i18n на:', lang);
-        await i18n.changeLanguage(lang);
-        
-        setShowLanguageModal(false);
-        
-        // Показываем сообщение об успехе
-        if (response.data && response.data.language === lang) {
-          alert(`✅ Язык успешно изменен на: ${lang}`);
-        } else {
-          alert(`❌ Ошибка: язык в ответе не совпадает. Ответ: ${JSON.stringify(response.data)}`);
-        }
-        
-      } else {
-        console.error('❌ Нет telegram_id!');
-        alert('❌ Нет telegram_id!');
+      const telegramId = player?.telegram_id || getTelegramId();
+      if (!telegramId) {
+        console.error('Не удалось получить telegramId');
         return;
       }
-      
-      // Переход на главную через 2 секунды
-      setTimeout(() => {
-        if (!hasNavigated) {
-          setHasNavigated(true);
-          navigate('/', { replace: true });
-        }
-      }, 2000);
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка установки языка:', err);
-      alert(`❌ Ошибка: ${err.response?.data?.error || err.message}`);
+      console.log(`Выбор языка: ${lang}, telegramId: ${telegramId}`);
+      const response = await axios.post(`${API_URL}/api/player/language`, { telegramId, language: lang });
+      console.log('Ответ от API:', response.data);
+      await i18n.changeLanguage(lang);
+      setShowLanguageModal(false);
+      setSelectedLanguage(lang);
+      console.log('Обновление данных игрока после выбора языка');
+      await fetchInitialData();
+    } catch (err) {
+      console.error('Не удалось установить язык:', err);
+      setShowLanguageModal(false);
+      setError('Не удалось установить язык');
     }
   };
 
@@ -117,46 +152,85 @@ const StartPage: React.FC = () => {
           backgroundImage: `url(/assets/startpage_bg.png)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundRepeat: 'no-root',
+          backgroundRepeat: 'no-repeat',
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           alignItems: 'center',
           color: '#fff',
           padding: '20px',
           position: 'relative',
         }}
       >
-        <h1 style={{ fontSize: '2rem', marginBottom: '20px', textAlign: 'center' }}>
-          🚀 CosmoClick Loading...
-          <br/>
-          <small style={{ fontSize: '1rem', color: '#888' }}>
-            Player: {player?.telegram_id || 'loading...'}
-          </small>
+        {/* Приветствие на правильном языке */}
+        <h1
+          style={{
+            fontSize: '2rem',
+            color: 'black',
+            textShadow: `0 0 10px ${colorStyle}, 0 0 20px ${colorStyle}`,
+            textAlign: 'center',
+            whiteSpace: 'pre-line',
+            position: 'absolute',
+            top: '20px',
+            opacity: dataLoaded ? 1 : 0.7,
+            transition: 'opacity 0.5s ease'
+          }}
+        >
+          {player && player.language ? 
+            t('welcome_player', { username: player.username || `User${player.telegram_id?.slice(-4) || 'Unknown'}` }) :
+            'Loading...'
+          }
         </h1>
         
-        {/* Прогресс бар */}
-        <div style={{ width: '80%', maxWidth: '400px', marginBottom: '20px' }}>
-          <div style={{
-            width: '100%',
-            background: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: '5px',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              width: `${progress}%`,
-              height: '20px',
-              background: colorStyle,
-              transition: 'width 0.3s ease',
-            }} />
+        {error && (
+          <p
+            style={{
+              fontSize: '1.2rem',
+              color: '#ff4d4d',
+              textShadow: '0 0 10px #ff4d4d',
+              marginTop: '60px',
+            }}
+          >
+            {error}
+          </p>
+        )}
+        
+        {/* Прогресс бар с лучшей логикой */}
+        <div
+          style={{
+            width: '80%',
+            maxWidth: '600px',
+            position: 'absolute',
+            bottom: '20px',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '5px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.min(progress, 100)}%`,
+                height: '20px',
+                background: colorStyle,
+                boxShadow: `0 0 10px ${colorStyle}`,
+                transition: 'width 0.3s ease',
+              }}
+            />
           </div>
           <p style={{ textAlign: 'center', marginTop: '10px' }}>
-            {progress}%
+            {dataLoaded ? 
+              t('loading_complete') || 'Готово!' : 
+              t('loading') || 'Загрузка...'
+            } {Math.round(Math.min(progress, 100))}%
           </p>
         </div>
 
-        {/* 🔥 ПРИНУДИТЕЛЬНОЕ МОДАЛЬНОЕ ОКНО */}
         {showLanguageModal && (
           <div
             style={{
@@ -165,7 +239,7 @@ const StartPage: React.FC = () => {
               left: '0',
               width: '100%',
               height: '100%',
-              background: 'rgba(0, 0, 0, 0.9)',
+              background: 'rgba(0, 0, 0, 0.8)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
@@ -174,90 +248,33 @@ const StartPage: React.FC = () => {
           >
             <div
               style={{
-                background: 'rgba(0, 0, 20, 0.95)',
-                padding: '30px',
-                borderRadius: '20px',
+                background: 'rgba(255, 255, 252, 0.1)',
+                padding: '20px',
+                borderRadius: '10px',
                 textAlign: 'center',
-                border: `3px solid ${colorStyle}`,
-                boxShadow: `0 0 30px ${colorStyle}`,
-                maxWidth: '350px',
-                width: '90%',
+                boxShadow: `0 0 10px ${colorStyle}`,
               }}
             >
-              <h2 style={{ 
-                color: colorStyle, 
-                marginBottom: '25px', 
-                fontSize: '20px' 
-              }}>
-                🌐 Choose Language<br/>Выберите язык
-              </h2>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '12px',
-                maxWidth: '300px',
-                margin: '0 auto'
-              }}>
-                {[
-                  { code: 'en', flag: '🇺🇸', name: 'English' },
-                  { code: 'ru', flag: '🇷🇺', name: 'Русский' },
-                  { code: 'es', flag: '🇪🇸', name: 'Español' },
-                  { code: 'fr', flag: '🇫🇷', name: 'Français' },
-                  { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
-                  { code: 'zh', flag: '🇨🇳', name: '中文' },
-                  { code: 'ja', flag: '🇯🇵', name: '日本語' }
-                ].map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => handleLanguageSelect(lang.code)}
-                    style={{
-                      padding: '12px 8px',
-                      background: 'transparent',
-                      border: `2px solid ${colorStyle}`,
-                      borderRadius: '10px',
-                      color: '#fff',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      transition: 'all 0.3s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '4px',
-                      minHeight: '70px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = colorStyle;
-                      e.currentTarget.style.color = '#000';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#fff';
-                    }}
-                  >
-                    <span style={{ fontSize: '20px' }}>{lang.flag}</span>
-                    <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: '1.2' }}>
-                      {lang.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              
-              <p style={{ 
-                marginTop: '20px', 
-                fontSize: '12px', 
-                color: '#888' 
-              }}>
-                Модальное окно работает! 🎉
-              </p>
+              <h2 style={{ color: colorStyle }}>{t('select_language')}</h2>
+              {['en', 'ru'].map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => handleLanguageSelect(lang)}
+                  style={{
+                    padding: '10px 20px',
+                    margin: '10px',
+                    background: 'transparent',
+                    border: `2px solid ${colorStyle}`,
+                    boxShadow: selectedLanguage === lang ? `0 0 10px ${colorStyle}` : 'none',
+                    color: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
-        )}
-
-        {error && (
-          <p style={{ color: '#ff4444', textAlign: 'center', marginTop: '20px' }}>
-            {error}
-          </p>
         )}
       </div>
     </Suspense>
