@@ -86,7 +86,7 @@ useEffect(() => {
     });
     setDataLoaded(true);
     
-    const isPlayerNew = !player.language;
+    const isPlayerNew = !player.language || player.language === null || player.language === 'null';
     setIsNewPlayer(isPlayerNew);
 
     // 🔥 Добавляем регистрацию в рефералы
@@ -115,7 +115,7 @@ useEffect(() => {
     if (hasNavigated) return;
 
     // 🔥 ИСПРАВЛЕННАЯ ЛОГИКА: Показываем выбор языка ТОЛЬКО если язык НЕ УСТАНОВЛЕН
-    if (player && !player.language && !loading && !error && !showLanguageModal && !showWelcomeModal) {
+    if (player && (!player.language || player.language === null || player.language === 'null') && !loading && !error && !showLanguageModal && !showWelcomeModal) {
       console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
       console.log('🌐 StartPage: player.language =', player.language);
       console.log('🌐 StartPage: условия для модала:', {
