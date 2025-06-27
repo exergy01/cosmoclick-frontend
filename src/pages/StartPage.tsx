@@ -76,8 +76,12 @@ const StartPage: React.FC = () => {
       
       setShowLanguageModal(false);
       
-      // Показываем сообщение об успехе
-      alert(`Язык изменен на: ${lang}`);
+      // Показываем сообщение об успехе или ошибке
+      if (response.data.success) {
+        alert(`✅ Язык успешно изменен на: ${lang}`);
+      } else {
+        alert(`❌ Ошибка сервера: ${JSON.stringify(response.data)}`);
+      }
       
       // Переход на главную через 2 секунды
       setTimeout(() => {
