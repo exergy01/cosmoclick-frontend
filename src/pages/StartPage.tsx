@@ -114,20 +114,13 @@ useEffect(() => {
   useEffect(() => {
     if (hasNavigated) return;
 
-    // 🔥 ИСПРАВЛЕННАЯ ЛОГИКА: Показываем выбор языка ТОЛЬКО если язык НЕ УСТАНОВЛЕН
-    if (player && (!player.language || player.language === null || player.language === 'null') && !loading && !error && !showLanguageModal && !showWelcomeModal) {
-      console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
-      console.log('🌐 StartPage: player.language =', player.language);
-      console.log('🌐 StartPage: условия для модала:', {
-        hasPlayer: !!player,
-        hasLanguage: !!player.language,
-        loading,
-        error,
-        showLanguageModal,
-        showWelcomeModal
-      });
-      setShowLanguageModal(true);
-      return;
+    // 🔥 ПЕРВЫЙ ПРИОРИТЕТ: Показываем выбор языка если язык не установлен
+    if (player && (!player.language || player.language === null || player.language === 'null') && !loading && !error) {
+      if (!showLanguageModal && !showWelcomeModal) {
+        console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
+        setShowLanguageModal(true);
+      }
+      return; // НЕ ПЕРЕХОДИМ ДАЛЬШЕ ПОКА НЕ ВЫБЕРУТ ЯЗЫК
     }
 
     const allDataLoaded = !!(player && dataLoaded);
@@ -147,7 +140,7 @@ useEffect(() => {
       isNewPlayer
     });
 
-    // Переходим на главную после минимальной задержки и загрузки данных
+    // Переходим на главную только ПОСЛЕ выбора языка
     if (canNavigate && !showLanguageModal && !showWelcomeModal) {
       console.log('✅ StartPage: Переход на главную - данные загружены');
       setHasNavigated(true);
