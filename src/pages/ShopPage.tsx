@@ -557,81 +557,131 @@ const buyItem = async (type: string, id: number, price: number) => {
           </div>
         )}
 
-        {/* Товары - ИСПРАВЛЕНЫ ЗНАЧЕНИЯ ДЛЯ СИСТЕМЫ 4 */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'space-between', zIndex: 10 }}>
+        {/* 🔥 ТОВАРЫ - УМЕНЬШЕННЫЕ КНОПКИ для мобильных экранов */}
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '10px', 
+          justifyContent: 'space-between'
+        }}>
+          {/* АСТЕРОИДЫ */}
           {activeTab === 'asteroid' && shopItems.asteroids.map((item: Item) => (
             <button
               key={`asteroid-${item.id}`}
               onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('asteroid', item.id, item.price || 0)}
               disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
               style={{
-                width: '48%',
-                padding: '15px',
+                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд с учетом gap
+                minWidth: '140px', // минимальная ширина
+                padding: '12px 8px',
                 background: item.isPurchased 
                   ? 'rgba(0, 255, 0, 0.2)' 
                   : !item.isPreviousPurchased 
                     ? 'rgba(255, 0, 0, 0.2)' 
                     : 'rgba(0, 0, 0, 0.5)',
                 border: `2px solid ${colorStyle}`,
-                borderRadius: '15px',
-                boxShadow: `0 0 10px ${colorStyle}`,
+                borderRadius: '12px',
+                boxShadow: `0 0 8px ${colorStyle}`,
                 color: '#fff',
-                fontSize: '1rem',
+                fontSize: '0.9rem', // 🔥 меньший шрифт
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
                 boxSizing: 'border-box',
                 opacity: isLoading || loading ? 0.7 : 1,
               }}
-              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.05)')}
+              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>🤖 {getItemName('drone', item.id, currentSystem)}</span>
-              <span>⚡ {getResourceName()}/день: {getDroneProductivity(item)}</span>
-              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 5 ? 'TON' : 'CCC'}</span>
-              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold' }}>✅ {t('purchased')}</span>}
-              {!item.isPreviousPurchased && <span style={{ color: '#ff4444' }}>🔒 {t('buy_previous')}</span>}
+              <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>🌍 {getItemName('asteroid', item.id, currentSystem)}</span>
+              <span style={{ fontSize: '0.8rem' }}>💎 {getResourceName()}: {getResourceValue(item)}</span>
+              <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
+              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
+              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous')}</span>}
             </button>
           ))}
+
+          {/* ДРОНЫ */}
+          {activeTab === 'drones' && shopItems.drones.map((item: Item) => (
+            <button
+              key={`drone-${item.id}`}
+              onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('drones', item.id, item.price || 0)}
+              disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
+              style={{
+                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд
+                minWidth: '140px',
+                padding: '12px 8px',
+                background: item.isPurchased 
+                  ? 'rgba(0, 255, 0, 0.2)' 
+                  : !item.isPreviousPurchased 
+                    ? 'rgba(255, 0, 0, 0.2)' 
+                    : 'rgba(0, 0, 0, 0.5)',
+                border: `2px solid ${colorStyle}`,
+                borderRadius: '12px',
+                boxShadow: `0 0 8px ${colorStyle}`,
+                color: '#fff',
+                fontSize: '0.9rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                boxSizing: 'border-box',
+                opacity: isLoading || loading ? 0.7 : 1,
+              }}
+              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>🤖 {getItemName('drone', item.id, currentSystem)}</span>
+              <span style={{ fontSize: '0.8rem' }}>⚡ {getResourceName()}/день: {getDroneProductivity(item)}</span>
+              <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
+              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
+              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous')}</span>}
+            </button>
+          ))}
+
+          {/* КАРГО */}
           {activeTab === 'cargo' && shopItems.cargo.map((item: Item) => (
             <button
               key={`cargo-${item.id}`}
               onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('cargo', item.id, item.price || 0)}
               disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
               style={{
-                width: '48%',
-                padding: '15px',
+                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд
+                minWidth: '140px',
+                padding: '12px 8px',
                 background: item.isPurchased 
                   ? 'rgba(0, 255, 0, 0.2)' 
                   : !item.isPreviousPurchased 
                     ? 'rgba(255, 0, 0, 0.2)' 
                     : 'rgba(0, 0, 0, 0.5)',
                 border: `2px solid ${colorStyle}`,
-                borderRadius: '15px',
-                boxShadow: `0 0 10px ${colorStyle}`,
+                borderRadius: '12px',
+                boxShadow: `0 0 8px ${colorStyle}`,
                 color: '#fff',
-                fontSize: '1rem',
+                fontSize: '0.9rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
                 boxSizing: 'border-box',
                 opacity: isLoading || loading ? 0.7 : 1,
               }}
-              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.05)')}
+              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>📦 {getItemName('cargo', item.id, currentSystem)}</span>
-              <span>📊 {t('capacity')}: {item.capacity === 999999 || item.capacity === 99999 ? '∞' : item.capacity || 0}</span>
-              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 5 ? 'TON' : 'CCC'}</span>
-              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold' }}>✅ {t('purchased')}</span>}
-              {!item.isPreviousPurchased && <span style={{ color: '#ff4444' }}>🔒 {t('buy_previous')}</span>}
-              {item.id === 5 && !item.isPurchased && <span style={{ color: '#ffa500' }}>⭐ {t('infinite_capacity')}</span>}
+              <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>📦 {getItemName('cargo', item.id, currentSystem)}</span>
+              <span style={{ fontSize: '0.8rem' }}>📊 {t('capacity')}: {item.capacity === 999999 || item.capacity === 99999 ? '∞' : item.capacity || 0}</span>
+              <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
+              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
+              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous')}</span>}
+              {item.id === 5 && !item.isPurchased && <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>⭐ {t('infinite_capacity')}</span>}
             </button>
           ))}
         </div>
