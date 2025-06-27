@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
+import SystemUnlockModal from '../components/SystemUnlockModal';
 
 // Импортируем новый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
@@ -70,12 +71,48 @@ const ShopPage: React.FC = () => {
     cargo: [],
   });
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 🔥 НОВЫЕ СОСТОЯНИЯ для выбора системы
+  const [showSystemDropdown, setShowSystemDropdown] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [targetSystem, setTargetSystem] = useState<number | null>(null);
 
   // Установка активной вкладки из location state
   useEffect(() => {
     const stateTab = (location.state as { tab?: string })?.tab;
     if (stateTab) setActiveTab(stateTab);
   }, [location.state]);
+
+  // 🔥 ОБРАБОТЧИКИ для смены системы
+  const handleSystemChange = (systemId: number) => {
+    if (!player) return;
+    
+    if (player.unlocked_systems?.includes(systemId)) {
+      setCurrentSystem(systemId);
+      setShowSystemDropdown(false);
+    } else {
+      setTargetSystem(systemId);
+      setShowUnlockModal(true);
+      setShowSystemDropdown(false);
+    }
+  };
+
+  const handleUnlockSuccess = () => {
+    setShowUnlockModal(false);
+    if (targetSystem) {
+      setCurrentSystem(targetSystem);
+      setTargetSystem(null);
+    }
+  };
+
+  const handleUnlockCancel = () => {
+    setShowUnlockModal(false);
+    setTargetSystem(null);
+    if (player?.unlocked_systems && player.unlocked_systems.length > 0) {
+      const lastUnlocked = Math.max(...player.unlocked_systems);
+      setCurrentSystem(lastUnlocked);
+    }
+  };
 
   // Загрузка товаров магазина
   const fetchShopItems = useCallback(async () => {
@@ -133,7 +170,7 @@ const buyItem = async (type: string, id: number, price: number) => {
   
   // 🔥 ПРОВЕРКА БАЛАНСА ПЕРЕД ПОКУПКОЙ
   const currencyToCheck = currentSystem >= 1 && currentSystem <= 4 ? 'cs' : 
-                         currentSystem >= 5 && currentSystem <= 7 ? 'ton' : 'ccc';
+                         currentSystem >= 5 && currentSystem <= 5 ? 'ton' : 'ccc';
   
   let currentBalance = 0;
   let currencyName = '';
@@ -150,7 +187,7 @@ const buyItem = async (type: string, id: number, price: number) => {
   }
   
   if (currentBalance < price) {
-    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem); // 🔥 ИСПРАВЛЕНО
+    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
     alert(`💰 Недостаточно средств!\n\n` +
           `🛒 Товар: ${itemName}\n` +
           `🌌 Система: ${currentSystem}\n` +
@@ -194,7 +231,7 @@ const buyItem = async (type: string, id: number, price: number) => {
     }
     
     // 🎉 УСПЕШНАЯ ПОКУПКА
-    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem); // 🔥 ИСПРАВЛЕНО: используем 'drone' для дронов
+    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
     alert(`✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n🌌 Система: ${currentSystem}\n💰 Потрачено: ${price} ${currencyName}`);
     
     // Обновляем товары магазина
@@ -205,7 +242,7 @@ const buyItem = async (type: string, id: number, price: number) => {
     
     // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
     let errorMessage = '';
-    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem); // 🔥 ИСПРАВЛЕНО
+    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
     
     if (err.response?.data?.error) {
       const serverError = err.response.data.error;
@@ -361,9 +398,10 @@ const buyItem = async (type: string, id: number, price: number) => {
         { type: 'cargo', count: `${currentCargoLevel}/${maxCargo}` },
       ]);
     });
-  }, [player, currentSystem, shopItems.asteroids]); // Добавляем shopItems.asteroids в зависимости
+  }, [player, currentSystem, shopItems.asteroids]);
 
-  const systemNames = [t('system_1'), t('system_2'), t('system_3'), t('system_4'), t('system_5'), t('system_6'), t('system_7')];
+  // 🔥 ТОЛЬКО 5 СИСТЕМ (убираем 6 и 7)
+  const systemNames = [t('system_1'), t('system_2'), t('system_3'), t('system_4'), t('system_5')];
   const systemName = `${t('system')} ${currentSystem} - ${systemNames[currentSystem - 1]}`;
   const colorStyle = player?.color || '#00f0ff';
 
@@ -389,7 +427,7 @@ const buyItem = async (type: string, id: number, price: number) => {
       />
 
       <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
-        {/* Кнопки категорий - СТАРЫЙ СТИЛЬ */}
+        {/* Кнопки категорий */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
           {shopButtons.map(({ type, count, amount }) => (
             <button
@@ -435,11 +473,72 @@ const buyItem = async (type: string, id: number, price: number) => {
           ))}
         </div>
 
-        {/* Название системы */}
-        <div style={{ textAlign: 'center', margin: '10px 0' }}>
-          <span style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}` }}>
+        {/* 🔥 НОВЫЙ БЛОК: Выбор системы (как на MainPage) */}
+        <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
+          <span 
+            onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} 
+            style={{ 
+              fontSize: '1.5rem', 
+              color: colorStyle, 
+              textShadow: `0 0 10px ${colorStyle}`, 
+              cursor: 'pointer', 
+              transition: 'transform 0.3s ease', 
+              display: 'inline-block' 
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} 
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
             🛒 {systemName}
           </span>
+          {showSystemDropdown && (
+            <div style={{ 
+              position: 'absolute', 
+              top: '100%', 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              background: 'rgba(0, 0, 0, 0.7)', 
+              border: `2px solid ${colorStyle}`, 
+              borderRadius: '10px', 
+              boxShadow: `0 0 10px ${colorStyle}`, 
+              zIndex: 10 
+            }}>
+              {[1, 2, 3, 4, 5].map(i => {
+                const isUnlocked = player.unlocked_systems?.includes(i);
+                const systemData = {
+                  1: { price: 0, currency: 'cs' },
+                  2: { price: 150, currency: 'cs' },
+                  3: { price: 300, currency: 'cs' },
+                  4: { price: 500, currency: 'cs' },
+                  5: { price: 15, currency: 'ton' }
+                };
+                const system = systemData[i as keyof typeof systemData];
+                
+                return (
+                  <div 
+                    key={i} 
+                    onClick={() => handleSystemChange(i)}
+                    style={{ 
+                      padding: '10px 20px', 
+                      color: isUnlocked ? '#fff' : '#888', 
+                      cursor: 'pointer', 
+                      textAlign: 'center', 
+                      transition: 'background 0.3s ease',
+                      borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')} 
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {`Система ${i} - ${systemNames[i - 1]}`}
+                    {!isUnlocked && (
+                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                        🔒 {system.price} {system.currency.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Индикатор загрузки */}
@@ -490,46 +589,9 @@ const buyItem = async (type: string, id: number, price: number) => {
               onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.05)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>🌍 {getItemName('asteroid', item.id, currentSystem)}</span>
-              <span>💎 {getResourceName()}: {getResourceValue(item)}</span>
-              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 7 ? 'TON' : 'CCC'}</span>
-              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold' }}>✅ {t('purchased')}</span>}
-              {!item.isPreviousPurchased && <span style={{ color: '#ff4444' }}>🔒 {t('buy_previous')}</span>}
-            </button>
-          ))}
-          {activeTab === 'drones' && shopItems.drones.map((item: Item) => (
-            <button
-              key={`drone-${item.id}`}
-              onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('drones', item.id, item.price || 0)}
-              disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
-              style={{
-                width: '48%',
-                padding: '15px',
-                background: item.isPurchased 
-                  ? 'rgba(0, 255, 0, 0.2)' 
-                  : !item.isPreviousPurchased 
-                    ? 'rgba(255, 0, 0, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.5)',
-                border: `2px solid ${colorStyle}`,
-                borderRadius: '15px',
-                boxShadow: `0 0 10px ${colorStyle}`,
-                color: '#fff',
-                fontSize: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s ease',
-                boxSizing: 'border-box',
-                opacity: isLoading || loading ? 0.7 : 1,
-              }}
-              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
               <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>🤖 {getItemName('drone', item.id, currentSystem)}</span>
               <span>⚡ {getResourceName()}/день: {getDroneProductivity(item)}</span>
-              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 7 ? 'TON' : 'CCC'}</span>
+              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 5 ? 'TON' : 'CCC'}</span>
               {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold' }}>✅ {t('purchased')}</span>}
               {!item.isPreviousPurchased && <span style={{ color: '#ff4444' }}>🔒 {t('buy_previous')}</span>}
             </button>
@@ -566,7 +628,7 @@ const buyItem = async (type: string, id: number, price: number) => {
             >
               <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>📦 {getItemName('cargo', item.id, currentSystem)}</span>
               <span>📊 {t('capacity')}: {item.capacity === 999999 || item.capacity === 99999 ? '∞' : item.capacity || 0}</span>
-              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 7 ? 'TON' : 'CCC'}</span>
+              <span>💰 {t('price')}: {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 && currentSystem <= 5 ? 'TON' : 'CCC'}</span>
               {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold' }}>✅ {t('purchased')}</span>}
               {!item.isPreviousPurchased && <span style={{ color: '#ff4444' }}>🔒 {t('buy_previous')}</span>}
               {item.id === 5 && !item.isPurchased && <span style={{ color: '#ffa500' }}>⭐ {t('infinite_capacity')}</span>}
@@ -583,6 +645,15 @@ const buyItem = async (type: string, id: number, price: number) => {
 
       {/* Нижняя навигация */}
       <NavigationMenu colorStyle={colorStyle} />
+
+      {/* 🔥 НОВОЕ: Модальное окно разблокировки системы */}
+      {showUnlockModal && targetSystem && (
+        <SystemUnlockModal 
+          systemId={targetSystem}
+          onUnlock={handleUnlockSuccess}
+          onCancel={handleUnlockCancel}
+        />
+      )}
     </div>
   );
 };

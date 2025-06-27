@@ -157,7 +157,8 @@ const MainPage: React.FC = () => {
     if (touchStartX === null || touchEndX === null) return;
     const distance = touchStartX - touchEndX;
     if (Math.abs(distance) > minSwipeDistance) {
-      if (distance > 0 && currentSystem < 7) setCurrentSystem(currentSystem + 1);
+      // 🔥 ОГРАНИЧИВАЕМ СВАЙПЫ только до системы 5
+      if (distance > 0 && currentSystem < 5) setCurrentSystem(currentSystem + 1);
       else if (distance < 0 && currentSystem > 1) setCurrentSystem(currentSystem - 1);
     }
     setTouchStartX(null);
@@ -166,7 +167,8 @@ const MainPage: React.FC = () => {
 
   if (!player) return <div>Загрузка...</div>;
 
-  const systemNames = ['Андромеда', 'Орион', 'Млечный Путь', 'Туманность Ориона', 'Крабовидная Туманность', 'Сомбреро', 'Туманность Орла'];
+  // 🔥 УБИРАЕМ СИСТЕМЫ 6 И 7 - только 5 систем
+  const systemNames = ['Андромеда', 'Орион', 'Млечный Путь', 'Туманность Ориона', 'Крабовидная Туманность'];
   const systemName = `Система ${currentSystem} - ${systemNames[currentSystem - 1]}`;
   const colorStyle = player.color || '#00f0ff';
 
@@ -336,16 +338,15 @@ const MainPage: React.FC = () => {
           </span>
           {showSystemDropdown && (
             <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
-              {[1, 2, 3, 4, 5, 6, 7].map(i => {
+              {/* 🔥 ОГРАНИЧИВАЕМ до 5 систем */}
+              {[1, 2, 3, 4, 5].map(i => {
                 const isUnlocked = player.unlocked_systems?.includes(i);
                 const systemData = {
                   1: { price: 0, currency: 'cs' },
                   2: { price: 150, currency: 'cs' },
                   3: { price: 300, currency: 'cs' },
                   4: { price: 500, currency: 'cs' },
-                  5: { price: 15, currency: 'ton' },
-                  6: { price: 50, currency: 'ton' },
-                  7: { price: 500, currency: 'ton' }
+                  5: { price: 15, currency: 'ton' }
                 };
                 const system = systemData[i as keyof typeof systemData];
                 
