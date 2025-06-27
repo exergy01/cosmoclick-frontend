@@ -22,6 +22,7 @@ const StartPage: React.FC = () => {
   const [hasNavigated, setHasNavigated] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
+  const [languageChecked, setLanguageChecked] = useState(false);
 
   // 🔥 ВСЕГДА показываем StartPage минимум 4 секунды
   useEffect(() => {
@@ -89,6 +90,16 @@ useEffect(() => {
     const isPlayerNew = !player.language || player.language === null || player.language === 'null';
     setIsNewPlayer(isPlayerNew);
 
+    // 🔥 ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА ЯЗЫКА
+    if (isPlayerNew) {
+      console.log('🌐 StartPage: Новый игрок без языка - показываем модал');
+      setShowLanguageModal(true);
+      setLanguageChecked(false);
+    } else {
+      console.log('🌐 StartPage: У игрока есть язык - продолжаем');
+      setLanguageChecked(true);
+    }
+
     // 🔥 Добавляем регистрацию в рефералы
     if (isPlayerNew && player.telegram_id) {
       const initData = (window as any).Telegram?.WebApp?.initData;
@@ -110,21 +121,24 @@ useEffect(() => {
   }
 }, [player, loading, i18n]);
 
-  // Логика навигации - всегда ждем минимум 4 секунды
+  // Логика навигации - БЛОКИРУЕМ ДО ПРОВЕРКИ ЯЗЫКА
   useEffect(() => {
     if (hasNavigated) return;
 
-    // 🔥 ПЕРВЫЙ ПРИОРИТЕТ: Показываем выбор языка если язык не установлен
-    if (player && (!player.language || player.language === null || player.language === 'null') && !loading && !error) {
-      if (!showLanguageModal && !showWelcomeModal) {
-        console.log('🌐 StartPage: Показ модального окна выбора языка - язык не установлен');
-        setShowLanguageModal(true);
-      }
-      return; // НЕ ПЕРЕХОДИМ ДАЛЬШЕ ПОКА НЕ ВЫБЕРУТ ЯЗЫК
+    // 🔥 НЕ ПЕРЕХОДИМ ПОКА НЕ ПРОВЕРИЛИ ЯЗЫК
+    if (!languageChecked && !showLanguageModal) {
+      console.log('🔒 StartPage: Ждем проверки языка...');
+      return;
+    }
+
+    // Если показан модал выбора языка - НЕ ПЕРЕХОДИМ
+    if (showLanguageModal || showWelcomeModal) {
+      console.log('🔒 StartPage: Модальное окно открыто - не переходим');
+      return;
     }
 
     const allDataLoaded = !!(player && dataLoaded);
-    const canNavigate = minDelayElapsed && allDataLoaded && progress >= 100;
+    const canNavigate = minDelayElapsed && allDataLoaded && progress >= 100 && languageChecked;
     
     console.log('🔍 StartPage: Проверка условий перехода:', { 
       minDelayElapsed, 
@@ -136,21 +150,22 @@ useEffect(() => {
       hasNavigated,
       progress,
       canNavigate,
-      hasLanguage: !!player?.language,
-      isNewPlayer
+      languageChecked,
+      showLanguageModal,
+      showWelcomeModal
     });
 
-    // Переходим на главную только ПОСЛЕ выбора языка
-    if (canNavigate && !showLanguageModal && !showWelcomeModal) {
-      console.log('✅ StartPage: Переход на главную - данные загружены');
+    // Переходим на главную только ПОСЛЕ проверки языка
+    if (canNavigate) {
+      console.log('✅ StartPage: Переход на главную - все условия выполнены');
       setHasNavigated(true);
       navigate('/', { replace: true });
-    } else if (timeoutElapsed && !error && !showLanguageModal && !showWelcomeModal) {
+    } else if (timeoutElapsed && !error && languageChecked) {
       console.log('⏰ StartPage: Переход на главную - тайм-аут');
       setHasNavigated(true);
       navigate('/', { replace: true });
     }
-  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, i18n, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal, isNewPlayer]);
+  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal, languageChecked]);
 
   const handleLanguageSelect = async (lang: string) => {
     try {
@@ -180,6 +195,7 @@ useEffect(() => {
       
       setShowLanguageModal(false);
       setShowWelcomeModal(true); // 🔥 СРАЗУ БЕЗ ЗАДЕРЖКИ
+      setLanguageChecked(true); // 🔥 РАЗРЕШАЕМ НАВИГАЦИЮ
       
     } catch (err) {
       console.error('❌ StartPage: Не удалось установить язык:', err);
@@ -191,6 +207,7 @@ useEffect(() => {
   const handleWelcomeClose = () => {
     setShowWelcomeModal(false);
     setIsNewPlayer(false); // 🔥 ПОМЕЧАЕМ ЧТО УЖЕ НЕ НОВЫЙ ИГРОК!
+    setLanguageChecked(true); // 🔥 ОКОНЧАТЕЛЬНО РАЗРЕШАЕМ НАВИГАЦИЮ
   };
 
   const colorStyle = player?.color || '#00f0ff';
