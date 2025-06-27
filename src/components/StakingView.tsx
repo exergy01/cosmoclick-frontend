@@ -42,7 +42,6 @@ const StakingView: React.FC<StakingViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState<{ [key: number]: string }>({});
   const [refreshing, setRefreshing] = useState(false);
-  // 🔥 ДОБАВЛЕНО: состояние для принудительного обновления
   const [forceRefresh, setForceRefresh] = useState(0);
 
   // Функция загрузки стейков
@@ -76,7 +75,7 @@ const StakingView: React.FC<StakingViewProps> = ({
     }
   };
 
-  // 🔥 ДОБАВЛЕНО: обновление при изменении unlocked_systems игрока
+  // Обновление при изменении unlocked_systems игрока
   useEffect(() => {
     if (player?.telegram_id) {
       console.log('🔄 Обновление стейков: изменился игрок или система');
@@ -91,22 +90,20 @@ const StakingView: React.FC<StakingViewProps> = ({
     setRefreshing(false);
   };
 
-  // 🔥 ДОБАВЛЕНО: функция для принудительного обновления из родительского компонента
+  // Функция для принудительного обновления из родительского компонента
   const triggerRefresh = () => {
     setForceRefresh(prev => prev + 1);
   };
 
-  // 🔥 ДОБАВЛЕНО: подписываемся на глобальные события обновления стейков
+  // Подписываемся на глобальные события обновления стейков
   useEffect(() => {
     const handleStakeUpdate = () => {
       console.log('📢 Получен сигнал обновления стейков');
       triggerRefresh();
     };
 
-    // Добавляем слушатель события
     window.addEventListener('stakes-updated', handleStakeUpdate);
 
-    // Убираем слушатель при размонтировании
     return () => {
       window.removeEventListener('stakes-updated', handleStakeUpdate);
     };
@@ -168,7 +165,7 @@ const StakingView: React.FC<StakingViewProps> = ({
       if (result.success) {
         alert(`✅ Получено ${result.withdrawn_amount} TON!`);
         
-        // 🔥 ИСПРАВЛЕНО: Отправляем событие глобального обновления
+        // Отправляем событие глобального обновления
         window.dispatchEvent(new CustomEvent('stakes-updated'));
         
         // Обновляем данные игрока
@@ -182,7 +179,7 @@ const StakingView: React.FC<StakingViewProps> = ({
         // Если нет больше стейков - переключаемся на систему 1
         const remainingStakes = stakes.filter(s => s.id !== stakeId);
         if (remainingStakes.length === 0 && onSystemChange) {
-          setTimeout(() => onSystemChange(1), 1000); // Небольшая задержка
+          setTimeout(() => onSystemChange(1), 1000);
         }
       } else {
         alert(`❌ Ошибка: ${result.error}`);
@@ -218,7 +215,7 @@ const StakingView: React.FC<StakingViewProps> = ({
       if (result.success) {
         alert(`⚠️ Стейк отменен! Возвращено ${result.returned_amount} TON (штраф ${result.penalty_amount} TON)`);
         
-        // 🔥 ИСПРАВЛЕНО: Отправляем событие глобального обновления
+        // Отправляем событие глобального обновления
         window.dispatchEvent(new CustomEvent('stakes-updated'));
         
         // Обновляем данные игрока
@@ -232,7 +229,7 @@ const StakingView: React.FC<StakingViewProps> = ({
         // Если нет больше стейков - переключаемся на систему 1
         const remainingStakes = stakes.filter(s => s.id !== stakeId);
         if (remainingStakes.length === 0 && onSystemChange) {
-          setTimeout(() => onSystemChange(1), 1000); // Небольшая задержка
+          setTimeout(() => onSystemChange(1), 1000);
         }
       } else {
         alert(`❌ Ошибка: ${result.error}`);
