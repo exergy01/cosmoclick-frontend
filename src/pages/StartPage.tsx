@@ -106,6 +106,12 @@ const StartPage: React.FC = () => {
       return;
     }
 
+    // 🔥 НОВАЯ ЛОГИКА: Для новых игроков принудительно показываем приветствие
+    if (isNewPlayer && player && player.language && !showWelcomeModal && dataLoaded) {
+      setShowWelcomeModal(true);
+      return;
+    }
+
     const allDataLoaded = !!(player && dataLoaded);
     const canNavigate = minDelayElapsed && allDataLoaded && progress >= 100;
 
@@ -117,7 +123,7 @@ const StartPage: React.FC = () => {
       setHasNavigated(true);
       navigate('/', { replace: true });
     }
-  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal]);
+  }, [player, loading, error, minDelayElapsed, timeoutElapsed, navigate, hasNavigated, dataLoaded, progress, showLanguageModal, showWelcomeModal, isNewPlayer]);
 
   const handleLanguageSelect = async (lang: string) => {
     try {
@@ -144,10 +150,12 @@ const StartPage: React.FC = () => {
       
       setShowLanguageModal(false);
       
-      // Показываем приветствие через секунду
-      setTimeout(() => {
-        setShowWelcomeModal(true);
-      }, 1000);
+      // Для новых игроков всегда показываем приветствие
+      if (isNewPlayer) {
+        setTimeout(() => {
+          setShowWelcomeModal(true);
+        }, 1000);
+      }
       
     } catch (err: any) {
       console.error('Failed to set language:', err);
