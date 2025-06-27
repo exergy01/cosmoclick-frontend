@@ -50,18 +50,34 @@ const StartPage: React.FC = () => {
     
     try {
       if (player?.telegram_id) {
-        await axios.post(`${API_URL}/api/player/language`, { 
+        console.log('📡 Отправка запроса на сервер...');
+        const response = await axios.post(`${API_URL}/api/player/language`, { 
           telegramId: player.telegram_id, 
-          language: lang 
+          language: lang,
+          isFirstLanguageSelection: true
         });
+        console.log('✅ Ответ сервера:', response.data);
         
+        // Обновляем игрока локально
         if (player) {
-          setPlayer({ ...player, language: lang });
+          setPlayer({ 
+            ...player, 
+            language: lang, 
+            registration_language: lang 
+          });
         }
+      } else {
+        console.error('❌ Нет telegram_id!');
       }
       
+      // Меняем язык в i18n
+      console.log('🌐 Смена языка в i18n на:', lang);
       await i18n.changeLanguage(lang);
+      
       setShowLanguageModal(false);
+      
+      // Показываем сообщение об успехе
+      alert(`Язык изменен на: ${lang}`);
       
       // Переход на главную через 2 секунды
       setTimeout(() => {
@@ -71,8 +87,9 @@ const StartPage: React.FC = () => {
         }
       }, 2000);
       
-    } catch (err) {
-      console.error('Ошибка установки языка:', err);
+    } catch (err: any) {
+      console.error('❌ Ошибка установки языка:', err);
+      alert(`Ошибка: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -159,33 +176,36 @@ const StartPage: React.FC = () => {
               <div style={{ 
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '15px',
-                maxWidth: '280px',
+                gap: '12px',
+                maxWidth: '300px',
                 margin: '0 auto'
               }}>
                 {[
                   { code: 'en', flag: '🇺🇸', name: 'English' },
                   { code: 'ru', flag: '🇷🇺', name: 'Русский' },
                   { code: 'es', flag: '🇪🇸', name: 'Español' },
-                  { code: 'fr', flag: '🇫🇷', name: 'Français' }
+                  { code: 'fr', flag: '🇫🇷', name: 'Français' },
+                  { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+                  { code: 'zh', flag: '🇨🇳', name: '中文' },
+                  { code: 'ja', flag: '🇯🇵', name: '日本語' }
                 ].map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => handleLanguageSelect(lang.code)}
                     style={{
-                      padding: '15px 10px',
+                      padding: '12px 8px',
                       background: 'transparent',
                       border: `2px solid ${colorStyle}`,
                       borderRadius: '10px',
                       color: '#fff',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: '13px',
                       transition: 'all 0.3s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '5px',
-                      minHeight: '80px'
+                      gap: '4px',
+                      minHeight: '70px'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = colorStyle;
@@ -196,8 +216,8 @@ const StartPage: React.FC = () => {
                       e.currentTarget.style.color = '#fff';
                     }}
                   >
-                    <span style={{ fontSize: '24px' }}>{lang.flag}</span>
-                    <span style={{ fontSize: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '20px' }}>{lang.flag}</span>
+                    <span style={{ fontSize: '11px', textAlign: 'center', lineHeight: '1.2' }}>
                       {lang.name}
                     </span>
                   </button>
