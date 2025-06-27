@@ -91,8 +91,8 @@ const MainPage: React.FC = () => {
       if (currentValue <= 0) {
         console.log('❌ Нечего собирать:', currentValue);
         
-        // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
-        alert('Нечего собирать! Подождите, пока накопятся ресурсы.');
+        // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
+        alert('⚠️ Нечего собирать!\n\nПодождите, пока накопятся ресурсы.');
         return;
       }
       
@@ -130,8 +130,8 @@ const MainPage: React.FC = () => {
     } catch (err) {
       console.error('💥 ОШИБКА СБОРА:', err);
       
-      // 🔥 ВРЕМЕННО ОБЫЧНЫЙ ALERT
-      alert(`Не удалось собрать: ${err}`);
+      // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ ОБ ОШИБКЕ
+      alert(`❌ Не удалось собрать ресурсы:\n\n${err}`);
     } finally {
       setIsCollecting(false); // 🔧 РАЗБЛОКИРУЕМ клики
     }
@@ -167,40 +167,6 @@ const MainPage: React.FC = () => {
     }
     setTouchStartX(null);
     setTouchEndX(null);
-  };
-
-  // 🔍 ДИАГНОСТИКА TELEGRAM API (временная кнопка)
-  const checkTelegramAPI = async () => {
-    const telegramInfo = {
-      hasTelegram: !!window.Telegram,
-      hasWebApp: !!window.Telegram?.WebApp,
-      webAppMethods: window.Telegram?.WebApp ? Object.keys(window.Telegram.WebApp) : [],
-      webAppData: window.Telegram?.WebApp || null
-    };
-    
-    const info = `🔍 TELEGRAM API ДИАГНОСТИКА:\n\n` +
-      `✅ Telegram объект: ${telegramInfo.hasTelegram}\n` +
-      `✅ WebApp объект: ${telegramInfo.hasWebApp}\n\n` +
-      `📋 Доступные методы WebApp:\n${telegramInfo.webAppMethods.join(', ')}\n\n` +
-      `Эта информация скопирована в буфер обмена!`;
-    
-    // 🔥 КОПИРУЕМ В БУФЕР ОБМЕНА
-    try {
-      await navigator.clipboard.writeText(info);
-      alert(info + '\n\n✅ Информация скопирована в буфер обмена!');
-    } catch (err) {
-      // Fallback для старых браузеров
-      const textArea = document.createElement('textarea');
-      textArea.value = info;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      alert(info + '\n\n✅ Информация скопирована в буфер обмена (fallback)!');
-    }
-    
-    console.log('Telegram API Info:', telegramInfo);
   };
 
   if (!player) return <div>Загрузка...</div>;
@@ -368,24 +334,6 @@ const MainPage: React.FC = () => {
           ))}
         </div>
 
-        {/* 🔍 ВРЕМЕННАЯ КНОПКА ДИАГНОСТИКИ */}
-        <div style={{ textAlign: 'center', margin: '10px 0' }}>
-          <button 
-            onClick={checkTelegramAPI}
-            style={{
-              padding: '10px 20px',
-              background: 'rgba(255, 165, 0, 0.8)',
-              border: '2px solid #ffa500',
-              borderRadius: '10px',
-              color: '#fff',
-              fontSize: '0.9rem',
-              cursor: 'pointer'
-            }}
-          >
-            🔍 Проверить Telegram API
-          </button>
-        </div>
-
         {/* Выбор системы */}
         <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
           <span onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
@@ -478,7 +426,7 @@ const MainPage: React.FC = () => {
           
           {/* Счетчик с новой логикой */}
           <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
-            {getCurrentValue(currentSystem).toFixed(5)}
+            {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
           </p>
           
           {/* Статус сбора */}
