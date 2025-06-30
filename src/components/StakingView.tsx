@@ -152,84 +152,96 @@ const StakingView: React.FC<StakingViewProps> = ({
   }, []);
 
   // 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар + правильное время
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTimeLeft: { [key: number]: string } = {};
-      const newProgressValues: { [key: number]: number } = {};
-      let needsRefresh = false;
+// 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар + ПРИНУДИТЕЛЬНЫЙ тестовый режим
+useEffect(() => {
+  const interval = setInterval(() => {
+    const newTimeLeft: { [key: number]: string } = {};
+    const newProgressValues: { [key: number]: number } = {};
+    let needsRefresh = false;
+    
+    stakes.forEach(stake => {
+      const currentTimeMs = Date.now();
       
-      stakes.forEach(stake => {
-        const currentTimeMs = Date.now();
-        
-        // 🔥 ИСПРАВЛЕНО: Используем точное время из стейка
-        let startTimeMs, endTimeMs;
-        
-        if (stake.start_time_ms && stake.end_time_ms) {
-          // API предоставил точное время в миллисекундах
-          startTimeMs = stake.start_time_ms;
-          endTimeMs = stake.end_time_ms;
-        } else {
-          // Вычисляем из даты создания + план
-          startTimeMs = new Date(stake.start_date).getTime();
-          const durationMs = stake.test_mode ? 
-            (stake.plan_days * 60 * 1000) : // минуты в мс для теста
-            (stake.plan_days * 24 * 60 * 60 * 1000); // дни в мс
-          endTimeMs = startTimeMs + durationMs;
-        }
-        
-        const totalDurationMs = endTimeMs - startTimeMs;
-        const elapsedTimeMs = currentTimeMs - startTimeMs;
-        const remainingTimeMs = Math.max(0, endTimeMs - currentTimeMs);
-        
-        // Прогресс от 0 до 100%
-        const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
-        newProgressValues[stake.id] = progress;
-        
-        const isReady = remainingTimeMs <= 0;
-        
-        if (isReady) {
-          newTimeLeft[stake.id] = 'Готово к сбору!';
-          newProgressValues[stake.id] = 100;
-          
-          // 🔥 Если стейк готов, но API еще не обновился - обновляем данные
-          if (!stake.is_ready) {
-            needsRefresh = true;
-          }
-        } else {
-          // Красивое отображение оставшегося времени
-          if (stake.test_mode) {
-            const totalSeconds = Math.floor(remainingTimeMs / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
-          } else {
-            const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
-            
-            if (days > 0) {
-              newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
-            } else if (hours > 0) {
-              newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
-            } else {
-              newTimeLeft[stake.id] = `${minutes}м`;
-            }
-          }
-        }
-      });
+      // 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ для продакшна
+      const FORCE_TEST_MODE = true; // Включаем тестовый режим принудительно
       
-      setTimeLeft(newTimeLeft);
-      setProgressValues(newProgressValues);
+      let startTimeMs, endTimeMs;
       
-      // 🔥 Автоматически обновляем данные если время истекло
-      if (needsRefresh) {
-        console.log('⏰ Время стейка истекло, обновляем данные из API');
-        fetchStakes();
+      if (stake.start_time_ms && stake.end_time_ms && !FORCE_TEST_MODE) {
+        // API предоставил точное время в миллисекундах (только если не принудительный тест)
+        startTimeMs = stake.start_time_ms;
+        endTimeMs = stake.end_time_ms;
+      } else {
+        // 🔥 ПРИНУДИТЕЛЬНО вычисляем время для тестового режима
+        startTimeMs = new Date(stake.start_date).getTime();
+        
+        // ПРИНУДИТЕЛЬНО используем тестовый режим - минуты вместо дней
+        const durationMs = FORCE_TEST_MODE ? 
+          (stake.plan_days * 60 * 1000) : // Всегда минуты для теста
+          (stake.plan_days * 24 * 60 * 60 * 1000); // Дни для продакшна
+        
+        endTimeMs = startTimeMs + durationMs;
+        
+        console.log(`🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТ для стейка ${stake.id}:`);
+        console.log(`   План: ${stake.plan_days} -> ${FORCE_TEST_MODE ? 'минут' : 'дней'}`);
+        console.log(`   Длительность: ${durationMs} мс`);
+        console.log(`   Старт: ${new Date(startTimeMs).toISOString()}`);
+        console.log(`   Конец: ${new Date(endTimeMs).toISOString()}`);
       }
-    }, 1000);
+      
+      const totalDurationMs = endTimeMs - startTimeMs;
+      const elapsedTimeMs = currentTimeMs - startTimeMs;
+      const remainingTimeMs = Math.max(0, endTimeMs - currentTimeMs);
+      
+      // Прогресс от 0 до 100%
+      const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
+      newProgressValues[stake.id] = progress;
+      
+      const isReady = remainingTimeMs <= 0;
+      
+      if (isReady) {
+        newTimeLeft[stake.id] = 'Готово к сбору!';
+        newProgressValues[stake.id] = 100;
+        
+        // 🔥 Если стейк готов, но API еще не обновился - обновляем данные
+        if (!stake.is_ready) {
+          needsRefresh = true;
+        }
+      } else {
+        // 🔥 ПРИНУДИТЕЛЬНОЕ отображение в минутах и секундах
+        if (FORCE_TEST_MODE) {
+          const totalSeconds = Math.floor(remainingTimeMs / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
+        } else {
+          const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+          
+          if (days > 0) {
+            newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
+          } else if (hours > 0) {
+            newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
+          } else {
+            newTimeLeft[stake.id] = `${minutes}м`;
+          }
+        }
+      }
+    });
+    
+    setTimeLeft(newTimeLeft);
+    setProgressValues(newProgressValues);
+    
+    // 🔥 Автоматически обновляем данные если время истекло
+    if (needsRefresh) {
+      console.log('⏰ Время стейка истекло, обновляем данные из API');
+      fetchStakes();
+    }
+  }, 1000);
 
-    return () => clearInterval(interval);
-  }, [stakes]);
+  return () => clearInterval(interval);
+}, [stakes]);
 
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
@@ -340,75 +352,89 @@ const StakingView: React.FC<StakingViewProps> = ({
   };
 
   // 🔥 ИСПРАВЛЕННАЯ отмена стейка с проверкой времени
-  const handleCancel = async (stakeId: number) => {
-    // 🔥 ЗАЩИТА: Проверяем можно ли отменить стейк
-    const stake = stakes.find(s => s.id === stakeId);
-    if (!stake) return;
+// 🔥 ИСПРАВЛЕННАЯ отмена стейка с принудительным тестовым режимом
+const handleCancel = async (stakeId: number) => {
+  // 🔥 ЗАЩИТА: Проверяем можно ли отменить стейк
+  const stake = stakes.find(s => s.id === stakeId);
+  if (!stake) return;
+  
+  // 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ
+  const FORCE_TEST_MODE = true;
+  
+  // Вычисляем текущее время стейка
+  const currentTimeMs = Date.now();
+  let endTimeMs;
+  
+  if (stake.start_time_ms && stake.end_time_ms && !FORCE_TEST_MODE) {
+    endTimeMs = stake.end_time_ms;
+  } else {
+    // 🔥 ПРИНУДИТЕЛЬНО используем тестовый режим
+    const startTimeMs = new Date(stake.start_date).getTime();
+    const durationMs = FORCE_TEST_MODE ? 
+      (stake.plan_days * 60 * 1000) : // Минуты для теста
+      (stake.plan_days * 24 * 60 * 60 * 1000); // Дни для продакшна
+    endTimeMs = startTimeMs + durationMs;
     
-    // Вычисляем текущее время стейка
-    const currentTimeMs = Date.now();
-    let endTimeMs;
-    
-    if (stake.start_time_ms && stake.end_time_ms) {
-      endTimeMs = stake.end_time_ms;
-    } else {
-      const startTimeMs = new Date(stake.start_date).getTime();
-      const durationMs = stake.test_mode ? 
-        (stake.plan_days * 60 * 1000) : 
-        (stake.plan_days * 24 * 60 * 60 * 1000);
-      endTimeMs = startTimeMs + durationMs;
-    }
-    
-    const timeLeftMs = endTimeMs - currentTimeMs;
-    
-    // 🔥 ЗАЩИТА: Нельзя отменить завершенный стейк
-    if (timeLeftMs <= 0) {
-      alert('❌ Стейк завершен! Используйте кнопку "Забрать" для получения дохода.');
-      return;
-    }
-    
-    const confirmCancel = window.confirm(
-      'Вы уверены что хотите отменить стейк? Вы потеряете 10% от вложенной суммы!'
-    );
-    
-    if (!confirmCancel) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/api/ton/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          telegramId: player.telegram_id,
-          stakeId: stakeId
-        }),
-      });
+    console.log(`🔥 ОТМЕНА - принудительный тест для стейка ${stake.id}:`);
+    console.log(`   Длительность: ${durationMs} мс (${stake.plan_days} минут)`);
+    console.log(`   Конец: ${new Date(endTimeMs).toISOString()}`);
+  }
+  
+  const timeLeftMs = endTimeMs - currentTimeMs;
+  
+  console.log(`🔥 ПРОВЕРКА ОТМЕНЫ:`);
+  console.log(`   Текущее время: ${new Date(currentTimeMs).toISOString()}`);
+  console.log(`   Время окончания: ${new Date(endTimeMs).toISOString()}`);
+  console.log(`   Осталось: ${timeLeftMs} мс`);
+  
+  // 🔥 ЗАЩИТА: Нельзя отменить завершенный стейк
+  if (timeLeftMs <= 0) {
+    alert('❌ Стейк завершен! Используйте кнопку "Забрать" для получения дохода.');
+    return;
+  }
+  
+  const confirmCancel = window.confirm(
+    'Вы уверены что хотите отменить стейк? Вы потеряете 10% от вложенной суммы!'
+  );
+  
+  if (!confirmCancel) return;
+  
+  try {
+    const response = await fetch(`${API_URL}/api/ton/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        telegramId: player.telegram_id,
+        stakeId: stakeId
+      }),
+    });
 
-      const result = await response.json();
+    const result = await response.json();
+    
+    if (result.success) {
+      alert(`⚠️ Стейк отменен! Возвращено ${result.returned_amount} TON (штраф ${result.penalty_amount} TON)`);
       
-      if (result.success) {
-        alert(`⚠️ Стейк отменен! Возвращено ${result.returned_amount} TON (штраф ${result.penalty_amount} TON)`);
-        
-        // Отправляем событие глобального обновления
-        window.dispatchEvent(new CustomEvent('stakes-updated'));
-        
-        // Обновляем данные игрока
-        if (onPlayerUpdate) {
-          await onPlayerUpdate();
-        }
-        
-        // Принудительно обновляем стейки
-        await fetchStakes();
-        
-      } else {
-        alert(`❌ Ошибка: ${result.error || result.message}`);
+      // Отправляем событие глобального обновления
+      window.dispatchEvent(new CustomEvent('stakes-updated'));
+      
+      // Обновляем данные игрока
+      if (onPlayerUpdate) {
+        await onPlayerUpdate();
       }
-    } catch (err) {
-      console.error('Ошибка отмены:', err);
-      alert('Ошибка при отмене стейка');
+      
+      // Принудительно обновляем стейки
+      await fetchStakes();
+      
+    } else {
+      alert(`❌ Ошибка: ${result.error || result.message}`);
     }
-  };
+  } catch (err) {
+    console.error('Ошибка отмены:', err);
+    alert('Ошибка при отмене стейка');
+  }
+};
 
   if (loading) {
     return (
@@ -638,19 +664,23 @@ const StakingView: React.FC<StakingViewProps> = ({
         </div>
       </div>
       
-      {/* Список стейков */}
-      {stakes.map(stake => {
+{/* Список стейков с принудительным тестовым режимом */}
+{stakes.map(stake => {
         const currentTimeMs = Date.now();
+        
+        // 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ для продакшна
+        const FORCE_TEST_MODE = true;
         
         // 🔥 ИСПРАВЛЕНО: Правильное вычисление времени окончания
         let endTimeMs;
-        if (stake.start_time_ms && stake.end_time_ms) {
+        if (stake.start_time_ms && stake.end_time_ms && !FORCE_TEST_MODE) {
           endTimeMs = stake.end_time_ms;
         } else {
+          // 🔥 ПРИНУДИТЕЛЬНО используем тестовый режим
           const startTimeMs = new Date(stake.start_date).getTime();
-          const durationMs = stake.test_mode ? 
-            (stake.plan_days * 60 * 1000) : 
-            (stake.plan_days * 24 * 60 * 60 * 1000);
+          const durationMs = FORCE_TEST_MODE ? 
+            (stake.plan_days * 60 * 1000) : // Всегда минуты
+            (stake.plan_days * 24 * 60 * 60 * 1000); // Дни для продакшна
           endTimeMs = startTimeMs + durationMs;
         }
         
@@ -663,7 +693,7 @@ const StakingView: React.FC<StakingViewProps> = ({
         
         // Используем прогресс из состояния
         const progressPercent = progressValues[stake.id] || 0;
-
+        
         return (
           <div 
             key={stake.id}
