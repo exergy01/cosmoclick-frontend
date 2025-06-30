@@ -59,26 +59,43 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
     
     try {
       if (systemId === 5) {
-        // Проверяем есть ли уже система 5
-        if (player.unlocked_systems?.includes(5)) {
+        const isSystem5Unlocked = player.unlocked_systems?.includes(5);
+        
+        if (isSystem5Unlocked) {
+          // Система 5 УЖЕ разблокирована - показываем выбор суммы
           setShowAmountSelection(true);
+          return;
+        } else {
+          // Система 5 НЕ разблокирована - показываем выбор тарифа для 15 TON
+          setPlanData({
+            system_id: 5,
+            stake_amount: 15,
+            plans: [
+              {
+                type: 'fast',
+                days: 20,
+                percent: 3,
+                return_amount: (15 * 1.03).toFixed(8),
+                time_unit: 'дней'
+              },
+              {
+                type: 'standard',
+                days: 40,
+                percent: 7,
+                return_amount: (15 * 1.07).toFixed(8),
+                time_unit: 'дней'
+              }
+            ]
+          });
+          setShowPlanSelection(true);
           return;
         }
       }
       
+      // Для других систем - обычная покупка
       console.log('🚀 ВЫЗЫВАЕМ buySystem...');
       const result = await buySystem(systemId, system.price) as any;
       console.log('✅ buySystem результат:', result);
-      
-      if (result && result.status === 'choose_plan') {
-        console.log('🔥 Получен choose_plan, планы:', result.plans);
-        setPlanData(result);
-        setShowPlanSelection(true);
-        return;
-      } else if (result && result.status === 'choose_amount') {
-        setShowAmountSelection(true);
-        return;
-      }
       
       onUnlock();
     } catch (err) {
