@@ -43,6 +43,8 @@ const StakingView: React.FC<StakingViewProps> = ({
   const [timeLeft, setTimeLeft] = useState<{ [key: number]: string }>({});
   const [refreshing, setRefreshing] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(0);
+  const [collecting, setCollecting] = useState<{ [key: number]: boolean }>({});
+  const [progressValues, setProgressValues] = useState<{ [key: number]: number }>({});
 
   // Функция загрузки стейков
   const fetchStakes = async () => {
@@ -109,46 +111,52 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
 
-  // Обновление времени каждую секунду
+  // 🔥 ПРОСТОЕ РЕШЕНИЕ - используем только данные из API
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimeLeft: { [key: number]: string } = {};
+      const newProgressValues: { [key: number]: number } = {};
       
       stakes.forEach(stake => {
-        const endTime = new Date(stake.end_date).getTime();
-        const now = new Date().getTime();
-        const difference = endTime - now;
-        
-        if (difference > 0) {
-          if (stake.test_mode) {
-            // В тестовом режиме показываем секунды
-            const totalSeconds = Math.floor(difference / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
-          } else {
-            // В обычном режиме показываем дни/часы/минуты
-            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-            
-            newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м ${seconds}с`;
-          }
-        } else {
+        // 🔥 ВСЕ данные берем из API - никаких локальных расчетов!
+        if (stake.is_ready) {
           newTimeLeft[stake.id] = 'Готово к сбору!';
+          newProgressValues[stake.id] = 100;
+        } else {
+          // Показываем время из API
+          if (stake.test_mode) {
+            newTimeLeft[stake.id] = `${stake.days_left} минут`;
+          } else {
+            newTimeLeft[stake.id] = `${stake.days_left} дней`;
+          }
+          
+          // Рассчитываем прогресс из API данных
+          const totalTime = stake.plan_days;
+          const timeLeft = stake.days_left;
+          const elapsed = Math.max(0, totalTime - timeLeft);
+          const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
+          newProgressValues[stake.id] = progress;
         }
       });
       
       setTimeLeft(newTimeLeft);
+      setProgressValues(newProgressValues);
+      
+      // Обновляем данные из API каждые 10 секунд для актуальности
+      if (Date.now() % 10000 < 1000) {
+        fetchStakes();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [stakes]);
 
-  // Сбор стейка
+  // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
     try {
+      // Устанавливаем состояние сбора
+      setCollecting(prev => ({ ...prev, [stakeId]: true }));
+      
       const response = await fetch(`${API_URL}/api/ton/withdraw`, {
         method: 'POST',
         headers: {
@@ -163,7 +171,13 @@ const StakingView: React.FC<StakingViewProps> = ({
       const result = await response.json();
       
       if (result.success) {
-        alert(`✅ Получено ${result.withdrawn_amount} TON!`);
+        // Создаем эффект взрыва денег
+        createMoneyExplosion();
+        
+        // Показываем успех с анимацией
+        setTimeout(() => {
+          alert(`✅ Получено ${result.withdrawn_amount} TON!`);
+        }, 500);
         
         // Отправляем событие глобального обновления
         window.dispatchEvent(new CustomEvent('stakes-updated'));
@@ -176,18 +190,75 @@ const StakingView: React.FC<StakingViewProps> = ({
         // Принудительно обновляем стейки
         await fetchStakes();
         
-        // Если нет больше стейков - переключаемся на систему 1
-        const remainingStakes = stakes.filter(s => s.id !== stakeId);
-        if (remainingStakes.length === 0 && onSystemChange) {
-          setTimeout(() => onSystemChange(1), 1000);
-        }
+        // 🔥 ИСПРАВЛЕНО: НЕ переключаемся на систему 1 если система 5 разблокирована
+        // Остаемся в системе 5 для создания новых стейков
       } else {
         alert(`❌ Ошибка: ${result.error}`);
       }
     } catch (err) {
       console.error('Ошибка сбора:', err);
       alert('Ошибка при сборе стейка');
+    } finally {
+      // Убираем состояние сбора
+      setCollecting(prev => ({ ...prev, [stakeId]: false }));
     }
+  };
+
+  // Функция создания эффекта взрыва денег
+  const createMoneyExplosion = () => {
+    const container = document.body;
+    
+    // Создаем 20 монеток
+    for (let i = 0; i < 20; i++) {
+      const coin = document.createElement('div');
+      coin.innerHTML = '💰';
+      coin.style.position = 'fixed';
+      coin.style.fontSize = '2rem';
+      coin.style.zIndex = '9999';
+      coin.style.pointerEvents = 'none';
+      coin.style.left = '50%';
+      coin.style.top = '50%';
+      coin.style.transform = 'translate(-50%, -50%)';
+      coin.style.animation = `coinExplosion${i} 2s ease-out forwards`;
+      
+      container.appendChild(coin);
+      
+      // Удаляем монетку через 2 секунды
+      setTimeout(() => {
+        container.removeChild(coin);
+      }, 2000);
+    }
+    
+    // Добавляем CSS анимации
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes coinExplosion0 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion1 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion2 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion3 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion4 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion5 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion6 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion7 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion8 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion9 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion10 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion11 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion12 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion13 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion14 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion15 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion16 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion17 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion18 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+      @keyframes coinExplosion19 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
+    `;
+    document.head.appendChild(style);
+    
+    // Удаляем стили через 3 секунды
+    setTimeout(() => {
+      document.head.removeChild(style);
+    }, 3000);
   };
 
   // Отмена стейка со штрафом
@@ -226,11 +297,8 @@ const StakingView: React.FC<StakingViewProps> = ({
         // Принудительно обновляем стейки
         await fetchStakes();
         
-        // Если нет больше стейков - переключаемся на систему 1
-        const remainingStakes = stakes.filter(s => s.id !== stakeId);
-        if (remainingStakes.length === 0 && onSystemChange) {
-          setTimeout(() => onSystemChange(1), 1000);
-        }
+        // 🔥 ИСПРАВЛЕНО: НЕ переключаемся на систему 1 при отмене
+        // Остаемся в системе 5 для создания новых стейков
       } else {
         alert(`❌ Ошибка: ${result.error}`);
       }
@@ -368,12 +436,12 @@ const StakingView: React.FC<StakingViewProps> = ({
       
       {/* Список стейков */}
       {stakes.map(stake => {
-        const isReady = new Date(stake.end_date).getTime() <= new Date().getTime();
-        const totalTime = stake.test_mode ? 
-          (stake.plan_days * 60 * 1000) : // Минуты в миллисекундах для теста
-          (stake.plan_days * 24 * 60 * 60 * 1000); // Дни в миллисекундах
-        const elapsed = new Date().getTime() - new Date(stake.end_date).getTime() + totalTime;
-        const progressPercent = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
+        // 🔥 ИСПРАВЛЕНО: Используем is_ready из API вместо локального расчета
+        const isReady = stake.is_ready; // Бэкенд уже правильно рассчитал готовность
+        const isCollecting = collecting[stake.id] || false;
+        
+        // 🔥 ИСПРАВЛЕНО: Используем прогресс из состояния, обновляемого каждую секунду
+        const progressPercent = progressValues[stake.id] || 0;
 
         return (
           <div 
@@ -472,20 +540,25 @@ const StakingView: React.FC<StakingViewProps> = ({
               </div>
             </div>
 
-            {/* Прогресс бар */}
+            {/* Прогресс бар с анимацией */}
             <div style={{ marginBottom: '20px' }}>
               <div style={{ 
                 background: 'rgba(255, 255, 255, 0.1)', 
                 borderRadius: '10px', 
                 height: '20px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
               }}>
                 <div style={{
-                  background: `linear-gradient(90deg, ${colorStyle}, #4ade80)`,
+                  background: isReady ? 
+                    `linear-gradient(90deg, #4ade80, #22c55e, #16a34a)` : 
+                    `linear-gradient(90deg, ${colorStyle}, #4ade80)`,
                   height: '100%',
                   width: `${progressPercent}%`,
-                  transition: 'width 0.3s ease',
-                  borderRadius: '10px'
+                  transition: 'width 1s ease-in-out',
+                  borderRadius: '10px',
+                  boxShadow: isReady ? '0 0 15px #4ade80' : `0 0 10px ${colorStyle}`,
+                  animation: isReady ? 'pulse 2s infinite' : 'none'
                 }} />
               </div>
               <div style={{ 
@@ -493,17 +566,19 @@ const StakingView: React.FC<StakingViewProps> = ({
                 marginTop: '10px', 
                 color: isReady ? '#4ade80' : '#fff',
                 fontSize: '1.1rem',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                textShadow: isReady ? '0 0 10px #4ade80' : 'none',
+                animation: isReady ? 'glow 2s infinite' : 'none'
               }}>
                 {timeLeft[stake.id] || 'Загрузка...'}
               </div>
             </div>
 
-            {/* Кнопки */}
+            {/* Кнопки с анимациями */}
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
               <button
                 onClick={() => handleWithdraw(stake.id)}
-                disabled={!isReady}
+                disabled={!isReady || isCollecting}
                 style={{
                   padding: '15px 30px',
                   background: isReady ? 
@@ -514,28 +589,49 @@ const StakingView: React.FC<StakingViewProps> = ({
                   color: isReady ? '#fff' : '#999',
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
-                  cursor: isReady ? 'pointer' : 'not-allowed',
+                  cursor: (isReady && !isCollecting) ? 'pointer' : 'not-allowed',
                   transition: 'all 0.3s ease',
-                  flex: 1
+                  flex: 1,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transform: isCollecting ? 'scale(1.1)' : 'scale(1)',
+                  animation: isReady ? 'readyPulse 2s infinite' : 'none',
+                  opacity: isCollecting ? 0.8 : 1
                 }}
                 onMouseEnter={e => {
-                  if (isReady) {
+                  if (isReady && !isCollecting) {
                     e.currentTarget.style.transform = 'scale(1.05)';
                     e.currentTarget.style.boxShadow = '0 0 20px #4ade80';
                   }
                 }}
                 onMouseLeave={e => {
-                  if (isReady) {
+                  if (isReady && !isCollecting) {
                     e.currentTarget.style.transform = 'scale(1)';
                     e.currentTarget.style.boxShadow = 'none';
                   }
                 }}
               >
-                {isReady ? '💰 Забрать' : '💰 Забрать'}
+                {isCollecting ? (
+                  <span style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: '10px'
+                  }}>
+                    <span style={{ 
+                      animation: 'spin 1s linear infinite',
+                      display: 'inline-block'
+                    }}>💰</span>
+                    Собираем...
+                  </span>
+                ) : (
+                  <>💰 Забрать</>
+                )}
               </button>
 
               <button
                 onClick={() => handleCancel(stake.id)}
+                disabled={isCollecting}
                 style={{
                   padding: '15px 20px',
                   background: 'transparent',
@@ -543,16 +639,21 @@ const StakingView: React.FC<StakingViewProps> = ({
                   borderRadius: '15px',
                   color: '#ef4444',
                   fontSize: '1rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  cursor: isCollecting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  opacity: isCollecting ? 0.5 : 1
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                  e.currentTarget.style.borderColor = '#dc2626';
+                  if (!isCollecting) {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    e.currentTarget.style.borderColor = '#dc2626';
+                  }
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.borderColor = '#ef4444';
+                  if (!isCollecting) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = '#ef4444';
+                  }
                 }}
               >
                 ❌ Отменить (-10%)
@@ -561,6 +662,37 @@ const StakingView: React.FC<StakingViewProps> = ({
           </div>
         );
       })}
+
+      {/* CSS анимации */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 15px #4ade80; }
+            50% { box-shadow: 0 0 25px #4ade80, 0 0 35px #4ade80; }
+          }
+          
+          @keyframes glow {
+            0%, 100% { text-shadow: 0 0 10px #4ade80; }
+            50% { text-shadow: 0 0 20px #4ade80, 0 0 30px #4ade80; }
+          }
+          
+          @keyframes readyPulse {
+            0%, 100% { 
+              box-shadow: 0 0 10px #4ade80;
+              background: linear-gradient(135deg, #4ade80, #22c55e);
+            }
+            50% { 
+              box-shadow: 0 0 20px #4ade80, 0 0 30px #4ade80;
+              background: linear-gradient(135deg, #22c55e, #4ade80);
+            }
+          }
+          
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 };
