@@ -150,71 +150,71 @@ const StakingView: React.FC<StakingViewProps> = ({
   }, []);
 
   // 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар + автообновление готовности
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newTimeLeft: { [key: number]: string } = {};
-      const newProgressValues: { [key: number]: number } = {};
-      let needsRefresh = false;
+// 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар - ДОВЕРЯЕМ BACKEND API
+useEffect(() => {
+  const interval = setInterval(() => {
+    const newTimeLeft: { [key: number]: string } = {};
+    const newProgressValues: { [key: number]: number } = {};
+    let needsRefresh = false;
+    
+    stakes.forEach(stake => {
+      // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Полностью доверяем backend API!
+      if (stake.is_ready) {
+        newTimeLeft[stake.id] = 'Готово к сбору!';
+        newProgressValues[stake.id] = 100;
+        return; // НЕ пересчитываем время если backend говорит что готово!
+      }
       
-      stakes.forEach(stake => {
-        if (stake.is_ready) {
-          newTimeLeft[stake.id] = 'Готово к сбору!';
-          newProgressValues[stake.id] = 100;
+      // 🔥 ТОЛЬКО если backend говорит НЕ готово - тогда считаем сами
+      const now = Date.now();
+      const endTime = new Date(stake.end_date).getTime();
+      const remainingTime = Math.max(0, endTime - now);
+      
+      // Прогресс расчет
+      const startTime = new Date(stake.start_date).getTime();
+      const totalDuration = endTime - startTime;
+      const elapsed = now - startTime;
+      const progress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+      newProgressValues[stake.id] = progress;
+      
+      // 🔥 Если время истекло на фронте но backend еще не обновился
+      if (remainingTime <= 0) {
+        newTimeLeft[stake.id] = 'Проверяем готовность...';
+        needsRefresh = true;
+      } else {
+        // Отображение оставшегося времени
+        if (stake.test_mode) {
+          const totalSeconds = Math.floor(remainingTime / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
         } else {
-          // 🔥 ПЛАВНЫЙ расчет на основе времени создания стейка
-          const now = Date.now();
-          const stakeCreatedTime = new Date(stake.start_date).getTime();
-          const totalDurationMs = stake.test_mode ? 
-            (stake.plan_days * 60 * 1000) : // минуты в мс для теста
-            (stake.plan_days * 24 * 60 * 60 * 1000); // дни в мс
+          const days = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
           
-          const elapsedTime = now - stakeCreatedTime;
-          const remainingTime = Math.max(0, totalDurationMs - elapsedTime);
-          
-          // Прогресс от 0 до 100%
-          const progress = Math.min(100, Math.max(0, (elapsedTime / totalDurationMs) * 100));
-          newProgressValues[stake.id] = progress;
-          
-          // 🔥 ИСПРАВЛЕНО: Если время истекло но API еще не обновился - обновляем данные
-          if (remainingTime <= 0 && !stake.is_ready) {
-            newTimeLeft[stake.id] = 'Проверяем готовность...';
-            needsRefresh = true; // Обновляем данные из API
-          } else if (remainingTime > 0) {
-            // Красивое отображение оставшегося времени
-            if (stake.test_mode) {
-              const totalSeconds = Math.floor(remainingTime / 1000);
-              const minutes = Math.floor(totalSeconds / 60);
-              const seconds = totalSeconds % 60;
-              newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
-            } else {
-              const days = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
-              const hours = Math.floor((remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-              
-              if (days > 0) {
-                newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
-              } else if (hours > 0) {
-                newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
-              } else {
-                newTimeLeft[stake.id] = `${minutes}м`;
-              }
-            }
+          if (days > 0) {
+            newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
+          } else if (hours > 0) {
+            newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
+          } else {
+            newTimeLeft[stake.id] = `${minutes}м`;
           }
         }
-      });
-      
-      setTimeLeft(newTimeLeft);
-      setProgressValues(newProgressValues);
-      
-      // 🔥 Автоматически обновляем данные если время истекло
-      if (needsRefresh) {
-        console.log('⏰ Время стейка истекло, обновляем данные из API');
-        fetchStakes();
       }
-    }, 1000);
+    });
+    
+    setTimeLeft(newTimeLeft);
+    setProgressValues(newProgressValues);
+    
+    if (needsRefresh) {
+      console.log('⏰ Время стейка истекло на фронте, обновляем данные из API');
+      fetchStakes();
+    }
+  }, 1000);
 
-    return () => clearInterval(interval);
-  }, [stakes]);
+  return () => clearInterval(interval);
+}, [stakes]);
 
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
