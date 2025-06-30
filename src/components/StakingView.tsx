@@ -111,28 +111,47 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
 
-  // 🔥 ПРОСТОЕ РЕШЕНИЕ - используем только данные из API
+  // 🔥 ИСПРАВЛЕННЫЙ таймер - красивое время + частые обновления API
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimeLeft: { [key: number]: string } = {};
       const newProgressValues: { [key: number]: number } = {};
       
       stakes.forEach(stake => {
-        // 🔥 ВСЕ данные берем из API - никаких локальных расчетов!
         if (stake.is_ready) {
           newTimeLeft[stake.id] = 'Готово к сбору!';
           newProgressValues[stake.id] = 100;
         } else {
-          // Показываем время из API
+          // 🔥 КРАСИВОЕ отображение времени в зависимости от количества
+          const timeLeft = stake.days_left;
+          
           if (stake.test_mode) {
-            newTimeLeft[stake.id] = `${stake.days_left} минут`;
+            // В тестовом режиме показываем минуты и секунды
+            if (timeLeft >= 1) {
+              newTimeLeft[stake.id] = `${timeLeft} минут`;
+            } else {
+              newTimeLeft[stake.id] = 'Менее минуты';
+            }
           } else {
-            newTimeLeft[stake.id] = `${stake.days_left} дней`;
+            // В обычном режиме показываем дни/часы в зависимости от количества
+            if (timeLeft >= 1) {
+              const days = Math.floor(timeLeft);
+              const hours = Math.floor((timeLeft - days) * 24);
+              
+              if (days > 0) {
+                newTimeLeft[stake.id] = hours > 0 ? `${days}д ${hours}ч` : `${days} дней`;
+              } else if (hours > 0) {
+                newTimeLeft[stake.id] = `${hours} часов`;
+              } else {
+                newTimeLeft[stake.id] = 'Менее часа';
+              }
+            } else {
+              newTimeLeft[stake.id] = 'Менее дня';
+            }
           }
           
           // Рассчитываем прогресс из API данных
           const totalTime = stake.plan_days;
-          const timeLeft = stake.days_left;
           const elapsed = Math.max(0, totalTime - timeLeft);
           const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
           newProgressValues[stake.id] = progress;
@@ -141,15 +160,21 @@ const StakingView: React.FC<StakingViewProps> = ({
       
       setTimeLeft(newTimeLeft);
       setProgressValues(newProgressValues);
-      
-      // Обновляем данные из API каждые 10 секунд для актуальности
-      if (Date.now() % 10000 < 1000) {
-        fetchStakes();
-      }
     }, 1000);
 
     return () => clearInterval(interval);
   }, [stakes]);
+
+  // 🔥 ОТДЕЛЬНЫЙ интервал для обновления API данных каждые 5 секунд
+  useEffect(() => {
+    const apiInterval = setInterval(() => {
+      if (stakes.length > 0) {
+        fetchStakes();
+      }
+    }, 5000); // Обновляем API каждые 5 секунд
+
+    return () => clearInterval(apiInterval);
+  }, [stakes.length]);
 
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
