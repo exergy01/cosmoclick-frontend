@@ -8,6 +8,7 @@ interface Stake {
   plan_days: number;
   plan_percent: number;
   return_amount: string;
+  start_date: string;
   end_date: string;
   status: string;
   days_left: number;
@@ -111,7 +112,7 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
 
-  // 🔥 ИСПРАВЛЕННЫЙ таймер - красивое время + частые обновления API
+  // 🔥 ПЛАВНЫЙ прогресс-бар на основе реального времени
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimeLeft: { [key: number]: string } = {};
@@ -122,39 +123,43 @@ const StakingView: React.FC<StakingViewProps> = ({
           newTimeLeft[stake.id] = 'Готово к сбору!';
           newProgressValues[stake.id] = 100;
         } else {
-          // 🔥 КРАСИВОЕ отображение времени в зависимости от количества
-          const timeLeft = stake.days_left;
+          // 🔥 ПЛАВНЫЙ расчет на основе времени создания стейка
+          const now = Date.now();
+          const stakeCreatedTime = new Date(stake.start_date).getTime();
+          const totalDurationMs = stake.test_mode ? 
+            (stake.plan_days * 60 * 1000) : // минуты в мс для теста
+            (stake.plan_days * 24 * 60 * 60 * 1000); // дни в мс
           
-          if (stake.test_mode) {
-            // В тестовом режиме показываем минуты и секунды
-            if (timeLeft >= 1) {
-              newTimeLeft[stake.id] = `${timeLeft} минут`;
+          const elapsedTime = now - stakeCreatedTime;
+          const remainingTime = Math.max(0, totalDurationMs - elapsedTime);
+          
+          // Прогресс от 0 до 100%
+          const progress = Math.min(100, Math.max(0, (elapsedTime / totalDurationMs) * 100));
+          newProgressValues[stake.id] = progress;
+          
+          // Красивое отображение оставшегося времени
+          if (remainingTime > 0) {
+            if (stake.test_mode) {
+              const totalSeconds = Math.floor(remainingTime / 1000);
+              const minutes = Math.floor(totalSeconds / 60);
+              const seconds = totalSeconds % 60;
+              newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
             } else {
-              newTimeLeft[stake.id] = 'Менее минуты';
-            }
-          } else {
-            // В обычном режиме показываем дни/часы в зависимости от количества
-            if (timeLeft >= 1) {
-              const days = Math.floor(timeLeft);
-              const hours = Math.floor((timeLeft - days) * 24);
+              const days = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
+              const hours = Math.floor((remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
               
               if (days > 0) {
-                newTimeLeft[stake.id] = hours > 0 ? `${days}д ${hours}ч` : `${days} дней`;
+                newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
               } else if (hours > 0) {
-                newTimeLeft[stake.id] = `${hours} часов`;
+                newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
               } else {
-                newTimeLeft[stake.id] = 'Менее часа';
+                newTimeLeft[stake.id] = `${minutes}м`;
               }
-            } else {
-              newTimeLeft[stake.id] = 'Менее дня';
             }
+          } else {
+            newTimeLeft[stake.id] = 'Проверяем готовность...';
           }
-          
-          // Рассчитываем прогресс из API данных
-          const totalTime = stake.plan_days;
-          const elapsed = Math.max(0, totalTime - timeLeft);
-          const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
-          newProgressValues[stake.id] = progress;
         }
       });
       
@@ -164,17 +169,6 @@ const StakingView: React.FC<StakingViewProps> = ({
 
     return () => clearInterval(interval);
   }, [stakes]);
-
-  // 🔥 ОТДЕЛЬНЫЙ интервал для обновления API данных каждые 5 секунд
-  useEffect(() => {
-    const apiInterval = setInterval(() => {
-      if (stakes.length > 0) {
-        fetchStakes();
-      }
-    }, 5000); // Обновляем API каждые 5 секунд
-
-    return () => clearInterval(apiInterval);
-  }, [stakes.length]);
 
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
