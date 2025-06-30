@@ -307,6 +307,32 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
               value={customAmount}
               onChange={(e) => setCustomAmount(parseInt(e.target.value) || 15)}
               disabled={loading}
+              ref={(input) => {
+                // 🔥 JAVASCRIPT ПРИНУДИТЕЛЬНОЕ УБИРАНИЕ СТРЕЛОЧЕК
+                if (input) {
+                  const style = document.createElement('style');
+                  style.innerHTML = `
+                    input[type="number"]::-webkit-outer-spin-button,
+                    input[type="number"]::-webkit-inner-spin-button {
+                      -webkit-appearance: none !important;
+                      margin: 0 !important;
+                      display: none !important;
+                      visibility: hidden !important;
+                      background: transparent !important;
+                      pointer-events: none !important;
+                    }
+                    input[type="number"] {
+                      -moz-appearance: textfield !important;
+                      appearance: none !important;
+                      -webkit-appearance: none !important;
+                    }
+                  `;
+                  if (!document.head.querySelector('#no-spinner-style')) {
+                    style.id = 'no-spinner-style';
+                    document.head.appendChild(style);
+                  }
+                }
+              }}
               style={{
                 padding: '15px',
                 fontSize: '1.2rem',
@@ -316,7 +342,11 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
                 borderRadius: '10px',
                 background: 'rgba(0, 0, 0, 0.5)',
                 color: '#fff',
-                opacity: loading ? 0.6 : 1
+                opacity: loading ? 0.6 : 1,
+                // Дополнительные инлайн стили
+                WebkitAppearance: 'none',
+                MozAppearance: 'textfield',
+                appearance: 'none'
               }}
             />
           </div>
@@ -669,6 +699,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         )}
       </div>
 
+      {/* 🔥 МАКСИМАЛЬНО АГРЕССИВНЫЕ СТИЛИ ДЛЯ CHROME */}
       <style>
         {`
           @keyframes shimmer {

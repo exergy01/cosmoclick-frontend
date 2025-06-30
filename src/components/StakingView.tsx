@@ -14,6 +14,8 @@ interface Stake {
   days_left: number;
   is_ready: boolean;
   test_mode?: boolean;
+  penalty_amount?: string;
+  withdrawn_at?: string;
 }
 
 interface StakingViewProps {
@@ -40,12 +42,13 @@ const StakingView: React.FC<StakingViewProps> = ({
   refreshTrigger 
 }) => {
   const [stakes, setStakes] = useState<Stake[]>([]);
+  const [completedStakes, setCompletedStakes] = useState<Stake[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState<{ [key: number]: string }>({});
-  const [refreshing, setRefreshing] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(0);
   const [collecting, setCollecting] = useState<{ [key: number]: boolean }>({});
   const [progressValues, setProgressValues] = useState<{ [key: number]: number }>({});
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Функция загрузки стейков
   const fetchStakes = async () => {
@@ -65,16 +68,42 @@ const StakingView: React.FC<StakingViewProps> = ({
         stake.system_id === systemId
       );
       
-      console.log(`🎯 СТЕЙКИ ДЛЯ СИСТЕМЫ ${systemId}:`, systemStakes.length);
-      systemStakes.forEach((stake: any) => {
-        console.log(`   - Стейк ${stake.id}: ${stake.stake_amount} TON, план ${stake.plan_type}`);
+      // Разделяем активные и завершенные стейки
+      const activeStakes = systemStakes.filter((stake: Stake) => stake.status === 'active');
+      
+      console.log(`🎯 АКТИВНЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, activeStakes.length);
+      
+      activeStakes.forEach((stake: any) => {
+        console.log(`   - Активный стейк ${stake.id}: ${stake.stake_amount} TON, план ${stake.plan_type}`);
       });
       
-      setStakes(systemStakes);
+      setStakes(activeStakes);
+      
+      // Загружаем историю стейков сразу
+      await fetchStakeHistory();
+      
       setLoading(false);
     } catch (err) {
       console.error('Ошибка загрузки стейков:', err);
       setLoading(false);
+    }
+  };
+
+  // Функция загрузки истории стейков
+  const fetchStakeHistory = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/ton/stakes/history/${player.telegram_id}`);
+      const data = await response.json();
+      
+      const systemCompletedStakes = data.filter((stake: Stake) => 
+        stake.system_id === systemId && stake.status === 'withdrawn'
+      );
+      
+      console.log(`📚 ЗАВЕРШЕННЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, systemCompletedStakes.length);
+      
+      setCompletedStakes(systemCompletedStakes);
+    } catch (err) {
+      console.error('Ошибка загрузки истории стейков:', err);
     }
   };
 
@@ -86,11 +115,19 @@ const StakingView: React.FC<StakingViewProps> = ({
     }
   }, [player?.telegram_id, player?.unlocked_systems, systemId, refreshTrigger, forceRefresh]);
 
+  // Расчет заработанных денег
+  const calculateTotalEarnings = () => {
+    return completedStakes.reduce((total, stake) => {
+      const stakeAmount = parseFloat(stake.stake_amount);
+      const returnAmount = parseFloat(stake.return_amount);
+      const profit = returnAmount - stakeAmount; // Чистая прибыль
+      return total + profit;
+    }, 0);
+  };
+
   // Функция принудительного обновления стейков
   const refreshStakes = async () => {
-    setRefreshing(true);
     await fetchStakes();
-    setRefreshing(false);
   };
 
   // Функция для принудительного обновления из родительского компонента
@@ -112,11 +149,12 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
 
-  // 🔥 ПЛАВНЫЙ прогресс-бар на основе реального времени
+  // 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар + автообновление готовности
   useEffect(() => {
     const interval = setInterval(() => {
       const newTimeLeft: { [key: number]: string } = {};
       const newProgressValues: { [key: number]: number } = {};
+      let needsRefresh = false;
       
       stakes.forEach(stake => {
         if (stake.is_ready) {
@@ -137,8 +175,12 @@ const StakingView: React.FC<StakingViewProps> = ({
           const progress = Math.min(100, Math.max(0, (elapsedTime / totalDurationMs) * 100));
           newProgressValues[stake.id] = progress;
           
-          // Красивое отображение оставшегося времени
-          if (remainingTime > 0) {
+          // 🔥 ИСПРАВЛЕНО: Если время истекло но API еще не обновился - обновляем данные
+          if (remainingTime <= 0 && !stake.is_ready) {
+            newTimeLeft[stake.id] = 'Проверяем готовность...';
+            needsRefresh = true; // Обновляем данные из API
+          } else if (remainingTime > 0) {
+            // Красивое отображение оставшегося времени
             if (stake.test_mode) {
               const totalSeconds = Math.floor(remainingTime / 1000);
               const minutes = Math.floor(totalSeconds / 60);
@@ -157,14 +199,18 @@ const StakingView: React.FC<StakingViewProps> = ({
                 newTimeLeft[stake.id] = `${minutes}м`;
               }
             }
-          } else {
-            newTimeLeft[stake.id] = 'Проверяем готовность...';
           }
         }
       });
       
       setTimeLeft(newTimeLeft);
       setProgressValues(newProgressValues);
+      
+      // 🔥 Автоматически обновляем данные если время истекло
+      if (needsRefresh) {
+        console.log('⏰ Время стейка истекло, обновляем данные из API');
+        fetchStakes();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -338,42 +384,166 @@ const StakingView: React.FC<StakingViewProps> = ({
 
   if (stakes.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px', color: '#ccc' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💰</div>
-        <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
-          В системе 5 нет активных стейков
+      <div style={{ padding: '20px' }}>
+        {/* Панель статистики даже без активных стейков */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '20px',
+          padding: '15px',
+          background: 'rgba(0, 0, 0, 0.5)',
+          border: `1px solid ${colorStyle}`,
+          borderRadius: '10px'
+        }}>
+          <div style={{ color: '#fff' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
+              Активных стейков: 0
+            </div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#4ade80' }}>
+              Заработано в стейках: {calculateTotalEarnings().toFixed(2)} TON
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {onCreateNewStake && (
+              <button
+                onClick={onCreateNewStake}
+                style={{
+                  padding: '10px 20px',
+                  background: `linear-gradient(135deg, ${colorStyle}20, ${colorStyle}40, ${colorStyle}20)`,
+                  border: `2px solid ${colorStyle}`,
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                ➕ Создать стейк
+              </button>
+            )}
+          </div>
         </div>
-        <div style={{ fontSize: '1rem', marginBottom: '30px' }}>
-          Создайте новый стейк для получения дохода
+
+        {/* Сообщение о том что нет активных стейков */}
+        <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ccc' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💰</div>
+          <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
+            В системе 5 нет активных стейков
+          </div>
+          <div style={{ fontSize: '1rem', marginBottom: '30px' }}>
+            Создайте новый стейк для получения дохода
+          </div>
         </div>
-        
-        {/* Кнопка создания нового стейка */}
-        {onCreateNewStake && (
-          <button
-            onClick={onCreateNewStake}
-            style={{
-              padding: '15px 30px',
-              background: `linear-gradient(135deg, ${colorStyle}20, ${colorStyle}40, ${colorStyle}20)`,
-              border: `3px solid ${colorStyle}`,
-              borderRadius: '15px',
-              color: '#fff',
-              fontSize: '1.2rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: `0 0 20px ${colorStyle}50`
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = `0 0 30px ${colorStyle}`;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = `0 0 20px ${colorStyle}50`;
-            }}
-          >
-            💰 Создать новый стейк
-          </button>
+
+        {/* История стейков даже когда нет активных */}
+        {completedStakes.length > 0 && (
+          <div>
+            <h3 style={{ 
+              color: colorStyle, 
+              fontSize: '1.5rem', 
+              textAlign: 'center',
+              marginBottom: '20px',
+              textShadow: `0 0 10px ${colorStyle}`
+            }}>
+              📚 История стейков ({completedStakes.length})
+            </h3>
+            
+            {(showAllHistory ? completedStakes : completedStakes.slice(0, 10)).map(stake => {
+              // 🔥 ИСПРАВЛЕНО: Правильная логика определения успешного/отмененного стейка
+              const isSuccessful = !stake.penalty_amount || parseFloat(stake.penalty_amount) === 0;
+              
+              return (
+                <div 
+                  key={stake.id}
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    border: '1px solid #333',
+                    borderRadius: '15px',
+                    padding: '20px',
+                    marginBottom: '15px',
+                    opacity: 0.8
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                        {stake.plan_type === 'fast' ? '⚡ Ускоренный' : '🏆 Стандартный'} - {parseFloat(stake.stake_amount).toFixed(2)} TON
+                      </div>
+                      <div style={{ 
+                        color: isSuccessful ? '#4ade80' : '#ef4444', 
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold',
+                        marginTop: '5px'
+                      }}>
+                        Получено: {parseFloat(stake.return_amount).toFixed(2)} TON 
+                        (+{stake.plan_percent}% за {stake.plan_days} {stake.test_mode ? 'минут' : 'дней'})
+                      </div>
+                      <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '5px' }}>
+                        Завершен: {new Date(stake.withdrawn_at || stake.end_date).toLocaleDateString()}
+                        {!isSuccessful && (
+                          <span style={{ 
+                            color: '#ef4444', 
+                            marginLeft: '10px',
+                            fontWeight: 'bold'
+                          }}>
+                            Штраф: {parseFloat(stake.penalty_amount || '0').toFixed(2)} TON
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ 
+                      color: isSuccessful ? '#4ade80' : '#ef4444',
+                      fontSize: '1.5rem',
+                      marginLeft: '15px'
+                    }}>
+                      {isSuccessful ? '✅' : '❌'}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Кнопка "Показать все" если стейков больше 10 */}
+            {completedStakes.length > 10 && (
+              <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                <button
+                  onClick={() => setShowAllHistory(!showAllHistory)}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'transparent',
+                    border: `2px solid ${colorStyle}`,
+                    borderRadius: '10px',
+                    color: colorStyle,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = `${colorStyle}20`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  {showAllHistory ? 
+                    `📚 Показать только 10 последних` : 
+                    `📚 Показать все ${completedStakes.length} стейков`
+                  }
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     );
@@ -396,34 +566,12 @@ const StakingView: React.FC<StakingViewProps> = ({
           <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>
             Активных стейков: {stakes.length}
           </div>
-          <div style={{ fontSize: '0.9rem', color: '#aaa' }}>
-            Система 5 - Неограниченный стейкинг
-            {stakes.some(s => s.test_mode) && (
-              <span style={{ color: '#ff6b6b', marginLeft: '10px' }}>
-                🧪 ТЕСТОВЫЙ РЕЖИМ
-              </span>
-            )}
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#4ade80' }}>
+            Заработано в стейках: {calculateTotalEarnings().toFixed(2)} TON
           </div>
         </div>
         
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={refreshStakes}
-            disabled={refreshing}
-            style={{
-              padding: '10px 15px',
-              background: 'transparent',
-              border: `2px solid ${colorStyle}`,
-              borderRadius: '8px',
-              color: colorStyle,
-              fontSize: '0.9rem',
-              cursor: refreshing ? 'not-allowed' : 'pointer',
-              opacity: refreshing ? 0.6 : 1
-            }}
-          >
-            {refreshing ? '🔄 Обновление...' : '🔄 Обновить'}
-          </button>
-          
           {onCreateNewStake && (
             <button
               onClick={onCreateNewStake}
@@ -681,6 +829,106 @@ const StakingView: React.FC<StakingViewProps> = ({
           </div>
         );
       })}
+
+      {/* История стейков - всегда показываем если есть */}
+      {completedStakes.length > 0 && (
+        <div style={{ marginTop: stakes.length > 0 ? '30px' : '0' }}>
+          <h3 style={{ 
+            color: colorStyle, 
+            fontSize: '1.5rem', 
+            textAlign: 'center',
+            marginBottom: '20px',
+            textShadow: `0 0 10px ${colorStyle}`
+          }}>
+            📚 История стейков ({completedStakes.length})
+          </h3>
+          
+          {(showAllHistory ? completedStakes : completedStakes.slice(0, 10)).map(stake => {
+            // 🔥 ИСПРАВЛЕНО: Правильная логика определения успешного/отмененного стейка
+            const isSuccessful = !stake.penalty_amount || parseFloat(stake.penalty_amount) === 0;
+            
+            return (
+              <div 
+                key={stake.id}
+                style={{
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  border: '1px solid #333',
+                  borderRadius: '15px',
+                  padding: '20px',
+                  marginBottom: '15px',
+                  opacity: 0.8
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                      {stake.plan_type === 'fast' ? '⚡ Ускоренный' : '🏆 Стандартный'} - {parseFloat(stake.stake_amount).toFixed(2)} TON
+                    </div>
+                    <div style={{ 
+                      color: isSuccessful ? '#4ade80' : '#ef4444', 
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
+                      marginTop: '5px'
+                    }}>
+                      Получено: {parseFloat(stake.return_amount).toFixed(2)} TON 
+                      (+{stake.plan_percent}% за {stake.plan_days} {stake.test_mode ? 'минут' : 'дней'})
+                    </div>
+                    <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '5px' }}>
+                      Завершен: {new Date(stake.withdrawn_at || stake.end_date).toLocaleDateString()}
+                      {!isSuccessful && (
+                        <span style={{ 
+                          color: '#ef4444', 
+                          marginLeft: '10px',
+                          fontWeight: 'bold'
+                        }}>
+                          Штраф: {parseFloat(stake.penalty_amount || '0').toFixed(2)} TON
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ 
+                    color: isSuccessful ? '#4ade80' : '#ef4444',
+                    fontSize: '1.5rem',
+                    marginLeft: '15px'
+                  }}>
+                    {isSuccessful ? '✅' : '❌'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          
+          {/* Кнопка "Показать все" если стейков больше 10 */}
+          {completedStakes.length > 10 && (
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <button
+                onClick={() => setShowAllHistory(!showAllHistory)}
+                style={{
+                  padding: '10px 20px',
+                  background: 'transparent',
+                  border: `2px solid ${colorStyle}`,
+                  borderRadius: '10px',
+                  color: colorStyle,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = `${colorStyle}20`;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {showAllHistory ? 
+                  `📚 Показать только 10 последних` : 
+                  `📚 Показать все ${completedStakes.length} стейков`
+                }
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CSS анимации */}
       <style>
