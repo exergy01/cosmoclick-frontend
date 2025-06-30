@@ -17,6 +17,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
   const [showAmountSelection, setShowAmountSelection] = useState(false);
   const [planData, setPlanData] = useState<any>(null);
   const [customAmount, setCustomAmount] = useState<number>(15);
+  const [loading, setLoading] = useState(false);
 
   if (!player) return null;
 
@@ -58,12 +59,15 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
     console.log('🚀 systemId:', systemId, 'price:', system.price);
     
     try {
+      setLoading(true);
+      
       if (systemId === 5) {
         const isSystem5Unlocked = player.unlocked_systems?.includes(5);
         
         if (isSystem5Unlocked) {
           // Система 5 УЖЕ разблокирована - показываем выбор суммы
           setShowAmountSelection(true);
+          setLoading(false);
           return;
         } else {
           // Система 5 НЕ разблокирована - показываем выбор тарифа для 15 TON
@@ -88,6 +92,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
             ]
           });
           setShowPlanSelection(true);
+          setLoading(false);
           return;
         }
       }
@@ -97,9 +102,12 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
       const result = await buySystem(systemId, system.price) as any;
       console.log('✅ buySystem результат:', result);
       
+      setLoading(false);
       onUnlock();
     } catch (err) {
       console.error('❌ Failed to unlock system:', err);
+      setLoading(false);
+      alert(`❌ Ошибка разблокировки системы: ${err}`);
     }
   };
 
@@ -109,21 +117,44 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
       return;
     }
     
-    const playerTon = parseFloat(player.ton || 0);
+    const playerTon = parseFloat(player.ton || '0');
     if (playerTon < customAmount) {
       alert(`Недостаточно TON. У вас: ${playerTon.toFixed(6)}`);
       return;
     }
+    
+    setLoading(true);
     
     try {
       const API_URL = process.env.NODE_ENV === 'production'
         ? 'https://cosmoclick-backend.onrender.com'
         : 'http://localhost:5000';
         
-      const response = await fetch(`${API_URL}/api/ton/calculate/${customAmount}`);
-      const result = await response.json();
+      console.log('🔥 Запрос расчета планов для суммы:', customAmount);
+      console.log('🔥 API URL:', `${API_URL}/api/ton/calculate/${customAmount}`);
       
-      if (response.ok) {
+      const response = await fetch(`${API_URL}/api/ton/calculate/${customAmount}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('🔥 Response status:', response.status);
+      console.log('🔥 Response headers:', response.headers);
+      
+      // Проверяем, что получили JSON
+      const contentType = response.headers.get('Content-Type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Получен не JSON ответ:', textResponse.substring(0, 200));
+        throw new Error(`Сервер вернул ${response.status}: ${response.statusText}. Проверьте доступность API.`);
+      }
+      
+      const result = await response.json();
+      console.log('🔥 Результат расчета планов:', result);
+      
+      if (response.ok && result.success) {
         setPlanData({
           system_id: 5,
           stake_amount: customAmount,
@@ -132,16 +163,20 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         setShowAmountSelection(false);
         setShowPlanSelection(true);
       } else {
-        alert(`❌ Ошибка: ${result.error}`);
+        throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (err) {
       console.error('❌ Ошибка расчета планов:', err);
-      alert('Ошибка при расчете планов');
+      alert(`❌ Ошибка при расчете планов: ${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handlePlanSelect = async (planType: string) => {
     if (!planData) return;
+    
+    setLoading(true);
     
     try {
       console.log('🔥 ВЫБИРАЕМ ТАРИФ:', planType);
@@ -155,6 +190,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         ? 'https://cosmoclick-backend.onrender.com'
         : 'http://localhost:5000';
         
+      console.log('🔥 ОТПРАВЛЯЕМ ЗАПРОС НА:', `${API_URL}/api/ton/stake`);
+      
       const response = await fetch(`${API_URL}/api/ton/stake`, {
         method: 'POST',
         headers: {
@@ -168,7 +205,15 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         }),
       });
       
-      console.log('🔥 ОТПРАВЛЯЕМ ЗАПРОС НА:', `${API_URL}/api/ton/stake`);
+      console.log('🔥 Response status:', response.status);
+      
+      // Проверяем, что получили JSON
+      const contentType = response.headers.get('Content-Type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Получен не JSON ответ:', textResponse.substring(0, 200));
+        throw new Error(`Сервер вернул ${response.status}: ${response.statusText}. Проверьте доступность API стейкинга.`);
+      }
       
       const result = await response.json();
       console.log('🔥 РЕЗУЛЬТАТ СОЗДАНИЯ СТЕЙКА:', result);
@@ -190,18 +235,20 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         // Закрываем модальное окно
         onUnlock();
       } else {
-        alert(`❌ Ошибка: ${result.error || 'Не удалось создать стейк'}`);
+        throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (err) {
       console.error('❌ Ошибка выбора тарифа:', err);
       alert(`❌ Ошибка: ${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   const colorStyle = player.color || '#00f0ff';
 
   if (showAmountSelection) {
-    const playerTon = parseFloat(player.ton || 0);
+    const playerTon = parseFloat(player.ton || '0');
     const canAffordAmount = playerTon >= customAmount;
     
     return (
@@ -259,6 +306,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
               step="1"
               value={customAmount}
               onChange={(e) => setCustomAmount(parseInt(e.target.value) || 15)}
+              disabled={loading}
               style={{
                 padding: '15px',
                 fontSize: '1.2rem',
@@ -267,7 +315,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
                 border: `2px solid ${colorStyle}`,
                 borderRadius: '10px',
                 background: 'rgba(0, 0, 0, 0.5)',
-                color: '#fff'
+                color: '#fff',
+                opacity: loading ? 0.6 : 1
               }}
             />
           </div>
@@ -275,6 +324,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
           <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
             <button
               onClick={() => setShowAmountSelection(false)}
+              disabled={loading}
               style={{
                 padding: '15px 30px',
                 background: 'transparent',
@@ -282,7 +332,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
                 borderRadius: '10px',
                 color: '#666',
                 fontSize: '1.1rem',
-                cursor: 'pointer'
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1
               }}
             >
               Назад
@@ -290,21 +341,21 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
             
             <button
               onClick={handleAmountConfirm}
-              disabled={!canAffordAmount || customAmount < 15 || customAmount > 1000}
+              disabled={loading || !canAffordAmount || customAmount < 15 || customAmount > 1000}
               style={{
                 padding: '15px 30px',
-                background: canAffordAmount && customAmount >= 15 && customAmount <= 1000 ? 
+                background: (canAffordAmount && customAmount >= 15 && customAmount <= 1000 && !loading) ? 
                   `linear-gradient(135deg, ${colorStyle}20, ${colorStyle}40, ${colorStyle}20)` : 
                   'rgba(100, 100, 100, 0.3)',
-                border: `2px solid ${canAffordAmount && customAmount >= 15 && customAmount <= 1000 ? colorStyle : '#666'}`,
+                border: `2px solid ${(canAffordAmount && customAmount >= 15 && customAmount <= 1000 && !loading) ? colorStyle : '#666'}`,
                 borderRadius: '10px',
-                color: canAffordAmount && customAmount >= 15 && customAmount <= 1000 ? '#fff' : '#999',
+                color: (canAffordAmount && customAmount >= 15 && customAmount <= 1000 && !loading) ? '#fff' : '#999',
                 fontSize: '1.1rem',
                 fontWeight: 'bold',
-                cursor: canAffordAmount && customAmount >= 15 && customAmount <= 1000 ? 'pointer' : 'not-allowed'
+                cursor: (canAffordAmount && customAmount >= 15 && customAmount <= 1000 && !loading) ? 'pointer' : 'not-allowed'
               }}
             >
-              Продолжить
+              {loading ? '⏳ Загрузка...' : 'Продолжить'}
             </button>
           </div>
         </div>
@@ -357,6 +408,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
               <button
                 key={plan.type}
                 onClick={() => handlePlanSelect(plan.type)}
+                disabled={loading}
                 style={{
                   flex: 1,
                   padding: '20px',
@@ -365,17 +417,22 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
                   borderRadius: '15px',
                   color: '#fff',
                   fontSize: '1rem',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: `0 0 20px ${colorStyle}50`
+                  boxShadow: `0 0 20px ${colorStyle}50`,
+                  opacity: loading ? 0.6 : 1
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.boxShadow = `0 0 30px ${colorStyle}`;
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = `0 0 30px ${colorStyle}`;
+                  }
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = `0 0 20px ${colorStyle}50`;
+                  if (!loading) {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = `0 0 20px ${colorStyle}50`;
+                  }
                 }}
               >
                 <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
@@ -402,6 +459,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
                 setShowAmountSelection(true);
               }
             }}
+            disabled={loading}
             style={{
               padding: '15px 30px',
               background: 'transparent',
@@ -409,10 +467,11 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
               borderRadius: '10px',
               color: '#666',
               fontSize: '1.1rem',
-              cursor: 'pointer'
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1
             }}
           >
-            Назад
+            {loading ? '⏳ Обработка...' : 'Назад'}
           </button>
         </div>
       </div>
@@ -510,6 +569,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
           {systemId > 1 && (
             <button
               onClick={onCancel}
+              disabled={loading}
               style={{
                 padding: '15px 30px',
                 background: 'transparent',
@@ -517,16 +577,21 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
                 borderRadius: '10px',
                 color: '#666',
                 fontSize: '1.1rem',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                opacity: loading ? 0.6 : 1
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#999';
-                e.currentTarget.style.color = '#999';
+                if (!loading) {
+                  e.currentTarget.style.borderColor = '#999';
+                  e.currentTarget.style.color = '#999';
+                }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#666';
-                e.currentTarget.style.color = '#666';
+                if (!loading) {
+                  e.currentTarget.style.borderColor = '#666';
+                  e.currentTarget.style.color = '#666';
+                }
               }}
             >
               Отмена
@@ -535,35 +600,35 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
           
           <button
             onClick={handleUnlock}
-            disabled={!canAfford}
+            disabled={!canAfford || loading}
             style={{
               padding: '20px 40px',
-              background: canAfford ? 
+              background: (canAfford && !loading) ? 
                 `linear-gradient(135deg, ${colorStyle}20, ${colorStyle}40, ${colorStyle}20)` : 
                 'linear-gradient(135deg, #44444420, #44444440, #44444420)',
-              border: `3px solid ${canAfford ? colorStyle : '#666'}`,
+              border: `3px solid ${(canAfford && !loading) ? colorStyle : '#666'}`,
               borderRadius: '15px',
-              color: canAfford ? '#fff' : '#999',
+              color: (canAfford && !loading) ? '#fff' : '#999',
               fontSize: '1.2rem',
               fontWeight: 'bold',
-              cursor: canAfford ? 'pointer' : 'not-allowed',
+              cursor: (canAfford && !loading) ? 'pointer' : 'not-allowed',
               transition: 'all 0.3s ease',
-              boxShadow: canAfford ? 
+              boxShadow: (canAfford && !loading) ? 
                 `0 0 30px ${colorStyle}50, inset 0 0 20px ${colorStyle}20` : 
                 '0 0 10px #44444450',
-              textShadow: canAfford ? `0 0 10px ${colorStyle}` : 'none',
+              textShadow: (canAfford && !loading) ? `0 0 10px ${colorStyle}` : 'none',
               position: 'relative',
               overflow: 'hidden'
             }}
             onMouseEnter={e => {
-              if (canAfford) {
+              if (canAfford && !loading) {
                 e.currentTarget.style.transform = 'scale(1.05)';
                 e.currentTarget.style.boxShadow = `0 0 50px ${colorStyle}, inset 0 0 30px ${colorStyle}30`;
                 e.currentTarget.style.background = `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`;
               }
             }}
             onMouseLeave={e => {
-              if (canAfford) {
+              if (canAfford && !loading) {
                 e.currentTarget.style.transform = 'scale(1)';
                 e.currentTarget.style.boxShadow = `0 0 30px ${colorStyle}50, inset 0 0 20px ${colorStyle}20`;
                 e.currentTarget.style.background = `linear-gradient(135deg, ${colorStyle}20, ${colorStyle}40, ${colorStyle}20)`;
@@ -577,9 +642,10 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
               width: '100%',
               height: '100%',
               background: `linear-gradient(90deg, transparent, ${colorStyle}40, transparent)`,
-              animation: canAfford ? 'shimmer 2s infinite' : 'none'
+              animation: (canAfford && !loading) ? 'shimmer 2s infinite' : 'none'
             }} />
-            {system.price === 0 ? 
+            {loading ? '⏳ Загрузка...' :
+             system.price === 0 ? 
               '🚀 НАЧАТЬ ИГРУ БЕСПЛАТНО!' : 
               systemId === 5 && player.unlocked_systems?.includes(5) ?
               '💰 СОЗДАТЬ НОВЫЙ СТЕЙК' :
@@ -588,7 +654,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
           </button>
         </div>
 
-        {!canAfford && system.price > 0 && (
+        {!canAfford && system.price > 0 && !loading && (
           <p style={{
             marginTop: '15px',
             color: '#ff6b6b',
