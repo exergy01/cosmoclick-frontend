@@ -34,6 +34,9 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
+// 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ ДЛЯ ВСЕХ!
+const FORCE_TEST_MODE = true;
+
 const StakingView: React.FC<StakingViewProps> = ({ 
   player, 
   systemId, 
@@ -52,6 +55,22 @@ const StakingView: React.FC<StakingViewProps> = ({
   const [progressValues, setProgressValues] = useState<{ [key: number]: number }>({});
   const [showAllHistory, setShowAllHistory] = useState(false);
 
+  // 🔥 ФУНКЦИЯ ПРАВИЛЬНОГО РАСЧЕТА ВРЕМЕНИ
+  const calculateStakeTime = (stake: Stake) => {
+    const startTimeMs = new Date(stake.start_date).getTime();
+    // ВСЕГДА ИСПОЛЬЗУЕМ МИНУТЫ ДЛЯ ТЕСТОВОГО РЕЖИМА
+    const durationMs = stake.plan_days * 60 * 1000; // план_дни = минуты в тесте
+    const endTimeMs = startTimeMs + durationMs;
+    
+    console.log(`🔥 РАСЧЕТ ВРЕМЕНИ стейк ${stake.id}:`);
+    console.log(`   Plan days: ${stake.plan_days} (интерпретируем как минуты)`);
+    console.log(`   Start: ${new Date(startTimeMs).toISOString()}`);
+    console.log(`   Duration: ${durationMs} мс`);
+    console.log(`   End: ${new Date(endTimeMs).toISOString()}`);
+    
+    return { startTimeMs, endTimeMs, durationMs };
+  };
+
   // Функция загрузки стейков
   const fetchStakes = async () => {
     try {
@@ -61,9 +80,6 @@ const StakingView: React.FC<StakingViewProps> = ({
       const data = await response.json();
       
       console.log(`📋 ПОЛУЧЕНО СТЕЙКОВ ИЗ API:`, data.length);
-      data.forEach((stake: any) => {
-        console.log(`   - Стейк ${stake.id}: система ${stake.system_id}, статус ${stake.status}`);
-      });
       
       // Фильтруем стейки для текущей системы
       const systemStakes = data.filter((stake: Stake) => 
@@ -74,10 +90,6 @@ const StakingView: React.FC<StakingViewProps> = ({
       const activeStakes = systemStakes.filter((stake: Stake) => stake.status === 'active');
       
       console.log(`🎯 АКТИВНЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, activeStakes.length);
-      
-      activeStakes.forEach((stake: any) => {
-        console.log(`   - Активный стейк ${stake.id}: ${stake.stake_amount} TON, план ${stake.plan_type}`);
-      });
       
       setStakes(activeStakes);
       
@@ -151,102 +163,62 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
 
-  // 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар + правильное время
-// 🔥 ИСПРАВЛЕННЫЙ плавный прогресс-бар + ПРИНУДИТЕЛЬНЫЙ тестовый режим
-useEffect(() => {
-  const interval = setInterval(() => {
-    const newTimeLeft: { [key: number]: string } = {};
-    const newProgressValues: { [key: number]: number } = {};
-    let needsRefresh = false;
-    
-    stakes.forEach(stake => {
-      const currentTimeMs = Date.now();
+  // 🔥 ИСПРАВЛЕННЫЙ таймер с принудительным тестовым режимом
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newTimeLeft: { [key: number]: string } = {};
+      const newProgressValues: { [key: number]: number } = {};
+      let needsRefresh = false;
       
-      // 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ для продакшна
-      const FORCE_TEST_MODE = true; // Включаем тестовый режим принудительно
-      
-      let startTimeMs, endTimeMs;
-      
-      if (stake.start_time_ms && stake.end_time_ms && !FORCE_TEST_MODE) {
-        // API предоставил точное время в миллисекундах (только если не принудительный тест)
-        startTimeMs = stake.start_time_ms;
-        endTimeMs = stake.end_time_ms;
-      } else {
-        // 🔥 ПРИНУДИТЕЛЬНО вычисляем время для тестового режима
-        startTimeMs = new Date(stake.start_date).getTime();
+      stakes.forEach(stake => {
+        const currentTimeMs = Date.now();
         
-        // ПРИНУДИТЕЛЬНО используем тестовый режим - минуты вместо дней
-        const durationMs = FORCE_TEST_MODE ? 
-          (stake.plan_days * 60 * 1000) : // Всегда минуты для теста
-          (stake.plan_days * 24 * 60 * 60 * 1000); // Дни для продакшна
+        // 🔥 ВСЕГДА ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЙ РАСЧЕТ ВРЕМЕНИ
+        const { startTimeMs, endTimeMs } = calculateStakeTime(stake);
         
-        endTimeMs = startTimeMs + durationMs;
+        const totalDurationMs = endTimeMs - startTimeMs;
+        const elapsedTimeMs = currentTimeMs - startTimeMs;
+        const remainingTimeMs = Math.max(0, endTimeMs - currentTimeMs);
         
-        console.log(`🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТ для стейка ${stake.id}:`);
-        console.log(`   План: ${stake.plan_days} -> ${FORCE_TEST_MODE ? 'минут' : 'дней'}`);
-        console.log(`   Длительность: ${durationMs} мс`);
-        console.log(`   Старт: ${new Date(startTimeMs).toISOString()}`);
-        console.log(`   Конец: ${new Date(endTimeMs).toISOString()}`);
-      }
-      
-      const totalDurationMs = endTimeMs - startTimeMs;
-      const elapsedTimeMs = currentTimeMs - startTimeMs;
-      const remainingTimeMs = Math.max(0, endTimeMs - currentTimeMs);
-      
-      // Прогресс от 0 до 100%
-      const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
-      newProgressValues[stake.id] = progress;
-      
-      const isReady = remainingTimeMs <= 0;
-      
-      if (isReady) {
-        newTimeLeft[stake.id] = 'Готово к сбору!';
-        newProgressValues[stake.id] = 100;
+        // Прогресс от 0 до 100%
+        const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
+        newProgressValues[stake.id] = progress;
         
-        // 🔥 Если стейк готов, но API еще не обновился - обновляем данные
-        if (!stake.is_ready) {
-          needsRefresh = true;
-        }
-      } else {
-        // 🔥 ПРИНУДИТЕЛЬНОЕ отображение в минутах и секундах
-        if (FORCE_TEST_MODE) {
+        const isReady = remainingTimeMs <= 0;
+        
+        if (isReady) {
+          newTimeLeft[stake.id] = 'Готово к сбору!';
+          newProgressValues[stake.id] = 100;
+          
+          // Если стейк готов, но API еще не обновился - обновляем данные
+          if (!stake.is_ready) {
+            needsRefresh = true;
+          }
+        } else {
+          // ВСЕГДА отображаем в минутах и секундах
           const totalSeconds = Math.floor(remainingTimeMs / 1000);
           const minutes = Math.floor(totalSeconds / 60);
           const seconds = totalSeconds % 60;
           newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
-        } else {
-          const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
-          
-          if (days > 0) {
-            newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
-          } else if (hours > 0) {
-            newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
-          } else {
-            newTimeLeft[stake.id] = `${minutes}м`;
-          }
         }
+      });
+      
+      setTimeLeft(newTimeLeft);
+      setProgressValues(newProgressValues);
+      
+      // Автоматически обновляем данные если время истекло
+      if (needsRefresh) {
+        console.log('⏰ Время стейка истекло, обновляем данные из API');
+        fetchStakes();
       }
-    });
-    
-    setTimeLeft(newTimeLeft);
-    setProgressValues(newProgressValues);
-    
-    // 🔥 Автоматически обновляем данные если время истекло
-    if (needsRefresh) {
-      console.log('⏰ Время стейка истекло, обновляем данные из API');
-      fetchStakes();
-    }
-  }, 1000);
+    }, 1000);
 
-  return () => clearInterval(interval);
-}, [stakes]);
+    return () => clearInterval(interval);
+  }, [stakes]);
 
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
     try {
-      // Устанавливаем состояние сбора
       setCollecting(prev => ({ ...prev, [stakeId]: true }));
       
       const response = await fetch(`${API_URL}/api/ton/withdraw`, {
@@ -263,23 +235,18 @@ useEffect(() => {
       const result = await response.json();
       
       if (result.success) {
-        // Создаем эффект взрыва денег
         createMoneyExplosion();
         
-        // Показываем успех с анимацией
         setTimeout(() => {
           alert(`✅ Получено ${result.withdrawn_amount} TON!`);
         }, 500);
         
-        // Отправляем событие глобального обновления
         window.dispatchEvent(new CustomEvent('stakes-updated'));
         
-        // Обновляем данные игрока
         if (onPlayerUpdate) {
           await onPlayerUpdate();
         }
         
-        // Принудительно обновляем стейки
         await fetchStakes();
         
       } else {
@@ -289,7 +256,6 @@ useEffect(() => {
       console.error('Ошибка сбора:', err);
       alert('Ошибка при сборе стейка');
     } finally {
-      // Убираем состояние сбора
       setCollecting(prev => ({ ...prev, [stakeId]: false }));
     }
   };
@@ -298,7 +264,6 @@ useEffect(() => {
   const createMoneyExplosion = () => {
     const container = document.body;
     
-    // Создаем 20 монеток
     for (let i = 0; i < 20; i++) {
       const coin = document.createElement('div');
       coin.innerHTML = '💰';
@@ -313,13 +278,11 @@ useEffect(() => {
       
       container.appendChild(coin);
       
-      // Удаляем монетку через 2 секунды
       setTimeout(() => {
         container.removeChild(coin);
       }, 2000);
     }
     
-    // Добавляем CSS анимации
     const style = document.createElement('style');
     style.textContent = `
       @keyframes coinExplosion0 { to { transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0) rotate(720deg); opacity: 0; } }
@@ -345,96 +308,67 @@ useEffect(() => {
     `;
     document.head.appendChild(style);
     
-    // Удаляем стили через 3 секунды
     setTimeout(() => {
       document.head.removeChild(style);
     }, 3000);
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ отмена стейка с проверкой времени
-// 🔥 ИСПРАВЛЕННАЯ отмена стейка с принудительным тестовым режимом
-const handleCancel = async (stakeId: number) => {
-  // 🔥 ЗАЩИТА: Проверяем можно ли отменить стейк
-  const stake = stakes.find(s => s.id === stakeId);
-  if (!stake) return;
-  
-  // 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ
-  const FORCE_TEST_MODE = true;
-  
-  // Вычисляем текущее время стейка
-  const currentTimeMs = Date.now();
-  let endTimeMs;
-  
-  if (stake.start_time_ms && stake.end_time_ms && !FORCE_TEST_MODE) {
-    endTimeMs = stake.end_time_ms;
-  } else {
-    // 🔥 ПРИНУДИТЕЛЬНО используем тестовый режим
-    const startTimeMs = new Date(stake.start_date).getTime();
-    const durationMs = FORCE_TEST_MODE ? 
-      (stake.plan_days * 60 * 1000) : // Минуты для теста
-      (stake.plan_days * 24 * 60 * 60 * 1000); // Дни для продакшна
-    endTimeMs = startTimeMs + durationMs;
+  // 🔥 ИСПРАВЛЕННАЯ отмена стейка
+  const handleCancel = async (stakeId: number) => {
+    const stake = stakes.find(s => s.id === stakeId);
+    if (!stake) return;
     
-    console.log(`🔥 ОТМЕНА - принудительный тест для стейка ${stake.id}:`);
-    console.log(`   Длительность: ${durationMs} мс (${stake.plan_days} минут)`);
-    console.log(`   Конец: ${new Date(endTimeMs).toISOString()}`);
-  }
-  
-  const timeLeftMs = endTimeMs - currentTimeMs;
-  
-  console.log(`🔥 ПРОВЕРКА ОТМЕНЫ:`);
-  console.log(`   Текущее время: ${new Date(currentTimeMs).toISOString()}`);
-  console.log(`   Время окончания: ${new Date(endTimeMs).toISOString()}`);
-  console.log(`   Осталось: ${timeLeftMs} мс`);
-  
-  // 🔥 ЗАЩИТА: Нельзя отменить завершенный стейк
-  if (timeLeftMs <= 0) {
-    alert('❌ Стейк завершен! Используйте кнопку "Забрать" для получения дохода.');
-    return;
-  }
-  
-  const confirmCancel = window.confirm(
-    'Вы уверены что хотите отменить стейк? Вы потеряете 10% от вложенной суммы!'
-  );
-  
-  if (!confirmCancel) return;
-  
-  try {
-    const response = await fetch(`${API_URL}/api/ton/cancel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        telegramId: player.telegram_id,
-        stakeId: stakeId
-      }),
-    });
-
-    const result = await response.json();
+    const currentTimeMs = Date.now();
+    const { endTimeMs } = calculateStakeTime(stake);
+    const timeLeftMs = endTimeMs - currentTimeMs;
     
-    if (result.success) {
-      alert(`⚠️ Стейк отменен! Возвращено ${result.returned_amount} TON (штраф ${result.penalty_amount} TON)`);
-      
-      // Отправляем событие глобального обновления
-      window.dispatchEvent(new CustomEvent('stakes-updated'));
-      
-      // Обновляем данные игрока
-      if (onPlayerUpdate) {
-        await onPlayerUpdate();
-      }
-      
-      // Принудительно обновляем стейки
-      await fetchStakes();
-      
-    } else {
-      alert(`❌ Ошибка: ${result.error || result.message}`);
+    console.log(`🔥 ПРОВЕРКА ОТМЕНЫ стейк ${stakeId}:`);
+    console.log(`   Осталось времени: ${timeLeftMs} мс`);
+    
+    if (timeLeftMs <= 0) {
+      alert('❌ Стейк завершен! Используйте кнопку "Забрать" для получения дохода.');
+      return;
     }
-  } catch (err) {
-    console.error('Ошибка отмены:', err);
-    alert('Ошибка при отмене стейка');
-  }
-};
+    
+    const confirmCancel = window.confirm(
+      'Вы уверены что хотите отменить стейк? Вы потеряете 10% от вложенной суммы!'
+    );
+    
+    if (!confirmCancel) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/ton/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          telegramId: player.telegram_id,
+          stakeId: stakeId
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert(`⚠️ Стейк отменен! Возвращено ${result.returned_amount} TON (штраф ${result.penalty_amount} TON)`);
+        
+        window.dispatchEvent(new CustomEvent('stakes-updated'));
+        
+        if (onPlayerUpdate) {
+          await onPlayerUpdate();
+        }
+        
+        await fetchStakes();
+        
+      } else {
+        alert(`❌ Ошибка: ${result.error || result.message}`);
+      }
+    } catch (err) {
+      console.error('Ошибка отмены:', err);
+      alert('Ошибка при отмене стейка');
+    }
+  };
 
   if (loading) {
     return (
@@ -448,7 +382,6 @@ const handleCancel = async (stakeId: number) => {
   if (stakes.length === 0) {
     return (
       <div style={{ padding: '20px' }}>
-        {/* Панель статистики даже без активных стейков */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -498,7 +431,6 @@ const handleCancel = async (stakeId: number) => {
           </div>
         </div>
 
-        {/* Сообщение о том что нет активных стейков */}
         <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ccc' }}>
           <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💰</div>
           <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
@@ -509,7 +441,6 @@ const handleCancel = async (stakeId: number) => {
           </div>
         </div>
 
-        {/* История стейков даже когда нет активных */}
         {completedStakes.length > 0 && (
           <div>
             <h3 style={{ 
@@ -523,7 +454,6 @@ const handleCancel = async (stakeId: number) => {
             </h3>
             
             {(showAllHistory ? completedStakes : completedStakes.slice(0, 10)).map(stake => {
-              // 🔥 ИСПРАВЛЕНО: Правильная логика определения успешного/отмененного стейка
               const isSuccessful = !stake.penalty_amount || parseFloat(stake.penalty_amount) === 0;
               
               return (
@@ -550,7 +480,7 @@ const handleCancel = async (stakeId: number) => {
                         marginTop: '5px'
                       }}>
                         Получено: {parseFloat(stake.return_amount).toFixed(2)} TON 
-                        (+{stake.plan_percent}% за {stake.plan_days} {stake.test_mode ? 'минут' : 'дней'})
+                        (+{stake.plan_percent}% за {stake.plan_days} минут)
                       </div>
                       <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '5px' }}>
                         Завершен: {new Date(stake.withdrawn_at || stake.end_date).toLocaleDateString()}
@@ -577,7 +507,6 @@ const handleCancel = async (stakeId: number) => {
               );
             })}
             
-            {/* Кнопка "Показать все" если стейков больше 10 */}
             {completedStakes.length > 10 && (
               <div style={{ textAlign: 'center', marginTop: '20px' }}>
                 <button
@@ -614,7 +543,6 @@ const handleCancel = async (stakeId: number) => {
 
   return (
     <div style={{ padding: '20px' }}>
-      {/* Панель управления для системы 5 */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -664,36 +592,16 @@ const handleCancel = async (stakeId: number) => {
         </div>
       </div>
       
-{/* Список стейков с принудительным тестовым режимом */}
-{stakes.map(stake => {
+      {/* 🔥 ИСПРАВЛЕННЫЙ рендер стейков */}
+      {stakes.map(stake => {
         const currentTimeMs = Date.now();
-        
-        // 🔥 ПРИНУДИТЕЛЬНЫЙ ТЕСТОВЫЙ РЕЖИМ для продакшна
-        const FORCE_TEST_MODE = true;
-        
-        // 🔥 ИСПРАВЛЕНО: Правильное вычисление времени окончания
-        let endTimeMs;
-        if (stake.start_time_ms && stake.end_time_ms && !FORCE_TEST_MODE) {
-          endTimeMs = stake.end_time_ms;
-        } else {
-          // 🔥 ПРИНУДИТЕЛЬНО используем тестовый режим
-          const startTimeMs = new Date(stake.start_date).getTime();
-          const durationMs = FORCE_TEST_MODE ? 
-            (stake.plan_days * 60 * 1000) : // Всегда минуты
-            (stake.plan_days * 24 * 60 * 60 * 1000); // Дни для продакшна
-          endTimeMs = startTimeMs + durationMs;
-        }
-        
+        const { endTimeMs } = calculateStakeTime(stake);
         const timeLeftMs = endTimeMs - currentTimeMs;
         const isReady = timeLeftMs <= 0;
         const isCollecting = collecting[stake.id] || false;
-        
-        // 🔥 ЗАЩИТА: Кнопка отмены недоступна если стейк завершен
         const canCancel = timeLeftMs > 0;
-        
-        // Используем прогресс из состояния
         const progressPercent = progressValues[stake.id] || 0;
-        
+
         return (
           <div 
             key={stake.id}
@@ -707,8 +615,7 @@ const handleCancel = async (stakeId: number) => {
               position: 'relative'
             }}
           >
-            {/* Тестовый режим индикатор */}
-            {stake.test_mode && (
+            {FORCE_TEST_MODE && (
               <div style={{
                 position: 'absolute',
                 top: '10px',
@@ -724,7 +631,6 @@ const handleCancel = async (stakeId: number) => {
               </div>
             )}
 
-            {/* Заголовок */}
             <div style={{ textAlign: 'center', marginBottom: '30px' }}>
               <h2 style={{ 
                 color: colorStyle, 
@@ -736,15 +642,12 @@ const handleCancel = async (stakeId: number) => {
               </h2>
               <div style={{ fontSize: '1.1rem', color: '#ccc' }}>
                 {stake.plan_type === 'fast' ? '⚡ Ускоренный тариф' : '🏆 Стандартный тариф'}
-                {stake.test_mode && (
-                  <span style={{ color: '#ff6b6b', marginLeft: '10px' }}>
-                    ({stake.plan_days} {stake.plan_days === 1 ? 'минута' : 'минут'})
-                  </span>
-                )}
+                <span style={{ color: '#ff6b6b', marginLeft: '10px' }}>
+                  ({stake.plan_days} минут)
+                </span>
               </div>
             </div>
 
-            {/* Информация о стейке */}
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: '1fr 1fr', 
@@ -774,10 +677,7 @@ const handleCancel = async (stakeId: number) => {
                   Срок
                 </div>
                 <div style={{ color: '#fff', fontSize: '1.2rem' }}>
-                  {stake.plan_days} {stake.test_mode ? 
-                    (stake.plan_days === 1 ? 'минута' : 'минут') : 
-                    (stake.plan_days === 1 ? 'день' : 'дней')
-                  }
+                  {stake.plan_days} минут
                 </div>
               </div>
               
@@ -791,7 +691,6 @@ const handleCancel = async (stakeId: number) => {
               </div>
             </div>
 
-            {/* Прогресс бар с анимацией */}
             <div style={{ marginBottom: '20px' }}>
               <div style={{ 
                 background: 'rgba(255, 255, 255, 0.1)', 
@@ -825,7 +724,6 @@ const handleCancel = async (stakeId: number) => {
               </div>
             </div>
 
-            {/* Кнопки с анимациями и защитой */}
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
               <button
                 onClick={() => handleWithdraw(stake.id)}
@@ -880,7 +778,6 @@ const handleCancel = async (stakeId: number) => {
                 )}
               </button>
 
-              {/* 🔥 ЗАЩИЩЕННАЯ кнопка отмены */}
               <button
                 onClick={() => handleCancel(stake.id)}
                 disabled={isCollecting || !canCancel}
@@ -916,7 +813,6 @@ const handleCancel = async (stakeId: number) => {
         );
       })}
 
-      {/* История стейков - всегда показываем если есть */}
       {completedStakes.length > 0 && (
         <div style={{ marginTop: stakes.length > 0 ? '30px' : '0' }}>
           <h3 style={{ 
@@ -930,7 +826,6 @@ const handleCancel = async (stakeId: number) => {
           </h3>
           
           {(showAllHistory ? completedStakes : completedStakes.slice(0, 10)).map(stake => {
-            // 🔥 ИСПРАВЛЕНО: Правильная логика определения успешного/отмененного стейка
             const isSuccessful = !stake.penalty_amount || parseFloat(stake.penalty_amount) === 0;
             
             return (
@@ -957,7 +852,7 @@ const handleCancel = async (stakeId: number) => {
                       marginTop: '5px'
                     }}>
                       Получено: {parseFloat(stake.return_amount).toFixed(2)} TON 
-                      (+{stake.plan_percent}% за {stake.plan_days} {stake.test_mode ? 'минут' : 'дней'})
+                      (+{stake.plan_percent}% за {stake.plan_days} минут)
                     </div>
                     <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '5px' }}>
                       Завершен: {new Date(stake.withdrawn_at || stake.end_date).toLocaleDateString()}
@@ -984,7 +879,6 @@ const handleCancel = async (stakeId: number) => {
             );
           })}
           
-          {/* Кнопка "Показать все" если стейков больше 10 */}
           {completedStakes.length > 10 && (
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <button
@@ -1016,7 +910,6 @@ const handleCancel = async (stakeId: number) => {
         </div>
       )}
 
-      {/* CSS анимации */}
       <style>
         {`
           @keyframes pulse {
