@@ -751,8 +751,8 @@ const StakingView: React.FC<StakingViewProps> = ({
               </div>
             </div>
 
-            {/* Прогресс бар с анимацией */}
-            <div style={{ marginBottom: '20px' }}>
+{/* Прогресс бар с анимацией */}
+<div style={{ marginBottom: '20px' }}>
               <div style={{ 
                 background: 'rgba(255, 255, 255, 0.1)', 
                 borderRadius: '10px', 
@@ -783,34 +783,8 @@ const StakingView: React.FC<StakingViewProps> = ({
               }}>
                 {timeLeftText}
               </div>
-
-              {/* 🔍 ОТЛАДОЧНАЯ ИНФОРМАЦИЯ (пока нужна) */}
-              <div style={{ 
-                marginTop: '15px', 
-                padding: '10px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                color: '#ccc',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
-              }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#fff' }}>
-                  🔍 Серверные данные (стейк {stake.id}):
-                </div>
-                <div>• time_left_text: "{stake.time_left_text || 'отсутствует'}"</div>
-                <div>• progress_percent: {stake.progress_percent || 'отсутствует'}</div>
-                <div>• is_ready: {stake.is_ready ? 'true' : 'false'}</div>
-                <div>• remaining_time_ms: {stake.remaining_time_ms || 'отсутствует'}</div>
-                <div>• server_time_utc: {stake.server_time_utc || 'отсутствует'}</div>
-                
-                <div style={{ marginTop: '8px', fontWeight: 'bold', color: '#fff' }}>
-                  React состояние:
-                </div>
-                <div>• timeLeft[{stake.id}]: "{timeLeft[stake.id] || 'отсутствует'}"</div>
-                <div>• progressValues[{stake.id}]: {progressValues[stake.id] || 'отсутствует'}%</div>
-                <div>• isReady: {isReady ? 'true' : 'false'}</div>
-              </div>
             </div>
+            
 
             {/* 🔥 КНОПКИ НА РАЗНЫХ СТРОЧКАХ И РАСТЯНУТЫЕ */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

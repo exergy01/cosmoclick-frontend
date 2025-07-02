@@ -65,10 +65,7 @@ const MainPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showSystemDropdown, setShowSystemDropdown] = useState(false);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const [isCollecting, setIsCollecting] = useState(false);
-  const minSwipeDistance = 50;
 
   // 🔥 ОБРАБОТЧИК СОЗДАНИЯ НОВОГО СТЕЙКА ДЛЯ СИСТЕМЫ 5
   const handleCreateNewStake = () => {
@@ -149,34 +146,6 @@ const MainPage: React.FC = () => {
 
   const handlePurchase = (type: string) => () => {
     navigate('/shop', { state: { tab: type === 'resources' ? 'asteroid' : type } });
-  };
-
-  const throttle = (func: (...args: any[]) => void, wait: number) => {
-    let timeout: NodeJS.Timeout | null = null;
-    return (...args: any[]) => {
-      if (!timeout) {
-        timeout = setTimeout(() => {
-          func(...args);
-          timeout = null;
-        }, wait);
-      }
-    };
-  };
-
-  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => setTouchStartX('touches' in e ? e.touches[0].clientX : e.clientX);
-  const handleTouchMove = throttle((e: React.TouchEvent | React.MouseEvent) => {
-    setTouchEndX('touches' in e ? e.touches[0].clientX : e.clientX);
-  }, 100);
-  const handleTouchEnd = () => {
-    if (touchStartX === null || touchEndX === null) return;
-    const distance = touchStartX - touchEndX;
-    if (Math.abs(distance) > minSwipeDistance) {
-      // 🔥 ОГРАНИЧИВАЕМ СВАЙПЫ только до системы 5
-      if (distance > 0 && currentSystem < 5) setCurrentSystem(currentSystem + 1);
-      else if (distance < 0 && currentSystem > 1) setCurrentSystem(currentSystem - 1);
-    }
-    setTouchStartX(null);
-    setTouchEndX(null);
   };
 
   if (!player) return <div>Загрузка...</div>;
@@ -336,8 +305,17 @@ const MainPage: React.FC = () => {
   }, [player, currentSystem, cargoLevelId, initialAsteroidTotals, fetchMaxItems, getRealCargoCapacity, isTonSystem]);
 
   return (
-    <div style={{ backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`, backgroundSize: 'cover', backgroundAttachment: 'fixed', minHeight: '100vh', color: '#fff', display: 'flex', flexDirection: 'column', padding: '10px', position: 'relative' }}
-      onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onMouseDown={handleTouchStart} onMouseMove={handleTouchMove} onMouseUp={handleTouchEnd}>
+    <div style={{ 
+      backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`, 
+      backgroundSize: 'cover', 
+      backgroundAttachment: 'fixed', 
+      minHeight: '100vh', 
+      color: '#fff', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      padding: '10px', 
+      position: 'relative' 
+    }}>
       
       {/* Верхняя панель с валютами */}
       <CurrencyPanel 
