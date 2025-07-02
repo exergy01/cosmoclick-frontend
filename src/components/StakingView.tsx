@@ -711,91 +711,95 @@ const StakingView: React.FC<StakingViewProps> = ({
             </div>
 
             {/* Кнопки с анимациями и защитой */}
-            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-              <button
-                onClick={() => handleWithdraw(stake.id)}
-                disabled={!isReady || isCollecting}
-                style={{
-                  padding: '15px 30px',
-                  background: isReady ? 
-                    `linear-gradient(135deg, #4ade80, #22c55e)` : 
-                    'rgba(100, 100, 100, 0.3)',
-                  border: `2px solid ${isReady ? '#4ade80' : '#666'}`,
-                  borderRadius: '15px',
-                  color: isReady ? '#fff' : '#999',
-                  fontSize: '1.1rem',
-                  fontWeight: 'bold',
-                  cursor: (isReady && !isCollecting) ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  flex: 1,
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transform: isCollecting ? 'scale(1.1)' : 'scale(1)',
-                  animation: isReady ? 'readyPulse 2s infinite' : 'none',
-                  opacity: isCollecting ? 0.8 : 1
-                }}
-                onMouseEnter={e => {
-                  if (isReady && !isCollecting) {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 0 20px #4ade80';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (isReady && !isCollecting) {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }
-                }}
-              >
-                {isCollecting ? (
-                  <span style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    gap: '10px'
-                  }}>
-                    <span style={{ 
-                      animation: 'spin 1s linear infinite',
-                      display: 'inline-block'
-                    }}>💰</span>
-                    Собираем...
-                  </span>
-                ) : (
-                  <>💰 Забрать</>
-                )}
-              </button>
+            // В StakingView.tsx найдите блок кнопок и ЗАМЕНИТЕ на это:
 
-              <button
-                onClick={() => handleCancel(stake.id)}
-                disabled={isCollecting || !canCancel}
-                title={!canCancel ? 'Стейк завершен - отмена невозможна' : 'Отменить с штрафом 10%'}
-                style={{
-                  padding: '15px 20px',
-                  background: 'transparent',
-                  border: `2px solid ${canCancel ? '#ef4444' : '#666'}`,
-                  borderRadius: '15px',
-                  color: canCancel ? '#ef4444' : '#666',
-                  fontSize: '1rem',
-                  cursor: (isCollecting || !canCancel) ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s ease',
-                  opacity: (isCollecting || !canCancel) ? 0.5 : 1
-                }}
-                onMouseEnter={e => {
-                  if (!isCollecting && canCancel) {
-                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                    e.currentTarget.style.borderColor = '#dc2626';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!isCollecting && canCancel) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.borderColor = '#ef4444';
-                  }
-                }}
-              >
-                {canCancel ? '❌ Отменить (-10%)' : '⏰ Завершен'}
-              </button>
-            </div>
+{/* Кнопки в столбик с меньшей высотой */}
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+  <button
+    onClick={() => handleWithdraw(stake.id)}
+    disabled={!isReady || isCollecting}
+    style={{
+      padding: '10px 30px', // ← УМЕНЬШЕНА ВЫСОТА с 15px до 10px
+      background: isReady ? 
+        `linear-gradient(135deg, #4ade80, #22c55e)` : 
+        'rgba(100, 100, 100, 0.3)',
+      border: `2px solid ${isReady ? '#4ade80' : '#666'}`,
+      borderRadius: '15px',
+      color: isReady ? '#fff' : '#999',
+      fontSize: '1.1rem',
+      fontWeight: 'bold',
+      cursor: (isReady && !isCollecting) ? 'pointer' : 'not-allowed',
+      transition: 'all 0.3s ease',
+      width: '200px', // ← ФИКСИРОВАННАЯ ШИРИНА
+      position: 'relative',
+      overflow: 'hidden',
+      transform: isCollecting ? 'scale(1.1)' : 'scale(1)',
+      animation: isReady ? 'readyPulse 2s infinite' : 'none',
+      opacity: isCollecting ? 0.8 : 1
+    }}
+    onMouseEnter={e => {
+      if (isReady && !isCollecting) {
+        e.currentTarget.style.transform = 'scale(1.05)';
+        e.currentTarget.style.boxShadow = '0 0 20px #4ade80';
+      }
+    }}
+    onMouseLeave={e => {
+      if (isReady && !isCollecting) {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.boxShadow = 'none';
+      }
+    }}
+  >
+    {isCollecting ? (
+      <span style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        gap: '10px'
+      }}>
+        <span style={{ 
+          animation: 'spin 1s linear infinite',
+          display: 'inline-block'
+        }}>💰</span>
+        Собираем...
+      </span>
+    ) : (
+      <>💰 Забрать</>
+    )}
+  </button>
+
+  <button
+    onClick={() => handleCancel(stake.id)}
+    disabled={isCollecting || !canCancel}
+    title={!canCancel ? 'Стейк завершен - отмена невозможна' : 'Отменить с штрафом 10%'}
+    style={{
+      padding: '10px 30px', // ← УМЕНЬШЕНА ВЫСОТА с 15px до 10px
+      background: 'transparent',
+      border: `2px solid ${canCancel ? '#ef4444' : '#666'}`,
+      borderRadius: '15px',
+      color: canCancel ? '#ef4444' : '#666',
+      fontSize: '1rem',
+      cursor: (isCollecting || !canCancel) ? 'not-allowed' : 'pointer',
+      transition: 'all 0.3s ease',
+      width: '200px', // ← ФИКСИРОВАННАЯ ШИРИНА
+      opacity: (isCollecting || !canCancel) ? 0.5 : 1
+    }}
+    onMouseEnter={e => {
+      if (!isCollecting && canCancel) {
+        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+        e.currentTarget.style.borderColor = '#dc2626';
+      }
+    }}
+    onMouseLeave={e => {
+      if (!isCollecting && canCancel) {
+        e.currentTarget.style.background = 'transparent';
+        e.currentTarget.style.borderColor = '#ef4444';
+      }
+    }}
+  >
+    {canCancel ? '❌ Отменить (-10%)' : '⏰ Завершен'}
+  </button>
+</div>
           </div>
         );
       })}
