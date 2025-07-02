@@ -153,17 +153,19 @@ const StakingView: React.FC<StakingViewProps> = ({
       window.removeEventListener('stakes-updated', handleStakeUpdate);
     };
   }, []);
+
   // 🔥 ПРАВИЛЬНЫЙ useEffect - ИСПОЛЬЗУЕТ СЕРВЕРНЫЕ ДАННЫЕ
+// 🔥 useEffect с отладкой и fallback
   useEffect(() => {
     const interval = setInterval(async () => {
       if (!player?.telegram_id) return;
       
       try {
-        // 🔥 ПОЛУЧАЕМ ГОТОВЫЕ РАСЧЕТЫ ОТ СЕРВЕРА
+        // 🔥 ПОЛУЧАЕМ ДАННЫЕ ОТ СЕРВЕРА
         const response = await fetch(`${API_URL}/api/ton/stakes/${player.telegram_id}`);
         const serverStakes = await response.json();
         
-        console.log('📊 СЕРВЕРНЫЕ ДАННЫЕ:', serverStakes);
+        console.log('📊 ПОЛНЫЕ СЕРВЕРНЫЕ ДАННЫЕ:', serverStakes);
         
         // Фильтруем для текущей системы
         const systemStakes = serverStakes.filter((stake: any) => stake.system_id === systemId);
@@ -176,32 +178,77 @@ const StakingView: React.FC<StakingViewProps> = ({
           let hasReadyStakes = false;
           
           systemStakes.forEach((stake: any) => {
-            console.log(`📊 ОБРАБОТКА СТЕЙКА ${stake.id}:`, {
-              time_left_text: stake.time_left_text,
-              progress_percent: stake.progress_percent,
-              is_ready: stake.is_ready,
-              remaining_time_ms: stake.remaining_time_ms
-            });
+            console.log(`📊 ДЕТАЛЬНЫЙ АНАЛИЗ СТЕЙКА ${stake.id}:`, stake);
             
-            // 🔥 ИСПОЛЬЗУЕМ СЕРВЕРНЫЕ ПОЛЯ
-            if (stake.time_left_text) {
+            // 🔥 ПРОВЕРЯЕМ ЕСТЬ ЛИ СЕРВЕРНЫЕ ПОЛЯ
+            if (stake.time_left_text && typeof stake.time_left_text === 'string') {
+              // Используем серверные данные
+              console.log(`✅ СЕРВЕР ДАЕТ ВРЕМЯ для стейка ${stake.id}: "${stake.time_left_text}"`);
               newTimeLeft[stake.id] = stake.time_left_text;
+              
+              if (typeof stake.progress_percent === 'number') {
+                newProgressValues[stake.id] = stake.progress_percent;
+              }
+              
+              if (stake.is_ready) {
+                hasReadyStakes = true;
+              }
             } else {
-              newTimeLeft[stake.id] = 'Загрузка с сервера...';
-            }
-            
-            if (typeof stake.progress_percent === 'number') {
-              newProgressValues[stake.id] = stake.progress_percent;
-            } else {
-              newProgressValues[stake.id] = 0;
-            }
-            
-            if (stake.is_ready) {
-              hasReadyStakes = true;
+              // 🔥 FALLBACK: Считаем на клиенте
+              console.log(`❌ СЕРВЕР НЕ ДАЕТ ВРЕМЯ для стейка ${stake.id}, считаем на клиенте`);
+              
+              const now = new Date();
+              const startTime = new Date(stake.start_date);
+              
+              let endTime;
+              if (stake.test_mode) {
+                endTime = new Date(startTime.getTime() + (stake.plan_days * 60 * 1000));
+              } else {
+                endTime = new Date(startTime.getTime() + (stake.plan_days * 24 * 60 * 60 * 1000));
+              }
+              
+              const timeLeftMs = endTime.getTime() - now.getTime();
+              const totalDurationMs = endTime.getTime() - startTime.getTime();
+              const elapsedMs = now.getTime() - startTime.getTime();
+              const progress = Math.min(100, Math.max(0, (elapsedMs / totalDurationMs) * 100));
+              
+              newProgressValues[stake.id] = progress;
+              
+              const isReady = timeLeftMs <= 0;
+              
+              if (isReady) {
+                newTimeLeft[stake.id] = 'Готово к сбору!';
+                newProgressValues[stake.id] = 100;
+                hasReadyStakes = true;
+              } else {
+                if (stake.test_mode) {
+                  const totalSeconds = Math.floor(timeLeftMs / 1000);
+                  const minutes = Math.floor(totalSeconds / 60);
+                  const seconds = totalSeconds % 60;
+                  newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
+                } else {
+                  const days = Math.floor(timeLeftMs / (1000 * 60 * 60 * 24));
+                  const hours = Math.floor((timeLeftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                  const minutes = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+                  
+                  if (days > 0) {
+                    newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
+                  } else if (hours > 0) {
+                    newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
+                  } else {
+                    newTimeLeft[stake.id] = `${minutes}м`;
+                  }
+                }
+              }
+              
+              console.log(`🔧 КЛИЕНТСКИЙ РАСЧЕТ для стейка ${stake.id}:`);
+              console.log(`   Время: "${newTimeLeft[stake.id]}"`);
+              console.log(`   Прогресс: ${progress.toFixed(1)}%`);
+              console.log(`   Готов: ${isReady}`);
             }
           });
           
-          console.log('📊 УСТАНАВЛИВАЕМ В СОСТОЯНИЕ:', { 
+          console.log('📊 ФИНАЛЬНОЕ СОСТОЯНИЕ:', { 
             timeLeft: newTimeLeft, 
             progress: newProgressValues 
           });
@@ -211,7 +258,7 @@ const StakingView: React.FC<StakingViewProps> = ({
           
           // Если есть готовые стейки - обновляем основные данные
           if (hasReadyStakes) {
-            console.log('⏰ Сервер сообщил о готовых стейках, обновляем основные данные');
+            console.log('⏰ Есть готовые стейки, обновляем основные данные');
             await fetchStakes();
           }
         }
@@ -221,8 +268,8 @@ const StakingView: React.FC<StakingViewProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [player?.telegram_id, systemId]);
-
+  }, [player?.telegram_id, systemId, stakes]);
+  
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
     try {
