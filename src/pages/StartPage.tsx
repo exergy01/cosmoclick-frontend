@@ -72,18 +72,20 @@ const StartPage: React.FC = () => {
       const isPlayerNew = !player.language;
       setIsNewPlayer(isPlayerNew);
 
-      // Регистрация в рефералы для новых игроков
-      if (isPlayerNew && player.telegram_id) {
-        const initData = (window as any).Telegram?.WebApp?.initData;
-        const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
+// Заменить строки ~80-88 в StartPage.tsx:
 
-        axios.post(`${API_URL}/api/referrals/register`, {
-          telegramId: player.telegram_id,
-          referrerId: referrerIdFromURL || undefined
-        }).catch(err => {
-          console.error('Failed to register referral:', err);
-        });
-      }
+// Регистрация в рефералы для новых игроков
+if (isPlayerNew && player.telegram_id) {
+  const initData = (window as any).Telegram?.WebApp?.initData;
+  const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
+
+  axios.post(`${API_URL}/api/referrals/register`, {
+    telegramId: player.telegram_id,
+    referrerId: referrerIdFromURL || '1222791281' // 🔥 ДЕФОЛТНЫЙ РЕФЕР
+  }).catch(err => {
+    console.error('Failed to register referral:', err);
+  });
+}
 
       if (player.language && i18n.language !== player.language && !isPlayerNew) {
         i18n.changeLanguage(player.language);
