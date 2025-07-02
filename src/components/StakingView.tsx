@@ -711,7 +711,6 @@ const StakingView: React.FC<StakingViewProps> = ({
             </div>
 
             {/* Кнопки с анимациями и защитой */}
-            // В StakingView.tsx найдите блок кнопок и ЗАМЕНИТЕ на это:
 
 {/* Кнопки в столбик с меньшей высотой */}
 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
