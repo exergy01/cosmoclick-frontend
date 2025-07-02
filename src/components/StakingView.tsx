@@ -151,49 +151,73 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
   // 🔥 ПРОСТОЙ useEffect - ТОЛЬКО ПОЛУЧАЕМ ГОТОВЫЕ ДАННЫЕ С СЕРВЕРА
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (!player?.telegram_id) return;
+// 🔥 ИСПРАВЛЕННЫЙ useEffect - правильные поля от сервера
+useEffect(() => {
+  const interval = setInterval(async () => {
+    if (!player?.telegram_id) return;
+    
+    try {
+      // 🔥 СЕРВЕР УЖЕ ВСЕ ПОСЧИТАЛ - ПРОСТО ПОЛУЧАЕМ
+      const response = await fetch(`${API_URL}/api/ton/stakes/${player.telegram_id}`);
+      const serverStakes = await response.json();
       
-      try {
-        // 🔥 СЕРВЕР УЖЕ ВСЕ ПОСЧИТАЛ - ПРОСТО ПОЛУЧАЕМ
-        const response = await fetch(`${API_URL}/api/ton/stakes/${player.telegram_id}`);
-        const serverStakes = await response.json();
+      console.log('📊 ДАННЫЕ ОТ СЕРВЕРА:', serverStakes);
+      
+      // Фильтруем для текущей системы
+      const systemStakes = serverStakes.filter((stake: any) => stake.system_id === systemId);
+      
+      console.log('📊 СТЕЙКИ ДЛЯ СИСТЕМЫ:', systemStakes);
+      
+      if (systemStakes.length > 0) {
+        const newTimeLeft: { [key: number]: string } = {};
+        const newProgressValues: { [key: number]: number } = {};
+        let hasReadyStakes = false;
         
-        // Фильтруем для текущей системы
-        const systemStakes = serverStakes.filter((stake: any) => stake.system_id === systemId);
-        
-        if (systemStakes.length > 0) {
-          const newTimeLeft: { [key: number]: string } = {};
-          const newProgressValues: { [key: number]: number } = {};
-          let hasReadyStakes = false;
-          
-          systemStakes.forEach((stake: any) => {
-            // 🔥 ПРОСТО БЕРЕМ ГОТОВЫЕ ДАННЫЕ ОТ СЕРВЕРА
-            newTimeLeft[stake.id] = stake.time_left_text;
-            newProgressValues[stake.id] = stake.progress_percent;
-            
-            if (stake.is_ready) {
-              hasReadyStakes = true;
-            }
+        systemStakes.forEach((stake: any) => {
+          // 🔥 ПРОВЕРЯЕМ КАКИЕ ПОЛЯ ЕСТЬ У СТЕЙКА
+          console.log(`📊 СТЕЙК ${stake.id}:`, {
+            time_left_text: stake.time_left_text,
+            progress_percent: stake.progress_percent,
+            is_ready: stake.is_ready,
+            remaining_time_ms: stake.remaining_time_ms
           });
           
-          setTimeLeft(newTimeLeft);
-          setProgressValues(newProgressValues);
-          
-          // Если есть готовые стейки - обновляем основные данные
-          if (hasReadyStakes) {
-            console.log('⏰ Сервер сообщил о готовых стейках, обновляем');
-            await fetchStakes();
+          // 🔥 ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЕ ПОЛЯ
+          if (stake.time_left_text) {
+            newTimeLeft[stake.id] = stake.time_left_text;
+          } else {
+            newTimeLeft[stake.id] = 'Расчет...';
           }
+          
+          if (stake.progress_percent !== undefined) {
+            newProgressValues[stake.id] = stake.progress_percent;
+          } else {
+            newProgressValues[stake.id] = 0;
+          }
+          
+          if (stake.is_ready) {
+            hasReadyStakes = true;
+          }
+        });
+        
+        console.log('📊 УСТАНАВЛИВАЕМ:', { newTimeLeft, newProgressValues });
+        
+        setTimeLeft(newTimeLeft);
+        setProgressValues(newProgressValues);
+        
+        // Если есть готовые стейки - обновляем основные данные
+        if (hasReadyStakes) {
+          console.log('⏰ Сервер сообщил о готовых стейках, обновляем');
+          await fetchStakes();
         }
-      } catch (error) {
-        console.error('❌ Ошибка получения серверных данных:', error);
       }
-    }, 1000);
+    } catch (error) {
+      console.error('❌ Ошибка получения серверных данных:', error);
+    }
+  }, 1000);
 
-    return () => clearInterval(interval);
-  }, [player?.telegram_id, systemId, stakes]);
+  return () => clearInterval(interval);
+}, [player?.telegram_id, systemId]);
 
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
@@ -713,93 +737,99 @@ const StakingView: React.FC<StakingViewProps> = ({
             {/* Кнопки с анимациями и защитой */}
 
 {/* Кнопки в столбик с меньшей высотой */}
-<div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
-  <button
-    onClick={() => handleWithdraw(stake.id)}
-    disabled={!isReady || isCollecting}
-    style={{
-      padding: '10px 30px', // ← УМЕНЬШЕНА ВЫСОТА с 15px до 10px
-      background: isReady ? 
-        `linear-gradient(135deg, #4ade80, #22c55e)` : 
-        'rgba(100, 100, 100, 0.3)',
-      border: `2px solid ${isReady ? '#4ade80' : '#666'}`,
-      borderRadius: '15px',
-      color: isReady ? '#fff' : '#999',
-      fontSize: '1.1rem',
-      fontWeight: 'bold',
-      cursor: (isReady && !isCollecting) ? 'pointer' : 'not-allowed',
-      transition: 'all 0.3s ease',
-      width: '200px', // ← ФИКСИРОВАННАЯ ШИРИНА
-      position: 'relative',
-      overflow: 'hidden',
-      transform: isCollecting ? 'scale(1.1)' : 'scale(1)',
-      animation: isReady ? 'readyPulse 2s infinite' : 'none',
-      opacity: isCollecting ? 0.8 : 1
-    }}
-    onMouseEnter={e => {
-      if (isReady && !isCollecting) {
-        e.currentTarget.style.transform = 'scale(1.05)';
-        e.currentTarget.style.boxShadow = '0 0 20px #4ade80';
-      }
-    }}
-    onMouseLeave={e => {
-      if (isReady && !isCollecting) {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.boxShadow = 'none';
-      }
-    }}
-  >
-    {isCollecting ? (
-      <span style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        gap: '10px'
-      }}>
-        <span style={{ 
-          animation: 'spin 1s linear infinite',
-          display: 'inline-block'
-        }}>💰</span>
-        Собираем...
-      </span>
-    ) : (
-      <>💰 Забрать</>
-    )}
-  </button>
+{/* Кнопки на разных строчках и растянутые */}
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Кнопка "Забрать" */}
+              <button
+                onClick={() => handleWithdraw(stake.id)}
+                disabled={!isReady || isCollecting}
+                style={{
+                  padding: '12px 20px',
+                  background: isReady ? 
+                    `linear-gradient(135deg, #4ade80, #22c55e)` : 
+                    'rgba(100, 100, 100, 0.3)',
+                  border: `2px solid ${isReady ? '#4ade80' : '#666'}`,
+                  borderRadius: '12px',
+                  color: isReady ? '#fff' : '#999',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: (isReady && !isCollecting) ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.3s ease',
+                  width: '100%',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transform: isCollecting ? 'scale(1.02)' : 'scale(1)',
+                  animation: isReady ? 'readyPulse 2s infinite' : 'none',
+                  opacity: isCollecting ? 0.8 : 1
+                }}
+                onMouseEnter={e => {
+                  if (isReady && !isCollecting) {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 0 15px #4ade80';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (isReady && !isCollecting) {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
+              >
+                {isCollecting ? (
+                  <span style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: '10px'
+                  }}>
+                    <span style={{ 
+                      animation: 'spin 1s linear infinite',
+                      display: 'inline-block'
+                    }}>💰</span>
+                    Собираем доход...
+                  </span>
+                ) : (
+                  <>💰 Забрать доход</>
+                )}
+              </button>
 
-  <button
-    onClick={() => handleCancel(stake.id)}
-    disabled={isCollecting || !canCancel}
-    title={!canCancel ? 'Стейк завершен - отмена невозможна' : 'Отменить с штрафом 10%'}
-    style={{
-      padding: '10px 30px', // ← УМЕНЬШЕНА ВЫСОТА с 15px до 10px
-      background: 'transparent',
-      border: `2px solid ${canCancel ? '#ef4444' : '#666'}`,
-      borderRadius: '15px',
-      color: canCancel ? '#ef4444' : '#666',
-      fontSize: '1rem',
-      cursor: (isCollecting || !canCancel) ? 'not-allowed' : 'pointer',
-      transition: 'all 0.3s ease',
-      width: '200px', // ← ФИКСИРОВАННАЯ ШИРИНА
-      opacity: (isCollecting || !canCancel) ? 0.5 : 1
-    }}
-    onMouseEnter={e => {
-      if (!isCollecting && canCancel) {
-        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-        e.currentTarget.style.borderColor = '#dc2626';
-      }
-    }}
-    onMouseLeave={e => {
-      if (!isCollecting && canCancel) {
-        e.currentTarget.style.background = 'transparent';
-        e.currentTarget.style.borderColor = '#ef4444';
-      }
-    }}
-  >
-    {canCancel ? '❌ Отменить (-10%)' : '⏰ Завершен'}
-  </button>
-</div>
-          </div>
+              {/* Кнопка "Отменить" */}
+              <button
+                onClick={() => handleCancel(stake.id)}
+                disabled={isCollecting || !canCancel}
+                title={!canCancel ? 'Стейк завершен - отмена невозможна' : 'Отменить с штрафом 10%'}
+                style={{
+                  padding: '12px 20px',
+                  background: 'transparent',
+                  border: `2px solid ${canCancel ? '#ef4444' : '#666'}`,
+                  borderRadius: '12px',
+                  color: canCancel ? '#ef4444' : '#666',
+                  fontSize: '0.95rem',
+                  fontWeight: 'bold',
+                  cursor: (isCollecting || !canCancel) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  width: '100%',
+                  opacity: (isCollecting || !canCancel) ? 0.5 : 1
+                }}
+                onMouseEnter={e => {
+                  if (!isCollecting && canCancel) {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    e.currentTarget.style.borderColor = '#dc2626';
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isCollecting && canCancel) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = '#ef4444';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }
+                }}
+              >
+                {canCancel ? '❌ Отменить стейк (-10% штраф)' : '⏰ Стейк завершен'}
+              </button>
+            </div>
+                      </div>
         );
       })}
 
