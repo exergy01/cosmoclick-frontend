@@ -16,8 +16,11 @@ interface Stake {
   test_mode?: boolean;
   penalty_amount?: string;
   withdrawn_at?: string;
-  start_date_utc?: string;
-  end_date_utc?: string;
+  // Новые серверные поля
+  time_left_text?: string;
+  progress_percent?: number;
+  remaining_time_ms?: number;
+  server_time_utc?: string;
 }
 
 interface StakingViewProps {
@@ -150,87 +153,77 @@ const StakingView: React.FC<StakingViewProps> = ({
       window.removeEventListener('stakes-updated', handleStakeUpdate);
     };
   }, []);
-
-  // 🔥 ПРОСТОЙ useEffect - ТОЛЬКО ПОЛУЧАЕМ ГОТОВЫЕ ДАННЫЕ С СЕРВЕРА
-// 🔥 FALLBACK useEffect - используем клиентские расчеты если сервер не готов
-useEffect(() => {
-  const interval = setInterval(() => {
-    if (!player?.telegram_id || stakes.length === 0) return;
-    
-    const newTimeLeft: { [key: number]: string } = {};
-    const newProgressValues: { [key: number]: number } = {};
-    let hasReadyStakes = false;
-    
-    stakes.forEach(stake => {
-      // 🔥 КЛИЕНТСКИЕ РАСЧЕТЫ (fallback)
-      const now = new Date();
-      const startTime = new Date(stake.start_date);
+  // 🔥 ПРАВИЛЬНЫЙ useEffect - ИСПОЛЬЗУЕТ СЕРВЕРНЫЕ ДАННЫЕ
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!player?.telegram_id) return;
       
-      let endTime;
-      if (stake.test_mode) {
-        endTime = new Date(startTime.getTime() + (stake.plan_days * 60 * 1000));
-      } else {
-        endTime = new Date(startTime.getTime() + (stake.plan_days * 24 * 60 * 60 * 1000));
-      }
-      
-      const timeLeftMs = endTime.getTime() - now.getTime();
-      const totalDurationMs = endTime.getTime() - startTime.getTime();
-      const elapsedMs = now.getTime() - startTime.getTime();
-      const progress = Math.min(100, Math.max(0, (elapsedMs / totalDurationMs) * 100));
-      
-      newProgressValues[stake.id] = progress;
-      
-      const isReady = timeLeftMs <= 0;
-      
-      if (isReady) {
-        newTimeLeft[stake.id] = 'Готово к сбору!';
-        newProgressValues[stake.id] = 100;
-        hasReadyStakes = true;
-      } else {
-        if (stake.test_mode) {
-          const totalSeconds = Math.floor(timeLeftMs / 1000);
-          const minutes = Math.floor(totalSeconds / 60);
-          const seconds = totalSeconds % 60;
-          newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
-        } else {
-          const days = Math.floor(timeLeftMs / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((timeLeftMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutes = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+      try {
+        // 🔥 ПОЛУЧАЕМ ГОТОВЫЕ РАСЧЕТЫ ОТ СЕРВЕРА
+        const response = await fetch(`${API_URL}/api/ton/stakes/${player.telegram_id}`);
+        const serverStakes = await response.json();
+        
+        console.log('📊 СЕРВЕРНЫЕ ДАННЫЕ:', serverStakes);
+        
+        // Фильтруем для текущей системы
+        const systemStakes = serverStakes.filter((stake: any) => stake.system_id === systemId);
+        
+        console.log('📊 СТЕЙКИ ДЛЯ СИСТЕМЫ:', systemStakes);
+        
+        if (systemStakes.length > 0) {
+          const newTimeLeft: { [key: number]: string } = {};
+          const newProgressValues: { [key: number]: number } = {};
+          let hasReadyStakes = false;
           
-          if (days > 0) {
-            newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
-          } else if (hours > 0) {
-            newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
-          } else {
-            newTimeLeft[stake.id] = `${minutes}м`;
+          systemStakes.forEach((stake: any) => {
+            console.log(`📊 ОБРАБОТКА СТЕЙКА ${stake.id}:`, {
+              time_left_text: stake.time_left_text,
+              progress_percent: stake.progress_percent,
+              is_ready: stake.is_ready,
+              remaining_time_ms: stake.remaining_time_ms
+            });
+            
+            // 🔥 ИСПОЛЬЗУЕМ СЕРВЕРНЫЕ ПОЛЯ
+            if (stake.time_left_text) {
+              newTimeLeft[stake.id] = stake.time_left_text;
+            } else {
+              newTimeLeft[stake.id] = 'Загрузка с сервера...';
+            }
+            
+            if (typeof stake.progress_percent === 'number') {
+              newProgressValues[stake.id] = stake.progress_percent;
+            } else {
+              newProgressValues[stake.id] = 0;
+            }
+            
+            if (stake.is_ready) {
+              hasReadyStakes = true;
+            }
+          });
+          
+          console.log('📊 УСТАНАВЛИВАЕМ В СОСТОЯНИЕ:', { 
+            timeLeft: newTimeLeft, 
+            progress: newProgressValues 
+          });
+          
+          setTimeLeft(newTimeLeft);
+          setProgressValues(newProgressValues);
+          
+          // Если есть готовые стейки - обновляем основные данные
+          if (hasReadyStakes) {
+            console.log('⏰ Сервер сообщил о готовых стейках, обновляем основные данные');
+            await fetchStakes();
           }
         }
+      } catch (error) {
+        console.error('❌ Ошибка получения серверных данных:', error);
       }
-      
-      console.log(`📊 КЛИЕНТСКИЙ РАСЧЕТ СТЕЙКА ${stake.id}:`);
-      console.log(`   Старт: ${startTime.toISOString()}`);
-      console.log(`   Конец: ${endTime.toISOString()}`);
-      console.log(`   Сейчас: ${now.toISOString()}`);
-      console.log(`   Осталось: ${timeLeftMs} мс`);
-      console.log(`   Прогресс: ${progress.toFixed(1)}%`);
-      console.log(`   Текст: "${newTimeLeft[stake.id]}"`);
-      console.log(`   Готов: ${isReady}`);
-    });
-    
-    setTimeLeft(newTimeLeft);
-    setProgressValues(newProgressValues);
-    
-    // Если есть готовые стейки - обновляем
-    if (hasReadyStakes) {
-      console.log('⏰ Есть готовые стейки, обновляем основные данные');
-      fetchStakes();
-    }
-  }, 1000);
+    }, 1000);
 
-  return () => clearInterval(interval);
-}, [player?.telegram_id, systemId, stakes]);
+    return () => clearInterval(interval);
+  }, [player?.telegram_id, systemId]);
 
-// Сбор стейка с анимацией
+  // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
     try {
       // Устанавливаем состояние сбора
@@ -337,7 +330,7 @@ useEffect(() => {
     }, 3000);
   };
 
-  // 🔥 ПРОСТАЯ отмена стейка - БЕЗ клиентских проверок времени
+  // 🔥 ПРОСТАЯ отмена стейка - доверяем серверу
   const handleCancel = async (stakeId: number) => {
     const confirmCancel = window.confirm(
       'Вы уверены что хотите отменить стейк? Вы потеряете 10% от вложенной суммы!'
@@ -609,7 +602,7 @@ useEffect(() => {
       {/* Список стейков */}
       {stakes.map(stake => {
         const isCollecting = collecting[stake.id] || false;
-        const timeLeftText = timeLeft[stake.id] || 'Загрузка...';
+        const timeLeftText = timeLeft[stake.id] || 'Получение данных...';
         const isReady = timeLeftText === 'Готово к сбору!';
         const canCancel = !isReady && !isCollecting;
         const progressPercent = progressValues[stake.id] || 0;
@@ -711,8 +704,8 @@ useEffect(() => {
               </div>
             </div>
 
-{/* Прогресс бар с анимацией */}
-<div style={{ marginBottom: '20px' }}>
+            {/* Прогресс бар с анимацией */}
+            <div style={{ marginBottom: '20px' }}>
               <div style={{ 
                 background: 'rgba(255, 255, 255, 0.1)', 
                 borderRadius: '10px', 
@@ -743,9 +736,9 @@ useEffect(() => {
               }}>
                 {timeLeftText}
               </div>
-              
-{/* 🔥 УПРОЩЕННАЯ ОТЛАДОЧНАЯ ИНФОРМАЦИЯ */}
-<div style={{ 
+
+              {/* 🔍 ОТЛАДОЧНАЯ ИНФОРМАЦИЯ (пока нужна) */}
+              <div style={{ 
                 marginTop: '15px', 
                 padding: '10px',
                 background: 'rgba(255, 255, 255, 0.1)',
@@ -755,62 +748,25 @@ useEffect(() => {
                 border: '1px solid rgba(255, 255, 255, 0.2)'
               }}>
                 <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#fff' }}>
-                  🔍 Отладка времени (стейк {stake.id}):
+                  🔍 Серверные данные (стейк {stake.id}):
                 </div>
+                <div>• time_left_text: "{stake.time_left_text || 'отсутствует'}"</div>
+                <div>• progress_percent: {stake.progress_percent || 'отсутствует'}</div>
+                <div>• is_ready: {stake.is_ready ? 'true' : 'false'}</div>
+                <div>• remaining_time_ms: {stake.remaining_time_ms || 'отсутствует'}</div>
+                <div>• server_time_utc: {stake.server_time_utc || 'отсутствует'}</div>
                 
-                {/* Базовые поля */}
-                <div style={{ marginBottom: '5px' }}>
-                  <strong>Данные стейка:</strong>
+                <div style={{ marginTop: '8px', fontWeight: 'bold', color: '#fff' }}>
+                  React состояние:
                 </div>
-                <div>• start_date: {stake.start_date}</div>
-                <div>• plan_days: {stake.plan_days}</div>
-                <div>• test_mode: {stake.test_mode ? 'true' : 'false'}</div>
-                
-                {/* Клиентские расчеты */}
-                <div style={{ marginTop: '8px', marginBottom: '5px' }}>
-                  <strong>Клиентские расчеты:</strong>
-                </div>
-                {(() => {
-                  const now = new Date();
-                  const startTime = new Date(stake.start_date);
-                  
-                  let endTime;
-                  if (stake.test_mode) {
-                    endTime = new Date(startTime.getTime() + (stake.plan_days * 60 * 1000));
-                  } else {
-                    endTime = new Date(startTime.getTime() + (stake.plan_days * 24 * 60 * 60 * 1000));
-                  }
-                  
-                  const timeLeftMs = endTime.getTime() - now.getTime();
-                  const totalDurationMs = endTime.getTime() - startTime.getTime();
-                  const elapsedMs = now.getTime() - startTime.getTime();
-                  const progress = Math.min(100, Math.max(0, (elapsedMs / totalDurationMs) * 100));
-                  
-                  return (
-                    <>
-                      <div>• Время окончания: {endTime.toISOString()}</div>
-                      <div>• Осталось мс: {timeLeftMs}</div>
-                      <div>• Прогресс: {progress.toFixed(1)}%</div>
-                      <div>• Готов: {timeLeftMs <= 0 ? 'true' : 'false'}</div>
-                    </>
-                  );
-                })()}
-                
-                {/* Состояние React */}
-                <div style={{ marginTop: '8px', marginBottom: '5px' }}>
-                  <strong>Отображается:</strong>
-                </div>
-                <div>• Текст: "{timeLeft[stake.id] || 'отсутствует'}"</div>
-                <div>• Прогресс: {progressValues[stake.id] || 'отсутствует'}%</div>
+                <div>• timeLeft[{stake.id}]: "{timeLeft[stake.id] || 'отсутствует'}"</div>
+                <div>• progressValues[{stake.id}]: {progressValues[stake.id] || 'отсутствует'}%</div>
                 <div>• isReady: {isReady ? 'true' : 'false'}</div>
               </div>
-            </div>  
+            </div>
 
-            {/* Кнопки с анимациями и защитой */}
-
-{/* Кнопки в столбик с меньшей высотой */}
-{/* Кнопки на разных строчках и растянутые */}
-<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* 🔥 КНОПКИ НА РАЗНЫХ СТРОЧКАХ И РАСТЯНУТЫЕ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {/* Кнопка "Забрать" */}
               <button
                 onClick={() => handleWithdraw(stake.id)}
@@ -901,7 +857,7 @@ useEffect(() => {
                 {canCancel ? '❌ Отменить стейк (-10% штраф)' : '⏰ Стейк завершен'}
               </button>
             </div>
-                      </div>
+          </div>
         );
       })}
 
