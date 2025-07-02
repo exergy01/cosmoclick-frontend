@@ -150,156 +150,160 @@ const StakingView: React.FC<StakingViewProps> = ({
     };
   }, []);
   // 🔥 ОБНОВЛЕННЫЙ плавный прогресс-бар через СЕРВЕРНОЕ UTC время
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const newTimeLeft: { [key: number]: string } = {};
-      const newProgressValues: { [key: number]: number } = {};
-      let needsRefresh = false;
+// 🔥 ИСПРАВЛЕННЫЙ useEffect с СЕРВЕРНЫМ TIMESTAMP (защита от смены времени)
+useEffect(() => {
+  const interval = setInterval(async () => {
+    const newTimeLeft: { [key: number]: string } = {};
+    const newProgressValues: { [key: number]: number } = {};
+    let needsRefresh = false;
+    
+    try {
+      // 🔥 ПОЛУЧАЕМ СЕРВЕРНЫЙ TIMESTAMP
+      const timeResponse = await fetch(`${API_URL}/api/ton/server-time`);
+      const timeData = await timeResponse.json();
+      const currentTimeMs = timeData.timestamp; // ← ИСПОЛЬЗУЕМ TIMESTAMP!
       
-      try {
-        // 🔥 ПОЛУЧАЕМ СЕРВЕРНОЕ UTC ВРЕМЯ
-        const timeResponse = await fetch(`${API_URL}/api/ton/server-time`);
-        const timeData = await timeResponse.json();
-        const currentTimeUTC = new Date(timeData.server_time_utc);
+      console.log(`⏰ СЕРВЕРНЫЙ TIMESTAMP: ${currentTimeMs}`);
+      console.log(`⏰ СЕРВЕРНОЕ ВРЕМЯ: ${new Date(currentTimeMs).toISOString()}`);
+      
+      stakes.forEach(stake => {
+        // 🔥 ВСЕ РАСЧЕТЫ ЧЕРЕЗ TIMESTAMP (миллисекунды)
+        const startTimeMs = new Date(stake.start_date).getTime();
         
-        console.log(`⏰ СЕРВЕРНОЕ ВРЕМЯ UTC: ${currentTimeUTC.toISOString()}`);
-        
-        stakes.forEach(stake => {
-          const startTimeUTC = new Date(stake.start_date);
-          
-          let endTimeUTC;
-          if (stake.test_mode) {
-            // Тестовый режим: добавляем минуты
-            endTimeUTC = new Date(startTimeUTC.getTime() + (stake.plan_days * 60 * 1000));
-          } else {
-            // Продакшн режим: добавляем дни
-            endTimeUTC = new Date(startTimeUTC.getTime() + (stake.plan_days * 24 * 60 * 60 * 1000));
-          }
-          
-          const totalDurationMs = endTimeUTC.getTime() - startTimeUTC.getTime();
-          const elapsedTimeMs = currentTimeUTC.getTime() - startTimeUTC.getTime();
-          const remainingTimeMs = Math.max(0, endTimeUTC.getTime() - currentTimeUTC.getTime());
-          
-          // Прогресс от 0 до 100%
-          const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
-          newProgressValues[stake.id] = progress;
-          
-          const isReady = remainingTimeMs <= 0;
-          
-          console.log(`📊 СТЕЙК ${stake.id}:`);
-          console.log(`   Старт UTC: ${startTimeUTC.toISOString()}`);
-          console.log(`   Конец UTC: ${endTimeUTC.toISOString()}`);
-          console.log(`   Серверное время: ${currentTimeUTC.toISOString()}`);
-          console.log(`   Осталось: ${remainingTimeMs} мс`);
-          console.log(`   Прогресс: ${progress.toFixed(1)}%`);
-          console.log(`   Готов: ${isReady}`);
-          
-          if (isReady) {
-            newTimeLeft[stake.id] = 'Готово к сбору!';
-            newProgressValues[stake.id] = 100;
-            
-            // 🔥 Если стейк готов, но API еще не обновился - обновляем данные
-            if (!stake.is_ready) {
-              needsRefresh = true;
-            }
-          } else {
-            // Красивое отображение оставшегося времени
-            if (stake.test_mode) {
-              const totalSeconds = Math.floor(remainingTimeMs / 1000);
-              const minutes = Math.floor(totalSeconds / 60);
-              const seconds = totalSeconds % 60;
-              newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
-            } else {
-              const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
-              const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
-              
-              if (days > 0) {
-                newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
-              } else if (hours > 0) {
-                newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
-              } else {
-                newTimeLeft[stake.id] = `${minutes}м`;
-              }
-            }
-          }
-        });
-        
-        setTimeLeft(newTimeLeft);
-        setProgressValues(newProgressValues);
-        
-        // 🔥 Автоматически обновляем данные если время истекло
-        if (needsRefresh) {
-          console.log('⏰ Время стейка истекло, обновляем данные из API');
-          fetchStakes();
+        let endTimeMs;
+        if (stake.test_mode) {
+          // Тестовый режим: добавляем минуты
+          endTimeMs = startTimeMs + (stake.plan_days * 60 * 1000);
+        } else {
+          // Продакшн режим: добавляем дни
+          endTimeMs = startTimeMs + (stake.plan_days * 24 * 60 * 60 * 1000);
         }
         
-      } catch (error) {
-        console.error('❌ Ошибка получения серверного времени:', error);
+        const totalDurationMs = endTimeMs - startTimeMs;
+        const elapsedTimeMs = currentTimeMs - startTimeMs;
+        const remainingTimeMs = Math.max(0, endTimeMs - currentTimeMs);
         
-        // 🔥 FALLBACK: используем локальное время если сервер недоступен
-        const currentTimeUTC = new Date();
+        // Прогресс от 0 до 100%
+        const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
+        newProgressValues[stake.id] = progress;
         
-        stakes.forEach(stake => {
-          const startTimeUTC = new Date(stake.start_date);
+        const isReady = remainingTimeMs <= 0;
+        
+        console.log(`📊 СТЕЙК ${stake.id}:`);
+        console.log(`   Старт: ${startTimeMs} (${new Date(startTimeMs).toISOString()})`);
+        console.log(`   Конец: ${endTimeMs} (${new Date(endTimeMs).toISOString()})`);
+        console.log(`   Сервер: ${currentTimeMs} (${new Date(currentTimeMs).toISOString()})`);
+        console.log(`   Осталось: ${remainingTimeMs} мс`);
+        console.log(`   Прогресс: ${progress.toFixed(1)}%`);
+        console.log(`   Готов: ${isReady}`);
+        
+        if (isReady) {
+          newTimeLeft[stake.id] = 'Готово к сбору!';
+          newProgressValues[stake.id] = 100;
           
-          let endTimeUTC;
+          // 🔥 Если стейк готов, но API еще не обновился - обновляем данные
+          if (!stake.is_ready) {
+            needsRefresh = true;
+          }
+        } else {
+          // Красивое отображение оставшегося времени
           if (stake.test_mode) {
-            endTimeUTC = new Date(startTimeUTC.getTime() + (stake.plan_days * 60 * 1000));
+            const totalSeconds = Math.floor(remainingTimeMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
           } else {
-            endTimeUTC = new Date(startTimeUTC.getTime() + (stake.plan_days * 24 * 60 * 60 * 1000));
-          }
-          
-          const totalDurationMs = endTimeUTC.getTime() - startTimeUTC.getTime();
-          const elapsedTimeMs = currentTimeUTC.getTime() - startTimeUTC.getTime();
-          const remainingTimeMs = Math.max(0, endTimeUTC.getTime() - currentTimeUTC.getTime());
-          
-          const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
-          newProgressValues[stake.id] = progress;
-          
-          const isReady = remainingTimeMs <= 0;
-          
-          if (isReady) {
-            newTimeLeft[stake.id] = 'Готово к сбору!';
-            newProgressValues[stake.id] = 100;
+            const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
             
-            if (!stake.is_ready) {
-              needsRefresh = true;
-            }
-          } else {
-            if (stake.test_mode) {
-              const totalSeconds = Math.floor(remainingTimeMs / 1000);
-              const minutes = Math.floor(totalSeconds / 60);
-              const seconds = totalSeconds % 60;
-              newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
+            if (days > 0) {
+              newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
+            } else if (hours > 0) {
+              newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
             } else {
-              const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
-              const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-              const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
-              
-              if (days > 0) {
-                newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
-              } else if (hours > 0) {
-                newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
-              } else {
-                newTimeLeft[stake.id] = `${minutes}м`;
-              }
+              newTimeLeft[stake.id] = `${minutes}м`;
             }
           }
-        });
-        
-        setTimeLeft(newTimeLeft);
-        setProgressValues(newProgressValues);
-        
-        if (needsRefresh) {
-          console.log('⏰ Время стейка истекло (fallback), обновляем данные из API');
-          fetchStakes();
         }
+      });
+      
+      setTimeLeft(newTimeLeft);
+      setProgressValues(newProgressValues);
+      
+      // 🔥 Автоматически обновляем данные если время истекло
+      if (needsRefresh) {
+        console.log('⏰ Время стейка истекло, обновляем данные из API');
+        fetchStakes();
       }
-    }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Ошибка получения серверного времени:', error);
+      
+      // 🔥 FALLBACK: используем локальный timestamp если сервер недоступен
+      const currentTimeMs = Date.now(); // локальный timestamp
+      
+      stakes.forEach(stake => {
+        const startTimeMs = new Date(stake.start_date).getTime();
+        
+        let endTimeMs;
+        if (stake.test_mode) {
+          endTimeMs = startTimeMs + (stake.plan_days * 60 * 1000);
+        } else {
+          endTimeMs = startTimeMs + (stake.plan_days * 24 * 60 * 60 * 1000);
+        }
+        
+        const totalDurationMs = endTimeMs - startTimeMs;
+        const elapsedTimeMs = currentTimeMs - startTimeMs;
+        const remainingTimeMs = Math.max(0, endTimeMs - currentTimeMs);
+        
+        const progress = Math.min(100, Math.max(0, (elapsedTimeMs / totalDurationMs) * 100));
+        newProgressValues[stake.id] = progress;
+        
+        const isReady = remainingTimeMs <= 0;
+        
+        if (isReady) {
+          newTimeLeft[stake.id] = 'Готово к сбору!';
+          newProgressValues[stake.id] = 100;
+          
+          if (!stake.is_ready) {
+            needsRefresh = true;
+          }
+        } else {
+          if (stake.test_mode) {
+            const totalSeconds = Math.floor(remainingTimeMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            newTimeLeft[stake.id] = `${minutes}м ${seconds}с`;
+          } else {
+            const days = Math.floor(remainingTimeMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((remainingTimeMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((remainingTimeMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (days > 0) {
+              newTimeLeft[stake.id] = `${days}д ${hours}ч ${minutes}м`;
+            } else if (hours > 0) {
+              newTimeLeft[stake.id] = `${hours}ч ${minutes}м`;
+            } else {
+              newTimeLeft[stake.id] = `${minutes}м`;
+            }
+          }
+        }
+      });
+      
+      setTimeLeft(newTimeLeft);
+      setProgressValues(newProgressValues);
+      
+      if (needsRefresh) {
+        console.log('⏰ Время стейка истекло (fallback), обновляем данные из API');
+        fetchStakes();
+      }
+    }
+  }, 1000);
 
-    return () => clearInterval(interval);
-  }, [stakes]);
+  return () => clearInterval(interval);
+}, [stakes]);
+
   // Сбор стейка с анимацией
   const handleWithdraw = async (stakeId: number) => {
     try {
