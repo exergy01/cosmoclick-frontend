@@ -1,4 +1,4 @@
-// Исправленный usePlayerData.ts с правильной реферальной логикой
+// Хук для управления данными игрока - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { useState } from 'react';
 import axios from 'axios';
 import { playerApi, referralApi } from '../services';
