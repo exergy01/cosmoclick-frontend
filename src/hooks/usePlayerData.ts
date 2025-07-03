@@ -1,4 +1,4 @@
-// Хук для управления данными игрока - ИСПРАВЛЕННАЯ ВЕРСИЯ с чтением URL параметра
+// Хук для управления данными игрока - ФИНАЛЬНАЯ ВЕРСИЯ
 import { useState } from 'react';
 import axios from 'axios';
 import { playerApi, referralApi } from '../services';
@@ -81,95 +81,89 @@ export const usePlayerData = () => {
     }
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Извлечение реферера с учетом URL параметра
-  const extractReferrer = () => {
+  // 🔥 ФУНКЦИЯ: Извлечение реферера из всех источников
+  const extractReferralData = () => {
     const telegramWebApp = (window as any).Telegram?.WebApp;
-    let referrerId = '1222791281'; // дефолтный рефер
     
-    console.log('🔍 Извлекаем реферера...');
+    console.log('🔍 === ИЗВЛЕЧЕНИЕ РЕФЕРАЛЬНЫХ ДАННЫХ ===');
     console.log('🔍 TelegramWebApp:', telegramWebApp);
     console.log('🔍 Current URL:', window.location.href);
     console.log('🔍 URL Search:', window.location.search);
     
-    // 🎯 ПРИОРИТЕТ 1: URL параметр tgWebAppStartParam (как в логах!)
+    const referralData: any = {};
+    
+    // 🎯 ИСТОЧНИК 1: URL параметр tgWebAppStartParam (самый важный!)
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
       if (tgWebAppStartParam) {
-        referrerId = tgWebAppStartParam;
-        console.log('🎯 НАЙДЕН РЕФЕРЕР в URL (tgWebAppStartParam):', referrerId);
-        return referrerId;
+        referralData.tgWebAppStartParam = tgWebAppStartParam;
+        console.log('🎯 НАЙДЕН tgWebAppStartParam:', tgWebAppStartParam);
       }
+      
+      // Другие URL параметры
+      const possibleParams = ['startapp', 'startApp', 'start', 'ref', 'referrer'];
+      possibleParams.forEach(param => {
+        const value = urlParams.get(param);
+        if (value) {
+          referralData[param] = value;
+          console.log(`🎯 НАЙДЕН ${param}:`, value);
+        }
+      });
     } catch (err) {
-      console.error('❌ Ошибка парсинга URL tgWebAppStartParam:', err);
+      console.error('❌ Ошибка парсинга URL:', err);
     }
     
-    // Приоритет 2: start_param из Telegram WebApp
+    // 🎯 ИСТОЧНИК 2: Telegram WebApp start_param
     if (telegramWebApp?.initDataUnsafe?.start_param) {
-      referrerId = telegramWebApp.initDataUnsafe.start_param;
-      console.log('🎯 Реферер найден в start_param:', referrerId);
-      return referrerId;
+      referralData.start_param = telegramWebApp.initDataUnsafe.start_param;
+      console.log('🎯 НАЙДЕН start_param:', referralData.start_param);
     }
     
-    // Приоритет 3: Парсинг initData
+    // 🎯 ИСТОЧНИК 3: Парсинг initData
     if (telegramWebApp?.initData) {
       try {
         const urlParams = new URLSearchParams(telegramWebApp.initData);
         const startParam = urlParams.get('start_param');
-        if (startParam) {
-          referrerId = startParam;
-          console.log('🎯 Реферер найден в initData:', referrerId);
-          return referrerId;
+        if (startParam && !referralData.start_param) {
+          referralData.start_param_from_initData = startParam;
+          console.log('🎯 НАЙДЕН start_param из initData:', startParam);
         }
       } catch (err) {
         console.error('❌ Ошибка парсинга initData:', err);
       }
     }
     
-    // Приоритет 4: Другие URL параметры
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const possibleParams = ['startapp', 'startApp', 'start', 'ref', 'referrer'];
-      for (const param of possibleParams) {
-        const value = urlParams.get(param);
-        if (value) {
-          referrerId = value;
-          console.log(`🎯 Реферер найден в URL (${param}):`, referrerId);
-          return referrerId;
-        }
-      }
-    } catch (err) {
-      console.error('❌ Ошибка парсинга URL параметров:', err);
-    }
+    console.log('🔍 === ИТОГОВЫЕ РЕФЕРАЛЬНЫЕ ДАННЫЕ ===');
+    console.log(referralData);
     
-    console.log('⚠️ Реферер не найден, используем дефолтный:', referrerId);
-    return referrerId;
+    return referralData;
   };
 
-  // 🔥 УПРОЩЕННАЯ регистрация нового игрока
+  // 🔥 ИСПРАВЛЕННАЯ регистрация нового игрока
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      console.log(`🎯 Создаем нового игрока через старую логику: ${telegramId}`);
+      console.log(`🎯 Создаем нового игрока: ${telegramId}`);
       
       // Получаем данные Telegram
       const telegramWebApp = (window as any).Telegram?.WebApp;
       const telegramUser = telegramWebApp?.initDataUnsafe?.user;
       
-      // 🔍 Логируем ВСЕ данные для отладки
-      console.log('🔍 TelegramWebApp:', telegramWebApp);
-      console.log('🔍 initDataUnsafe:', telegramWebApp?.initDataUnsafe);
-      console.log('🔍 start_param:', telegramWebApp?.initDataUnsafe?.start_param);
-      console.log('🔍 Current URL:', window.location.href);
-      console.log('🔍 URL Search:', window.location.search);
+      // 🔍 Извлекаем ВСЕ реферальные данные
+      const referralData = extractReferralData();
       
-      // Извлекаем реферера
-      const referrerId = extractReferrer();
-      console.log('🎯 Извлеченный реферер:', referrerId);
+      // Создаем игрока через новый endpoint с реферальными данными
+      const API_URL = process.env.NODE_ENV === 'production'
+        ? 'https://cosmoclick-backend.onrender.com'
+        : 'http://localhost:5000';
+        
+      console.log('🎯 Отправляем запрос на создание игрока с реферальными данными...');
+      const response = await axios.post(`${API_URL}/api/player/create-with-referrer`, {
+        telegramId,
+        referralData
+      });
       
-      // Просто вызываем старый endpoint - getPlayer сам создаст игрока
-      const response = await playerApi.fetchPlayer(telegramId);
-      
-      console.log('✅ Игрок создан через getPlayer:', response.data);
+      console.log('✅ Игрок создан через новый endpoint:', response.data);
       
       // Обновляем Telegram данные если доступны
       if (telegramUser && response.data) {
@@ -192,7 +186,16 @@ export const usePlayerData = () => {
       
     } catch (err: any) {
       console.error('❌ Ошибка создания игрока:', err.response?.data || err.message);
-      throw err;
+      
+      // Если новый endpoint не работает - fallback на старый способ
+      console.log('🔄 Fallback на старый способ создания игрока...');
+      try {
+        const response = await playerApi.fetchPlayer(telegramId);
+        return response.data;
+      } catch (fallbackErr) {
+        console.error('❌ Fallback тоже не работает:', fallbackErr);
+        throw err;
+      }
     }
   };
 
@@ -318,6 +321,6 @@ export const usePlayerData = () => {
     refreshPlayer,
     fetchInitialData,
     registerNewPlayer,
-    extractReferrer, // экспортируем для отладки
+    extractReferralData, // экспортируем для отладки
   };
 };
