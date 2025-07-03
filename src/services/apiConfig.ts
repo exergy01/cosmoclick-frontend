@@ -21,8 +21,20 @@ export const fetchWithRetry = async (
       return response;
     } catch (err: any) {
       console.log(`Retry ${i + 1} failed for ${url}: ${err.message}`);
+      
+      // 🔥 ИСПРАВЛЕНО: Не повторяем запросы для HTTP ошибок 4xx (клиентские ошибки)
+      if (err.response?.status >= 400 && err.response?.status < 500) {
+        console.log(`HTTP ${err.response.status} - не повторяем запрос`);
+        throw err; // 🔥 Возвращаем ОРИГИНАЛЬНУЮ ошибку с response.status
+      }
+      
       if (i === retries - 1) {
-        throw new Error(`Failed to fetch data: ${err.message}`);
+        // 🔥 ИСПРАВЛЕНО: Для сетевых ошибок сохраняем оригинальную ошибку если она есть
+        if (err.response || err.request) {
+          throw err;
+        } else {
+          throw new Error(`Failed to fetch data: ${err.message}`);
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
