@@ -1,4 +1,3 @@
-// Хук для управления данными игрока - ФИНАЛЬНАЯ ВЕРСИЯ
 import { useState } from 'react';
 import axios from 'axios';
 import { playerApi, referralApi } from '../services';
@@ -20,16 +19,13 @@ export const usePlayerData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Загрузка игрока
   const fetchPlayer = async (telegramId: string, currentSystem: number = 1) => {
     try {
       setLoading(true);
       const response = await playerApi.fetchPlayer(telegramId);
-      
       const playerData = createPlayerWithDefaults(response.data, currentSystem);
       setPlayer(playerData);
       setError(null);
-      
       return playerData;
     } catch (err: any) {
       setError(`Failed to fetch player: ${err.message}`);
@@ -40,16 +36,13 @@ export const usePlayerData = () => {
     }
   };
 
-  // Обновление игрока
   const updatePlayer = async (telegramId: string, currentSystem: number = 1) => {
     try {
       setLoading(true);
       const response = await playerApi.fetchPlayer(telegramId);
-      
       const playerData = createPlayerWithDefaults(response.data, currentSystem);
       setPlayer(playerData);
       setError(null);
-      
       return playerData;
     } catch (err: any) {
       setError(`Failed to update player: ${err.message}`);
@@ -59,21 +52,17 @@ export const usePlayerData = () => {
     }
   };
 
-  // Обновление игрока без лоадера
   const refreshPlayer = async (currentSystem: number = 1) => {
     const telegramId = getTelegramId();
     if (!telegramId) {
       setError('No telegram ID');
       return;
     }
-    
     try {
       const response = await playerApi.fetchPlayer(telegramId);
-      
       const playerData = createPlayerWithDefaults(response.data, currentSystem);
       setPlayer(playerData);
       setError(null);
-      
       return playerData;
     } catch (err: any) {
       setError(`Failed to refresh player: ${err.message}`);
@@ -81,35 +70,23 @@ export const usePlayerData = () => {
     }
   };
 
-  // 🔥 ФУНКЦИЯ: Извлечение реферера из всех источников
+  // 🔥 ГЛАВНАЯ ФУНКЦИЯ: Извлечение реферальных данных
   const extractReferralData = () => {
     const telegramWebApp = (window as any).Telegram?.WebApp;
+    const referralData: any = {};
     
     console.log('🔍 === ИЗВЛЕЧЕНИЕ РЕФЕРАЛЬНЫХ ДАННЫХ ===');
-    console.log('🔍 TelegramWebApp:', telegramWebApp);
     console.log('🔍 Current URL:', window.location.href);
     console.log('🔍 URL Search:', window.location.search);
     
-    const referralData: any = {};
-    
-    // 🎯 ИСТОЧНИК 1: URL параметр tgWebAppStartParam (самый важный!)
+    // 🎯 ИСТОЧНИК 1: URL параметр tgWebAppStartParam (САМЫЙ ВАЖНЫЙ!)
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
       if (tgWebAppStartParam) {
         referralData.tgWebAppStartParam = tgWebAppStartParam;
-        console.log('🎯 НАЙДЕН tgWebAppStartParam:', tgWebAppStartParam);
+        console.log('🎯🎯 НАЙДЕН tgWebAppStartParam:', tgWebAppStartParam);
       }
-      
-      // Другие URL параметры
-      const possibleParams = ['startapp', 'startApp', 'start', 'ref', 'referrer'];
-      possibleParams.forEach(param => {
-        const value = urlParams.get(param);
-        if (value) {
-          referralData[param] = value;
-          console.log(`🎯 НАЙДЕН ${param}:`, value);
-        }
-      });
     } catch (err) {
       console.error('❌ Ошибка парсинга URL:', err);
     }
@@ -117,53 +94,38 @@ export const usePlayerData = () => {
     // 🎯 ИСТОЧНИК 2: Telegram WebApp start_param
     if (telegramWebApp?.initDataUnsafe?.start_param) {
       referralData.start_param = telegramWebApp.initDataUnsafe.start_param;
-      console.log('🎯 НАЙДЕН start_param:', referralData.start_param);
+      console.log('🎯 start_param:', referralData.start_param);
     }
     
-    // 🎯 ИСТОЧНИК 3: Парсинг initData
-    if (telegramWebApp?.initData) {
-      try {
-        const urlParams = new URLSearchParams(telegramWebApp.initData);
-        const startParam = urlParams.get('start_param');
-        if (startParam && !referralData.start_param) {
-          referralData.start_param_from_initData = startParam;
-          console.log('🎯 НАЙДЕН start_param из initData:', startParam);
-        }
-      } catch (err) {
-        console.error('❌ Ошибка парсинга initData:', err);
-      }
-    }
-    
-    console.log('🔍 === ИТОГОВЫЕ РЕФЕРАЛЬНЫЕ ДАННЫЕ ===');
-    console.log(referralData);
-    
+    console.log('🔍 ИТОГОВЫЕ ДАННЫЕ:', referralData);
     return referralData;
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ регистрация нового игрока
+  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Использует НОВЫЙ ENDPOINT
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      console.log(`🎯 Создаем нового игрока: ${telegramId}`);
+      console.log(`🎯 СОЗДАЕМ ИГРОКА ЧЕРЕЗ НОВЫЙ ENDPOINT: ${telegramId}`);
       
-      // Получаем данные Telegram
       const telegramWebApp = (window as any).Telegram?.WebApp;
       const telegramUser = telegramWebApp?.initDataUnsafe?.user;
       
-      // 🔍 Извлекаем ВСЕ реферальные данные
+      // Извлекаем реферальные данные
       const referralData = extractReferralData();
       
-      // Создаем игрока через новый endpoint с реферальными данными
       const API_URL = process.env.NODE_ENV === 'production'
         ? 'https://cosmoclick-backend.onrender.com'
         : 'http://localhost:5000';
         
-      console.log('🎯 Отправляем запрос на создание игрока с реферальными данными...');
+      console.log('🚀 ОТПРАВЛЯЕМ ЗАПРОС НА НОВЫЙ ENDPOINT...');
+      console.log('📦 Данные:', { telegramId, referralData });
+      
+      // 🔥 ВЫЗЫВАЕМ НОВЫЙ ENDPOINT
       const response = await axios.post(`${API_URL}/api/player/create-with-referrer`, {
         telegramId,
         referralData
       });
       
-      console.log('✅ Игрок создан через новый endpoint:', response.data);
+      console.log('✅ ОТВЕТ ОТ НОВОГО ENDPOINT:', response.data);
       
       // Обновляем Telegram данные если доступны
       if (telegramUser && response.data) {
@@ -174,7 +136,6 @@ export const usePlayerData = () => {
           });
           
           const updatedResponse = await playerApi.fetchPlayer(telegramId);
-          console.log('✅ Telegram данные обновлены');
           return updatedResponse.data;
         } catch (updateErr) {
           console.error('❌ Ошибка обновления Telegram данных:', updateErr);
@@ -185,15 +146,14 @@ export const usePlayerData = () => {
       return response.data;
       
     } catch (err: any) {
-      console.error('❌ Ошибка создания игрока:', err.response?.data || err.message);
+      console.error('❌ ОШИБКА НОВОГО ENDPOINT:', err.response?.data || err.message);
       
-      // Если новый endpoint не работает - fallback на старый способ
-      console.log('🔄 Fallback на старый способ создания игрока...');
+      // Fallback на старый способ
+      console.log('🔄 Fallback на старый способ...');
       try {
         const response = await playerApi.fetchPlayer(telegramId);
         return response.data;
       } catch (fallbackErr) {
-        console.error('❌ Fallback тоже не работает:', fallbackErr);
         throw err;
       }
     }
@@ -205,7 +165,7 @@ export const usePlayerData = () => {
       setLoading(true);
       const telegramId = getTelegramId();
       
-      console.log(`🎯 [INIT] Загрузка данных для: ${telegramId}`);
+      console.log(`🎯 [INIT] Загрузка для: ${telegramId}`);
       
       if (!telegramId) {
         setError('No telegram ID');
@@ -214,10 +174,10 @@ export const usePlayerData = () => {
 
       let playerData;
       try {
-        console.log('🎯 [INIT] Ищем игрока в БД...');
+        console.log('🎯 [INIT] Ищем игрока...');
         const playerResponse = await playerApi.fetchPlayer(telegramId);
         playerData = playerResponse.data;
-        console.log('✅ [INIT] Игрок найден:', playerData);
+        console.log('✅ [INIT] Игрок найден');
         
         // Обновляем Telegram данные если нужно
         const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
@@ -238,7 +198,6 @@ export const usePlayerData = () => {
               
               const updatedResponse = await playerApi.fetchPlayer(telegramId);
               playerData = updatedResponse.data;
-              console.log('✅ [INIT] Telegram данные обновлены');
             } catch (updateErr: any) {
               console.error('❌ [INIT] Ошибка обновления Telegram данных:', updateErr);
             }
@@ -247,7 +206,7 @@ export const usePlayerData = () => {
         
       } catch (err: any) {
         if (err.response?.status === 404) {
-          console.log('🎯 [INIT] Игрок не найден, создаем нового...');
+          console.log('🎯 [INIT] Игрок не найден, создаем...');
           playerData = await registerNewPlayer(telegramId);
         } else {
           throw err;
@@ -261,7 +220,6 @@ export const usePlayerData = () => {
       try {
         const referralsResponse = await referralApi.getReferralsList(telegramId);
         referrals = referralsResponse.data || [];
-        console.log('✅ [INIT] Рефералы загружены:', referrals.length);
       } catch (err: any) {
         console.error('❌ [INIT] Ошибка загрузки рефералов:', err);
       }
@@ -269,7 +227,6 @@ export const usePlayerData = () => {
       try {
         const honorBoardResponse = await referralApi.getHonorBoard();
         honorBoard = honorBoardResponse.data || [];
-        console.log('✅ [INIT] Доска почета загружена:', honorBoard.length);
       } catch (err: any) {
         console.error('❌ [INIT] Ошибка загрузки доски почета:', err);
       }
@@ -277,11 +234,9 @@ export const usePlayerData = () => {
       // Создаем реферальную ссылку если её нет
       if (!playerData.referral_link) {
         try {
-          console.log('🎯 [INIT] Создаем реферальную ссылку...');
           await referralApi.generateReferralLink(telegramId);
           const updatedResponse = await playerApi.fetchPlayer(telegramId);
           playerData = updatedResponse.data;
-          console.log('✅ [INIT] Реферальная ссылка создана');
         } catch (err: any) {
           console.error('❌ [INIT] Ошибка создания реферальной ссылки:', err);
         }
@@ -298,11 +253,11 @@ export const usePlayerData = () => {
       setPlayer(normalizedPlayer);
       setError(null);
       
-      console.log('✅ [INIT] Загрузка завершена успешно');
+      console.log('✅ [INIT] Загрузка завершена');
       return normalizedPlayer;
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Unknown error';
-      console.error('❌ [INIT] Ошибка загрузки данных:', errorMessage);
+      console.error('❌ [INIT] Ошибка:', errorMessage);
       setError(`Failed to fetch data: ${errorMessage}`);
       throw err;
     } finally {
@@ -321,6 +276,6 @@ export const usePlayerData = () => {
     refreshPlayer,
     fetchInitialData,
     registerNewPlayer,
-    extractReferralData, // экспортируем для отладки
+    extractReferralData,
   };
 };
