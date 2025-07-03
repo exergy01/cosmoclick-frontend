@@ -1,0 +1,18 @@
+{
+  "welcome_player": "欢迎，{{username}}！",
+  "loading": "加载中...",
+  "loading_complete": "已完成！",
+  "welcome_to_cosmoclick": "欢迎来到 CosmoClick！",
+  "game_description": "CosmoClick 是一款太空点击游戏，你可以：",
+  "buy_asteroids": "购买小行星采集资源",
+  "buy_drones": "购买无人机自动采矿",
+  "buy_cargo": "升级货舱存储资源",
+  "unlock_systems": "解锁新的星系系统",
+  "stake_ton": "在第5系统中质押TON以获得收益",
+  "currencies": "货币：",
+  "ccc_description": "第1–3系统的主要货币",
+  "cs_description": "第4系统的高级货币",
+  "ton_description": "用于第5系统质押的加密货币",
+  "start_journey": "现在开始你的太空之旅！",
+  "start_game": "开始游戏！"
+}

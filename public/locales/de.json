@@ -1,0 +1,18 @@
+{
+  "welcome_player": "Willkommen, {{username}}!",
+  "loading": "Lädt...",
+  "loading_complete": "Fertig!",
+  "welcome_to_cosmoclick": "Willkommen bei CosmoClick!",
+  "game_description": "CosmoClick ist ein Weltraum-Klickspiel, in dem du:",
+  "buy_asteroids": "Asteroiden kaufst, um Ressourcen abzubauen",
+  "buy_drones": "Drohnen kaufst für automatischen Abbau",
+  "buy_cargo": "Cargo aufrüstest, um Ressourcen zu lagern",
+  "unlock_systems": "Neue Sternensysteme freischaltest",
+  "stake_ton": "TON im System 5 stakest, um Gewinne zu erzielen",
+  "currencies": "Währungen:",
+  "ccc_description": "Hauptwährung für Systeme 1–3",
+  "cs_description": "fortgeschrittene Währung für System 4",
+  "ton_description": "Kryptowährung zum Staking im System 5",
+  "start_journey": "Beginne jetzt deine Weltraumreise!",
+  "start_game": "Spiel starten!"
+}

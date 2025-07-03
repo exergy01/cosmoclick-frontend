@@ -81,15 +81,19 @@ export const usePlayerData = () => {
     }
   };
 
-  // Регистрация нового игрока с данными Telegram
+  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Регистрация нового игрока с реферальной логикой
   const registerNewPlayer = async (telegramId: string) => {
     try {
       const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
       
-      const response = await playerApi.registerNewPlayer(telegramId);
+      console.log(`🎯 Создаем нового игрока: ${telegramId}`);
       
-      // Если есть данные Telegram - обновляем игрока
-      if (telegramUser && response.data) {
+      // 1️⃣ СОЗДАЕМ ИГРОКА СНАЧАЛА
+      const response = await playerApi.registerNewPlayer(telegramId);
+      let playerData = response.data;
+      
+      // 2️⃣ Если есть данные Telegram - обновляем игрока
+      if (telegramUser && playerData) {
         try {
           await playerApi.updatePlayer(telegramId, {
             first_name: telegramUser.first_name || `User${telegramId.slice(-4)}`,
@@ -98,19 +102,38 @@ export const usePlayerData = () => {
           
           // Получаем обновленного игрока
           const updatedResponse = await playerApi.fetchPlayer(telegramId);
-          return updatedResponse.data;
+          playerData = updatedResponse.data;
+          
         } catch (updateErr) {
           console.error('Failed to update player with Telegram data:', updateErr);
-          return response.data;
         }
       }
       
-      if (!response.data) {
+      // 3️⃣ ТЕПЕРЬ РЕГИСТРИРУЕМ В РЕФЕРАЛЫ (ИГРОК УЖЕ СОЗДАН)
+      try {
+        // Получаем реферера из URL или используем дефолтного
+        const initData = (window as any).Telegram?.WebApp?.initData;
+        const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
+        const referrerId = referrerIdFromURL || '1222791281'; // дефолтный рефер
+        
+        console.log(`🎯 Регистрируем нового игрока ${telegramId} под рефером ${referrerId}`);
+        
+        await referralApi.registerReferral(telegramId, referrerId);
+        console.log(`✅ Реферальная регистрация успешна: ${telegramId} → ${referrerId}`);
+        
+      } catch (referralErr: any) {
+        console.error('❌ Failed to register referral:', referralErr);
+        // НЕ падаем если реферальная регистрация не удалась - игрок уже создан
+      }
+      
+      if (!playerData) {
         throw new Error('Registration failed');
       }
-      return response.data;
+      
+      return playerData;
+      
     } catch (err: any) {
-      console.error('Registration error:', err.message);
+      console.error('❌ Registration error:', err.message);
       throw err;
     }
   };
@@ -161,6 +184,8 @@ export const usePlayerData = () => {
         
       } catch (err: any) {
         if (err.response?.status === 404) {
+          // 🔥 ИГРОК НЕ НАЙДЕН - СОЗДАЕМ С РЕФЕРАЛЬНОЙ ЛОГИКОЙ
+          console.log(`🎯 Игрок ${telegramId} не найден, создаем нового...`);
           playerData = await registerNewPlayer(telegramId);
         } else {
           throw err;

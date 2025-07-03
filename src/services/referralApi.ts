@@ -3,6 +3,14 @@ import axios from 'axios';
 import { API_URL, fetchWithRetry } from './apiConfig';
 
 export const referralApi = {
+  // 🎯 НОВАЯ ФУНКЦИЯ: Зарегистрировать реферала
+  registerReferral: async (telegramId: string, referrerId: string) => {
+    return await axios.post(`${API_URL}/api/referrals/register`, {
+      telegramId,
+      referrerId,
+    });
+  },
+
   // Создать реферальную ссылку
   generateReferralLink: async (telegramId: string) => {
     return await axios.post(`${API_URL}/api/referrals/create`, {

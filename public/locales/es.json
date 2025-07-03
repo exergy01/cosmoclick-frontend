@@ -1,0 +1,18 @@
+{
+  "welcome_player": "¡Bienvenido, {{username}}!",
+  "loading": "Cargando...",
+  "loading_complete": "¡Listo!",
+  "welcome_to_cosmoclick": "¡Bienvenido a CosmoClick!",
+  "game_description": "CosmoClick es un juego de clics espaciales donde tú:",
+  "buy_asteroids": "Compras asteroides para extraer recursos",
+  "buy_drones": "Compras drones para minería automática",
+  "buy_cargo": "Mejoras la carga para almacenar recursos",
+  "unlock_systems": "Desbloqueas nuevos sistemas estelares",
+  "stake_ton": "Haces staking de TON en el sistema 5 para obtener ganancias",
+  "currencies": "Monedas:",
+  "ccc_description": "moneda principal para los sistemas 1–3",
+  "cs_description": "moneda avanzada para el sistema 4",
+  "ton_description": "criptomoneda para staking en el sistema 5",
+  "start_journey": "¡Comienza tu viaje espacial ahora!",
+  "start_game": "¡Comenzar juego!"
+}

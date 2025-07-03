@@ -1,0 +1,18 @@
+{
+  "welcome_player": "ようこそ、{{username}}！",
+  "loading": "読み込み中...",
+  "loading_complete": "完了！",
+  "welcome_to_cosmoclick": "CosmoClick へようこそ！",
+  "game_description": "CosmoClick は、次のことができる宇宙クリッカーゲームです：",
+  "buy_asteroids": "資源を採掘するために小惑星を購入する",
+  "buy_drones": "自動採掘用にドローンを購入する",
+  "buy_cargo": "資源を保存するためにカーゴを強化する",
+  "unlock_systems": "新しい恒星系をアンロックする",
+  "stake_ton": "第5システムでTONをステーキングして利益を得る",
+  "currencies": "通貨：",
+  "ccc_description": "システム1〜3の主要通貨",
+  "cs_description": "システム4の高度な通貨",
+  "ton_description": "システム5でステーキングする暗号通貨",
+  "start_journey": "今すぐ宇宙の旅を始めましょう！",
+  "start_game": "ゲームを始める！"
+}
