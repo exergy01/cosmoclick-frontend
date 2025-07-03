@@ -1,4 +1,4 @@
-// Хук для управления данными игрока - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Хук для управления данными игрока - ИСПРАВЛЕННАЯ ВЕРСИЯ с чтением URL параметра
 import { useState } from 'react';
 import axios from 'axios';
 import { playerApi, referralApi } from '../services';
@@ -12,7 +12,6 @@ interface Player {
   ccc: number | string;
   cs: number | string;
   ton: number | string;
-  // ... остальные поля
   [key: string]: any;
 }
 
@@ -82,23 +81,37 @@ export const usePlayerData = () => {
     }
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Универсальное извлечение реферера
+  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Извлечение реферера с учетом URL параметра
   const extractReferrer = () => {
     const telegramWebApp = (window as any).Telegram?.WebApp;
     let referrerId = '1222791281'; // дефолтный рефер
     
     console.log('🔍 Извлекаем реферера...');
     console.log('🔍 TelegramWebApp:', telegramWebApp);
-    console.log('🔍 initDataUnsafe:', telegramWebApp?.initDataUnsafe);
+    console.log('🔍 Current URL:', window.location.href);
+    console.log('🔍 URL Search:', window.location.search);
     
-    // Приоритет 1: start_param из Telegram WebApp (для Mini Apps)
+    // 🎯 ПРИОРИТЕТ 1: URL параметр tgWebAppStartParam (как в логах!)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
+      if (tgWebAppStartParam) {
+        referrerId = tgWebAppStartParam;
+        console.log('🎯 НАЙДЕН РЕФЕРЕР в URL (tgWebAppStartParam):', referrerId);
+        return referrerId;
+      }
+    } catch (err) {
+      console.error('❌ Ошибка парсинга URL tgWebAppStartParam:', err);
+    }
+    
+    // Приоритет 2: start_param из Telegram WebApp
     if (telegramWebApp?.initDataUnsafe?.start_param) {
       referrerId = telegramWebApp.initDataUnsafe.start_param;
       console.log('🎯 Реферер найден в start_param:', referrerId);
       return referrerId;
     }
     
-    // Приоритет 2: Парсинг initData
+    // Приоритет 3: Парсинг initData
     if (telegramWebApp?.initData) {
       try {
         const urlParams = new URLSearchParams(telegramWebApp.initData);
@@ -113,82 +126,50 @@ export const usePlayerData = () => {
       }
     }
     
-    // Приоритет 3: URL параметры страницы
+    // Приоритет 4: Другие URL параметры
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
-      if (tgWebAppStartParam) {
-        referrerId = tgWebAppStartParam;
-        console.log('🎯 Реферер найден в URL (tgWebAppStartParam):', referrerId);
-        return referrerId;
-      }
-    } catch (err) {
-      console.error('❌ Ошибка парсинга URL:', err);
-    }
-    
-    // Приоритет 4: Парсинг текущего URL на наличие реферальных паттернов
-    try {
-      const currentUrl = window.location.href;
-      const patterns = [
-        /[?&]start=([^&]+)/,
-        /[?&]startapp=([^&]+)/,
-        /[?&]startApp=([^&]+)/,
-        /[?&]ref=([^&]+)/,
-        /[?&]referrer=([^&]+)/
-      ];
-      
-      for (const pattern of patterns) {
-        const match = currentUrl.match(pattern);
-        if (match && match[1]) {
-          referrerId = match[1];
-          console.log('🎯 Реферер найден в URL (паттерн):', referrerId);
+      const possibleParams = ['startapp', 'startApp', 'start', 'ref', 'referrer'];
+      for (const param of possibleParams) {
+        const value = urlParams.get(param);
+        if (value) {
+          referrerId = value;
+          console.log(`🎯 Реферер найден в URL (${param}):`, referrerId);
           return referrerId;
         }
       }
     } catch (err) {
-      console.error('❌ Ошибка парсинга URL паттернов:', err);
+      console.error('❌ Ошибка парсинга URL параметров:', err);
     }
     
     console.log('⚠️ Реферер не найден, используем дефолтный:', referrerId);
     return referrerId;
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Регистрация нового игрока
+  // 🔥 УПРОЩЕННАЯ регистрация нового игрока
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      console.log(`🎯 Создаем нового игрока: ${telegramId}`);
+      console.log(`🎯 Создаем нового игрока через старую логику: ${telegramId}`);
       
       // Получаем данные Telegram
       const telegramWebApp = (window as any).Telegram?.WebApp;
       const telegramUser = telegramWebApp?.initDataUnsafe?.user;
       
-      // 🔥 ИСПРАВЛЕНО: Извлекаем реферера универсальным способом
+      // 🔍 Логируем ВСЕ данные для отладки
+      console.log('🔍 TelegramWebApp:', telegramWebApp);
+      console.log('🔍 initDataUnsafe:', telegramWebApp?.initDataUnsafe);
+      console.log('🔍 start_param:', telegramWebApp?.initDataUnsafe?.start_param);
+      console.log('🔍 Current URL:', window.location.href);
+      console.log('🔍 URL Search:', window.location.search);
+      
+      // Извлекаем реферера
       const referrerId = extractReferrer();
+      console.log('🎯 Извлеченный реферер:', referrerId);
       
-      const referralData = {
-        start_param: telegramWebApp?.initDataUnsafe?.start_param || null,
-        initData: telegramWebApp?.initData || null,
-        url: window.location.href || null,
-        extractedReferrer: referrerId // добавляем извлеченного реферера
-      };
+      // Просто вызываем старый endpoint - getPlayer сам создаст игрока
+      const response = await playerApi.fetchPlayer(telegramId);
       
-      console.log('🔗 Данные для создания игрока:', {
-        telegramId,
-        referrerId,
-        referralData
-      });
-      
-      // Создаем игрока через новый endpoint
-      const API_URL = process.env.NODE_ENV === 'production'
-        ? 'https://cosmoclick-backend.onrender.com'
-        : 'http://localhost:5000';
-        
-      const response = await axios.post(`${API_URL}/api/player/create`, {
-        telegramId,
-        referralData
-      });
-      
-      console.log('✅ Игрок создан:', response.data);
+      console.log('✅ Игрок создан через getPlayer:', response.data);
       
       // Обновляем Telegram данные если доступны
       if (telegramUser && response.data) {
