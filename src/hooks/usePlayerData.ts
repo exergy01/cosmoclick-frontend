@@ -1,5 +1,6 @@
 // Хук для управления данными игрока
 import { useState } from 'react';
+import axios from 'axios'; // 🔥 ДОБАВИТЬ ЭТОТ ИМПОРТ
 import { playerApi, referralApi } from '../services';
 import { createPlayerWithDefaults } from '../utils/dataTransforms';
 import { getTelegramId } from '../utils/telegram';
@@ -83,29 +84,43 @@ export const usePlayerData = () => {
 
   // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Регистрация нового игрока с реферальной логикой
 // Регистрация нового игрока с реферальной логикой
+// Заменить функцию registerNewPlayer на:
 const registerNewPlayer = async (telegramId: string) => {
   try {
-    const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
+    console.log(`🎯 Создаем нового игрока: ${telegramId}`);
     
-    console.log(`🎯 [STEP 1] Создаем нового игрока: ${telegramId}`);
+    // 🔗 СОБИРАЕМ ВСЕ ВОЗМОЖНЫЕ ДАННЫЕ О РЕФЕРАЛЕ
+    const telegramWebApp = (window as any).Telegram?.WebApp;
+    const telegramUser = telegramWebApp?.initDataUnsafe?.user;
     
-    // 1️⃣ СОЗДАЕМ ИГРОКА СНАЧАЛА
-    let response;
-    try {
-      response = await playerApi.registerNewPlayer(telegramId);
-      console.log(`✅ [STEP 1] Игрок создан успешно:`, response.data);
-    } catch (createErr: any) {
-      console.error(`❌ [STEP 1] Ошибка создания игрока:`, createErr.response?.data || createErr.message);
-      throw createErr;
-    }
+    const referralData = {
+      // Приоритет 1: start_param из Telegram WebApp
+      start_param: telegramWebApp?.initDataUnsafe?.start_param || null,
+      
+      // Приоритет 2: initData для парсинга
+      initData: telegramWebApp?.initData || null,
+      
+      // Приоритет 3: текущий URL страницы
+      url: window.location.href || null
+    };
     
-    let playerData = response.data;
+    console.log(`🔗 Собранные данные реферала:`, referralData);
     
-    // 2️⃣ Если есть данные Telegram - обновляем игрока
-    if (telegramUser && playerData) {
+    // Создаем игрока с реферальными данными
+    const API_URL = process.env.NODE_ENV === 'production'
+      ? 'https://cosmoclick-backend.onrender.com'
+      : 'http://localhost:5000';
+      
+    const response = await axios.post(`${API_URL}/api/player/create`, {
+      telegramId,
+      referralData
+    });
+    
+    console.log(`✅ Игрок создан успешно:`, response.data);
+    
+    // Обновляем данные Telegram если доступны
+    if (telegramUser && response.data) {
       try {
-        console.log(`🎯 [STEP 2] Обновляем данные Telegram:`, telegramUser);
-        
         await playerApi.updatePlayer(telegramId, {
           first_name: telegramUser.first_name || `User${telegramId.slice(-4)}`,
           username: telegramUser.username || `user_${telegramId}`
@@ -113,41 +128,17 @@ const registerNewPlayer = async (telegramId: string) => {
         
         // Получаем обновленного игрока
         const updatedResponse = await playerApi.fetchPlayer(telegramId);
-        playerData = updatedResponse.data;
-        console.log(`✅ [STEP 2] Данные Telegram обновлены`);
-        
-      } catch (updateErr: any) {
-        console.error(`❌ [STEP 2] Ошибка обновления Telegram данных:`, updateErr.response?.data || updateErr.message);
-        // Продолжаем даже если обновление не удалось
+        return updatedResponse.data;
+      } catch (updateErr) {
+        console.error('Failed to update Telegram data:', updateErr);
+        return response.data;
       }
     }
     
-    // 3️⃣ ТЕПЕРЬ РЕГИСТРИРУЕМ В РЕФЕРАЛЫ (ИГРОК УЖЕ СОЗДАН)
-    try {
-      // Получаем реферера из URL или используем дефолтного
-      const initData = (window as any).Telegram?.WebApp?.initData;
-      const referrerIdFromURL = initData ? new URLSearchParams(initData).get('start') : null;
-      const referrerId = referrerIdFromURL || '1222791281'; // дефолтный рефер
-      
-      console.log(`🎯 [STEP 3] Регистрируем в рефералы: ${telegramId} → ${referrerId}`);
-      
-      await referralApi.registerReferral(telegramId, referrerId);
-      console.log(`✅ [STEP 3] Реферальная регистрация успешна`);
-      
-    } catch (referralErr: any) {
-      console.error(`❌ [STEP 3] Ошибка реферальной регистрации:`, referralErr.response?.data || referralErr.message);
-      // НЕ падаем если реферальная регистрация не удалась - игрок уже создан
-    }
-    
-    if (!playerData) {
-      throw new Error('Registration failed - no player data');
-    }
-    
-    console.log(`✅ [FINAL] Регистрация завершена успешно`);
-    return playerData;
+    return response.data;
     
   } catch (err: any) {
-    console.error('❌ [FINAL] Registration error:', err.response?.data || err.message);
+    console.error('❌ Ошибка создания игрока:', err.response?.data || err.message);
     throw err;
   }
 };
