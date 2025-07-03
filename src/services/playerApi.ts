@@ -21,23 +21,10 @@ export const playerApi = {
     return await axios.post(`${API_URL}/api/player/${telegramId}`, data);
   },
 
-  // Регистрация нового игрока
+  // 🔥 ИСПРАВЛЕНО: Регистрация нового игрока через правильный endpoint
   registerNewPlayer: async (telegramId: string) => {
-    return await axios.post(`${API_URL}/api/register/${telegramId}`, {
-      telegram_id: telegramId,
-      username: `User${telegramId.slice(-4)}`,
-      language: 'en',
-      ccc: 0,
-      cs: 0,
-      ton: 0,
-      last_collection_time: { "1": new Date().toISOString() },
-      cargo_levels: [],
-      collected_by_system: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
-      drones: [],
-      asteroids: [],
-      mining_speed_data: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
-      asteroid_total_data: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
-      max_cargo_capacity_data: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 },
+    return await axios.post(`${API_URL}/api/player/create`, {
+      telegramId: telegramId
     });
   },
 
