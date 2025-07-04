@@ -14,12 +14,20 @@ const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { player, currentSystem } = usePlayer(); // убрали setPlayer и refreshPlayer
-  const [loading, setLoading] = useState(false); // изменили на false, так как данные уже должны быть загружены
+  const { player, currentSystem } = usePlayer();
+  
+  // Состояние для всплывающего сообщения
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [showToast, setShowToast] = useState(false);
 
-  // УБРАЛИ calculateTotalPerHour - теперь CurrencyPanel сам все считает с currentSystem
-
-  // УБРАЛИ useEffect с fetchData - данные загружаются в PlayerContext при старте игры
+  // Функция для показа всплывающего сообщения
+  const showToastMessage = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 1500);
+  };
 
   const handleShare = () => {
     if (navigator.share && player?.referral_link) {
@@ -27,49 +35,81 @@ const ReferralsPage: React.FC = () => {
         title: t('share_referral_link'),
         text: `${t('join_cosmo_click')} ${player.referral_link}`,
         url: player.referral_link,
-      }).catch(err => console.error('Ошибка share:', err));
+      }).then(() => {
+        console.log('Share successful');
+      }).catch(err => {
+        console.error('Ошибка share:', err);
+        // Fallback - копируем в буфер обмена
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(player.referral_link).then(() => {
+            showToastMessage('Ссылка скопирована');
+          }).catch(() => {
+            showToastMessage('Ошибка копирования');
+          });
+        } else {
+          showToastMessage('Поделиться недоступно');
+        }
+      });
     } else {
-      console.log('Share failed: referral_link is', player?.referral_link);
-      alert(t('share_failed'));
+      console.log('Share API недоступен, копируем в буфер');
+      // Fallback для браузеров без поддержки Web Share API
+      if (navigator.clipboard && player?.referral_link) {
+        navigator.clipboard.writeText(player.referral_link).then(() => {
+          showToastMessage('Ссылка скопирована');
+        }).catch(() => {
+          showToastMessage('Ошибка копирования');
+        });
+      } else {
+        showToastMessage('Поделиться недоступно');
+      }
     }
   };
 
   const handleCopy = () => {
     if (player?.referral_link) {
-      navigator.clipboard.writeText(player.referral_link).then(() => {
-        alert(t('link_copied'));
-      }).catch(err => console.error('Ошибка копирования:', err));
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(player.referral_link).then(() => {
+          showToastMessage('Ссылка скопирована');
+        }).catch(err => {
+          console.error('Ошибка копирования:', err);
+          showToastMessage('Ошибка копирования');
+        });
+      } else {
+        // Fallback для старых браузеров
+        try {
+          const textArea = document.createElement('textarea');
+          textArea.value = player.referral_link;
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          showToastMessage('Ссылка скопирована');
+        } catch (err) {
+          console.error('Fallback копирование не сработало:', err);
+          showToastMessage('Ошибка копирования');
+        }
+      }
     } else {
       console.log('Copy failed: referral_link is', player?.referral_link);
-      alert(t('copy_failed'));
-    }
-  };
-
-  // Функция для принудительного обновления рефералов (если нужно)
-  const refreshReferrals = async () => {
-    if (!player?.telegram_id) return;
-    
-    setLoading(true);
-    try {
-      const referralsResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
-      const honorBoardResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`);
-      
-      // Здесь нужно будет добавить метод в PlayerContext для обновления только рефералов
-      // А не перезаписывать весь объект player
-      console.log('Обновленные данные рефералов:', referralsResponse.data);
-      console.log('Обновленная доска почета:', honorBoardResponse.data);
-      
-      // TODO: Добавить updateReferrals в PlayerContext
-      // updateReferrals(referralsResponse.data, honorBoardResponse.data);
-      
-    } catch (err) {
-      console.error('Ошибка обновления рефералов:', err);
-    } finally {
-      setLoading(false);
+      showToastMessage('Ссылка недоступна');
     }
   };
 
   const colorStyle = player?.color || '#00f0ff';
+
+  // Проверяем, является ли текущий игрок дефолтным
+  const isDefaultPlayer = player?.telegram_id === '1222791281';
+
+  // Фильтруем рефералов (убираем дефолтного игрока для всех кроме него самого)
+  const filteredReferrals = player?.referrals?.filter((ref: any) => 
+    isDefaultPlayer || ref.referred_id !== '1222791281'
+  ) || [];
+
+  // Фильтруем доску почета (убираем дефолтного игрока для всех кроме него самого)
+  const filteredHonorBoard = player?.honor_board?.filter((entry: any) => 
+    isDefaultPlayer || entry.telegram_id !== '1222791281'
+  ) || [];
 
   // Показываем загрузку только если нет данных игрока вообще
   if (!player) {
@@ -90,6 +130,43 @@ const ReferralsPage: React.FC = () => {
         position: 'relative',
       }}
     >
+      {/* Всплывающее сообщение */}
+      {showToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: `linear-gradient(135deg, ${colorStyle}80, ${colorStyle}60)`,
+            border: `2px solid ${colorStyle}`,
+            borderRadius: '15px',
+            padding: '20px 30px',
+            boxShadow: `0 0 30px ${colorStyle}`,
+            color: '#fff',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            zIndex: 1000,
+            animation: 'fadeInOut 1.5s ease-in-out',
+            textAlign: 'center'
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
+
+      {/* CSS для анимации всплывающего сообщения */}
+      <style>
+        {`
+          @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          }
+        `}
+      </style>
+
       {/* Верхняя панель с валютами */}
       <CurrencyPanel 
         player={player}
@@ -129,11 +206,18 @@ const ReferralsPage: React.FC = () => {
             }}>
               {player?.referral_link || 'Загружается...'}
             </p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            
+            {/* Кнопки поделиться и скопировать */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '10px', 
+              margin: '0 10px'
+            }}>
               <button
                 onClick={handleShare}
                 style={{
-                  padding: '12px 20px',
+                  padding: '12px 10px',
                   background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                   border: `2px solid ${colorStyle}`,
                   borderRadius: '12px',
@@ -141,7 +225,9 @@ const ReferralsPage: React.FC = () => {
                   color: '#fff',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                  width: '100%'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.transform = 'scale(1.05)';
@@ -154,10 +240,11 @@ const ReferralsPage: React.FC = () => {
               >
                 📤 {t('share')}
               </button>
+              
               <button
                 onClick={handleCopy}
                 style={{
-                  padding: '12px 20px',
+                  padding: '12px 10px',
                   background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                   border: `2px solid ${colorStyle}`,
                   borderRadius: '12px',
@@ -165,7 +252,9 @@ const ReferralsPage: React.FC = () => {
                   color: '#fff',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                  width: '100%'
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.transform = 'scale(1.05)';
@@ -177,35 +266,6 @@ const ReferralsPage: React.FC = () => {
                 }}
               >
                 📋 {t('copy')}
-              </button>
-              
-              {/* Кнопка обновления (опционально) */}
-              <button
-                onClick={refreshReferrals}
-                disabled={loading}
-                style={{
-                  padding: '12px 20px',
-                  background: loading ? 'rgba(128, 128, 128, 0.3)' : `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
-                  border: `2px solid ${loading ? '#888' : colorStyle}`,
-                  borderRadius: '12px',
-                  boxShadow: loading ? 'none' : `0 0 15px ${colorStyle}`,
-                  color: '#fff',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontWeight: 'bold'
-                }}
-                onMouseEnter={e => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
-                  }
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = loading ? 'none' : `0 0 15px ${colorStyle}`;
-                }}
-              >
-                {loading ? '🔄' : '🔄'} {loading ? 'Обновление...' : 'Обновить'}
               </button>
             </div>
           </div>
@@ -231,7 +291,7 @@ const ReferralsPage: React.FC = () => {
             <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
               📋 {t('referral_list')}
             </h3>
-            {(player?.referrals && player.referrals.length > 0) ? (
+            {(filteredReferrals && filteredReferrals.length > 0) ? (
               <div style={{ 
                 background: 'rgba(0, 0, 0, 0.3)', 
                 border: `2px solid ${colorStyle}`, 
@@ -248,7 +308,7 @@ const ReferralsPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {player.referrals.map((ref: any, index: number) => (
+                    {filteredReferrals.map((ref: any, index: number) => (
                       <tr key={index} style={{ transition: 'background 0.3s ease' }}>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
                           {ref.username || `${t('referral')} #${index + 1}`}
@@ -285,7 +345,7 @@ const ReferralsPage: React.FC = () => {
             <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
               🏆 {t('honor_board')}
             </h3>
-            {(player?.honor_board && player.honor_board.length > 0) ? (
+            {(filteredHonorBoard && filteredHonorBoard.length > 0) ? (
               <div style={{ 
                 background: 'rgba(0, 0, 0, 0.3)', 
                 border: `2px solid ${colorStyle}`, 
@@ -302,7 +362,7 @@ const ReferralsPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {player.honor_board.sort((a: any, b: any) => (b.referrals_count || 0) - (a.referrals_count || 0)).slice(0, 10).map((entry: any, index: number) => (
+                    {filteredHonorBoard.sort((a: any, b: any) => (b.referrals_count || 0) - (a.referrals_count || 0)).slice(0, 10).map((entry: any, index: number) => (
                       <tr key={index} style={{ 
                         background: entry.telegram_id === player?.telegram_id ? `${colorStyle}20` : 'transparent',
                         transition: 'background 0.3s ease'
