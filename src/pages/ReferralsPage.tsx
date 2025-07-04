@@ -19,6 +19,34 @@ const ReferralsPage: React.FC = () => {
   // Состояние для всплывающего сообщения
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
+  
+  // Состояние для отладочных данных из БД
+  const [debugData, setDebugData] = useState<any>(null);
+
+  // 🔍 ОТЛАДКА - загружаем данные напрямую из БД
+  useEffect(() => {
+    const loadDebugData = async () => {
+      if (!player?.telegram_id) return;
+      
+      try {
+        // Считаем из таблицы players где referrer_id = наш ID
+        const countResponse = await axios.get(`${apiUrl}/api/debug/count-referrals/${player.telegram_id}`);
+        
+        // Получаем список из таблицы referrals
+        const listResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
+        
+        setDebugData({
+          countFromPlayers: countResponse.data,
+          listFromReferrals: listResponse.data
+        });
+      } catch (err) {
+        console.error('Debug error:', err);
+        setDebugData({ error: 'Ошибка загрузки отладочных данных' });
+      }
+    };
+    
+    loadDebugData();
+  }, [player?.telegram_id]);
 
   // 🔍 ОТЛАДКА - добавляем логи
   console.log('🔍 ДАННЫЕ ИГРОКА:', {
@@ -255,6 +283,18 @@ const ReferralsPage: React.FC = () => {
             <p><strong>Is Default Player:</strong> {isDefaultPlayer ? 'ДА' : 'НЕТ'}</p>
             <p><strong>Filtered Referrals:</strong> {JSON.stringify(filteredReferrals)}</p>
             <p><strong>Filtered Honor Board:</strong> {JSON.stringify(filteredHonorBoard)}</p>
+            
+            <hr style={{ margin: '10px 0', borderColor: 'red' }} />
+            <h5 style={{ color: 'red' }}>📊 ДАННЫЕ ИЗ БД:</h5>
+            {debugData ? (
+              <>
+                <p><strong>Count from players.referrer_id:</strong> {JSON.stringify(debugData.countFromPlayers || 'загрузка...')}</p>
+                <p><strong>List from referrals table:</strong> {JSON.stringify(debugData.listFromReferrals || 'загрузка...')}</p>
+                {debugData.error && <p style={{ color: 'red' }}><strong>Ошибка:</strong> {debugData.error}</p>}
+              </>
+            ) : (
+              <p>Загружаем данные из БД...</p>
+            )}
           </div>
           
           {/* Реферальная ссылка */}
