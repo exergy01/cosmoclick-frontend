@@ -31,33 +31,26 @@ const ReferralsPage: React.FC = () => {
 
   const handleShare = () => {
     if (player?.referral_link) {
-      // Сначала пробуем Telegram WebApp API
-      if ((window as any).Telegram?.WebApp?.openTelegramLink) {
-        try {
-          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(player.referral_link)}&text=${encodeURIComponent('Присоединяйся к CosmoClick!')}`;
-          (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
-          showToastMessage('Поделиться открыто');
-          return;
-        } catch (err) {
-          console.error('Telegram share error:', err);
-        }
+      // Используем Telegram WebApp HapticFeedback для отзыва
+      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+        (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
       }
 
-      // Затем пробуем Web Share API
+      // Пробуем Web Share API (работает в Telegram без сворачивания)
       if (navigator.share) {
         navigator.share({
           title: 'CosmoClick - Космическая игра',
-          text: 'Присоединяйся к CosmoClick!',
+          text: 'Присоединяйся к CosmoClick и зарабатывай космические кристаллы!',
           url: player.referral_link,
         }).then(() => {
           showToastMessage('Поделились успешно');
         }).catch(err => {
           console.error('Web Share API error:', err);
-          // Fallback - копируем
+          // Fallback - копируем без сворачивания
           copyToClipboard(player.referral_link);
         });
       } else {
-        // Fallback - копируем в буфер обмена
+        // Fallback - просто копируем в буфер обмена
         copyToClipboard(player.referral_link);
       }
     } else {
