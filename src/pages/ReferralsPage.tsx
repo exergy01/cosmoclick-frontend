@@ -493,7 +493,7 @@ const ReferralsPage: React.FC = () => {
                     {filteredReferrals.map((ref: any, index: number) => (
                       <tr key={index} style={{ transition: 'background 0.3s ease' }}>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
-                          {ref.username || `${t('referral')} #${index + 1}`}
+                          {ref.username || ref.first_name || `${t('referral')} #${index + 1}`}
                         </td>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
                           {ref.cs_earned?.toFixed(2) || '0.00'}
@@ -518,61 +518,6 @@ const ReferralsPage: React.FC = () => {
                 <p style={{ fontSize: '1rem', color: '#aaa', marginTop: '10px' }}>
                   Пригласите друзей и получайте 1% в CS + 0.1% в TON за покупки друга!
                 </p>
-              </div>
-            )}
-          </div>
-
-          {/* Доска почета */}
-          <div style={{ margin: '20px auto', maxWidth: '600px' }}>
-            <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
-              🏆 {t('honor_board')}
-            </h3>
-            {(filteredHonorBoard && filteredHonorBoard.length > 0) ? (
-              <div style={{ 
-                background: 'rgba(0, 0, 0, 0.3)', 
-                border: `2px solid ${colorStyle}`, 
-                borderRadius: '10px', 
-                boxShadow: `0 0 20px ${colorStyle}30`,
-                overflow: 'hidden'
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: `${colorStyle}20` }}>
-                      <th style={{ border: `1px solid ${colorStyle}`, padding: '10px', color: colorStyle, textShadow: `0 0 5px ${colorStyle}` }}>{t('place')}</th>
-                      <th style={{ border: `1px solid ${colorStyle}`, padding: '10px', color: colorStyle, textShadow: `0 0 5px ${colorStyle}` }}>{t('player')}</th>
-                      <th style={{ border: `1px solid ${colorStyle}`, padding: '10px', color: colorStyle, textShadow: `0 0 5px ${colorStyle}` }}>{t('referrals_count')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredHonorBoard.sort((a: any, b: any) => (b.referrals_count || 0) - (a.referrals_count || 0)).slice(0, 10).map((entry: any, index: number) => (
-                      <tr key={index} style={{ 
-                        background: entry.telegram_id === player?.telegram_id ? `${colorStyle}20` : 'transparent',
-                        transition: 'background 0.3s ease'
-                      }}>
-                        <td style={{ border: `1px solid ${colorStyle}`, padding: '10px', fontWeight: index < 3 ? 'bold' : 'normal' }}>
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
-                        </td>
-                        <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
-                          {entry.username || `${t('player')} #${index + 1}`}
-                          {entry.telegram_id === player?.telegram_id && ' (Вы)'}
-                        </td>
-                        <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
-                          {entry.referrals_count || 0}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div style={{ 
-                background: 'rgba(0, 0, 0, 0.3)', 
-                border: `2px solid ${colorStyle}`, 
-                borderRadius: '10px', 
-                padding: '20px', 
-                boxShadow: `0 0 10px ${colorStyle}30`
-              }}>
-                <p>{t('honor_board_empty')}</p>
               </div>
             )}
           </div>
