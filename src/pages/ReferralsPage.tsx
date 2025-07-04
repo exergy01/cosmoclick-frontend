@@ -30,68 +30,116 @@ const ReferralsPage: React.FC = () => {
   };
 
   const handleShare = () => {
-    if (navigator.share && player?.referral_link) {
-      navigator.share({
-        title: t('share_referral_link'),
-        text: `${t('join_cosmo_click')} ${player.referral_link}`,
-        url: player.referral_link,
-      }).then(() => {
-        console.log('Share successful');
-      }).catch(err => {
-        console.error('Ошибка share:', err);
-        // Fallback - копируем в буфер обмена
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(player.referral_link).then(() => {
-            showToastMessage('Ссылка скопирована');
-          }).catch(() => {
-            showToastMessage('Ошибка копирования');
-          });
-        } else {
-          showToastMessage('Поделиться недоступно');
+    if (player?.referral_link) {
+      // Сначала пробуем Telegram WebApp API
+      if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+        try {
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(player.referral_link)}&text=${encodeURIComponent('Присоединяйся к CosmoClick!')}`;
+          (window as any).Telegram.WebApp.openTelegramLink(shareUrl);
+          showToastMessage('Поделиться открыто');
+          return;
+        } catch (err) {
+          console.error('Telegram share error:', err);
         }
-      });
-    } else {
-      console.log('Share API недоступен, копируем в буфер');
-      // Fallback для браузеров без поддержки Web Share API
-      if (navigator.clipboard && player?.referral_link) {
-        navigator.clipboard.writeText(player.referral_link).then(() => {
-          showToastMessage('Ссылка скопирована');
-        }).catch(() => {
-          showToastMessage('Ошибка копирования');
+      }
+
+      // Затем пробуем Web Share API
+      if (navigator.share) {
+        navigator.share({
+          title: 'CosmoClick - Космическая игра',
+          text: 'Присоединяйся к CosmoClick!',
+          url: player.referral_link,
+        }).then(() => {
+          showToastMessage('Поделились успешно');
+        }).catch(err => {
+          console.error('Web Share API error:', err);
+          // Fallback - копируем
+          copyToClipboard(player.referral_link);
         });
       } else {
-        showToastMessage('Поделиться недоступно');
+        // Fallback - копируем в буфер обмена
+        copyToClipboard(player.referral_link);
       }
+    } else {
+      showToastMessage('Ссылка недоступна');
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    // Пробуем разные методы копирования для Telegram WebApp
+    try {
+      // Метод 1: Telegram WebApp API
+      if ((window as any).Telegram?.WebApp?.sendData) {
+        // Создаем временный элемент для выбора текста
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        // Пробуем скопировать
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          showToastMessage('Ссылка скопирована');
+          return;
+        }
+      }
+
+      // Метод 2: Clipboard API (для современных браузеров)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToastMessage('Ссылка скопирована');
+        }).catch(() => {
+          // Метод 3: Fallback для всех случаев
+          fallbackCopy(text);
+        });
+      } else {
+        // Метод 3: Fallback для всех случаев
+        fallbackCopy(text);
+      }
+    } catch (err) {
+      console.error('Copy error:', err);
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (successful) {
+        showToastMessage('Ссылка скопирована');
+      } else {
+        showToastMessage('Ошибка копирования');
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      showToastMessage('Ошибка копирования');
     }
   };
 
   const handleCopy = () => {
     if (player?.referral_link) {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(player.referral_link).then(() => {
-          showToastMessage('Ссылка скопирована');
-        }).catch(err => {
-          console.error('Ошибка копирования:', err);
-          showToastMessage('Ошибка копирования');
-        });
-      } else {
-        // Fallback для старых браузеров
-        try {
-          const textArea = document.createElement('textarea');
-          textArea.value = player.referral_link;
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-          showToastMessage('Ссылка скопирована');
-        } catch (err) {
-          console.error('Fallback копирование не сработало:', err);
-          showToastMessage('Ошибка копирования');
-        }
-      }
+      copyToClipboard(player.referral_link);
     } else {
-      console.log('Copy failed: referral_link is', player?.referral_link);
       showToastMessage('Ссылка недоступна');
     }
   };
@@ -130,25 +178,26 @@ const ReferralsPage: React.FC = () => {
         position: 'relative',
       }}
     >
-      {/* Всплывающее сообщение */}
+      {/* Всплывающее сообщение внизу */}
       {showToast && (
         <div
           style={{
             position: 'fixed',
-            top: '50%',
+            bottom: '150px',
             left: '50%',
-            transform: 'translate(-50%, -50%)',
+            transform: 'translateX(-50%)',
             background: `linear-gradient(135deg, ${colorStyle}80, ${colorStyle}60)`,
             border: `2px solid ${colorStyle}`,
             borderRadius: '15px',
-            padding: '20px 30px',
+            padding: '15px 25px',
             boxShadow: `0 0 30px ${colorStyle}`,
             color: '#fff',
-            fontSize: '1.1rem',
+            fontSize: '1rem',
             fontWeight: 'bold',
             zIndex: 1000,
-            animation: 'fadeInOut 1.5s ease-in-out',
-            textAlign: 'center'
+            animation: 'slideUpFade 1.5s ease-in-out',
+            textAlign: 'center',
+            maxWidth: '300px'
           }}
         >
           {toastMessage}
@@ -158,11 +207,11 @@ const ReferralsPage: React.FC = () => {
       {/* CSS для анимации всплывающего сообщения */}
       <style>
         {`
-          @keyframes fadeInOut {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-            20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          @keyframes slideUpFade {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            20% { opacity: 1; transform: translateX(-50%) translateY(0px); }
+            80% { opacity: 1; transform: translateX(-50%) translateY(0px); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
           }
         `}
       </style>
