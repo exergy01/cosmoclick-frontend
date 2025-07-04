@@ -273,8 +273,8 @@ const ReferralsPage: React.FC = () => {
                 boxShadow: `0 0 10px ${colorStyle}30`
               }}>
                 <p>{t('no_referrals')}</p>
-                <p style={{ fontSize: '0.9rem', color: '#aaa', marginTop: '10px' }}>
-                  Пригласите друзей и получайте 100 CS + 0.001 TON за каждого!
+                <p style={{ fontSize: '1rem', color: '#aaa', marginTop: '10px' }}>
+                  Пригласите друзей и получайте 1% в CS + 0.1% в TON за покупки друга!
                 </p>
               </div>
             )}
