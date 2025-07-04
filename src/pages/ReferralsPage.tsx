@@ -20,6 +20,14 @@ const ReferralsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
 
+  // 🔍 ОТЛАДКА - добавляем логи
+  console.log('🔍 ДАННЫЕ ИГРОКА:', {
+    referrals: player?.referrals,
+    referrals_count: player?.referrals_count,
+    telegram_id: player?.telegram_id,
+    honor_board: player?.honor_board
+  });
+
   // Функция для показа всплывающего сообщения
   const showToastMessage = (message: string) => {
     setToastMessage(message);
@@ -226,92 +234,29 @@ const ReferralsPage: React.FC = () => {
           }}>
             👥 {t('referrals')}
           </h2>
-          
-          {/* Реферальная ссылка */}
+
+          {/* 🔍 ОТЛАДОЧНЫЙ БЛОК - удалить после исправления */}
           <div style={{
             margin: '20px auto',
-            padding: '20px',
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: `2px solid ${colorStyle}`,
-            borderRadius: '15px',
-            boxShadow: `0 0 20px ${colorStyle}30`,
-            maxWidth: '500px'
+            padding: '15px',
+            background: 'rgba(255, 0, 0, 0.2)',
+            border: '2px solid red',
+            borderRadius: '10px',
+            maxWidth: '600px',
+            fontSize: '0.8rem',
+            textAlign: 'left'
           }}>
-            <h3 style={{ color: colorStyle, marginBottom: '15px' }}>🔗 {t('your_referral_link')}</h3>
-            <p style={{ 
-              wordBreak: 'break-all', 
-              background: 'rgba(255, 255, 255, 0.1)', 
-              padding: '10px', 
-              borderRadius: '8px',
-              fontSize: '0.9rem',
-              marginBottom: '15px'
-            }}>
-              {player?.referral_link || 'Загружается...'}
-            </p>
-            
-            {/* Кнопки поделиться и скопировать */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '10px', 
-              margin: '0 10px'
-            }}>
-              <button
-                onClick={handleShare}
-                style={{
-                  padding: '12px 10px',
-                  background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
-                  border: `2px solid ${colorStyle}`,
-                  borderRadius: '12px',
-                  boxShadow: `0 0 15px ${colorStyle}`,
-                  color: '#fff',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontWeight: 'bold',
-                  fontSize: '0.9rem',
-                  width: '100%'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
-                }}
-              >
-                📤 {t('share')}
-              </button>
-              
-              <button
-                onClick={handleCopy}
-                style={{
-                  padding: '12px 10px',
-                  background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
-                  border: `2px solid ${colorStyle}`,
-                  borderRadius: '12px',
-                  boxShadow: `0 0 15px ${colorStyle}`,
-                  color: '#fff',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontWeight: 'bold',
-                  fontSize: '0.9rem',
-                  width: '100%'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
-                }}
-              >
-                📋 {t('copy')}
-              </button>
-            </div>
+            <h4 style={{ color: 'red', marginBottom: '10px' }}>🔍 ОТЛАДКА:</h4>
+            <p><strong>Telegram ID:</strong> {player?.telegram_id}</p>
+            <p><strong>Referrals Count:</strong> {player?.referrals_count}</p>
+            <p><strong>Referrals Array:</strong> {JSON.stringify(player?.referrals || [])}</p>
+            <p><strong>Referrals Length:</strong> {player?.referrals?.length || 0}</p>
+            <p><strong>Honor Board:</strong> {JSON.stringify(player?.honor_board || [])}</p>
+            <p><strong>Is Default Player:</strong> {isDefaultPlayer ? 'ДА' : 'НЕТ'}</p>
+            <p><strong>Filtered Referrals:</strong> {JSON.stringify(filteredReferrals)}</p>
+            <p><strong>Filtered Honor Board:</strong> {JSON.stringify(filteredHonorBoard)}</p>
           </div>
-
+          
           {/* Реферальная ссылка */}
           <div style={{
             margin: '20px auto',
@@ -516,7 +461,7 @@ const ReferralsPage: React.FC = () => {
               }}>
                 <p>{t('no_referrals')}</p>
                 <p style={{ fontSize: '1rem', color: '#aaa', marginTop: '10px' }}>
-                  Пригласите друзей и получайте 1% в CS + 0.1% в TON за покупки друга!
+                  Приглашайте друзей и получайте от их трат в магазине: 1% в CS + 0.1% в TON!
                 </p>
               </div>
             )}
