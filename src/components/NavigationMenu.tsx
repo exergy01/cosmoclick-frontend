@@ -16,7 +16,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshPlayer, player } = usePlayer();
+  const { setPlayer, player } = usePlayer();
 
   const topMenuItems = [
     { path: '/attack', icon: '⚔️', label: t('attack') },
@@ -32,25 +32,47 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     { path: '/alphabet', icon: '📖' }
   ];
 
+  // 🔥 ФИНАЛЬНОЕ РЕШЕНИЕ: Принудительно загружаем рефералов через setPlayer
+  const forceLoadReferrals = async () => {
+    if (!player?.telegram_id) return;
+    
+    try {
+      console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов...');
+      
+      // Загружаем рефералов
+      const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`, { timeout: 5000 });
+      const referralsData = Array.isArray(refResponse.data) ? refResponse.data : [];
+      
+      // Загружаем доску почета  
+      const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`, { timeout: 5000 });
+      const honorData = Array.isArray(honorResponse.data) ? honorResponse.data : [];
+      
+      console.log('🔥 Загружено:', { referrals: referralsData.length, honor: honorData.length });
+      
+      // 🔥 ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ PLAYER
+      const updatedPlayer = {
+        ...player,
+        referrals: referralsData,
+        honor_board: honorData
+      };
+      
+      setPlayer(updatedPlayer);
+      console.log('✅ Player принудительно обновлен!');
+      
+    } catch (err: any) {
+      console.error('❌ Ошибка принудительной загрузки:', err);
+      // В случае ошибки - все равно переходим
+    }
+  };
 
-
-  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Обновление через refreshPlayer с задержкой
+  // 🔥 ФУНКЦИЯ: Переход с принудительной загрузкой
   const handleNavigation = async (path: string) => {
     try {
-      // Если переходим на рефералы - двойное обновление
+      // Если переходим на рефералы - принудительно загружаем
       if (path === '/ref' || path === '/referrals') {
-        console.log('🔄 Двойное обновление для рефералов...');
-        
-        // Первое обновление
-        await refreshPlayer();
-        
-        // Небольшая пауза
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Второе обновление для надежности
-        await refreshPlayer();
-        
-        console.log('✅ Данные дважды обновлены');
+        console.log('🔄 Принудительная загрузка для рефералов...');
+        await forceLoadReferrals();
+        console.log('✅ Данные принудительно загружены');
       }
       navigate(path);
     } catch (err) {
