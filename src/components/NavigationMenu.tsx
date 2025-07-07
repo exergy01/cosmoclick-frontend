@@ -43,14 +43,14 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     { path: '/alphabet', icon: '📖' }
   ];
 
-  // 🔥 ФИНАЛЬНОЕ РЕШЕНИЕ: Принудительно загружаем рефералов через setPlayer
+  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: НЕ ЗАТИРАЕТ БАЛАНС ИГРОКА
   const forceLoadReferrals = async () => {
     if (!player?.telegram_id) return;
     
     try {
-      console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов...');
+      console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов (ТОЛЬКО рефералы)...');
       
-      // Загружаем рефералов
+      // Загружаем ТОЛЬКО рефералов - НЕ ТРОГАЕМ баланс игрока!
       const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`, { timeout: 5000 });
       const referralsData = Array.isArray(refResponse.data) ? refResponse.data : [];
       
@@ -60,15 +60,16 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
       
       console.log('🔥 Загружено:', { referrals: referralsData.length, honor: honorData.length });
       
-      // 🔥 ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ PLAYER
+      // ✅ ОБНОВЛЯЕМ ТОЛЬКО referrals и honor_board - НЕ ТРОГАЕМ баланс!
       const updatedPlayer = {
         ...player,
         referrals: referralsData,
         honor_board: honorData
+        // НЕ ТРОГАЕМ cs, ton и другие поля баланса!
       };
       
       setPlayer(updatedPlayer);
-      console.log('✅ Player принудительно обновлен!');
+      console.log('✅ Обновлены ТОЛЬКО рефералы и доска почета!');
       
     } catch (err: any) {
       console.error('❌ Ошибка принудительной загрузки:', err);
