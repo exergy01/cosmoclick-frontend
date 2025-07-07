@@ -59,8 +59,37 @@ const ReferralsPage: React.FC = () => {
       
       if (response.data.success) {
         showToastMessage(`Собрано: ${totalCS.toFixed(2)} CS + ${totalTON.toFixed(8)} TON`);
-        // Обновляем данные игрока
-        await refreshPlayer();
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Принудительно перезагружаем рефералов после сбора
+        if ((window as any).NavigationMenu?.forceLoadReferrals) {
+          await (window as any).NavigationMenu.forceLoadReferrals();
+        } else {
+          // Альтернативный способ - обновляем через refreshPlayer
+          await refreshPlayer();
+          
+          // Дополнительно обновляем данные как в NavigationMenu
+          try {
+            const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
+            const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`);
+            
+            // Получаем свежие данные игрока
+            const playerResponse = await axios.get(`${apiUrl}/api/player/${player.telegram_id}`);
+            
+            // Создаем обновленный объект игрока
+            const updatedPlayerData = {
+              ...playerResponse.data,
+              referrals: Array.isArray(refResponse.data) ? refResponse.data : [],
+              honor_board: Array.isArray(honorResponse.data) ? honorResponse.data : []
+            };
+            
+            // Принудительно обновляем через setPlayer если доступно
+            if ((window as any).setPlayerGlobal) {
+              (window as any).setPlayerGlobal(updatedPlayerData);
+            }
+          } catch (updateErr) {
+            console.error('Ошибка дополнительного обновления:', updateErr);
+          }
+        }
       } else {
         showToastMessage('Ошибка сбора наград');
       }
@@ -99,7 +128,7 @@ const ReferralsPage: React.FC = () => {
     }
   };
 
-  // 🔥 МАКСИМАЛЬНО ПРОСТАЯ функция поделиться
+  // 🔥 ПРАВИЛЬНАЯ функция поделиться для Telegram
   const handleShare = () => {
     if (!player?.referral_link) {
       showToastMessage('Ссылка недоступна');
@@ -107,9 +136,86 @@ const ReferralsPage: React.FC = () => {
     }
 
     try {
-      // Для Telegram WebApp - просто копируем с подсказкой как поделиться
-      copyToClipboard(player.referral_link);
-      showToastMessage('Ссылка скопирована! Теперь отправьте её в любой чат или группу');
+      // Вибрация в Telegram
+      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+        (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      }
+
+      const telegramWebApp = (window as any).Telegram?.WebApp;
+      
+      if (telegramWebApp) {
+        // Пробуем разные методы поделиться в Telegram
+        
+        // Метод 1: switchInlineQuery - показывает список чатов
+        if (telegramWebApp.switchInlineQuery) {
+          try {
+            telegramWebApp.switchInlineQuery(`Присоединяйся к CosmoClick! ${player.referral_link}`, ['users', 'groups', 'channels']);
+            showToastMessage('Выберите чат для отправки');
+            return;
+          } catch (e) {
+            console.log('switchInlineQuery failed:', e);
+          }
+        }
+        
+        // Метод 2: openTelegramLink - открывает диалог поделиться
+        if (telegramWebApp.openTelegramLink) {
+          try {
+            const shareText = encodeURIComponent('🚀 Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
+            const shareUrl = encodeURIComponent(player.referral_link);
+            telegramWebApp.openTelegramLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
+            showToastMessage('Открываем диалог поделиться');
+            return;
+          } catch (e) {
+            console.log('openTelegramLink failed:', e);
+          }
+        }
+        
+        // Метод 3: sendData - отправляет данные боту
+        if (telegramWebApp.sendData) {
+          try {
+            telegramWebApp.sendData(JSON.stringify({
+              action: 'share_referral',
+              link: player.referral_link,
+              text: 'Присоединяйся к CosmoClick!'
+            }));
+            showToastMessage('Данные отправлены боту');
+            return;
+          } catch (e) {
+            console.log('sendData failed:', e);
+          }
+        }
+        
+        // Метод 4: openLink - открывает в браузере
+        if (telegramWebApp.openLink) {
+          try {
+            const shareText = encodeURIComponent('🚀 Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
+            const shareUrl = encodeURIComponent(player.referral_link);
+            telegramWebApp.openLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
+            showToastMessage('Открываем в браузере');
+            return;
+          } catch (e) {
+            console.log('openLink failed:', e);
+          }
+        }
+      }
+
+      // Fallback для обычных браузеров
+      if (navigator.share) {
+        navigator.share({
+          title: 'CosmoClick - Космическая игра',
+          text: '🚀 Присоединяйся к CosmoClick и зарабатывай космические кристаллы!',
+          url: player.referral_link,
+        }).then(() => {
+          showToastMessage('Поделились успешно');
+        }).catch(() => {
+          copyToClipboard(player.referral_link);
+          showToastMessage('Ссылка скопирована в буфер обмена');
+        });
+      } else {
+        // Последний fallback - копируем
+        copyToClipboard(player.referral_link);
+        showToastMessage('Ссылка скопирована - вставьте в чат для отправки');
+      }
       
     } catch (err) {
       console.error('Share error:', err);

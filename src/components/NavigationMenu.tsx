@@ -18,6 +18,17 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
   const location = useLocation();
   const { setPlayer, player } = usePlayer();
 
+  // 🔥 Делаем setPlayer доступным глобально для обновлений
+  React.useEffect(() => {
+    (window as any).setPlayerGlobal = setPlayer;
+    (window as any).NavigationMenu = { forceLoadReferrals };
+    
+    return () => {
+      delete (window as any).setPlayerGlobal;
+      delete (window as any).NavigationMenu;
+    };
+  }, [setPlayer]);
+
   const topMenuItems = [
     { path: '/attack', icon: '⚔️', label: t('attack') },
     { path: '/exchange', icon: '🔄', label: t('exchange') },
