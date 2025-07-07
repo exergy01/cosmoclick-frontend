@@ -244,12 +244,13 @@ export const usePlayerData = () => {
 
       const fullPlayerData = {
         ...playerData,
-        referrals,
-        honor_board: honorBoard,
         language: playerData.language,
       };
-
+      
+      // 🔥 ДОБАВЛЯЕМ РЕФЕРАЛОВ ПОСЛЕ НОРМАЛИЗАЦИИ
       const normalizedPlayer = createPlayerWithDefaults(fullPlayerData, 1);
+      normalizedPlayer.referrals = referrals;           // ← ВОТ ТАК!
+      normalizedPlayer.honor_board = honorBoard;
       setPlayer(normalizedPlayer);
       setError(null);
       
