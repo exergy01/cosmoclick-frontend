@@ -61,20 +61,9 @@ const collectReferralRewards = async () => {
       const collected = response.data.collected;
       showToastMessage(`Собрано: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
       
-      // 🔥 ИСПРАВЛЕНИЕ: Используем обновленные данные игрока из ответа!
-      if (response.data.player) {
-        // Обновляем данные игрока данными с сервера
-        if ((window as any).setPlayerGlobal) {
-          (window as any).setPlayerGlobal(response.data.player);
-        }
-        
-        // Дополнительно обновляем рефералов (обнуляем награды)
-        if ((window as any).NavigationMenu?.forceLoadReferrals) {
-          await (window as any).NavigationMenu.forceLoadReferrals();
-        }
-      } else {
-        // Fallback если нет player в ответе
-        await refreshPlayer();
+      // ✅ ТОЛЬКО ЭТО - больше ничего!
+      if (response.data.player && (window as any).setPlayerGlobal) {
+        (window as any).setPlayerGlobal(response.data.player);
       }
     } else {
       showToastMessage('Ошибка сбора наград');
@@ -86,8 +75,8 @@ const collectReferralRewards = async () => {
   } finally {
     setIsCollecting(false);
   }
-};
-
+ };
+ 
   // Простая функция копирования
   const copyToClipboard = (text: string) => {
     try {
