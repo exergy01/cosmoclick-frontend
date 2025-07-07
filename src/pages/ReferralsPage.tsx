@@ -1,54 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 
-const apiUrl = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
-
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const location = useLocation();
   const { player, currentSystem } = usePlayer();
   
   // Состояние для всплывающего сообщения
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
-  
-  // Состояние для отладочных данных из БД
-  const [debugData, setDebugData] = useState<any>(null);
 
-  // 🔍 ОТЛАДКА - загружаем данные напрямую из БД
-  useEffect(() => {
-    const loadDebugData = async () => {
-      if (!player?.telegram_id) return;
-      
-      try {
-        // Считаем из таблицы players где referrer_id = наш ID
-        const countResponse = await axios.get(`${apiUrl}/api/debug/count-referrals/${player.telegram_id}`);
-        
-        // Получаем список из таблицы referrals
-        const listResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
-        
-        setDebugData({
-          countFromPlayers: countResponse.data,
-          listFromReferrals: listResponse.data
-        });
-      } catch (err) {
-        console.error('Debug error:', err);
-        setDebugData({ error: 'Ошибка загрузки отладочных данных' });
-      }
-    };
-    
-    loadDebugData();
-  }, [player?.telegram_id]);
-
-  // 🔍 ОТЛАДКА - добавляем логи
+  // 🔍 ПРОСТАЯ ОТЛАДКА - только консольный лог
   console.log('🔍 ДАННЫЕ ИГРОКА:', {
     referrals: player?.referrals,
     referrals_count: player?.referrals_count,
@@ -262,40 +226,6 @@ const ReferralsPage: React.FC = () => {
           }}>
             👥 {t('referrals')}
           </h2>
-
-          {/* 🔍 ОТЛАДОЧНЫЙ БЛОК - удалить после исправления */}
-          <div style={{
-            margin: '20px auto',
-            padding: '15px',
-            background: 'rgba(255, 0, 0, 0.2)',
-            border: '2px solid red',
-            borderRadius: '10px',
-            maxWidth: '600px',
-            fontSize: '0.8rem',
-            textAlign: 'left'
-          }}>
-            <h4 style={{ color: 'red', marginBottom: '10px' }}>🔍 ОТЛАДКА:</h4>
-            <p><strong>Telegram ID:</strong> {player?.telegram_id}</p>
-            <p><strong>Referrals Count:</strong> {player?.referrals_count}</p>
-            <p><strong>Referrals Array:</strong> {JSON.stringify(player?.referrals || [])}</p>
-            <p><strong>Referrals Length:</strong> {player?.referrals?.length || 0}</p>
-            <p><strong>Honor Board:</strong> {JSON.stringify(player?.honor_board || [])}</p>
-            <p><strong>Is Default Player:</strong> {isDefaultPlayer ? 'ДА' : 'НЕТ'}</p>
-            <p><strong>Filtered Referrals:</strong> {JSON.stringify(filteredReferrals)}</p>
-            <p><strong>Filtered Honor Board:</strong> {JSON.stringify(filteredHonorBoard)}</p>
-            
-            <hr style={{ margin: '10px 0', borderColor: 'red' }} />
-            <h5 style={{ color: 'red' }}>📊 ДАННЫЕ ИЗ БД:</h5>
-            {debugData ? (
-              <>
-                <p><strong>Count from players.referrer_id:</strong> {JSON.stringify(debugData.countFromPlayers || 'загрузка...')}</p>
-                <p><strong>List from referrals table:</strong> {JSON.stringify(debugData.listFromReferrals || 'загрузка...')}</p>
-                {debugData.error && <p style={{ color: 'red' }}><strong>Ошибка:</strong> {debugData.error}</p>}
-              </>
-            ) : (
-              <p>Загружаем данные из БД...</p>
-            )}
-          </div>
           
           {/* Реферальная ссылка */}
           <div style={{
