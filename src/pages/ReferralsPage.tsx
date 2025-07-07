@@ -35,7 +35,7 @@ const ReferralsPage: React.FC = () => {
     }, 1500);
   };
 
-// 🔥 ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД - ИСПРАВЛЕННАЯ
+// 🔥 ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ
 const collectReferralRewards = async () => {
   if (!player?.telegram_id || isCollecting) return;
   
@@ -61,9 +61,19 @@ const collectReferralRewards = async () => {
       const collected = response.data.collected;
       showToastMessage(`Собрано: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
       
-      // ✅ ТОЛЬКО ЭТО - больше ничего!
+      // 🔥 ИСПРАВЛЕНИЕ: Объединяем новый баланс со старыми рефералами
       if (response.data.player && (window as any).setPlayerGlobal) {
-        (window as any).setPlayerGlobal(response.data.player);
+        const updatedPlayer = {
+          ...response.data.player,  // новый баланс
+          referrals: player?.referrals || [],  // старые рефералы
+          honor_board: player?.honor_board || []  // старая доска почета
+        };
+        (window as any).setPlayerGlobal(updatedPlayer);
+      }
+      
+      // 🔥 А ТЕПЕРЬ обновляем рефералов с обнуленными наградами
+      if ((window as any).NavigationMenu?.forceLoadReferrals) {
+        await (window as any).NavigationMenu.forceLoadReferrals();
       }
     } else {
       showToastMessage('Ошибка сбора наград');
@@ -76,7 +86,7 @@ const collectReferralRewards = async () => {
     setIsCollecting(false);
   }
  };
- 
+  
   // Простая функция копирования
   const copyToClipboard = (text: string) => {
     try {
