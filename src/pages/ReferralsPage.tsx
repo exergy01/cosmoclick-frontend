@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
 import CurrencyPanel from '../components/CurrencyPanel';
@@ -6,18 +6,31 @@ import NavigationMenu from '../components/NavigationMenu';
 
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { player, currentSystem } = usePlayer();
+  const { player, currentSystem, loading } = usePlayer();
   
   // Состояние для всплывающего сообщения
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // 🔍 ПРОСТАЯ ОТЛАДКА - только консольный лог
-  console.log('🔍 ДАННЫЕ ИГРОКА:', {
-    referrals: player?.referrals,
-    referrals_count: player?.referrals_count,
+  // Проверяем загрузку данных
+  useEffect(() => {
+    if (player || (!loading && !player)) {
+      setIsInitialLoading(false);
+    }
+  }, [player, loading]);
+
+  // 🔍 РАСШИРЕННАЯ ОТЛАДКА
+  console.log('🔍 ПОЛНАЯ ОТЛАДКА РЕФЕРАЛОВ:', {
+    player_exists: !!player,
     telegram_id: player?.telegram_id,
-    honor_board: player?.honor_board
+    referrals_count: player?.referrals_count,
+    referrals_array: player?.referrals,
+    referrals_length: player?.referrals?.length,
+    honor_board: player?.honor_board,
+    honor_board_length: player?.honor_board?.length,
+    loading: loading,
+    isInitialLoading: isInitialLoading
   });
 
   // Функция для показа всплывающего сообщения
@@ -29,14 +42,43 @@ const ReferralsPage: React.FC = () => {
     }, 1500);
   };
 
+  // 🔥 ИСПРАВЛЕННАЯ функция поделиться для Telegram
   const handleShare = () => {
-    if (player?.referral_link) {
-      // Используем Telegram WebApp HapticFeedback для отзыва
-      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
-        (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    if (!player?.referral_link) {
+      showToastMessage('Ссылка недоступна');
+      return;
+    }
+
+    try {
+      // Telegram WebApp - используем специальный метод
+      if ((window as any).Telegram?.WebApp) {
+        const telegramWebApp = (window as any).Telegram.WebApp;
+        
+        // Вибрация
+        if (telegramWebApp.HapticFeedback) {
+          telegramWebApp.HapticFeedback.impactOccurred('light');
+        }
+
+        // Пробуем Telegram методы поделиться
+        if (telegramWebApp.openTelegramLink) {
+          const shareText = encodeURIComponent('Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
+          const shareUrl = encodeURIComponent(player.referral_link);
+          telegramWebApp.openTelegramLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
+          showToastMessage('Открываем поделиться');
+          return;
+        }
+
+        // Альтернатива: открываем в том же окне
+        if (telegramWebApp.openLink) {
+          const shareText = encodeURIComponent('Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
+          const shareUrl = encodeURIComponent(player.referral_link);
+          telegramWebApp.openLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
+          showToastMessage('Открываем поделиться');
+          return;
+        }
       }
 
-      // Пробуем Web Share API (работает в Telegram без сворачивания)
+      // Fallback для обычных браузеров
       if (navigator.share) {
         navigator.share({
           title: 'CosmoClick - Космическая игра',
@@ -46,53 +88,30 @@ const ReferralsPage: React.FC = () => {
           showToastMessage('Поделились успешно');
         }).catch(err => {
           console.error('Web Share API error:', err);
-          // Fallback - копируем без сворачивания
           copyToClipboard(player.referral_link);
         });
       } else {
-        // Fallback - просто копируем в буфер обмена
+        // Если ничего не работает - копируем
         copyToClipboard(player.referral_link);
+        showToastMessage('Ссылка скопирована (поделиться недоступно)');
       }
-    } else {
-      showToastMessage('Ссылка недоступна');
+    } catch (err) {
+      console.error('Share error:', err);
+      copyToClipboard(player.referral_link);
+      showToastMessage('Ссылка скопирована');
     }
   };
 
   const copyToClipboard = (text: string) => {
-    // Пробуем разные методы копирования для Telegram WebApp
     try {
-      // Метод 1: Telegram WebApp API
-      if ((window as any).Telegram?.WebApp?.sendData) {
-        // Создаем временный элемент для выбора текста
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        // Пробуем скопировать
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        if (successful) {
-          showToastMessage('Ссылка скопирована');
-          return;
-        }
-      }
-
-      // Метод 2: Clipboard API (для современных браузеров)
+      // Метод 1: Clipboard API
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
           showToastMessage('Ссылка скопирована');
         }).catch(() => {
-          // Метод 3: Fallback для всех случаев
           fallbackCopy(text);
         });
       } else {
-        // Метод 3: Fallback для всех случаев
         fallbackCopy(text);
       }
     } catch (err) {
@@ -142,19 +161,68 @@ const ReferralsPage: React.FC = () => {
   // Проверяем, является ли текущий игрок дефолтным
   const isDefaultPlayer = player?.telegram_id === '1222791281';
 
+  // 🔥 БОЛЕЕ БЕЗОПАСНАЯ обработка рефералов
+  const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
+  const safeHonorBoard = Array.isArray(player?.honor_board) ? player.honor_board : [];
+
   // Фильтруем рефералов (убираем дефолтного игрока для всех кроме него самого)
-  const filteredReferrals = player?.referrals?.filter((ref: any) => 
+  const filteredReferrals = safeReferrals.filter((ref: any) => 
     isDefaultPlayer || ref.referred_id !== '1222791281'
-  ) || [];
+  );
 
   // Фильтруем доску почета (убираем дефолтного игрока для всех кроме него самого)
-  const filteredHonorBoard = player?.honor_board?.filter((entry: any) => 
+  const filteredHonorBoard = safeHonorBoard.filter((entry: any) => 
     isDefaultPlayer || entry.telegram_id !== '1222791281'
-  ) || [];
+  );
 
-  // Показываем загрузку только если нет данных игрока вообще
+  // 🔥 ПОКАЗЫВАЕМ ЗАГРУЗКУ если данные еще грузятся
+  if (isInitialLoading || loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh',
+        color: '#fff', 
+        textAlign: 'center', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e)',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          fontSize: '2rem',
+          marginBottom: '20px',
+          animation: 'pulse 2s ease-in-out infinite'
+        }}>
+          🚀
+        </div>
+        <div style={{ fontSize: '1.2rem' }}>
+          {t('loading')}...
+        </div>
+        <style>
+          {`
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.1); opacity: 0.7; }
+            }
+          `}
+        </style>
+      </div>
+    );
+  }
+
+  // Если игрок не найден после загрузки
   if (!player) {
-    return <div style={{ color: '#fff', textAlign: 'center', marginTop: '50px' }}>{t('loading')}</div>;
+    return (
+      <div style={{ 
+        color: '#fff', 
+        textAlign: 'center', 
+        marginTop: '50px',
+        padding: '20px'
+      }}>
+        <h2>Ошибка загрузки данных</h2>
+        <p>Попробуйте перезагрузить страницу</p>
+      </div>
+    );
   }
 
   return (
@@ -226,6 +294,26 @@ const ReferralsPage: React.FC = () => {
           }}>
             👥 {t('referrals')}
           </h2>
+
+          {/* 🔍 ВРЕМЕННЫЙ БЛОК ОТЛАДКИ - покажет что именно приходит в данных */}
+          <div style={{
+            margin: '10px auto',
+            padding: '10px',
+            background: 'rgba(255, 165, 0, 0.2)',
+            border: '1px solid orange',
+            borderRadius: '5px',
+            maxWidth: '600px',
+            fontSize: '0.8rem',
+            textAlign: 'left'
+          }}>
+            <strong>🔍 ОТЛАДКА:</strong><br/>
+            referrals_count: {player?.referrals_count}<br/>
+            referrals type: {typeof player?.referrals}<br/>
+            referrals length: {player?.referrals?.length}<br/>
+            safeReferrals length: {safeReferrals.length}<br/>
+            filteredReferrals length: {filteredReferrals.length}<br/>
+            honor_board length: {safeHonorBoard.length}
+          </div>
           
           {/* Реферальная ссылка */}
           <div style={{
