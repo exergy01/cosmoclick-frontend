@@ -16,7 +16,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshPlayer, setPlayer, player } = usePlayer();
+  const { refreshPlayer, player } = usePlayer();
 
   const topMenuItems = [
     { path: '/attack', icon: '⚔️', label: t('attack') },
@@ -32,60 +32,25 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     { path: '/alphabet', icon: '📖' }
   ];
 
-  // 🔥 НОВАЯ ФУНКЦИЯ: Загрузка рефералов напрямую и принудительное обновление
-  const loadReferralsDirectly = async () => {
-    if (!player?.telegram_id) return;
-    
-    try {
-      console.log('🔥 ПРЯМАЯ ЗАГРУЗКА рефералов перед переходом...');
-      
-      // Загружаем рефералов напрямую
-      const referralsResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
-      const referralsData = Array.isArray(referralsResponse.data) ? referralsResponse.data : [];
-      console.log('✅ Получили рефералов:', referralsData);
-      
-      // Загружаем доску почета напрямую
-      const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`);
-      const honorData = Array.isArray(honorResponse.data) ? honorResponse.data : [];
-      console.log('✅ Получили доску почета:', honorData);
-      
-      // 🔥 ПРИНУДИТЕЛЬНО обновляем player с новыми данными
-      const updatedPlayer = {
-        ...player,
-        referrals: referralsData,
-        honor_board: honorData
-      };
-      
-      console.log('🔥 Принудительно обновляем player:', {
-        old_referrals: player.referrals,
-        new_referrals: referralsData,
-        old_honor_board: player.honor_board,
-        new_honor_board: honorData
-      });
-      
-      setPlayer(updatedPlayer);
-      
-      console.log('✅ Player обновлен с рефералами!');
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка прямой загрузки рефералов:', err);
-    }
-  };
 
-  // 🔥 ФУНКЦИЯ: Переход с обновлением данных
+
+  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Обновление через refreshPlayer с задержкой
   const handleNavigation = async (path: string) => {
     try {
-      // Если переходим на рефералы - загружаем данные напрямую
+      // Если переходим на рефералы - двойное обновление
       if (path === '/ref' || path === '/referrals') {
-        console.log('🔄 Специальная обработка перехода на рефералы...');
+        console.log('🔄 Двойное обновление для рефералов...');
         
-        // Сначала загружаем рефералов напрямую
-        await loadReferralsDirectly();
-        
-        // Потом обновляем общие данные игрока
+        // Первое обновление
         await refreshPlayer();
         
-        console.log('✅ Все данные обновлены, переходим на рефералы');
+        // Небольшая пауза
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Второе обновление для надежности
+        await refreshPlayer();
+        
+        console.log('✅ Данные дважды обновлены');
       }
       navigate(path);
     } catch (err) {

@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
-
-const apiUrl = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
 
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -17,9 +12,6 @@ const ReferralsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  
-  // 🔥 СОСТОЯНИЕ ДЛЯ ОТЛАДКИ API
-  const [apiDebugData, setApiDebugData] = useState<any>({});
 
   // Проверяем загрузку данных
   useEffect(() => {
@@ -27,44 +19,6 @@ const ReferralsPage: React.FC = () => {
       setIsInitialLoading(false);
     }
   }, [player, loading]);
-
-  // 🔥 ЗАГРУЖАЕМ ДАННЫЕ НАПРЯМУЮ ИЗ API ДЛЯ ОТЛАДКИ
-  useEffect(() => {
-    const debugApiCall = async () => {
-      if (!player?.telegram_id) return;
-      
-      try {
-        console.log('🔍 Отладочный API запрос...');
-        
-        // Запрос рефералов
-        const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
-        console.log('🔍 API ответ рефералов:', refResponse.data);
-        
-        // Запрос доски почета
-        const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`);
-        console.log('🔍 API ответ доски почета:', honorResponse.data);
-        
-        setApiDebugData({
-          referrals_api: refResponse.data,
-          referrals_api_type: typeof refResponse.data,
-          referrals_api_length: refResponse.data?.length,
-          honor_api: honorResponse.data,
-          honor_api_type: typeof honorResponse.data,
-          honor_api_length: honorResponse.data?.length,
-          timestamp: new Date().toLocaleTimeString()
-        });
-        
-      } catch (err: any) {
-        console.error('❌ Отладочная ошибка API:', err);
-        setApiDebugData({
-          error: err?.message || 'Ошибка запроса',
-          timestamp: new Date().toLocaleTimeString()
-        });
-      }
-    };
-    
-    debugApiCall();
-  }, [player?.telegram_id]);
 
   // Функция для показа всплывающего сообщения
   const showToastMessage = (message: string) => {
@@ -123,9 +77,9 @@ const ReferralsPage: React.FC = () => {
   // Проверяем, является ли текущий игрок дефолтным
   const isDefaultPlayer = player?.telegram_id === '1222791281';
 
-  // 🔥 ИСПОЛЬЗУЕМ ДАННЫЕ НАПРЯМУЮ ИЗ API (обходим PlayerContext)
-  const safeReferrals = Array.isArray(apiDebugData.referrals_api) ? apiDebugData.referrals_api : [];
-  const safeHonorBoard = Array.isArray(apiDebugData.honor_api) ? apiDebugData.honor_api : [];
+  // 🔥 ИСПОЛЬЗУЕМ ДАННЫЕ ИЗ PLAYER - NavigationMenu должен их обновить
+  const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
+  const safeHonorBoard = Array.isArray(player?.honor_board) ? player.honor_board : [];
 
   // Фильтруем рефералов (убираем дефолтного игрока для всех кроме него самого)
   const filteredReferrals = safeReferrals.filter((ref: any) => 
@@ -158,7 +112,7 @@ const ReferralsPage: React.FC = () => {
           🚀
         </div>
         <div style={{ fontSize: '1.2rem' }}>
-          Загружаем данные...
+          Загружаем рефералов...
         </div>
         <style>
           {`
@@ -259,50 +213,29 @@ const ReferralsPage: React.FC = () => {
             👥 {t('referrals')}
           </h2>
 
-          {/* 🔍 РАСШИРЕННЫЙ ОТЛАДОЧНЫЙ БЛОК */}
+          {/* 🔍 ПРОСТАЯ ОТЛАДКА ДЛЯ TELEGRAM */}
           <div style={{
             margin: '10px auto',
             padding: '15px',
-            background: 'rgba(0, 100, 255, 0.2)',
-            border: '2px solid blue',
+            background: 'rgba(0, 200, 0, 0.2)',
+            border: '2px solid green',
             borderRadius: '10px',
-            maxWidth: '800px',
-            fontSize: '0.7rem',
+            maxWidth: '600px',
+            fontSize: '0.8rem',
             textAlign: 'left'
           }}>
-            <strong>🔍 ПОЛНАЯ ОТЛАДКА:</strong><br/>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>📊 PlayerContext:</strong><br/>
-              player существует: {player ? 'ДА' : 'НЕТ'}<br/>
-              referrals_count: {player?.referrals_count}<br/>
-              referrals тип: {typeof player?.referrals}<br/>
-              referrals содержимое: {JSON.stringify(player?.referrals)}<br/>
-              safeReferrals длина: {safeReferrals.length}<br/>
-              honor_board тип: {typeof player?.honor_board}<br/>
-              honor_board содержимое: {JSON.stringify(player?.honor_board)}<br/>
-              safeHonorBoard длина: {safeHonorBoard.length}
-            </div>
-            
-            <div style={{ marginBottom: '10px', borderTop: '1px solid blue', paddingTop: '10px' }}>
-              <strong>🔥 Прямой API ответ:</strong><br/>
-              {apiDebugData.timestamp && (
-                <>
-                  Время запроса: {apiDebugData.timestamp}<br/>
-                  referrals_api тип: {apiDebugData.referrals_api_type}<br/>
-                  referrals_api длина: {apiDebugData.referrals_api_length}<br/>
-                  referrals_api содержимое: {JSON.stringify(apiDebugData.referrals_api)}<br/>
-                  honor_api тип: {apiDebugData.honor_api_type}<br/>
-                  honor_api длина: {apiDebugData.honor_api_length}<br/>
-                  honor_api содержимое: {JSON.stringify(apiDebugData.honor_api)}<br/>
-                </>
-              )}
-              {apiDebugData.error && (
-                <span style={{ color: 'red' }}>Ошибка API: {apiDebugData.error}</span>
-              )}
-              {!apiDebugData.timestamp && !apiDebugData.error && (
-                <span>Загружаем данные API...</span>
-              )}
-            </div>
+            <strong>🔍 TELEGRAM ОТЛАДКА:</strong><br/>
+            referrals_count: {player?.referrals_count}<br/>
+            referrals массив длина: {safeReferrals.length}<br/>
+            honor_board массив длина: {safeHonorBoard.length}<br/>
+            filteredReferrals длина: {filteredReferrals.length}<br/>
+            filteredHonorBoard длина: {filteredHonorBoard.length}<br/>
+            {safeReferrals.length > 0 && (
+              <>
+                <br/><strong>Первый реферал:</strong><br/>
+                {JSON.stringify(safeReferrals[0], null, 2)}
+              </>
+            )}
           </div>
           
           {/* Реферальная ссылка */}
@@ -473,10 +406,10 @@ const ReferralsPage: React.FC = () => {
                           {ref.username || ref.first_name || `${t('referral')} #${index + 1}`}
                         </td>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
-                          {ref.cs_earned?.toFixed(2) || '0.00'}
+                          {ref.cs_earned?.toFixed ? ref.cs_earned.toFixed(2) : parseFloat(ref.cs_earned || 0).toFixed(2)}
                         </td>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
-                          {ref.ton_earned?.toFixed(8) || '0.00000000'}
+                          {ref.ton_earned?.toFixed ? ref.ton_earned.toFixed(8) : parseFloat(ref.ton_earned || 0).toFixed(8)}
                         </td>
                       </tr>
                     ))}
