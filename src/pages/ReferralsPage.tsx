@@ -213,7 +213,7 @@ const ReferralsPage: React.FC = () => {
             👥 {t('referrals')}
           </h2>
 
-          {/* 🔍 ПРОСТАЯ ОТЛАДКА ДЛЯ TELEGRAM */}
+          {/* 🔍 РАСШИРЕННАЯ ОТЛАДКА ДЛЯ ПОИСКА ПРОБЛЕМЫ */}
           <div style={{
             margin: '10px auto',
             padding: '15px',
@@ -230,6 +230,10 @@ const ReferralsPage: React.FC = () => {
             honor_board массив длина: {safeHonorBoard.length}<br/>
             filteredReferrals длина: {filteredReferrals.length}<br/>
             filteredHonorBoard длина: {filteredHonorBoard.length}<br/>
+            player.referrals тип: {typeof player?.referrals}<br/>
+            player.referrals содержимое: {JSON.stringify(player?.referrals)}<br/>
+            player.honor_board тип: {typeof player?.honor_board}<br/>
+            player.honor_board содержимое: {JSON.stringify(player?.honor_board)}<br/>
             {safeReferrals.length > 0 && (
               <>
                 <br/><strong>Первый реферал:</strong><br/>
