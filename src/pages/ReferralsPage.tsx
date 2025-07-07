@@ -568,7 +568,7 @@ const ReferralsPage: React.FC = () => {
               boxShadow: `0 0 20px #00ff0030`,
               maxWidth: '400px'
             }}>
-              <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>💰 Доступно для сбора</h3>
+              <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>💰 {t('available_for_collection')}</h3>
               <p style={{ fontSize: '1.1rem', marginBottom: '15px' }}>
                 {totalRewards.cs.toFixed(2)} CS + {totalRewards.ton.toFixed(8)} TON
               </p>
@@ -591,7 +591,7 @@ const ReferralsPage: React.FC = () => {
                   width: '100%'
                 }}
               >
-                {isCollecting ? '⏳ Собираем...' : '💰 Собрать награды'}
+                {isCollecting ? '⏳ Собираем...' : `💰 ${t('collect_rewards')}`}
               </button>
             </div>
           )}
