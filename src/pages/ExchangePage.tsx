@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
@@ -10,143 +10,77 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
-interface ExchangeRate {
-  from: string;
-  to: string;
+interface ExchangePair {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  fromIcon: string;
+  toIcon: string;
   rate: number;
-  commission: number;
+  rateText: string;
+  hasCommission: boolean;
   minAmount: number;
-  maxAmount: number;
 }
 
-// Курсы обмена валют
-const EXCHANGE_RATES: ExchangeRate[] = [
+const EXCHANGE_PAIRS: ExchangePair[] = [
   {
-    from: 'CCC',
-    to: 'CS',
-    rate: 200, // 200 CCC = 1 CS
-    commission: 0,
-    minAmount: 1,
-    maxAmount: 1000000
+    id: 'ccc-cs',
+    fromCurrency: 'CCC',
+    toCurrency: 'CS',
+    fromIcon: '💠',
+    toIcon: '✨',
+    rate: 0.001,
+    rateText: '1000 CCC = 1 CS',
+    hasCommission: false,
+    minAmount: 100
   },
   {
-    from: 'CS',
-    to: 'CCC',
-    rate: 0.005, // 1 CS = 200 CCC
-    commission: 0,
-    minAmount: 0.001,
-    maxAmount: 10000
+    id: 'cs-ccc',
+    fromCurrency: 'CS',
+    toCurrency: 'CCC',
+    fromIcon: '✨',
+    toIcon: '💠',
+    rate: 1000,
+    rateText: '1 CS = 1000 CCC',
+    hasCommission: false,
+    minAmount: 1
   },
   {
-    from: 'CS',
-    to: 'TON',
-    rate: 100, // 100 CS = 1 TON
-    commission: 2, // 2% комиссия
-    minAmount: 1,
-    maxAmount: 50000
+    id: 'cs-ton',
+    fromCurrency: 'CS',
+    toCurrency: 'TON',
+    fromIcon: '✨',
+    toIcon: '💎',
+    rate: 0.0001,
+    rateText: '10000 CS = 1 TON',
+    hasCommission: true,
+    minAmount: 1
   },
   {
-    from: 'TON',
-    to: 'CS',
-    rate: 0.01, // 1 TON = 100 CS
-    commission: 2, // 2% комиссия
-    minAmount: 0.01,
-    maxAmount: 1000
+    id: 'ton-cs',
+    fromCurrency: 'TON',
+    toCurrency: 'CS',
+    fromIcon: '💎',
+    toIcon: '✨',
+    rate: 10000,
+    rateText: '1 TON = 10000 CS',
+    hasCommission: true,
+    minAmount: 0.01
   }
 ];
 
 const ExchangePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const { player, currentSystem, convertCurrency } = usePlayer();
-  
-  const [fromCurrency, setFromCurrency] = useState<'CCC' | 'CS' | 'TON'>('CCC');
-  const [toCurrency, setToCurrency] = useState<'CS' | 'CCC' | 'TON'>('CS');
-  const [fromAmount, setFromAmount] = useState('');
-  const [toAmount, setToAmount] = useState('');
+  const [selectedPair, setSelectedPair] = useState<ExchangePair | null>(null);
+  const [amount, setAmount] = useState('');
+  const [result, setResult] = useState('');
+  const [isExchanging, setIsExchanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCalculating, setIsCalculating] = useState(false);
-  const [selectedRate, setSelectedRate] = useState<ExchangeRate | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const colorStyle = player?.color || '#00f0ff';
-
-  // Находим текущий курс обмена
-  useEffect(() => {
-    const rate = EXCHANGE_RATES.find(r => r.from === fromCurrency && r.to === toCurrency);
-    setSelectedRate(rate || null);
-    if (fromAmount && rate) {
-      calculateToAmount(fromAmount, rate);
-    } else {
-      setToAmount('');
-    }
-  }, [fromCurrency, toCurrency, fromAmount]);
-
-  // Вычисление суммы получения
-  const calculateToAmount = (amount: string, rate: ExchangeRate) => {
-    const num = parseFloat(amount);
-    if (isNaN(num) || num <= 0) {
-      setToAmount('');
-      return;
-    }
-
-    let result = 0;
-    if (rate.from === 'CCC' && rate.to === 'CS') {
-      result = num / 200; // 200 CCC = 1 CS
-    } else if (rate.from === 'CS' && rate.to === 'CCC') {
-      result = num * 200; // 1 CS = 200 CCC
-    } else if (rate.from === 'CS' && rate.to === 'TON') {
-      result = num / 100; // 100 CS = 1 TON
-      // Применяем комиссию если не верифицирован
-      if (!player?.verified && rate.commission > 0) {
-        result = result * (1 - rate.commission / 100);
-      }
-    } else if (rate.from === 'TON' && rate.to === 'CS') {
-      result = num * 100; // 1 TON = 100 CS
-      // Применяем комиссию если не верифицирован
-      if (!player?.verified && rate.commission > 0) {
-        result = result * (1 - rate.commission / 100);
-      }
-    }
-
-    setToAmount(result.toFixed(8));
-  };
-
-  // Обработка изменения валюты "От"
-  const handleFromCurrencyChange = (currency: 'CCC' | 'CS' | 'TON') => {
-    setFromCurrency(currency);
-    setError(null);
-    
-    // Автоматически меняем валюту "К" на доступную
-    if (currency === 'CCC') {
-      setToCurrency('CS');
-    } else if (currency === 'CS') {
-      setToCurrency('CCC');
-    } else if (currency === 'TON') {
-      setToCurrency('CS');
-    }
-  };
-
-  // Обработка изменения валюты "К"
-  const handleToCurrencyChange = (currency: 'CS' | 'CCC' | 'TON') => {
-    setToCurrency(currency);
-    setError(null);
-    
-    // Проверяем доступность направления
-    if (currency === 'TON' && fromCurrency !== 'CS') {
-      setFromCurrency('CS');
-    } else if (currency === 'CS' && fromCurrency === 'CS') {
-      setFromCurrency('CCC');
-    } else if (currency === 'CCC' && fromCurrency === 'CCC') {
-      setFromCurrency('CS');
-    }
-  };
-
-  // Получение доступных валют для обмена
-  const getAvailableToCurrencies = () => {
-    const available = ['CCC', 'CS', 'TON'].filter(curr => curr !== fromCurrency);
-    return available;
-  };
 
   // Получение баланса валюты
   const getBalance = (currency: string) => {
@@ -159,83 +93,128 @@ const ExchangePage: React.FC = () => {
     }
   };
 
+  // Расчет результата обмена (по курсам из API)
+  const calculateResult = (pair: ExchangePair, inputAmount: string) => {
+    const num = parseFloat(inputAmount);
+    if (isNaN(num) || num <= 0) return '';
+
+    let result = 0;
+    
+    // Курсы из вашего API: ccc_to_cs: 0.001, cs_to_ton: 0.0001, ton_to_cs: 10000, cs_to_ccc: 1000
+    if (pair.fromCurrency === 'CCC' && pair.toCurrency === 'CS') {
+      result = num * 0.001; // 1000 CCC = 1 CS
+    } else if (pair.fromCurrency === 'CS' && pair.toCurrency === 'CCC') {
+      result = num * 1000; // 1 CS = 1000 CCC
+    } else if (pair.fromCurrency === 'CS' && pair.toCurrency === 'TON') {
+      result = num * 0.0001; // 10000 CS = 1 TON
+      if (!player?.verified) {
+        result = result * 0.98; // 2% комиссия
+      }
+    } else if (pair.fromCurrency === 'TON' && pair.toCurrency === 'CS') {
+      result = num * 10000; // 1 TON = 10000 CS
+      if (!player?.verified) {
+        result = result * 0.98; // 2% комиссия
+      }
+    }
+
+    return result.toFixed(8);
+  };
+
+  // Обновление результата при изменении суммы
+  useEffect(() => {
+    if (selectedPair && amount) {
+      const calculatedResult = calculateResult(selectedPair, amount);
+      setResult(calculatedResult);
+    } else {
+      setResult('');
+    }
+  }, [selectedPair, amount, player?.verified]);
+
   // Проверка возможности обмена
   const canExchange = () => {
-    if (!selectedRate || !fromAmount) return false;
+    if (!selectedPair || !amount || !result) return false;
     
-    const amount = parseFloat(fromAmount);
-    const balance = getBalance(fromCurrency);
+    const inputAmount = parseFloat(amount);
+    const balance = getBalance(selectedPair.fromCurrency);
     
-    if (isNaN(amount) || amount <= 0) return false;
-    if (amount > balance) return false;
-    if (amount < selectedRate.minAmount) return false;
-    if (amount > selectedRate.maxAmount) return false;
+    if (isNaN(inputAmount) || inputAmount <= 0) return false;
+    if (inputAmount > balance) return false;
+    if (inputAmount < selectedPair.minAmount) return false;
     
     return true;
   };
 
   // Выполнение обмена
   const handleExchange = async () => {
-    if (!canExchange() || !selectedRate) return;
+    if (!canExchange() || !selectedPair) return;
     
-    setIsCalculating(true);
+    setIsExchanging(true);
     setError(null);
+    setSuccess(null);
     
     try {
-      const amount = parseFloat(fromAmount);
+      const inputAmount = parseFloat(amount);
       
-      // Отправляем запрос на сервер
-      const response = await axios.post(`${API_URL}/api/player/exchange`, {
-        telegram_id: player?.telegram_id,
-        fromCurrency: fromCurrency.toLowerCase(),
-        toCurrency: toCurrency.toLowerCase(),
-        amount: amount,
-        expectedResult: parseFloat(toAmount),
-        verified: player?.verified || false
+      // Используем API endpoint /api/exchange/convert
+      const response = await axios.post(`${API_URL}/api/exchange/convert`, {
+        telegramId: player?.telegram_id,
+        fromCurrency: selectedPair.fromCurrency.toLowerCase(),
+        toCurrency: selectedPair.toCurrency.toLowerCase(),
+        amount: inputAmount
       });
       
-      if (response.data.success) {
-        // Обновляем данные игрока через контекст
-        await convertCurrency(amount, fromCurrency.toLowerCase() as any, toCurrency.toLowerCase() as any);
+      if (response.data) {
+        // Обновляем данные игрока из ответа сервера
+        setSuccess('Обмен выполнен успешно!');
+        setAmount('');
+        setResult('');
+        setSelectedPair(null);
         
-        // Очищаем форму
-        setFromAmount('');
-        setToAmount('');
-        setError(null);
-      } else {
-        setError(response.data.message || t('exchange.exchange_error'));
+        // Перезагружаем данные игрока
+        window.location.reload();
+        
+        // Убираем уведомление через 3 секунды
+        setTimeout(() => setSuccess(null), 3000);
       }
+      
     } catch (err: any) {
-      setError(err.response?.data?.message || t('failed_to_convert_currency'));
+      console.error('Exchange error:', err);
+      if (err.response?.data?.error) {
+        // Переводим ошибки с сервера
+        const errorMessage = err.response.data.error;
+        switch (errorMessage) {
+          case 'Not enough CCC':
+            setError('Недостаточно CCC');
+            break;
+          case 'Not enough CS':
+            setError('Недостаточно CS');
+            break;
+          case 'Not enough TON':
+            setError('Недостаточно TON');
+            break;
+          case 'Invalid conversion pair':
+            setError('Недопустимая валютная пара');
+            break;
+          case 'Player not found':
+            setError('Игрок не найден');
+            break;
+          default:
+            setError(errorMessage);
+        }
+      } else {
+        setError('Ошибка при обмене валют');
+      }
     } finally {
-      setIsCalculating(false);
+      setIsExchanging(false);
     }
   };
 
-  // Установка максимальной суммы
-  const setMaxAmount = () => {
-    const balance = getBalance(fromCurrency);
-    const maxAllowed = selectedRate?.maxAmount || balance;
-    const maxAmount = Math.min(balance, maxAllowed);
-    setFromAmount(maxAmount.toString());
-  };
-
-  // Получение информации о комиссии
-  const getCommissionInfo = () => {
-    if (!selectedRate || selectedRate.commission === 0) return null;
-    
-    const isVerified = player?.verified;
-    if (isVerified) {
-      return {
-        text: t('exchange.commission_verified'),
-        color: '#4ade80'
-      };
-    } else {
-      return {
-        text: t('exchange.commission_unverified', { rate: selectedRate.commission }),
-        color: '#f59e0b'
-      };
-    }
+  // Закрытие модального окна обмена
+  const closeExchangeModal = () => {
+    setSelectedPair(null);
+    setAmount('');
+    setResult('');
+    setError(null);
   };
 
   return (
@@ -271,380 +250,187 @@ const ExchangePage: React.FC = () => {
           }}>
             💱 {t('exchange')}
           </h1>
-          
-          {/* Основная форма обмена */}
-          <div style={{
-            margin: '20px auto',
-            padding: '40px',
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(10px)',
-            border: `2px solid ${colorStyle}40`,
-            borderRadius: '25px',
-            boxShadow: `0 0 40px ${colorStyle}20`,
-            maxWidth: '450px',
-            position: 'relative'
-          }}>
-            {/* Декоративный элемент */}
-            <div style={{
-              position: 'absolute',
-              top: '-2px',
-              left: '-2px',
-              right: '-2px',
-              bottom: '-2px',
-              background: `linear-gradient(45deg, ${colorStyle}30, transparent, ${colorStyle}30)`,
-              borderRadius: '25px',
-              zIndex: -1
-            }} />
 
-            {/* Блок "От" */}
+          {/* Уведомления */}
+          {success && (
             <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: '20px',
-              padding: '25px',
-              marginBottom: '20px',
-              border: `1px solid ${colorStyle}30`
+              margin: '20px auto',
+              padding: '15px',
+              background: 'rgba(34, 197, 94, 0.15)',
+              border: '2px solid #22c55e',
+              borderRadius: '15px',
+              color: '#22c55e',
+              maxWidth: '500px',
+              fontWeight: '500'
             }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '15px'
-              }}>
-                <label style={{ color: '#ccc', fontSize: '1.1rem', fontWeight: '500' }}>
-                  {t('exchange.from')}
-                </label>
-                <span style={{ color: '#888', fontSize: '0.9rem' }}>
-                  {t('exchange.balance')}: {getBalance(fromCurrency).toLocaleString()} {fromCurrency}
-                </span>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <select
-                  value={fromCurrency}
-                  onChange={(e) => handleFromCurrencyChange(e.target.value as 'CCC' | 'CS' | 'TON')}
-                  style={{
-                    padding: '15px',
-                    minWidth: '100px',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    border: `2px solid ${colorStyle}60`,
-                    borderRadius: '12px',
-                    color: '#fff',
-                    fontSize: '1rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  <option value="CCC">💠 CCC</option>
-                  <option value="CS">✨ CS</option>
-                  <option value="TON">💎 TON</option>
-                </select>
-                
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <input
-                    type="number"
-                    value={fromAmount}
-                    onChange={(e) => setFromAmount(e.target.value)}
-                    placeholder={t('exchange.enter_amount')}
-                    style={{
-                      padding: '15px',
-                      width: '100%',
-                      background: 'rgba(0, 0, 0, 0.6)',
-                      border: `2px solid ${colorStyle}60`,
-                      borderRadius: '12px',
-                      color: '#fff',
-                      fontSize: '1.2rem',
-                      fontWeight: 'bold',
-                      boxSizing: 'border-box',
-                      textAlign: 'right'
-                    }}
-                  />
-                  <button
-                    onClick={setMaxAmount}
-                    style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: colorStyle,
-                      color: '#000',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {t('exchange.max')}
-                  </button>
-                </div>
-              </div>
+              ✅ {success}
             </div>
+          )}
 
-            {/* Стрелка обмена */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              margin: '20px 0'
-            }}>
-              <div style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                background: `linear-gradient(135deg, ${colorStyle}60, ${colorStyle}40)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
-                boxShadow: `0 0 20px ${colorStyle}40`,
-                cursor: 'pointer',
-                transition: 'transform 0.3s ease'
-              }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1) rotate(180deg)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1) rotate(0deg)'}
-            >
-              ⇅
-            </div>
-            </div>
-
-            {/* Блок "К" */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: '20px',
-              padding: '25px',
-              marginBottom: '25px',
-              border: `1px solid ${colorStyle}30`
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '15px'
-              }}>
-                <label style={{ color: '#ccc', fontSize: '1.1rem', fontWeight: '500' }}>
-                  {t('exchange.to')}
-                </label>
-                <span style={{ color: '#888', fontSize: '0.9rem' }}>
-                  {t('exchange.balance')}: {getBalance(toCurrency).toLocaleString()} {toCurrency}
-                </span>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <select
-                  value={toCurrency}
-                  onChange={(e) => handleToCurrencyChange(e.target.value as 'CS' | 'CCC' | 'TON')}
-                  style={{
-                    padding: '15px',
-                    minWidth: '100px',
-                    background: 'rgba(0, 0, 0, 0.6)',
-                    border: `2px solid ${colorStyle}60`,
-                    borderRadius: '12px',
-                    color: '#fff',
-                    fontSize: '1rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {getAvailableToCurrencies().map(currency => (
-                    <option key={currency} value={currency}>
-                      {currency === 'CCC' ? '💠 CCC' : 
-                       currency === 'CS' ? '✨ CS' : '💎 TON'}
-                    </option>
-                  ))}
-                </select>
-                
-                <input
-                  type="text"
-                  value={toAmount}
-                  readOnly
-                  placeholder={t('exchange.enter_amount')}
-                  style={{
-                    padding: '15px',
-                    flex: 1,
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: `2px solid ${colorStyle}30`,
-                    borderRadius: '12px',
-                    color: colorStyle,
-                    fontSize: '1.2rem',
-                    fontWeight: 'bold',
-                    textAlign: 'right',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Информация о курсе и комиссии */}
-            {selectedRate && (
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.08)',
-                borderRadius: '15px',
-                padding: '20px',
-                marginBottom: '25px',
-                border: `1px solid ${colorStyle}20`
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '10px'
-                }}>
-                  <span style={{ color: '#ccc' }}>{t('exchange.rate')}:</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                    {selectedRate.from === 'CCC' ? t('exchange.rate_ccc_cs') : 
-                     selectedRate.from === 'CS' && selectedRate.to === 'CCC' ? t('exchange.rate_cs_ccc') :
-                     selectedRate.from === 'CS' && selectedRate.to === 'TON' ? t('exchange.rate_cs_ton') :
-                     selectedRate.from === 'TON' && selectedRate.to === 'CS' ? t('exchange.rate_ton_cs') : 
-                     `1 ${selectedRate.from} = ${selectedRate.rate} ${selectedRate.to}`}
-                  </span>
-                </div>
-                
-                {getCommissionInfo() && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '10px'
-                  }}>
-                    <span style={{ color: '#ccc' }}>{t('exchange.commission')}:</span>
-                    <span style={{ color: getCommissionInfo()?.color, fontWeight: 'bold' }}>
-                      {player?.verified ? t('exchange.commission_verified') : 
-                       t('exchange.commission_unverified', { rate: selectedRate.commission })}
-                    </span>
-                  </div>
-                )}
-                
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.9rem',
-                  color: '#888'
-                }}>
-                  <span>{t('exchange.limits')}:</span>
-                  <span>{selectedRate.minAmount} - {selectedRate.maxAmount.toLocaleString()} {selectedRate.from}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Кнопка обмена */}
-            <button
-              onClick={handleExchange}
-              disabled={!canExchange() || isCalculating}
-              style={{
-                padding: '18px 40px',
-                width: '100%',
-                background: canExchange() && !isCalculating
-                  ? `linear-gradient(135deg, ${colorStyle}80, ${colorStyle}40, ${colorStyle}80)` 
-                  : 'rgba(128, 128, 128, 0.3)',
-                boxShadow: canExchange() && !isCalculating
-                  ? `0 0 30px ${colorStyle}60` 
-                  : 'none',
-                color: '#fff',
-                border: `2px solid ${canExchange() && !isCalculating ? colorStyle : '#555'}`,
-                borderRadius: '15px',
-                cursor: canExchange() && !isCalculating ? 'pointer' : 'not-allowed',
-                transition: 'all 0.3s ease',
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={e => {
-                if (canExchange() && !isCalculating) {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = `0 0 40px ${colorStyle}80`;
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = canExchange() && !isCalculating
-                  ? `0 0 30px ${colorStyle}60` 
-                  : 'none';
-              }}
-            >
-              {isCalculating ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    border: `3px solid ${colorStyle}30`,
-                    borderTop: `3px solid ${colorStyle}`,
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  {t('exchange.processing')}
-                </span>
-              ) : (
-                <>🔄 {t('exchange.exchange_button')}</>
-              )}
-            </button>
-
-            {/* Ошибка */}
-            {error && (
-              <div style={{
-                marginTop: '20px',
-                padding: '15px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '2px solid #ef4444',
-                borderRadius: '12px',
-                color: '#ef4444',
-                textAlign: 'center',
-                fontWeight: '500'
-              }}>
-                ⚠️ {error}
-              </div>
-            )}
-          </div>
-
-          {/* Информационные карточки */}
+          {/* Валютные пары */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '20px',
             margin: '30px auto',
-            maxWidth: '900px'
+            maxWidth: '800px'
           }}>
-            {/* Курсы валют */}
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: '20px',
-              padding: '25px',
-              border: `1px solid ${colorStyle}30`,
-              boxShadow: `0 0 25px ${colorStyle}15`
-            }}>
-              <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.4rem', textAlign: 'center' }}>
-                📊 {t('exchange.rates_title')}
-              </h3>
-              <div style={{ lineHeight: '1.8', color: '#ccc' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>💠 CCC → ✨ CS</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>200:1</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>✨ CS → 💠 CCC</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>1:200</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>✨ CS → 💎 TON</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>100:1</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                  <span>💎 TON → ✨ CS</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>1:100</span>
-                </div>
-                <div style={{ 
-                  fontSize: '0.9rem', 
-                  color: '#aaa', 
-                  textAlign: 'center',
-                  padding: '10px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '10px'
-                }}>
-                  💡 {t('exchange.rates_info')}
-                </div>
-              </div>
-            </div>
+            {EXCHANGE_PAIRS.map((pair) => {
+              const balance = getBalance(pair.fromCurrency);
+              const hasCommission = pair.hasCommission && !player?.verified;
+              
+              return (
+                <div
+                  key={pair.id}
+                  onClick={() => setSelectedPair(pair)}
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '20px',
+                    padding: '25px',
+                    border: `2px solid ${colorStyle}30`,
+                    boxShadow: `0 0 25px ${colorStyle}15`,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = `0 0 35px ${colorStyle}25`;
+                    e.currentTarget.style.borderColor = `${colorStyle}60`;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}15`;
+                    e.currentTarget.style.borderColor = `${colorStyle}30`;
+                  }}
+                >
+                  {/* Иконка комиссии */}
+                  {hasCommission && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '15px',
+                      right: '15px',
+                      background: '#f59e0b',
+                      color: '#000',
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      fontSize: '0.7rem',
+                      fontWeight: 'bold'
+                    }}>
+                      2%
+                    </div>
+                  )}
+                  
+                  {/* Валютная пара */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '15px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <div style={{
+                        fontSize: '2.5rem',
+                        filter: `drop-shadow(0 0 10px ${colorStyle}60)`
+                      }}>
+                        {pair.fromIcon}
+                      </div>
+                      <span style={{
+                        color: colorStyle,
+                        fontWeight: 'bold',
+                        fontSize: '1.1rem'
+                      }}>
+                        {pair.fromCurrency}
+                      </span>
+                    </div>
 
+                    <div style={{
+                      fontSize: '1.5rem',
+                      color: '#aaa'
+                    }}>
+                      →
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <div style={{
+                        fontSize: '2.5rem',
+                        filter: `drop-shadow(0 0 10px ${colorStyle}60)`
+                      }}>
+                        {pair.toIcon}
+                      </div>
+                      <span style={{
+                        color: colorStyle,
+                        fontWeight: 'bold',
+                        fontSize: '1.1rem'
+                      }}>
+                        {pair.toCurrency}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Курс обмена */}
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    marginBottom: '15px'
+                  }}>
+                    <div style={{
+                      color: colorStyle,
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                      marginBottom: '5px'
+                    }}>
+                      {pair.rateText}
+                    </div>
+                    {hasCommission && (
+                      <div style={{
+                        color: '#f59e0b',
+                        fontSize: '0.9rem'
+                      }}>
+                        Комиссия: 2%
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Баланс */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: '#aaa',
+                    fontSize: '0.9rem'
+                  }}>
+                    <span>Доступно:</span>
+                    <span style={{ color: '#fff', fontWeight: '500' }}>
+                      {balance.toLocaleString()} {pair.fromCurrency}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Информационные карточки */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px',
+            margin: '40px auto',
+            maxWidth: '800px'
+          }}>
             {/* Комиссии */}
             <div style={{
               background: 'rgba(0, 0, 0, 0.6)',
@@ -654,40 +440,256 @@ const ExchangePage: React.FC = () => {
               border: `1px solid ${colorStyle}30`,
               boxShadow: `0 0 25px ${colorStyle}15`
             }}>
-              <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.4rem', textAlign: 'center' }}>
+              <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.3rem', textAlign: 'center' }}>
                 💰 {t('exchange.commissions_title')}
               </h3>
-              <div style={{ lineHeight: '1.8', color: '#ccc' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span>CCC ⇄ CS</span>
-                  <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{t('exchange.no_commission')}</span>
+                  <span style={{ color: '#4ade80', fontWeight: 'bold' }}>0%</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                   <span>CS ⇄ TON</span>
                   <span style={{ color: player?.verified ? '#4ade80' : '#f59e0b', fontWeight: 'bold' }}>
-                    {player?.verified ? t('exchange.no_commission') : '2%'}
+                    {player?.verified ? '0%' : '2%'}
                   </span>
                 </div>
                 <div style={{ 
-                  fontSize: '0.9rem', 
+                  fontSize: '0.8rem', 
                   color: '#aaa', 
                   textAlign: 'center',
-                  padding: '10px',
+                  padding: '8px',
                   background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '10px',
-                  marginTop: '15px'
+                  borderRadius: '8px'
                 }}>
                   {player?.verified ? (
-                    <span style={{ color: '#4ade80' }}>✅ {t('exchange.verified_status')}</span>
+                    <span style={{ color: '#4ade80' }}>✅ Вы верифицированы</span>
                   ) : (
-                    <span>🔒 {t('exchange.verification_hint')}</span>
+                    <span>🔒 Пройдите верификацию для отмены комиссий</span>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Лимиты */}
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '20px',
+              padding: '25px',
+              border: `1px solid ${colorStyle}30`,
+              boxShadow: `0 0 25px ${colorStyle}15`
+            }}>
+              <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.3rem', textAlign: 'center' }}>
+                📊 Минимальные суммы
+              </h3>
+              <div style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>CCC → CS</span>
+                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>100 CCC</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>CS → CCC</span>
+                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>1 CS</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span>CS → TON</span>
+                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>1 CS</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>TON → CS</span>
+                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>0.01 TON</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Модальное окно обмена */}
+      {selectedPair && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.9)',
+            borderRadius: '25px',
+            padding: '40px',
+            maxWidth: '450px',
+            width: '100%',
+            border: `2px solid ${colorStyle}40`,
+            boxShadow: `0 0 50px ${colorStyle}30`,
+            position: 'relative'
+          }}>
+            {/* Кнопка закрытия */}
+            <button
+              onClick={closeExchangeModal}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'transparent',
+                border: 'none',
+                color: '#aaa',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                padding: '5px'
+              }}
+            >
+              ✕
+            </button>
+
+            <h3 style={{ 
+              color: colorStyle, 
+              marginBottom: '25px', 
+              fontSize: '1.5rem',
+              textAlign: 'center'
+            }}>
+              {selectedPair.fromIcon} {selectedPair.fromCurrency} → {selectedPair.toIcon} {selectedPair.toCurrency}
+            </h3>
+
+            {/* Курс */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '12px',
+              padding: '15px',
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ color: colorStyle, fontWeight: 'bold', marginBottom: '5px' }}>
+                {selectedPair.rateText}
+              </div>
+              {selectedPair.hasCommission && !player?.verified && (
+                <div style={{ color: '#f59e0b', fontSize: '0.9rem' }}>
+                  Комиссия: 2%
+                </div>
+              )}
+            </div>
+
+            {/* Ввод суммы */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ color: '#ccc', marginBottom: '10px', display: 'block' }}>
+                Сумма ({selectedPair.fromCurrency}):
+              </label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder={`Минимум ${selectedPair.minAmount}`}
+                style={{
+                  padding: '15px',
+                  width: '100%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: `2px solid ${colorStyle}60`,
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '1.1rem',
+                  boxSizing: 'border-box',
+                  // Убираем стрелочки
+                  MozAppearance: 'textfield'
+                }}
+              />
+            </div>
+
+            {/* Результат */}
+            {result && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                padding: '15px',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#ccc' }}>Получите:</span>
+                  <span style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.2rem' }}>
+                    {result} {selectedPair.toCurrency}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Ошибка */}
+            {error && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '10px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid #ef4444',
+                borderRadius: '8px',
+                color: '#ef4444',
+                fontSize: '0.9rem'
+              }}>
+                ⚠️ {error}
+              </div>
+            )}
+
+            {/* Кнопки */}
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button
+                onClick={closeExchangeModal}
+                style={{
+                  padding: '15px 25px',
+                  flex: 1,
+                  background: 'rgba(128, 128, 128, 0.3)',
+                  border: '2px solid #666',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Отмена
+              </button>
+              
+              <button
+                onClick={handleExchange}
+                disabled={!canExchange() || isExchanging}
+                style={{
+                  padding: '15px 25px',
+                  flex: 1,
+                  background: canExchange() && !isExchanging
+                    ? `linear-gradient(135deg, ${colorStyle}80, ${colorStyle}40)`
+                    : 'rgba(128, 128, 128, 0.3)',
+                  border: `2px solid ${canExchange() && !isExchanging ? colorStyle : '#666'}`,
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: canExchange() && !isExchanging ? 'pointer' : 'not-allowed'
+                }}
+              >
+                {isExchanging ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: `2px solid ${colorStyle}30`,
+                      borderTop: `2px solid ${colorStyle}`,
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    Обмен...
+                  </span>
+                ) : (
+                  'Обменять'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Нижняя навигация */}
       <NavigationMenu colorStyle={colorStyle} />
@@ -698,6 +700,17 @@ const ExchangePage: React.FC = () => {
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+          }
+          
+          /* Убираем стрелочки в input type="number" для всех браузеров */
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          
+          input[type="number"] {
+            -moz-appearance: textfield;
           }
         `}
       </style>
