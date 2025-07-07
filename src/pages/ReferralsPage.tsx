@@ -1,12 +1,13 @@
-// ========================================
-// 2. ИСПРАВЛЕННЫЙ ReferralsPage.tsx
-// ========================================
-
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
+
+const apiUrl = process.env.NODE_ENV === 'production'
+  ? 'https://cosmoclick-backend.onrender.com'
+  : 'http://localhost:5000';
 
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -16,6 +17,11 @@ const ReferralsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  
+  // 🔥 ПРЯМЫЕ ДАННЫЕ ИЗ API
+  const [directReferrals, setDirectReferrals] = useState<any[]>([]);
+  const [directHonorBoard, setDirectHonorBoard] = useState<any[]>([]);
+  const [apiDebugInfo, setApiDebugInfo] = useState<any>({});
 
   // Проверяем загрузку данных
   useEffect(() => {
@@ -24,19 +30,66 @@ const ReferralsPage: React.FC = () => {
     }
   }, [player, loading]);
 
+  // 🔥 ПРЯМОЕ ОБРАЩЕНИЕ К API при загрузке страницы
+  useEffect(() => {
+    const loadDirectData = async () => {
+      if (!player?.telegram_id) return;
+      
+      try {
+        console.log('🔥 ПРЯМОЙ ЗАПРОС К API рефералов...');
+        
+        // Запрос списка рефералов
+        const referralsResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
+        console.log('🔥 ОТВЕТ API рефералов:', referralsResponse.data);
+        
+        // Запрос доски почета
+        const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`);
+        console.log('🔥 ОТВЕТ API доски почета:', honorResponse.data);
+        
+        // Сохраняем данные
+        setDirectReferrals(Array.isArray(referralsResponse.data) ? referralsResponse.data : []);
+        setDirectHonorBoard(Array.isArray(honorResponse.data) ? honorResponse.data : []);
+        
+        // Сохраняем отладочную инфу
+        setApiDebugInfo({
+          referrals_api_response: referralsResponse.data,
+          referrals_api_type: typeof referralsResponse.data,
+          referrals_api_length: referralsResponse.data?.length,
+          honor_api_response: honorResponse.data,
+          honor_api_type: typeof honorResponse.data,
+          honor_api_length: honorResponse.data?.length,
+          player_referrals: player.referrals,
+          player_referrals_type: typeof player.referrals,
+          player_referrals_length: player.referrals?.length
+        });
+        
+      } catch (err: any) {
+        console.error('❌ Ошибка прямого запроса к API:', err);
+        setApiDebugInfo({ error: err?.message || 'Unknown error' });
+      }
+    };
+    
+    loadDirectData();
+  }, [player?.telegram_id]);
+
   // 🔍 РАСШИРЕННАЯ ОТЛАДКА
-  console.log('🔍 ПОЛНАЯ ОТЛАДКА РЕФЕРАЛОВ:', {
-    player_exists: !!player,
-    telegram_id: player?.telegram_id,
-    referrals_count: player?.referrals_count,
-    referrals_array: player?.referrals,
-    referrals_length: player?.referrals?.length,
-    referrals_type: typeof player?.referrals,
-    honor_board: player?.honor_board,
-    honor_board_length: player?.honor_board?.length,
-    honor_board_type: typeof player?.honor_board,
-    loading: loading,
-    isInitialLoading: isInitialLoading
+  console.log('🔍 СРАВНЕНИЕ ДАННЫХ:', {
+    'Из PlayerContext': {
+      referrals: player?.referrals,
+      referrals_type: typeof player?.referrals,
+      referrals_length: player?.referrals?.length,
+      honor_board: player?.honor_board,
+      honor_board_type: typeof player?.honor_board,
+      honor_board_length: player?.honor_board?.length
+    },
+    'Прямо из API': {
+      referrals: directReferrals,
+      referrals_type: typeof directReferrals,
+      referrals_length: directReferrals?.length,
+      honor_board: directHonorBoard,
+      honor_board_type: typeof directHonorBoard,
+      honor_board_length: directHonorBoard?.length
+    }
   });
 
   // Функция для показа всплывающего сообщения
@@ -124,9 +177,9 @@ const ReferralsPage: React.FC = () => {
   // Проверяем, является ли текущий игрок дефолтным
   const isDefaultPlayer = player?.telegram_id === '1222791281';
 
-  // 🔥 БОЛЕЕ БЕЗОПАСНАЯ обработка рефералов
-  const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
-  const safeHonorBoard = Array.isArray(player?.honor_board) ? player.honor_board : [];
+  // 🔥 ИСПОЛЬЗУЕМ ПРЯМЫЕ ДАННЫЕ ИЗ API
+  const safeReferrals = directReferrals;
+  const safeHonorBoard = directHonorBoard;
 
   // Фильтруем рефералов (убираем дефолтного игрока для всех кроме него самого)
   const filteredReferrals = safeReferrals.filter((ref: any) => 
@@ -258,24 +311,40 @@ const ReferralsPage: React.FC = () => {
             👥 {t('referrals')}
           </h2>
 
-          {/* 🔍 ВРЕМЕННЫЙ БЛОК ОТЛАДКИ - покажет что именно приходит в данных */}
+          {/* 🔍 СУПЕР ОТЛАДОЧНЫЙ БЛОК - сравнение всех источников данных */}
           <div style={{
             margin: '10px auto',
-            padding: '10px',
-            background: 'rgba(255, 165, 0, 0.2)',
-            border: '1px solid orange',
-            borderRadius: '5px',
-            maxWidth: '600px',
-            fontSize: '0.8rem',
-            textAlign: 'left'
+            padding: '15px',
+            background: 'rgba(255, 0, 0, 0.2)',
+            border: '2px solid red',
+            borderRadius: '10px',
+            maxWidth: '800px',
+            fontSize: '0.7rem',
+            textAlign: 'left',
+            color: '#fff'
           }}>
-            <strong>🔍 ОТЛАДКА:</strong><br/>
-            referrals_count: {player?.referrals_count}<br/>
-            referrals type: {typeof player?.referrals}<br/>
-            referrals length: {player?.referrals?.length}<br/>
-            safeReferrals length: {safeReferrals.length}<br/>
-            filteredReferrals length: {filteredReferrals.length}<br/>
-            honor_board length: {safeHonorBoard.length}
+            <h4 style={{ color: 'red', marginBottom: '10px' }}>🔥 СУПЕР ОТЛАДКА:</h4>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <strong>📊 PlayerContext данные:</strong><br/>
+              referrals_count: {player?.referrals_count}<br/>
+              referrals type: {typeof player?.referrals}<br/>
+              referrals: {JSON.stringify(player?.referrals)}<br/>
+              honor_board: {JSON.stringify(player?.honor_board)}
+            </div>
+            
+            <div style={{ marginBottom: '10px' }}>
+              <strong>🔥 Прямые API данные:</strong><br/>
+              directReferrals length: {directReferrals.length}<br/>
+              directReferrals: {JSON.stringify(directReferrals)}<br/>
+              directHonorBoard length: {directHonorBoard.length}<br/>
+              directHonorBoard: {JSON.stringify(directHonorBoard)}
+            </div>
+            
+            <div>
+              <strong>🔧 API Debug Info:</strong><br/>
+              {JSON.stringify(apiDebugInfo, null, 2)}
+            </div>
           </div>
           
           {/* Реферальная ссылка */}
