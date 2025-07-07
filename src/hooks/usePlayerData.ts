@@ -1,3 +1,7 @@
+// ========================================
+// 1. ИСПРАВЛЕННЫЙ usePlayerData.ts
+// ========================================
+
 import { useState } from 'react';
 import axios from 'axios';
 import { playerApi, referralApi } from '../services';
@@ -220,19 +224,21 @@ export const usePlayerData = () => {
       try {
         console.log('🔄 [INIT] Загружаем рефералов...');
         const referralsResponse = await referralApi.getReferralsList(telegramId);
-        referrals = referralsResponse.data || [];
+        referrals = Array.isArray(referralsResponse.data) ? referralsResponse.data : [];
         console.log(`✅ [INIT] Загружено рефералов: ${referrals.length}`, referrals);
       } catch (err: any) {
         console.error('❌ [INIT] Ошибка загрузки рефералов:', err);
+        referrals = [];
       }
 
       try {
         console.log('🔄 [INIT] Загружаем доску почета...');
         const honorBoardResponse = await referralApi.getHonorBoard();
-        honorBoard = honorBoardResponse.data || [];
+        honorBoard = Array.isArray(honorBoardResponse.data) ? honorBoardResponse.data : [];
         console.log(`✅ [INIT] Загружена доска почета: ${honorBoard.length}`, honorBoard);
       } catch (err: any) {
         console.error('❌ [INIT] Ошибка загрузки доски почета:', err);
+        honorBoard = [];
       }
 
       // Создаем реферальную ссылку если её нет
@@ -257,7 +263,9 @@ export const usePlayerData = () => {
       console.log('🔍 [INIT] Данные перед нормализацией:', {
         referrals_count: fullPlayerData.referrals_count,
         referrals_length: fullPlayerData.referrals?.length,
-        honor_board_length: fullPlayerData.honor_board?.length
+        referrals_type: typeof fullPlayerData.referrals,
+        honor_board_length: fullPlayerData.honor_board?.length,
+        honor_board_type: typeof fullPlayerData.honor_board
       });
       
       // 🔥 ТЕПЕРЬ createPlayerWithDefaults получает рефералов и не перезаписывает их
@@ -266,7 +274,9 @@ export const usePlayerData = () => {
       console.log('🔍 [INIT] Данные после нормализации:', {
         referrals_count: normalizedPlayer.referrals_count,
         referrals_length: normalizedPlayer.referrals?.length,
-        honor_board_length: normalizedPlayer.honor_board?.length
+        referrals_type: typeof normalizedPlayer.referrals,
+        honor_board_length: normalizedPlayer.honor_board?.length,
+        honor_board_type: typeof normalizedPlayer.honor_board
       });
       
       setPlayer(normalizedPlayer);

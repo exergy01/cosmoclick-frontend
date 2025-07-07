@@ -1,3 +1,7 @@
+// ========================================
+// 3. ИСПРАВЛЕННЫЙ App.tsx (добавлен маршрут /referrals)
+// ========================================
+
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AppProvider } from './context/AppProvider';
@@ -55,6 +59,7 @@ const AppContent: React.FC = () => {
         <Route path="/games" element={<GamesPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/ref" element={<ReferralsPage />} />
+        <Route path="/referrals" element={<ReferralsPage />} />
         <Route path="/alphabet" element={<AlphabetPage />} />
       </Routes>
     </Suspense>

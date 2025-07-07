@@ -1,3 +1,7 @@
+// ========================================
+// 2. ИСПРАВЛЕННЫЙ ReferralsPage.tsx
+// ========================================
+
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
@@ -27,8 +31,10 @@ const ReferralsPage: React.FC = () => {
     referrals_count: player?.referrals_count,
     referrals_array: player?.referrals,
     referrals_length: player?.referrals?.length,
+    referrals_type: typeof player?.referrals,
     honor_board: player?.honor_board,
     honor_board_length: player?.honor_board?.length,
+    honor_board_type: typeof player?.honor_board,
     loading: loading,
     isInitialLoading: isInitialLoading
   });
@@ -42,64 +48,21 @@ const ReferralsPage: React.FC = () => {
     }, 1500);
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ функция поделиться для Telegram
+  // 🔥 ПРОСТАЯ функция поделиться - просто копирует ссылку
   const handleShare = () => {
     if (!player?.referral_link) {
       showToastMessage('Ссылка недоступна');
       return;
     }
 
-    try {
-      // Telegram WebApp - используем специальный метод
-      if ((window as any).Telegram?.WebApp) {
-        const telegramWebApp = (window as any).Telegram.WebApp;
-        
-        // Вибрация
-        if (telegramWebApp.HapticFeedback) {
-          telegramWebApp.HapticFeedback.impactOccurred('light');
-        }
-
-        // Пробуем Telegram методы поделиться
-        if (telegramWebApp.openTelegramLink) {
-          const shareText = encodeURIComponent('Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
-          const shareUrl = encodeURIComponent(player.referral_link);
-          telegramWebApp.openTelegramLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
-          showToastMessage('Открываем поделиться');
-          return;
-        }
-
-        // Альтернатива: открываем в том же окне
-        if (telegramWebApp.openLink) {
-          const shareText = encodeURIComponent('Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
-          const shareUrl = encodeURIComponent(player.referral_link);
-          telegramWebApp.openLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
-          showToastMessage('Открываем поделиться');
-          return;
-        }
-      }
-
-      // Fallback для обычных браузеров
-      if (navigator.share) {
-        navigator.share({
-          title: 'CosmoClick - Космическая игра',
-          text: 'Присоединяйся к CosmoClick и зарабатывай космические кристаллы!',
-          url: player.referral_link,
-        }).then(() => {
-          showToastMessage('Поделились успешно');
-        }).catch(err => {
-          console.error('Web Share API error:', err);
-          copyToClipboard(player.referral_link);
-        });
-      } else {
-        // Если ничего не работает - копируем
-        copyToClipboard(player.referral_link);
-        showToastMessage('Ссылка скопирована (поделиться недоступно)');
-      }
-    } catch (err) {
-      console.error('Share error:', err);
-      copyToClipboard(player.referral_link);
-      showToastMessage('Ссылка скопирована');
+    // Вибрация в Telegram
+    if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+      (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
     }
+
+    // Просто копируем ссылку без закрытия приложения
+    copyToClipboard(player.referral_link);
+    showToastMessage('Ссылка скопирована! Теперь можете поделиться ей в любом чате');
   };
 
   const copyToClipboard = (text: string) => {
