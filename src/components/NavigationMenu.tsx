@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { usePlayer } from '../context/PlayerContext';
 
 interface NavigationMenuProps {
   colorStyle: string;
@@ -10,6 +11,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshPlayer } = usePlayer(); // 🔥 ДОБАВИЛИ refreshPlayer
 
   const topMenuItems = [
     { path: '/attack', icon: '⚔️', label: t('attack') },
@@ -24,6 +26,23 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     { path: '/ref', icon: '👥' },
     { path: '/alphabet', icon: '📖' }
   ];
+
+  // 🔥 НОВАЯ ФУНКЦИЯ: Переход с обновлением данных
+  const handleNavigation = async (path: string) => {
+    try {
+      // Если переходим на рефералы - обновляем данные игрока
+      if (path === '/ref' || path === '/referrals') {
+        console.log('🔄 Обновляем данные перед переходом на рефералы...');
+        await refreshPlayer(); // 🔥 ОБНОВЛЯЕМ ДАННЫЕ!
+        console.log('✅ Данные обновлены, переходим на рефералы');
+      }
+      navigate(path);
+    } catch (err) {
+      console.error('❌ Ошибка при переходе:', err);
+      // Переходим в любом случае
+      navigate(path);
+    }
+  };
 
   const buttonStyle = (path: string, hasLabel: boolean = false) => ({
     flex: 1,
@@ -74,7 +93,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
         {topMenuItems.map(({ path, icon, label }) => (
           <button 
             key={path} 
-            onClick={() => navigate(path)} 
+            onClick={() => handleNavigation(path)} 
             style={buttonStyle(path, true)}
             onMouseEnter={handleButtonHover}
             onMouseLeave={handleButtonLeave}
@@ -89,7 +108,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
         {bottomMenuItems.map(({ path, icon }) => (
           <button 
             key={path} 
-            onClick={() => navigate(path)} 
+            onClick={() => handleNavigation(path)} 
             style={buttonStyle(path, false)}
             onMouseEnter={handleButtonHover}
             onMouseLeave={handleButtonLeave}
