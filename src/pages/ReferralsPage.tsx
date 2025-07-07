@@ -123,9 +123,9 @@ const ReferralsPage: React.FC = () => {
   // Проверяем, является ли текущий игрок дефолтным
   const isDefaultPlayer = player?.telegram_id === '1222791281';
 
-  // 🔥 ИСПОЛЬЗУЕМ ДАННЫЕ ИЗ PLAYER (уже должны загружаться через refreshPlayer)
-  const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
-  const safeHonorBoard = Array.isArray(player?.honor_board) ? player.honor_board : [];
+  // 🔥 ИСПОЛЬЗУЕМ ДАННЫЕ НАПРЯМУЮ ИЗ API (обходим PlayerContext)
+  const safeReferrals = Array.isArray(apiDebugData.referrals_api) ? apiDebugData.referrals_api : [];
+  const safeHonorBoard = Array.isArray(apiDebugData.honor_api) ? apiDebugData.honor_api : [];
 
   // Фильтруем рефералов (убираем дефолтного игрока для всех кроме него самого)
   const filteredReferrals = safeReferrals.filter((ref: any) => 
