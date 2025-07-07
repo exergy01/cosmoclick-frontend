@@ -28,5 +28,7 @@
   "copy": "Скопировать",
   "attack": "Атака",
   "exchange": "Обмен",
-  "quests": "Задания"
+  "quests": "Задания",
+  "available_for_collection": "Available for Collection",
+  "collect_rewards": "Collect Rewards"
 }
