@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
-import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
-
-const apiUrl = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
 
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -17,10 +12,6 @@ const ReferralsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  
-  // 🔥 ПРОСТОЕ СОСТОЯНИЕ - только рефералы
-  const [referralsList, setReferralsList] = useState<any[]>([]);
-  const [loadingReferrals, setLoadingReferrals] = useState(true);
 
   // Проверяем загрузку данных
   useEffect(() => {
@@ -28,39 +19,6 @@ const ReferralsPage: React.FC = () => {
       setIsInitialLoading(false);
     }
   }, [player, loading]);
-
-  // 🔥 ПРОСТАЯ ЗАГРУЗКА - только один API запрос
-  useEffect(() => {
-    const loadReferrals = async () => {
-      if (!player?.telegram_id) {
-        setLoadingReferrals(false);
-        return;
-      }
-      
-      try {
-        console.log('🔥 Загружаем рефералов через API...');
-        const response = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
-        console.log('✅ Получили ответ:', response.data);
-        
-        if (Array.isArray(response.data)) {
-          setReferralsList(response.data);
-          console.log(`✅ Установили ${response.data.length} рефералов`);
-        } else {
-          console.log('⚠️ Ответ не массив:', typeof response.data, response.data);
-          setReferralsList([]);
-        }
-      } catch (err: any) {
-        console.error('❌ Ошибка загрузки рефералов:', err);
-        setReferralsList([]);
-      } finally {
-        setLoadingReferrals(false);
-      }
-    };
-    
-    // Небольшая задержка для стабильности в Telegram
-    const timer = setTimeout(loadReferrals, 500);
-    return () => clearTimeout(timer);
-  }, [player?.telegram_id]);
 
   // Функция для показа всплывающего сообщения
   const showToastMessage = (message: string) => {
@@ -71,30 +29,9 @@ const ReferralsPage: React.FC = () => {
     }, 1500);
   };
 
-  // 🔥 ПРОСТАЯ функция поделиться - просто копирует ссылку
-  const handleShare = () => {
-    if (!player?.referral_link) {
-      showToastMessage('Ссылка недоступна');
-      return;
-    }
-
-    // Вибрация в Telegram
-    try {
-      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
-        (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
-      }
-    } catch (e) {
-      // Игнорируем ошибки вибрации
-    }
-
-    // Просто копируем ссылку
-    copyToClipboard(player.referral_link);
-    showToastMessage('Ссылка скопирована! Поделитесь ей в чате');
-  };
-
+  // Простая функция копирования
   const copyToClipboard = (text: string) => {
     try {
-      // Простой метод копирования
       const textArea = document.createElement('textarea');
       textArea.value = text;
       textArea.style.position = 'fixed';
@@ -114,17 +51,25 @@ const ReferralsPage: React.FC = () => {
         showToastMessage('Ошибка копирования');
       }
     } catch (err) {
-      console.error('Copy error:', err);
       showToastMessage('Ошибка копирования');
     }
   };
 
-  const handleCopy = () => {
-    if (player?.referral_link) {
-      copyToClipboard(player.referral_link);
-    } else {
+  const handleShare = () => {
+    if (!player?.referral_link) {
       showToastMessage('Ссылка недоступна');
+      return;
     }
+    copyToClipboard(player.referral_link);
+    showToastMessage('Ссылка скопирована! Поделитесь ей в чате');
+  };
+
+  const handleCopy = () => {
+    if (!player?.referral_link) {
+      showToastMessage('Ссылка недоступна');
+      return;
+    }
+    copyToClipboard(player.referral_link);
   };
 
   const colorStyle = player?.color || '#00f0ff';
@@ -132,9 +77,18 @@ const ReferralsPage: React.FC = () => {
   // Проверяем, является ли текущий игрок дефолтным
   const isDefaultPlayer = player?.telegram_id === '1222791281';
 
-  // Фильтруем рефералов
-  const filteredReferrals = referralsList.filter((ref: any) => 
+  // 🔥 ИСПОЛЬЗУЕМ ДАННЫЕ ИЗ PLAYER (уже должны загружаться через refreshPlayer)
+  const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
+  const safeHonorBoard = Array.isArray(player?.honor_board) ? player.honor_board : [];
+
+  // Фильтруем рефералов (убираем дефолтного игрока для всех кроме него самого)
+  const filteredReferrals = safeReferrals.filter((ref: any) => 
     isDefaultPlayer || ref.referred_id !== '1222791281'
+  );
+
+  // Фильтруем доску почета (убираем дефолтного игрока для всех кроме него самого)
+  const filteredHonorBoard = safeHonorBoard.filter((entry: any) => 
+    isDefaultPlayer || entry.telegram_id !== '1222791281'
   );
 
   // 🔥 ПОКАЗЫВАЕМ ЗАГРУЗКУ если данные еще грузятся
@@ -158,7 +112,7 @@ const ReferralsPage: React.FC = () => {
           🚀
         </div>
         <div style={{ fontSize: '1.2rem' }}>
-          {t('loading')}...
+          Загружаем данные...
         </div>
         <style>
           {`
@@ -179,10 +133,12 @@ const ReferralsPage: React.FC = () => {
         color: '#fff', 
         textAlign: 'center', 
         marginTop: '50px',
-        padding: '20px'
+        padding: '20px',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e)'
       }}>
         <h2>Ошибка загрузки данных</h2>
-        <p>Попробуйте перезагрузить страницу</p>
+        <p>Попробуйте обновить страницу</p>
       </div>
     );
   }
@@ -257,23 +213,26 @@ const ReferralsPage: React.FC = () => {
             👥 {t('referrals')}
           </h2>
 
-          {/* 🔍 ПРОСТОЙ ОТЛАДОЧНЫЙ БЛОК */}
+          {/* 🔍 ПРОСТЕЙШИЙ ОТЛАДОЧНЫЙ БЛОК */}
           <div style={{
             margin: '10px auto',
             padding: '10px',
-            background: 'rgba(0, 255, 0, 0.2)',
-            border: '1px solid green',
+            background: 'rgba(0, 100, 255, 0.2)',
+            border: '1px solid blue',
             borderRadius: '5px',
             maxWidth: '600px',
             fontSize: '0.8rem',
             textAlign: 'left'
           }}>
-            <strong>🔍 ОТЛАДКА:</strong><br/>
-            referrals_count из player: {player?.referrals_count}<br/>
-            referralsList length: {referralsList.length}<br/>
-            filteredReferrals length: {filteredReferrals.length}<br/>
-            loadingReferrals: {loadingReferrals ? 'да' : 'нет'}<br/>
-            player.telegram_id: {player?.telegram_id}
+            <strong>🔍 ПРОСТАЯ ОТЛАДКА:</strong><br/>
+            player существует: {player ? 'ДА' : 'НЕТ'}<br/>
+            referrals_count: {player?.referrals_count}<br/>
+            referrals тип: {typeof player?.referrals}<br/>
+            referrals содержимое: {JSON.stringify(player?.referrals)}<br/>
+            safeReferrals длина: {safeReferrals.length}<br/>
+            honor_board тип: {typeof player?.honor_board}<br/>
+            honor_board содержимое: {JSON.stringify(player?.honor_board)}<br/>
+            safeHonorBoard длина: {safeHonorBoard.length}
           </div>
           
           {/* Реферальная ссылка */}
@@ -345,6 +304,61 @@ const ReferralsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Доска почета */}
+          <div style={{ margin: '20px auto', maxWidth: '600px' }}>
+            <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
+              🏆 {t('honor_board')}
+            </h3>
+            {(filteredHonorBoard && filteredHonorBoard.length > 0) ? (
+              <div style={{ 
+                background: 'rgba(0, 0, 0, 0.3)', 
+                border: `2px solid ${colorStyle}`, 
+                borderRadius: '10px', 
+                boxShadow: `0 0 20px ${colorStyle}30`,
+                overflow: 'hidden'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: `${colorStyle}20` }}>
+                      <th style={{ border: `1px solid ${colorStyle}`, padding: '10px', color: colorStyle, textShadow: `0 0 5px ${colorStyle}` }}>{t('place')}</th>
+                      <th style={{ border: `1px solid ${colorStyle}`, padding: '10px', color: colorStyle, textShadow: `0 0 5px ${colorStyle}` }}>{t('player')}</th>
+                      <th style={{ border: `1px solid ${colorStyle}`, padding: '10px', color: colorStyle, textShadow: `0 0 5px ${colorStyle}` }}>{t('referrals_count')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredHonorBoard.sort((a: any, b: any) => (b.referrals_count || 0) - (a.referrals_count || 0)).slice(0, 10).map((entry: any, index: number) => (
+                      <tr key={index} style={{ 
+                        background: entry.telegram_id === player?.telegram_id ? `${colorStyle}20` : 'transparent',
+                        transition: 'background 0.3s ease'
+                      }}>
+                        <td style={{ border: `1px solid ${colorStyle}`, padding: '10px', fontWeight: index < 3 ? 'bold' : 'normal' }}>
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                        </td>
+                        <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
+                          {entry.username || `${t('player')} #${index + 1}`}
+                          {entry.telegram_id === player?.telegram_id && ' (Вы)'}
+                        </td>
+                        <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
+                          {entry.referrals_count || 0}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{ 
+                background: 'rgba(0, 0, 0, 0.3)', 
+                border: `2px solid ${colorStyle}`, 
+                borderRadius: '10px', 
+                padding: '20px', 
+                boxShadow: `0 0 10px ${colorStyle}30`
+              }}>
+                <p>{t('honor_board_empty')}</p>
+              </div>
+            )}
+          </div>
+
           {/* Статистика */}
           <div style={{
             margin: '20px auto',
@@ -359,9 +373,6 @@ const ReferralsPage: React.FC = () => {
             <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
               {t('total_referrals')}: {player?.referrals_count || 0}
             </p>
-            <p style={{ fontSize: '1rem', color: '#aaa' }}>
-              Из API: {referralsList.length}
-            </p>
           </div>
           
           {/* Список рефералов */}
@@ -369,17 +380,7 @@ const ReferralsPage: React.FC = () => {
             <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
               📋 {t('referral_list')}
             </h3>
-
-            {loadingReferrals ? (
-              <div style={{ 
-                background: 'rgba(0, 0, 0, 0.3)', 
-                border: `2px solid ${colorStyle}`, 
-                borderRadius: '10px', 
-                padding: '20px'
-              }}>
-                <p>Загружаем рефералов...</p>
-              </div>
-            ) : (filteredReferrals && filteredReferrals.length > 0) ? (
+            {(filteredReferrals && filteredReferrals.length > 0) ? (
               <div style={{ 
                 background: 'rgba(0, 0, 0, 0.3)', 
                 border: `2px solid ${colorStyle}`, 
