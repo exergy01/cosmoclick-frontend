@@ -99,7 +99,7 @@ const ReferralsPage: React.FC = () => {
     }
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ функция поделиться для Telegram
+  // 🔥 МАКСИМАЛЬНО ПРОСТАЯ функция поделиться
   const handleShare = () => {
     if (!player?.referral_link) {
       showToastMessage('Ссылка недоступна');
@@ -107,47 +107,10 @@ const ReferralsPage: React.FC = () => {
     }
 
     try {
-      // Вибрация в Telegram
-      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
-        (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
-      }
-
-      // Для Telegram WebApp используем специальный метод
-      if ((window as any).Telegram?.WebApp) {
-        const telegramWebApp = (window as any).Telegram.WebApp;
-        
-        // Метод 1: switchInlineQuery для поделиться в чате
-        if (telegramWebApp.switchInlineQuery) {
-          const shareText = `Присоединяйся к CosmoClick! ${player.referral_link}`;
-          telegramWebApp.switchInlineQuery(shareText, ['users', 'groups']);
-          return;
-        }
-        
-        // Метод 2: openTelegramLink для открытия в новом окне
-        if (telegramWebApp.openTelegramLink) {
-          const shareText = encodeURIComponent('Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
-          const shareUrl = encodeURIComponent(player.referral_link);
-          telegramWebApp.openTelegramLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
-          return;
-        }
-      }
-
-      // Fallback для обычных браузеров
-      if (navigator.share) {
-        navigator.share({
-          title: 'CosmoClick - Космическая игра',
-          text: 'Присоединяйся к CosmoClick и зарабатывай космические кристаллы!',
-          url: player.referral_link,
-        }).then(() => {
-          showToastMessage('Поделились успешно');
-        }).catch(() => {
-          copyToClipboard(player.referral_link);
-        });
-      } else {
-        // Если ничего не работает - копируем
-        copyToClipboard(player.referral_link);
-        showToastMessage('Ссылка скопирована');
-      }
+      // Для Telegram WebApp - просто копируем с подсказкой как поделиться
+      copyToClipboard(player.referral_link);
+      showToastMessage('Ссылка скопирована! Теперь отправьте её в любой чат или группу');
+      
     } catch (err) {
       console.error('Share error:', err);
       copyToClipboard(player.referral_link);
@@ -379,45 +342,6 @@ const ReferralsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 🔥 КНОПКА СБОРА НАГРАД */}
-          {(totalRewards.cs > 0 || totalRewards.ton > 0) && (
-            <div style={{
-              margin: '20px auto',
-              padding: '20px',
-              background: 'rgba(0, 200, 0, 0.1)',
-              border: `2px solid #00ff00`,
-              borderRadius: '15px',
-              boxShadow: `0 0 20px #00ff0030`,
-              maxWidth: '400px'
-            }}>
-              <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>💰 Доступно для сбора</h3>
-              <p style={{ fontSize: '1.1rem', marginBottom: '15px' }}>
-                {totalRewards.cs.toFixed(2)} CS + {totalRewards.ton.toFixed(8)} TON
-              </p>
-              <button
-                onClick={collectReferralRewards}
-                disabled={isCollecting}
-                style={{
-                  padding: '15px 30px',
-                  background: isCollecting 
-                    ? 'rgba(100, 100, 100, 0.5)' 
-                    : `linear-gradient(135deg, #00ff0030, #00ff0060, #00ff0030)`,
-                  border: `2px solid #00ff00`,
-                  borderRadius: '12px',
-                  boxShadow: `0 0 15px #00ff00`,
-                  color: '#fff',
-                  cursor: isCollecting ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  width: '100%'
-                }}
-              >
-                {isCollecting ? '⏳ Собираем...' : '💰 Собрать награды'}
-              </button>
-            </div>
-          )}
-
           {/* Доска почета */}
           <div style={{ margin: '20px auto', maxWidth: '600px' }}>
             <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
@@ -526,6 +450,45 @@ const ReferralsPage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* 🔥 КНОПКА СБОРА НАГРАД - ПЕРЕНЕСЕНА ПОД СПИСОК */}
+          {(totalRewards.cs > 0 || totalRewards.ton > 0) && (
+            <div style={{
+              margin: '20px auto',
+              padding: '20px',
+              background: 'rgba(0, 200, 0, 0.1)',
+              border: `2px solid #00ff00`,
+              borderRadius: '15px',
+              boxShadow: `0 0 20px #00ff0030`,
+              maxWidth: '400px'
+            }}>
+              <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>💰 Доступно для сбора</h3>
+              <p style={{ fontSize: '1.1rem', marginBottom: '15px' }}>
+                {totalRewards.cs.toFixed(2)} CS + {totalRewards.ton.toFixed(8)} TON
+              </p>
+              <button
+                onClick={collectReferralRewards}
+                disabled={isCollecting}
+                style={{
+                  padding: '15px 30px',
+                  background: isCollecting 
+                    ? 'rgba(100, 100, 100, 0.5)' 
+                    : `linear-gradient(135deg, #00ff0030, #00ff0060, #00ff0030)`,
+                  border: `2px solid #00ff00`,
+                  borderRadius: '12px',
+                  boxShadow: `0 0 15px #00ff00`,
+                  color: '#fff',
+                  cursor: isCollecting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  width: '100%'
+                }}
+              >
+                {isCollecting ? '⏳ Собираем...' : '💰 Собрать награды'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
