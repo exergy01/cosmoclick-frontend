@@ -35,72 +35,58 @@ const ReferralsPage: React.FC = () => {
     }, 1500);
   };
 
-  // 🔥 ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД
-  const collectReferralRewards = async () => {
-    if (!player?.telegram_id || isCollecting) return;
+// 🔥 ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД - ИСПРАВЛЕННАЯ
+const collectReferralRewards = async () => {
+  if (!player?.telegram_id || isCollecting) return;
+  
+  try {
+    setIsCollecting(true);
     
-    try {
-      setIsCollecting(true);
+    // Подсчитываем сколько можно собрать
+    const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
+    const totalCS = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.cs_earned || 0), 0);
+    const totalTON = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0);
+    
+    if (totalCS <= 0 && totalTON <= 0) {
+      showToastMessage('Нет наград для сбора');
+      return;
+    }
+    
+    // Отправляем запрос на сбор
+    const response = await axios.post(`${apiUrl}/api/referrals/collect-rewards`, {
+      telegramId: player.telegram_id
+    });
+    
+    if (response.data.success) {
+      const collected = response.data.collected;
+      showToastMessage(`Собрано: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
       
-      // Подсчитываем сколько можно собрать
-      const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
-      const totalCS = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.cs_earned || 0), 0);
-      const totalTON = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0);
-      
-      if (totalCS <= 0 && totalTON <= 0) {
-        showToastMessage('Нет наград для сбора');
-        return;
-      }
-      
-      // Отправляем запрос на сбор
-      const response = await axios.post(`${apiUrl}/api/referrals/collect-rewards`, {
-        telegramId: player.telegram_id
-      });
-      
-      if (response.data.success) {
-        showToastMessage(`Собрано: ${totalCS.toFixed(2)} CS + ${totalTON.toFixed(8)} TON`);
+      // 🔥 ИСПРАВЛЕНИЕ: Используем обновленные данные игрока из ответа!
+      if (response.data.player) {
+        // Обновляем данные игрока данными с сервера
+        if ((window as any).setPlayerGlobal) {
+          (window as any).setPlayerGlobal(response.data.player);
+        }
         
-        // 🔥 ИСПРАВЛЕНИЕ: Принудительно перезагружаем рефералов после сбора
+        // Дополнительно обновляем рефералов (обнуляем награды)
         if ((window as any).NavigationMenu?.forceLoadReferrals) {
           await (window as any).NavigationMenu.forceLoadReferrals();
-        } else {
-          // Альтернативный способ - обновляем через refreshPlayer
-          await refreshPlayer();
-          
-          // Дополнительно обновляем данные как в NavigationMenu
-          try {
-            const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`);
-            const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`);
-            
-            // Получаем свежие данные игрока
-            const playerResponse = await axios.get(`${apiUrl}/api/player/${player.telegram_id}`);
-            
-            // Создаем обновленный объект игрока
-            const updatedPlayerData = {
-              ...playerResponse.data,
-              referrals: Array.isArray(refResponse.data) ? refResponse.data : [],
-              honor_board: Array.isArray(honorResponse.data) ? honorResponse.data : []
-            };
-            
-            // Принудительно обновляем через setPlayer если доступно
-            if ((window as any).setPlayerGlobal) {
-              (window as any).setPlayerGlobal(updatedPlayerData);
-            }
-          } catch (updateErr) {
-            console.error('Ошибка дополнительного обновления:', updateErr);
-          }
         }
       } else {
-        showToastMessage('Ошибка сбора наград');
+        // Fallback если нет player в ответе
+        await refreshPlayer();
       }
-      
-    } catch (err: any) {
-      console.error('Ошибка сбора наград:', err);
+    } else {
       showToastMessage('Ошибка сбора наград');
-    } finally {
-      setIsCollecting(false);
     }
-  };
+    
+  } catch (err: any) {
+    console.error('Ошибка сбора наград:', err);
+    showToastMessage('Ошибка сбора наград');
+  } finally {
+    setIsCollecting(false);
+  }
+};
 
   // Простая функция копирования
   const copyToClipboard = (text: string) => {
