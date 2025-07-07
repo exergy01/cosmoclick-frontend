@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 
+const apiUrl = process.env.NODE_ENV === 'production'
+  ? 'https://cosmoclick-backend.onrender.com'
+  : 'http://localhost:5000';
+
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { player, currentSystem, loading } = usePlayer();
+  const { player, currentSystem, loading, refreshPlayer } = usePlayer();
   
   // Состояние для всплывающего сообщения
   const [toastMessage, setToastMessage] = useState<string>('');
   const [showToast, setShowToast] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isCollecting, setIsCollecting] = useState(false);
 
   // Проверяем загрузку данных
   useEffect(() => {
@@ -27,6 +33,44 @@ const ReferralsPage: React.FC = () => {
     setTimeout(() => {
       setShowToast(false);
     }, 1500);
+  };
+
+  // 🔥 ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД
+  const collectReferralRewards = async () => {
+    if (!player?.telegram_id || isCollecting) return;
+    
+    try {
+      setIsCollecting(true);
+      
+      // Подсчитываем сколько можно собрать
+      const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
+      const totalCS = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.cs_earned || 0), 0);
+      const totalTON = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0);
+      
+      if (totalCS <= 0 && totalTON <= 0) {
+        showToastMessage('Нет наград для сбора');
+        return;
+      }
+      
+      // Отправляем запрос на сбор
+      const response = await axios.post(`${apiUrl}/api/referrals/collect-rewards`, {
+        telegramId: player.telegram_id
+      });
+      
+      if (response.data.success) {
+        showToastMessage(`Собрано: ${totalCS.toFixed(2)} CS + ${totalTON.toFixed(8)} TON`);
+        // Обновляем данные игрока
+        await refreshPlayer();
+      } else {
+        showToastMessage('Ошибка сбора наград');
+      }
+      
+    } catch (err: any) {
+      console.error('Ошибка сбора наград:', err);
+      showToastMessage('Ошибка сбора наград');
+    } finally {
+      setIsCollecting(false);
+    }
   };
 
   // Простая функция копирования
@@ -55,13 +99,60 @@ const ReferralsPage: React.FC = () => {
     }
   };
 
+  // 🔥 ИСПРАВЛЕННАЯ функция поделиться для Telegram
   const handleShare = () => {
     if (!player?.referral_link) {
       showToastMessage('Ссылка недоступна');
       return;
     }
-    copyToClipboard(player.referral_link);
-    showToastMessage('Ссылка скопирована! Поделитесь ей в чате');
+
+    try {
+      // Вибрация в Telegram
+      if ((window as any).Telegram?.WebApp?.HapticFeedback) {
+        (window as any).Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      }
+
+      // Для Telegram WebApp используем специальный метод
+      if ((window as any).Telegram?.WebApp) {
+        const telegramWebApp = (window as any).Telegram.WebApp;
+        
+        // Метод 1: switchInlineQuery для поделиться в чате
+        if (telegramWebApp.switchInlineQuery) {
+          const shareText = `Присоединяйся к CosmoClick! ${player.referral_link}`;
+          telegramWebApp.switchInlineQuery(shareText, ['users', 'groups']);
+          return;
+        }
+        
+        // Метод 2: openTelegramLink для открытия в новом окне
+        if (telegramWebApp.openTelegramLink) {
+          const shareText = encodeURIComponent('Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
+          const shareUrl = encodeURIComponent(player.referral_link);
+          telegramWebApp.openTelegramLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
+          return;
+        }
+      }
+
+      // Fallback для обычных браузеров
+      if (navigator.share) {
+        navigator.share({
+          title: 'CosmoClick - Космическая игра',
+          text: 'Присоединяйся к CosmoClick и зарабатывай космические кристаллы!',
+          url: player.referral_link,
+        }).then(() => {
+          showToastMessage('Поделились успешно');
+        }).catch(() => {
+          copyToClipboard(player.referral_link);
+        });
+      } else {
+        // Если ничего не работает - копируем
+        copyToClipboard(player.referral_link);
+        showToastMessage('Ссылка скопирована');
+      }
+    } catch (err) {
+      console.error('Share error:', err);
+      copyToClipboard(player.referral_link);
+      showToastMessage('Ссылка скопирована');
+    }
   };
 
   const handleCopy = () => {
@@ -77,7 +168,7 @@ const ReferralsPage: React.FC = () => {
   // Проверяем, является ли текущий игрок дефолтным
   const isDefaultPlayer = player?.telegram_id === '1222791281';
 
-  // 🔥 ИСПОЛЬЗУЕМ ДАННЫЕ ИЗ PLAYER - NavigationMenu должен их обновить
+  // Используем данные из player
   const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
   const safeHonorBoard = Array.isArray(player?.honor_board) ? player.honor_board : [];
 
@@ -90,6 +181,12 @@ const ReferralsPage: React.FC = () => {
   const filteredHonorBoard = safeHonorBoard.filter((entry: any) => 
     isDefaultPlayer || entry.telegram_id !== '1222791281'
   );
+
+  // Подсчитываем общие награды для кнопки сбора
+  const totalRewards = {
+    cs: filteredReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.cs_earned || 0), 0),
+    ton: filteredReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0)
+  };
 
   // 🔥 ПОКАЗЫВАЕМ ЗАГРУЗКУ если данные еще грузятся
   if (isInitialLoading || loading) {
@@ -212,35 +309,6 @@ const ReferralsPage: React.FC = () => {
           }}>
             👥 {t('referrals')}
           </h2>
-
-          {/* 🔍 РАСШИРЕННАЯ ОТЛАДКА ДЛЯ ПОИСКА ПРОБЛЕМЫ */}
-          <div style={{
-            margin: '10px auto',
-            padding: '15px',
-            background: 'rgba(0, 200, 0, 0.2)',
-            border: '2px solid green',
-            borderRadius: '10px',
-            maxWidth: '600px',
-            fontSize: '0.8rem',
-            textAlign: 'left'
-          }}>
-            <strong>🔍 TELEGRAM ОТЛАДКА:</strong><br/>
-            referrals_count: {player?.referrals_count}<br/>
-            referrals массив длина: {safeReferrals.length}<br/>
-            honor_board массив длина: {safeHonorBoard.length}<br/>
-            filteredReferrals длина: {filteredReferrals.length}<br/>
-            filteredHonorBoard длина: {filteredHonorBoard.length}<br/>
-            player.referrals тип: {typeof player?.referrals}<br/>
-            player.referrals содержимое: {JSON.stringify(player?.referrals)}<br/>
-            player.honor_board тип: {typeof player?.honor_board}<br/>
-            player.honor_board содержимое: {JSON.stringify(player?.honor_board)}<br/>
-            {safeReferrals.length > 0 && (
-              <>
-                <br/><strong>Первый реферал:</strong><br/>
-                {JSON.stringify(safeReferrals[0], null, 2)}
-              </>
-            )}
-          </div>
           
           {/* Реферальная ссылка */}
           <div style={{
@@ -311,6 +379,45 @@ const ReferralsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* 🔥 КНОПКА СБОРА НАГРАД */}
+          {(totalRewards.cs > 0 || totalRewards.ton > 0) && (
+            <div style={{
+              margin: '20px auto',
+              padding: '20px',
+              background: 'rgba(0, 200, 0, 0.1)',
+              border: `2px solid #00ff00`,
+              borderRadius: '15px',
+              boxShadow: `0 0 20px #00ff0030`,
+              maxWidth: '400px'
+            }}>
+              <h3 style={{ color: '#00ff00', marginBottom: '15px' }}>💰 Доступно для сбора</h3>
+              <p style={{ fontSize: '1.1rem', marginBottom: '15px' }}>
+                {totalRewards.cs.toFixed(2)} CS + {totalRewards.ton.toFixed(8)} TON
+              </p>
+              <button
+                onClick={collectReferralRewards}
+                disabled={isCollecting}
+                style={{
+                  padding: '15px 30px',
+                  background: isCollecting 
+                    ? 'rgba(100, 100, 100, 0.5)' 
+                    : `linear-gradient(135deg, #00ff0030, #00ff0060, #00ff0030)`,
+                  border: `2px solid #00ff00`,
+                  borderRadius: '12px',
+                  boxShadow: `0 0 15px #00ff00`,
+                  color: '#fff',
+                  cursor: isCollecting ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  width: '100%'
+                }}
+              >
+                {isCollecting ? '⏳ Собираем...' : '💰 Собрать награды'}
+              </button>
+            </div>
+          )}
+
           {/* Доска почета */}
           <div style={{ margin: '20px auto', maxWidth: '600px' }}>
             <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
@@ -365,27 +472,11 @@ const ReferralsPage: React.FC = () => {
               </div>
             )}
           </div>
-
-          {/* Статистика */}
-          <div style={{
-            margin: '20px auto',
-            padding: '15px',
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: `1px solid ${colorStyle}`,
-            borderRadius: '15px',
-            boxShadow: `0 0 15px ${colorStyle}30`,
-            maxWidth: '300px'
-          }}>
-            <h3 style={{ color: colorStyle, marginBottom: '10px' }}>📊 {t('referral_stats')}</h3>
-            <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-              {t('total_referrals')}: {player?.referrals_count || 0}
-            </p>
-          </div>
           
-          {/* Список рефералов */}
+          {/* Список рефералов с количеством в заголовке */}
           <div style={{ margin: '20px auto', maxWidth: '600px' }}>
             <h3 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, marginBottom: '15px' }}>
-              📋 {t('referral_list')}
+              📋 {t('referral_list')} ({filteredReferrals.length})
             </h3>
             {(filteredReferrals && filteredReferrals.length > 0) ? (
               <div style={{ 
