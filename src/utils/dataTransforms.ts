@@ -136,8 +136,17 @@ export const initializeSystemData = (): { [key: string]: number } => {
   return { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0 };
 };
 
-// Создание полного объекта игрока с значениями по умолчанию
+// 🔥 ИСПРАВЛЕННАЯ функция создания полного объекта игрока с значениями по умолчанию
 export const createPlayerWithDefaults = (playerData: any, currentSystem: number) => {
+  console.log('🔧 createPlayerWithDefaults вызван с данными:', {
+    referrals: playerData.referrals,
+    referrals_type: typeof playerData.referrals,
+    referrals_length: playerData.referrals?.length,
+    honor_board: playerData.honor_board,
+    honor_board_type: typeof playerData.honor_board,
+    honor_board_length: playerData.honor_board?.length
+  });
+
   const normalizedCargoLevels = normalizeItemData(playerData.cargo_levels || [], 'cargo_levels');
   const cargoLevel = normalizedCargoLevels.find((c: Item) => c.system === currentSystem)?.id || 0;
   
@@ -146,14 +155,27 @@ export const createPlayerWithDefaults = (playerData: any, currentSystem: number)
   
   const validLastCollectionTime = validateLastCollectionTime(playerData.last_collection_time);
   
-  return {
+  // 🔥 ИСПРАВЛЕНИЕ: НЕ перезаписываем referrals и honor_board если они уже есть!
+  const safeReferrals = Array.isArray(playerData.referrals) ? playerData.referrals : [];
+  const safeHonorBoard = Array.isArray(playerData.honor_board) ? playerData.honor_board : [];
+
+  console.log('🔧 createPlayerWithDefaults обработка рефералов:', {
+    original_referrals: playerData.referrals,
+    safe_referrals: safeReferrals,
+    safe_referrals_length: safeReferrals.length,
+    original_honor_board: playerData.honor_board,
+    safe_honor_board: safeHonorBoard,
+    safe_honor_board_length: safeHonorBoard.length
+  });
+
+  const result = {
     ...playerData,
     cargo_level: cargoLevel,
     cargo_capacity: cargoCapacity,
     last_collection_time: validLastCollectionTime,
     collected_by_system: playerData.collected_by_system || initializeSystemData(),
-    referrals: playerData.referrals || [],
-    honor_board: playerData.honor_board || [],
+    referrals: safeReferrals,           // 🔥 ИСПОЛЬЗУЕМ БЕЗОПАСНЫЕ ДАННЫЕ
+    honor_board: safeHonorBoard,        // 🔥 ИСПОЛЬЗУЕМ БЕЗОПАСНЫЕ ДАННЫЕ
     drones: normalizeItemData(playerData.drones || [], 'drones'),
     asteroids: normalizeItemData(playerData.asteroids || [], 'asteroids'),
     cargo_levels: normalizedCargoLevels,
@@ -163,4 +185,15 @@ export const createPlayerWithDefaults = (playerData: any, currentSystem: number)
     unlocked_systems: playerData.unlocked_systems || [1],
     current_system: playerData.current_system || 1,
   };
+
+  console.log('🔧 createPlayerWithDefaults результат:', {
+    result_referrals: result.referrals,
+    result_referrals_type: typeof result.referrals,
+    result_referrals_length: result.referrals?.length,
+    result_honor_board: result.honor_board,
+    result_honor_board_type: typeof result.honor_board,
+    result_honor_board_length: result.honor_board?.length
+  });
+
+  return result;
 };
