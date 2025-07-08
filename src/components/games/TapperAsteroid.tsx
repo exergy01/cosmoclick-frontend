@@ -22,16 +22,6 @@ const TapperAsteroid: React.FC<TapperAsteroidProps> = ({
 }) => {
   const [tapEffects, setTapEffects] = useState<TapEffect[]>([]);
   const [asteroidShake, setAsteroidShake] = useState(false);
-  const [asteroidRotation, setAsteroidRotation] = useState(0);
-
-  // Постоянное вращение астероида
-  useEffect(() => {
-    const rotationInterval = setInterval(() => {
-      setAsteroidRotation(prev => (prev + 1) % 360);
-    }, 50);
-
-    return () => clearInterval(rotationInterval);
-  }, []);
 
   // Очистка эффектов тапа
   useEffect(() => {
@@ -80,75 +70,43 @@ const TapperAsteroid: React.FC<TapperAsteroidProps> = ({
       margin: '20px auto',
       cursor: canTap ? 'pointer' : 'not-allowed'
     }}>
-      {/* Астероид */}
+      {/* Астероид с картинкой */}
       <div
         onClick={handleTap}
         style={{
           width: '100%',
           height: '100%',
-          background: canTap 
-            ? `radial-gradient(circle at 30% 30%, #8B4513, #654321, #2F1B14)`
-            : `radial-gradient(circle at 30% 30%, #555, #333, #111)`,
           borderRadius: '50%',
-          border: canTap 
-            ? `3px solid ${colorStyle}` 
-            : '3px solid #666',
-          boxShadow: canTap 
-            ? `0 0 30px ${colorStyle}50, inset -20px -20px 40px rgba(0,0,0,0.5), inset 20px 20px 40px rgba(255,255,255,0.1)`
-            : '0 0 10px #66650, inset -20px -20px 40px rgba(0,0,0,0.5)',
-          transform: `rotate(${asteroidRotation}deg) ${asteroidShake ? 'scale(0.95)' : 'scale(1)'}`,
-          transition: asteroidShake ? 'transform 0.1s ease' : 'transform 0.05s ease',
           position: 'relative',
           overflow: 'hidden',
-          userSelect: 'none'
+          userSelect: 'none',
+          transition: 'all 0.3s ease',
+          transform: asteroidShake ? 'scale(0.95)' : 'scale(1)',
+          opacity: canTap ? 1 : 0.5
+        }}
+        onMouseEnter={e => {
+          if (canTap) {
+            e.currentTarget.style.transform = 'scale(1.1)';
+          }
+        }}
+        onMouseLeave={e => {
+          if (canTap && !asteroidShake) {
+            e.currentTarget.style.transform = 'scale(1)';
+          }
         }}
       >
-        {/* Кратеры на астероиде */}
-        <div style={{
-          position: 'absolute',
-          top: '20%',
-          left: '25%',
-          width: '15px',
-          height: '15px',
-          background: 'rgba(0,0,0,0.4)',
-          borderRadius: '50%',
-          boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.8)'
-        }} />
-        <div style={{
-          position: 'absolute',
-          top: '60%',
-          right: '30%',
-          width: '20px',
-          height: '20px',
-          background: 'rgba(0,0,0,0.3)',
-          borderRadius: '50%',
-          boxShadow: 'inset 3px 3px 8px rgba(0,0,0,0.8)'
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '25%',
-          left: '40%',
-          width: '12px',
-          height: '12px',
-          background: 'rgba(0,0,0,0.4)',
-          borderRadius: '50%',
-          boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.8)'
-        }} />
-
-        {/* Центральная иконка */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          fontSize: '3rem',
-          filter: canTap 
-            ? `drop-shadow(0 0 10px ${colorStyle})`
-            : 'drop-shadow(0 0 5px #666)',
-          opacity: canTap ? 1 : 0.5
-        }}>
-          💥
-        </div>
+        {/* Изображение астероида */}
+        <img 
+          src="/assets/games/asteroid.png" 
+          alt="Asteroid" 
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'cover',
+            transition: 'transform 0.3s ease',
+            pointerEvents: 'none'
+          }}
+        />
 
         {/* Подсказка при наведении */}
         {canTap && (
@@ -164,7 +122,9 @@ const TapperAsteroid: React.FC<TapperAsteroidProps> = ({
             fontSize: '0.8rem',
             whiteSpace: 'nowrap',
             opacity: 0,
-            transition: 'opacity 0.3s ease'
+            transition: 'opacity 0.3s ease',
+            pointerEvents: 'none',
+            zIndex: 3
           }}
           className="tap-hint"
           >
@@ -216,9 +176,11 @@ const TapperAsteroid: React.FC<TapperAsteroidProps> = ({
         </>
       )}
 
+      {/* Глобальные стили для анимаций */}
       <style>{`
         .tap-hint {
           opacity: 0;
+          transition: opacity 0.3s ease;
         }
         
         div:hover .tap-hint {
@@ -259,4 +221,4 @@ const TapperAsteroid: React.FC<TapperAsteroidProps> = ({
   );
 };
 
-export default TapperAsteroid; 
+export default TapperAsteroid;
