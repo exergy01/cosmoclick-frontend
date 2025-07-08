@@ -1,7 +1,3 @@
-// ========================================
-// 3. ИСПРАВЛЕННЫЙ App.tsx (добавлен маршрут /referrals)
-// ========================================
-
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AppProvider } from './context/AppProvider';
@@ -16,23 +12,13 @@ import GamesPage from './pages/GamesPage';
 import WalletPage from './pages/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
+import TapperGame from './pages/games/TapperGame';
 
 // Компонент для логики приложения (внутри провайдеров)
 const AppContent: React.FC = () => {
   const { player, loading, error, fetchInitialData } = useNewPlayer();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Инициализация Telegram Web App
-  useEffect(() => {
-    if ((window as any).Telegram?.WebApp) {
-      (window as any).Telegram.WebApp.ready();
-      console.log('Telegram Web App initialized');
-      console.log('Telegram data:', (window as any).Telegram.WebApp.initDataUnsafe);
-    } else {
-      console.log('Telegram Web App not available');
-    }
-  }, []);
 
   useEffect(() => {
     if (!player && !loading && !error && location.pathname !== '/start') {
@@ -59,8 +45,8 @@ const AppContent: React.FC = () => {
         <Route path="/games" element={<GamesPage />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/ref" element={<ReferralsPage />} />
-        <Route path="/referrals" element={<ReferralsPage />} />
         <Route path="/alphabet" element={<AlphabetPage />} />
+        <Route path="/games/tapper" element={<TapperGame />} />
       </Routes>
     </Suspense>
   );

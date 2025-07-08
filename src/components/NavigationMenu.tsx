@@ -18,17 +18,6 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
   const location = useLocation();
   const { setPlayer, player } = usePlayer();
 
-  // 🔥 Делаем setPlayer доступным глобально для обновлений
-  React.useEffect(() => {
-    (window as any).setPlayerGlobal = setPlayer;
-    (window as any).NavigationMenu = { forceLoadReferrals };
-    
-    return () => {
-      delete (window as any).setPlayerGlobal;
-      delete (window as any).NavigationMenu;
-    };
-  }, [setPlayer]);
-
   const topMenuItems = [
     { path: '/attack', icon: '⚔️', label: t('attack') },
     { path: '/exchange', icon: '🔄', label: t('exchange') },
@@ -43,14 +32,14 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     { path: '/alphabet', icon: '📖' }
   ];
 
-  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: НЕ ЗАТИРАЕТ БАЛАНС ИГРОКА
+  // 🔥 ФИНАЛЬНОЕ РЕШЕНИЕ: Принудительно загружаем рефералов через setPlayer
   const forceLoadReferrals = async () => {
     if (!player?.telegram_id) return;
     
     try {
-      console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов (ТОЛЬКО рефералы)...');
+      console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов...');
       
-      // Загружаем ТОЛЬКО рефералов - НЕ ТРОГАЕМ баланс игрока!
+      // Загружаем рефералов
       const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`, { timeout: 5000 });
       const referralsData = Array.isArray(refResponse.data) ? refResponse.data : [];
       
@@ -60,16 +49,15 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
       
       console.log('🔥 Загружено:', { referrals: referralsData.length, honor: honorData.length });
       
-      // ✅ ОБНОВЛЯЕМ ТОЛЬКО referrals и honor_board - НЕ ТРОГАЕМ баланс!
+      // 🔥 ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ PLAYER
       const updatedPlayer = {
         ...player,
         referrals: referralsData,
         honor_board: honorData
-        // НЕ ТРОГАЕМ cs, ton и другие поля баланса!
       };
       
       setPlayer(updatedPlayer);
-      console.log('✅ Обновлены ТОЛЬКО рефералы и доска почета!');
+      console.log('✅ Player принудительно обновлен!');
       
     } catch (err: any) {
       console.error('❌ Ошибка принудительной загрузки:', err);

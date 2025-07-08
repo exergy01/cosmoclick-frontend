@@ -30,5 +30,54 @@
   "exchange": "Обмен",
   "quests": "Задания",
   "available_for_collection": "Available for Collection",
-  "collect_rewards": "Collect Rewards"
+  "collect_rewards": "Collect Rewards",
+  "per_hour": "в час",
+  
+  "exchange_page": {
+    "commission": "Комиссия",
+    "available": "Доступно",
+    "commissions_title": "Комиссии",
+    "minimum_amounts": "Минимальные суммы",
+    "verified_status": "Вы верифицированы",
+    "verification_hint": "Пройдите верификацию для отмены комиссий",
+    "amount": "Сумма",
+    "minimum": "Минимум",
+    "you_receive": "Получите",
+    "cancel": "Отмена",
+    "exchange_button": "Обменять",
+    "processing": "Обмен...",
+    "exchange_success": "Обмен выполнен успешно!",
+    "exchange_error": "Ошибка при обмене",
+    "enter_valid_amount": "Введите корректную сумму",
+    "minimum_amount": "Минимальная сумма: {{amount}} {{currency}}",
+    "insufficient_funds": "Недостаточно средств. Доступно: {{available}} {{currency}}",
+    "not_enough_ccc": "Недостаточно CCC",
+    "not_enough_cs": "Недостаточно CS", 
+    "not_enough_ton": "Недостаточно TON",
+    "invalid_pair": "Недопустимая валютная пара",
+    "player_not_found": "Игрок не найден"
+  },
+  
+  "games": {
+    "title": "Космические Игры", 
+    "backToGames": "К играм",
+    "tapper": {
+      "title": "Астероидный Разрушитель",
+      "energy": "Энергия",
+      "perTap": "За тап", 
+      "restoreTime": "Восстановление",
+      "energyEmpty": "Энергия закончилась!",
+      "energyRestore": "Энергия восстанавливается автоматически",
+      "adsToday": "Реклама сегодня",
+      "watchAd": "Смотреть рекламу",
+      "adLimitReached": "Лимит рекламы исчерпан",
+      "collectEarned": "Собрано",
+      "howToPlay": "Как играть?",
+      "tapAsteroid": "Тапайте по астероиду для получения CCC",
+      "collectAccumulated": "Собирайте накопленное кнопкой в блоке дохода", 
+      "energyRestores": "Энергия восстанавливается автоматически",
+      "watchAdForEnergy": "Смотрите рекламу для мгновенного восстановления",
+      "limits": "Лимит: 20 реклам в день, без лимита тапов"
+    }
+  }
 }

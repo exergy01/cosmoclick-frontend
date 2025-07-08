@@ -29,8 +29,8 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     toCurrency: 'CS',
     fromIcon: '💠',
     toIcon: '✨',
-    rate: 0.001,
-    rateText: '1000 CCC = 1 CS',
+    rate: 200,
+    rateText: '200 CCC = 1 CS',
     hasCommission: false,
     minAmount: 100
   },
@@ -40,8 +40,8 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     toCurrency: 'CCC',
     fromIcon: '✨',
     toIcon: '💠',
-    rate: 1000,
-    rateText: '1 CS = 1000 CCC',
+    rate: 0.005,
+    rateText: '1 CS = 200 CCC',
     hasCommission: false,
     minAmount: 1
   },
@@ -51,8 +51,8 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     toCurrency: 'TON',
     fromIcon: '✨',
     toIcon: '💎',
-    rate: 0.0001,
-    rateText: '10000 CS = 1 TON',
+    rate: 100,
+    rateText: '100 CS = 1 TON',
     hasCommission: true,
     minAmount: 1
   },
@@ -62,8 +62,8 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     toCurrency: 'CS',
     fromIcon: '💎',
     toIcon: '✨',
-    rate: 10000,
-    rateText: '1 TON = 10000 CS',
+    rate: 0.01,
+    rateText: '1 TON = 100 CS',
     hasCommission: true,
     minAmount: 0.01
   }
@@ -72,7 +72,8 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
 const ExchangePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { player, currentSystem, convertCurrency } = usePlayer();
+  const playerContext = usePlayer(); // Получаем весь контекст
+  const { player, currentSystem, convertCurrency } = playerContext;
   const [selectedPair, setSelectedPair] = useState<ExchangePair | null>(null);
   const [amount, setAmount] = useState('');
   const [result, setResult] = useState('');
@@ -93,25 +94,24 @@ const ExchangePage: React.FC = () => {
     }
   };
 
-  // Расчет результата обмена (по курсам из API)
+  // Расчет результата обмена (правильные курсы)
   const calculateResult = (pair: ExchangePair, inputAmount: string) => {
     const num = parseFloat(inputAmount);
     if (isNaN(num) || num <= 0) return '';
 
     let result = 0;
     
-    // Курсы из вашего API: ccc_to_cs: 0.001, cs_to_ton: 0.0001, ton_to_cs: 10000, cs_to_ccc: 1000
     if (pair.fromCurrency === 'CCC' && pair.toCurrency === 'CS') {
-      result = num * 0.001; // 1000 CCC = 1 CS
+      result = num / 200; // 200 CCC = 1 CS
     } else if (pair.fromCurrency === 'CS' && pair.toCurrency === 'CCC') {
-      result = num * 1000; // 1 CS = 1000 CCC
+      result = num * 200; // 1 CS = 200 CCC
     } else if (pair.fromCurrency === 'CS' && pair.toCurrency === 'TON') {
-      result = num * 0.0001; // 10000 CS = 1 TON
+      result = num / 100; // 100 CS = 1 TON
       if (!player?.verified) {
         result = result * 0.98; // 2% комиссия
       }
     } else if (pair.fromCurrency === 'TON' && pair.toCurrency === 'CS') {
-      result = num * 10000; // 1 TON = 10000 CS
+      result = num * 100; // 1 TON = 100 CS
       if (!player?.verified) {
         result = result * 0.98; // 2% комиссия
       }
@@ -144,6 +144,26 @@ const ExchangePage: React.FC = () => {
     return true;
   };
 
+  // Проверка ошибок ввода
+  const getInputError = () => {
+    if (!selectedPair || !amount) return null;
+    
+    const inputAmount = parseFloat(amount);
+    const balance = getBalance(selectedPair.fromCurrency);
+    
+    if (isNaN(inputAmount) || inputAmount <= 0) {
+      return t('exchange_page.enter_valid_amount');
+    }
+    if (inputAmount < selectedPair.minAmount) {
+      return t('exchange_page.minimum_amount', { amount: selectedPair.minAmount, currency: selectedPair.fromCurrency });
+    }
+    if (inputAmount > balance) {
+      return t('exchange_page.insufficient_funds', { available: balance.toLocaleString(), currency: selectedPair.fromCurrency });
+    }
+    
+    return null;
+  };
+
   // Выполнение обмена
   const handleExchange = async () => {
     if (!canExchange() || !selectedPair) return;
@@ -155,6 +175,13 @@ const ExchangePage: React.FC = () => {
     try {
       const inputAmount = parseFloat(amount);
       
+      console.log('Отправка запроса на обмен:', {
+        telegramId: player?.telegram_id,
+        fromCurrency: selectedPair.fromCurrency.toLowerCase(),
+        toCurrency: selectedPair.toCurrency.toLowerCase(),
+        amount: inputAmount
+      });
+      
       // Используем API endpoint /api/exchange/convert
       const response = await axios.post(`${API_URL}/api/exchange/convert`, {
         telegramId: player?.telegram_id,
@@ -163,46 +190,90 @@ const ExchangePage: React.FC = () => {
         amount: inputAmount
       });
       
-      if (response.data) {
-        // Обновляем данные игрока из ответа сервера
-        setSuccess('Обмен выполнен успешно!');
+      console.log('Ответ от сервера:', response.data);
+      
+      if (response.data && response.data.success) {
+        // Успешный обмен
+        setSuccess(t('exchange_page.exchange_success'));
         setAmount('');
         setResult('');
         setSelectedPair(null);
         
-        // Перезагружаем данные игрока
-        window.location.reload();
+        console.log('Обмен успешен! Новые данные игрока:', response.data.player);
+        
+        // 🔥 ОБНОВЛЯЕМ ДАННЫЕ ИГРОКА МГНОВЕННО
+        if (response.data.player) {
+          console.log('Доступные функции в контексте:', Object.keys(playerContext));
+          
+          // Пробуем разные методы обновления контекста
+          if (typeof playerContext.setPlayer === 'function') {
+            console.log('Обновляем через setPlayer');
+            playerContext.setPlayer(response.data.player);
+          } else if (typeof playerContext.updatePlayer === 'function') {
+            console.log('Обновляем через updatePlayer');
+            playerContext.updatePlayer();
+          } else if (typeof playerContext.refreshPlayer === 'function') {
+            console.log('Обновляем через refreshPlayer');
+            playerContext.refreshPlayer();
+  //        } else if (typeof playerContext.refreshPlayer === 'function') {
+  //          console.log('Обновляем через refreshPlayer');
+  //          playerContext.refreshPlayer();
+          } else {
+            console.warn('Не найдена функция для обновления игрока. Доступные функции:', Object.keys(playerContext));
+            
+            // В крайнем случае обновляем балансы напрямую
+            const newPlayer = response.data.player;
+            console.log('Пытаемся обновить балансы напрямую:', {
+              старый_ccc: player?.ccc,
+              новый_ccc: newPlayer.ccc,
+              старый_cs: player?.cs,
+              новый_cs: newPlayer.cs,
+              старый_ton: player?.ton,
+              новый_ton: newPlayer.ton
+            });
+          }
+        }
         
         // Убираем уведомление через 3 секунды
         setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(t('exchange_page.exchange_error'));
       }
       
     } catch (err: any) {
       console.error('Exchange error:', err);
-      if (err.response?.data?.error) {
+      
+      if (err.response?.status === 400 && err.response?.data?.error) {
         // Переводим ошибки с сервера
         const errorMessage = err.response.data.error;
         switch (errorMessage) {
           case 'Not enough CCC':
-            setError('Недостаточно CCC');
+            setError(t('exchange_page.not_enough_ccc'));
             break;
           case 'Not enough CS':
-            setError('Недостаточно CS');
+            setError(t('exchange_page.not_enough_cs'));
             break;
           case 'Not enough TON':
-            setError('Недостаточно TON');
+            setError(t('exchange_page.not_enough_ton'));
             break;
           case 'Invalid conversion pair':
-            setError('Недопустимая валютная пара');
+            setError(t('exchange_page.invalid_pair'));
             break;
           case 'Player not found':
-            setError('Игрок не найден');
+            setError(t('exchange_page.player_not_found'));
+            break;
+          case 'Missing required fields or invalid amount':
+            setError(t('exchange_page.enter_valid_amount'));
             break;
           default:
             setError(errorMessage);
         }
+      } else if (err.response?.status === 500) {
+        setError('Ошибка сервера. Попробуйте позже.');
+      } else if (err.code === 'ECONNABORTED' || err.code === 'NETWORK_ERROR') {
+        setError('Ошибка сети. Проверьте подключение.');
       } else {
-        setError('Ошибка при обмене валют');
+        setError(t('exchange_page.exchange_error'));
       }
     } finally {
       setIsExchanging(false);
@@ -286,10 +357,10 @@ const ExchangePage: React.FC = () => {
                   style={{
                     background: 'rgba(0, 0, 0, 0.6)',
                     backdropFilter: 'blur(10px)',
-                    borderRadius: '20px',
-                    padding: '25px',
+                    borderRadius: '15px',
+                    padding: '20px',
                     border: `2px solid ${colorStyle}30`,
-                    boxShadow: `0 0 25px ${colorStyle}15`,
+                    boxShadow: `0 0 20px ${colorStyle}15`,
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     position: 'relative'
@@ -309,12 +380,12 @@ const ExchangePage: React.FC = () => {
                   {hasCommission && (
                     <div style={{
                       position: 'absolute',
-                      top: '15px',
-                      right: '15px',
+                      top: '10px',
+                      right: '10px',
                       background: '#f59e0b',
                       color: '#000',
-                      padding: '4px 8px',
-                      borderRadius: '8px',
+                      padding: '3px 6px',
+                      borderRadius: '6px',
                       fontSize: '0.7rem',
                       fontWeight: 'bold'
                     }}>
@@ -322,85 +393,44 @@ const ExchangePage: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* Валютная пара */}
+                  {/* Валютная пара - горизонтальный стиль */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '15px',
-                    marginBottom: '20px'
+                    gap: '8px',
+                    marginBottom: '15px',
+                    fontSize: '1.2rem',
+                    fontWeight: 'bold'
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}>
-                      <div style={{
-                        fontSize: '2.5rem',
-                        filter: `drop-shadow(0 0 10px ${colorStyle}60)`
-                      }}>
-                        {pair.fromIcon}
-                      </div>
-                      <span style={{
-                        color: colorStyle,
-                        fontWeight: 'bold',
-                        fontSize: '1.1rem'
-                      }}>
-                        {pair.fromCurrency}
-                      </span>
-                    </div>
-
-                    <div style={{
-                      fontSize: '1.5rem',
-                      color: '#aaa'
-                    }}>
-                      →
-                    </div>
-
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}>
-                      <div style={{
-                        fontSize: '2.5rem',
-                        filter: `drop-shadow(0 0 10px ${colorStyle}60)`
-                      }}>
-                        {pair.toIcon}
-                      </div>
-                      <span style={{
-                        color: colorStyle,
-                        fontWeight: 'bold',
-                        fontSize: '1.1rem'
-                      }}>
-                        {pair.toCurrency}
-                      </span>
-                    </div>
+                    <span style={{ fontSize: '1.5rem' }}>{pair.fromIcon}</span>
+                    <span style={{ color: colorStyle }}>{pair.fromCurrency}</span>
+                    <span style={{ color: '#aaa', margin: '0 4px' }}>→</span>
+                    <span style={{ color: colorStyle }}>{pair.toCurrency}</span>
+                    <span style={{ fontSize: '1.5rem' }}>{pair.toIcon}</span>
                   </div>
 
                   {/* Курс обмена */}
                   <div style={{
                     background: 'rgba(255, 255, 255, 0.08)',
-                    borderRadius: '12px',
-                    padding: '15px',
-                    marginBottom: '15px'
+                    borderRadius: '10px',
+                    padding: '12px',
+                    marginBottom: '12px'
                   }}>
                     <div style={{
                       color: colorStyle,
                       fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                      marginBottom: '5px'
+                      fontSize: '1rem',
+                      marginBottom: hasCommission ? '4px' : '0'
                     }}>
                       {pair.rateText}
                     </div>
                     {hasCommission && (
                       <div style={{
                         color: '#f59e0b',
-                        fontSize: '0.9rem'
+                        fontSize: '0.8rem'
                       }}>
-                        Комиссия: 2%
+                        {t('exchange_page.commission')}: 2%
                       </div>
                     )}
                   </div>
@@ -411,9 +441,9 @@ const ExchangePage: React.FC = () => {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     color: '#aaa',
-                    fontSize: '0.9rem'
+                    fontSize: '0.85rem'
                   }}>
-                    <span>Доступно:</span>
+                    <span>{t('exchange_page.available')}:</span>
                     <span style={{ color: '#fff', fontWeight: '500' }}>
                       {balance.toLocaleString()} {pair.fromCurrency}
                     </span>
@@ -441,7 +471,7 @@ const ExchangePage: React.FC = () => {
               boxShadow: `0 0 25px ${colorStyle}15`
             }}>
               <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.3rem', textAlign: 'center' }}>
-                💰 {t('exchange.commissions_title')}
+                💰 {t('exchange_page.commissions_title')}
               </h3>
               <div style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.9rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -463,9 +493,9 @@ const ExchangePage: React.FC = () => {
                   borderRadius: '8px'
                 }}>
                   {player?.verified ? (
-                    <span style={{ color: '#4ade80' }}>✅ Вы верифицированы</span>
+                    <span style={{ color: '#4ade80' }}>✅ {t('exchange_page.verified_status')}</span>
                   ) : (
-                    <span>🔒 Пройдите верификацию для отмены комиссий</span>
+                    <span>🔒 {t('exchange_page.verification_hint')}</span>
                   )}
                 </div>
               </div>
@@ -481,7 +511,7 @@ const ExchangePage: React.FC = () => {
               boxShadow: `0 0 25px ${colorStyle}15`
             }}>
               <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.3rem', textAlign: 'center' }}>
-                📊 Минимальные суммы
+                📊 {t('exchange_page.minimum_amounts')}
               </h3>
               <div style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.9rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -572,7 +602,7 @@ const ExchangePage: React.FC = () => {
               </div>
               {selectedPair.hasCommission && !player?.verified && (
                 <div style={{ color: '#f59e0b', fontSize: '0.9rem' }}>
-                  Комиссия: 2%
+                  {t('exchange_page.commission')}: 2%
                 </div>
               )}
             </div>
@@ -580,18 +610,18 @@ const ExchangePage: React.FC = () => {
             {/* Ввод суммы */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#ccc', marginBottom: '10px', display: 'block' }}>
-                Сумма ({selectedPair.fromCurrency}):
+                {t('exchange_page.amount')} ({selectedPair.fromCurrency}):
               </label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={`Минимум ${selectedPair.minAmount}`}
+                placeholder={`${t('exchange_page.minimum')} ${selectedPair.minAmount}`}
                 style={{
                   padding: '15px',
                   width: '100%',
                   background: 'rgba(255, 255, 255, 0.1)',
-                  border: `2px solid ${colorStyle}60`,
+                  border: `2px solid ${getInputError() ? '#ef4444' : colorStyle}60`,
                   borderRadius: '12px',
                   color: '#fff',
                   fontSize: '1.1rem',
@@ -600,6 +630,34 @@ const ExchangePage: React.FC = () => {
                   MozAppearance: 'textfield'
                 }}
               />
+              {/* Показываем доступную сумму */}
+              <div style={{
+                marginTop: '8px',
+                fontSize: '0.9rem',
+                color: '#aaa',
+                display: 'flex',
+                justifyContent: 'space-between'
+              }}>
+                <span>{t('exchange_page.available')}:</span>
+                <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                  {getBalance(selectedPair.fromCurrency).toLocaleString()} {selectedPair.fromCurrency}
+                </span>
+              </div>
+              
+              {/* Ошибка валидации */}
+              {getInputError() && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid #ef444460',
+                  borderRadius: '8px',
+                  color: '#ef4444',
+                  fontSize: '0.85rem'
+                }}>
+                  ⚠️ {getInputError()}
+                </div>
+              )}
             </div>
 
             {/* Результат */}
@@ -611,7 +669,7 @@ const ExchangePage: React.FC = () => {
                 marginBottom: '20px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#ccc' }}>Получите:</span>
+                  <span style={{ color: '#ccc' }}>{t('exchange_page.you_receive')}:</span>
                   <span style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.2rem' }}>
                     {result} {selectedPair.toCurrency}
                   </span>
@@ -650,7 +708,7 @@ const ExchangePage: React.FC = () => {
                   cursor: 'pointer'
                 }}
               >
-                Отмена
+                {t('exchange_page.cancel')}
               </button>
               
               <button
@@ -680,10 +738,10 @@ const ExchangePage: React.FC = () => {
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
                     }} />
-                    Обмен...
+                    {t('exchange_page.processing')}
                   </span>
                 ) : (
-                  'Обменять'
+                  t('exchange_page.exchange_button')
                 )}
               </button>
             </div>
