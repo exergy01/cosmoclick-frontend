@@ -70,8 +70,8 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         top: '60%',
         left: '50%',
         transform: 'translateX(-50%)',
-        width: '80px',
-        height: '80px',
+        width: '60px',
+        height: '60px',
         zIndex: 1
       }}>
         <img
@@ -101,22 +101,30 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
     const isRevealed = gameState === 'revealing' || gameState === 'finished';
     const isHovered = hoveredShell === position;
 
+    // Ограничиваем движение тарелок в пределах контейнера
+    const maxMovement = 100; // Максимальное смещение в пикселях
+    const shuffleTranslateX = shuffleAnimation 
+      ? Math.max(-maxMovement, Math.min(maxMovement, (actualPosition - position) * 120))
+      : 0;
+    const shuffleTranslateY = shuffleAnimation 
+      ? Math.max(-30, Math.min(30, Math.sin(Date.now() * 0.01 + position) * 20))
+      : 0;
+
     return (
       <div
         key={position}
         style={{
           position: 'relative',
-          width: '120px',
-          height: '120px',
-          margin: '0 20px',
+          width: '100px',
+          height: '100px',
+          margin: '0 10px',
           cursor: isClickable ? 'pointer' : 'default',
-          transform: shuffleAnimation 
-            ? `translate(${(actualPosition - position) * 160}px, ${Math.sin(Date.now() * 0.01 + position) * 30}px) scale(${isHovered && isClickable ? 1.1 : 1})`
-            : `scale(${isHovered && isClickable ? 1.1 : 1})`,
+          transform: `translate(${shuffleTranslateX}px, ${shuffleTranslateY}px) scale(${isHovered && isClickable ? 1.1 : 1})`,
           transition: shuffleAnimation 
             ? 'transform 0.15s ease-in-out'
             : 'transform 0.3s ease',
-          zIndex: isChosen ? 10 : 5
+          zIndex: isChosen ? 10 : 5,
+          flexShrink: 0 // Предотвращаем сжатие
         }}
         onClick={() => isClickable && onShellClick(position)}
         onMouseEnter={() => isClickable && setHoveredShell(position)}
@@ -128,11 +136,11 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         {/* НЛО тарелка */}
         <div style={{
           position: 'absolute',
-          top: isRevealed && isChosen ? '20px' : '40px',
+          top: isRevealed && isChosen ? '15px' : '30px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '100px',
-          height: '60px',
+          width: '80px',
+          height: '50px',
           transition: 'top 0.8s ease',
           zIndex: 6
         }}>
@@ -161,7 +169,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
             left: '50%',
             transform: 'translateX(-50%)',
             color: colorStyle,
-            fontSize: '2rem',
+            fontSize: '1.5rem',
             fontWeight: 'bold',
             textShadow: `0 0 10px ${colorStyle}`,
             animation: 'bounce 1s infinite',
@@ -175,16 +183,17 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         {isClickable && isHovered && (
           <div style={{
             position: 'absolute',
-            bottom: '-30px',
+            bottom: '-25px',
             left: '50%',
             transform: 'translateX(-50%)',
             background: 'rgba(0,0,0,0.8)',
             color: colorStyle,
-            padding: '5px 10px',
-            borderRadius: '10px',
-            fontSize: '0.8rem',
+            padding: '3px 8px',
+            borderRadius: '8px',
+            fontSize: '0.7rem',
             whiteSpace: 'nowrap',
-            textShadow: `0 0 5px ${colorStyle}`
+            textShadow: `0 0 5px ${colorStyle}`,
+            zIndex: 8
           }}>
             Выбрать
           </div>
@@ -196,19 +205,26 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
   return (
     <div style={{
       display: 'flex',
-      justifyContent: 'center',
+      flexDirection: 'column',
       alignItems: 'center',
-      minHeight: '200px',
-      margin: '40px 0',
-      position: 'relative'
+      minHeight: '180px',
+      margin: '20px 0',
+      position: 'relative',
+      width: '100%',
+      maxWidth: '500px'
     }}>
-      {/* Игровое поле */}
+      {/* Игровое поле с ограничениями */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'flex-start',
-        gap: '20px',
-        position: 'relative'
+        gap: '10px',
+        position: 'relative',
+        width: '100%',
+        maxWidth: '400px',
+        overflow: 'hidden', // Ограничиваем видимость анимации
+        padding: '20px 0',
+        boxSizing: 'border-box'
       }}>
         {[0, 1, 2].map(renderShell)}
       </div>
@@ -216,11 +232,13 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
       {/* Инструкция для игрока */}
       <div style={{
         position: 'absolute',
-        bottom: '-60px',
+        bottom: '-40px',
         left: '50%',
         transform: 'translateX(-50%)',
         textAlign: 'center',
-        color: '#ccc'
+        color: '#ccc',
+        fontSize: '0.9rem',
+        whiteSpace: 'nowrap'
       }}>
         {gameState === 'waiting' && (
           <p style={{ color: colorStyle, fontWeight: 'bold' }}>

@@ -56,6 +56,28 @@ export interface AdWatchResult {
   error?: string;
 }
 
+export interface GameHistoryItem {
+  id: number;
+  date: string;
+  betAmount: number;
+  winAmount: number;
+  profit: number;
+  result: 'win' | 'loss';
+  chosenPosition: number | null;
+  winningPosition: number | null;
+  positions: string[];
+  jackpotContribution: number;
+  isCompleted: boolean;
+}
+
+export interface GameHistoryResponse {
+  success: boolean;
+  history: GameHistoryItem[];
+  total: number;
+  hasMore: boolean;
+  error?: string;
+}
+
 export const cosmicShellsApi = {
   // Получить статус игры
   async getStatus(telegramId: string): Promise<CosmicShellsStatus> {
@@ -136,5 +158,24 @@ export const cosmicShellsApi = {
         error: error.response?.data?.error || 'Ошибка рекламы'
       };
     }
+  },
+
+  // Получить историю игр
+  async getHistory(telegramId: string, limit: number = 20, offset: number = 0): Promise<GameHistoryResponse> {
+    try {
+      const response = await axios.get(`${API_URL}/api/games/cosmic-shells/history/${telegramId}`, {
+        params: { limit, offset }
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Get cosmic shells history error:', error);
+      return {
+        success: false,
+        history: [],
+        total: 0,
+        hasMore: false,
+        error: error.response?.data?.error || 'Ошибка загрузки истории'
+      };
+    }
   }
-}; 
+};
