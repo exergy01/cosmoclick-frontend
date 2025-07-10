@@ -116,7 +116,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         style={{
           position: 'relative',
           width: '100px',
-          height: '100px',
+          height: '120px', // УВЕЛИЧЕНО для подсказки
           margin: '0 10px',
           cursor: isClickable ? 'pointer' : 'default',
           transform: `translate(${shuffleTranslateX}px, ${shuffleTranslateY}px) scale(${isHovered && isClickable ? 1.1 : 1})`,
@@ -179,21 +179,23 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
           </div>
         )}
 
-        {/* Подсказка при наведении */}
+        {/* ИСПРАВЛЕНО: Подсказка при наведении */}
         {isClickable && isHovered && (
           <div style={{
             position: 'absolute',
-            bottom: '-25px',
+            bottom: '10px', // ИСПРАВЛЕНО: поднято выше
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.8)',
+            background: 'rgba(0,0,0,0.9)',
             color: colorStyle,
-            padding: '3px 8px',
+            padding: '5px 10px',
             borderRadius: '8px',
-            fontSize: '0.7rem',
+            fontSize: '0.8rem',
             whiteSpace: 'nowrap',
             textShadow: `0 0 5px ${colorStyle}`,
-            zIndex: 8
+            border: `1px solid ${colorStyle}`,
+            zIndex: 15, // УВЕЛИЧЕН z-index
+            boxShadow: `0 0 10px ${colorStyle}50`
           }}>
             Выбрать
           </div>
@@ -207,7 +209,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      minHeight: '180px',
+      minHeight: '200px', // УВЕЛИЧЕНО для подсказки
       margin: '20px 0',
       position: 'relative',
       width: '100%',
@@ -222,8 +224,8 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         position: 'relative',
         width: '100%',
         maxWidth: '400px',
-        overflow: 'hidden', // Ограничиваем видимость анимации
-        padding: '20px 0',
+        overflow: 'visible', // ИСПРАВЛЕНО: показываем подсказку
+        padding: '20px 0 40px 0', // УВЕЛИЧЕН padding снизу
         boxSizing: 'border-box'
       }}>
         {[0, 1, 2].map(renderShell)}
@@ -232,7 +234,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
       {/* Инструкция для игрока */}
       <div style={{
         position: 'absolute',
-        bottom: '-40px',
+        bottom: '0px', // ИСПРАВЛЕНО: позиция
         left: '50%',
         transform: 'translateX(-50%)',
         textAlign: 'center',

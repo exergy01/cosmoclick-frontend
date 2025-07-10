@@ -70,7 +70,6 @@ const mockAdService = {
 };
 
 type GameState = 'waiting' | 'shuffling' | 'choosing' | 'revealing' | 'finished';
-
 const CosmicShellsGame: React.FC = () => {
   const { t } = useTranslation();
   const { player, currentSystem, refreshPlayer } = usePlayer();
@@ -106,8 +105,9 @@ const CosmicShellsGame: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showFullHistory, setShowFullHistory] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
+  const [recentHistory, setRecentHistory] = useState<GameHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const colorStyle = player?.color || '#00f0ff';
@@ -125,7 +125,6 @@ const CosmicShellsGame: React.FC = () => {
       setToasts(prev => prev.filter(toast => toast.id !== id));
     }, duration);
   };
-
   // Компонент уведомлений
   const ToastContainer: React.FC = () => (
     <div style={{
@@ -193,8 +192,22 @@ const CosmicShellsGame: React.FC = () => {
     </div>
   );
 
-  // Загрузка истории игр
-  const loadGameHistory = useCallback(async () => {
+  // Загрузка последних игр (10 штук)
+  const loadRecentHistory = useCallback(async () => {
+    if (!player?.telegram_id) return;
+    
+    try {
+      const response = await cosmicShellsApi.getHistory(player.telegram_id.toString(), 10, 0);
+      if (response.success) {
+        setRecentHistory(response.history || []);
+      }
+    } catch (err) {
+      console.error('Error loading recent game history:', err);
+    }
+  }, [player?.telegram_id]);
+
+  // Загрузка полной истории игр
+  const loadFullHistory = useCallback(async () => {
     if (!player?.telegram_id) return;
     
     setHistoryLoading(true);
@@ -204,7 +217,7 @@ const CosmicShellsGame: React.FC = () => {
         setGameHistory(response.history || []);
       }
     } catch (err) {
-      console.error('Error loading game history:', err);
+      console.error('Error loading full game history:', err);
     } finally {
       setHistoryLoading(false);
     }
@@ -231,14 +244,17 @@ const CosmicShellsGame: React.FC = () => {
   // Загрузка при монтировании
   useEffect(() => {
     loadGameStatus();
-  }, [loadGameStatus]);
+    loadRecentHistory();
+  }, [loadGameStatus, loadRecentHistory]);
 
   // Автообновление статуса каждые 30 секунд
   useEffect(() => {
-    const interval = setInterval(loadGameStatus, 30000);
+    const interval = setInterval(() => {
+      loadGameStatus();
+      loadRecentHistory();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [loadGameStatus]);
-
+  }, [loadGameStatus, loadRecentHistory]);
   // Начать новую игру
   const handleStartGame = async () => {
     if (!player?.telegram_id || gameState !== 'waiting') return;
@@ -329,7 +345,7 @@ const CosmicShellsGame: React.FC = () => {
           // Обновляем данные
           refreshPlayer();
           loadGameStatus();
-          loadGameHistory(); // Обновляем историю
+          loadRecentHistory(); // Обновляем список последних игр
         }, 2000);
         
       } else {
@@ -362,7 +378,7 @@ const CosmicShellsGame: React.FC = () => {
       
       if (result.success) {
         showToast('Получена дополнительная игра!', 'success');
-        loadGameStatus();
+        loadGameStatus(); // Обновляем статус для отображения новых лимитов
       } else {
         showToast(result.error || 'Ошибка рекламы', 'error');
       }
@@ -385,9 +401,9 @@ const CosmicShellsGame: React.FC = () => {
     });
   };
 
-  // Компонент истории игр
+  // Компонент полной истории игр
   const GameHistoryModal: React.FC = () => {
-    if (!showHistory) return null;
+    if (!showFullHistory) return null;
 
     return (
       <div style={{
@@ -424,10 +440,10 @@ const CosmicShellsGame: React.FC = () => {
               textShadow: `0 0 10px ${colorStyle}`,
               margin: 0
             }}>
-              📋 История игр
+              📋 Полная история игр
             </h2>
             <button
-              onClick={() => setShowHistory(false)}
+              onClick={() => setShowFullHistory(false)}
               style={{
                 background: 'none',
                 border: `2px solid ${colorStyle}`,
@@ -507,7 +523,6 @@ const CosmicShellsGame: React.FC = () => {
       </div>
     );
   };
-
   if (loading) {
     return (
       <div style={{
@@ -576,20 +591,20 @@ const CosmicShellsGame: React.FC = () => {
           🛸 {t('games.shells.title')}
         </h1>
 
-        {/* ИСПРАВЛЕНО: Компактная статистика в одном блоке */}
-        <div style={{
+{/* ИСПРАВЛЕНО: Компактная статистика с правильной прибылью */}
+<div style={{
           background: 'rgba(0,0,0,0.3)',
           border: `2px solid ${colorStyle}`,
           borderRadius: '15px',
           padding: '20px',
           marginBottom: '30px',
           width: '100%',
-          maxWidth: '600px',
+          maxWidth: '400px', // ИСПРАВЛЕНО: тот же размер что у панели ставки
           boxShadow: `0 0 20px ${colorStyle}30`
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+            gridTemplateColumns: 'repeat(3, 1fr)', // ИСПРАВЛЕНО: 3 колонки вместо auto-fit
             gap: '15px',
             textAlign: 'center'
           }}>
@@ -601,22 +616,6 @@ const CosmicShellsGame: React.FC = () => {
               <div style={{ color: '#ccc', fontSize: '0.75rem' }}>Игр осталось</div>
             </div>
             <div>
-              <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>📊</div>
-              <div style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.1rem' }}>
-                {gameStatus.stats.total_games}
-              </div>
-              <div style={{ color: '#ccc', fontSize: '0.75rem' }}>Всего игр</div>
-            </div>
-            <div>
-              <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>🏆</div>
-              <div style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.1rem' }}>
-                {gameStatus.stats.total_games > 0 
-                  ? Math.round((gameStatus.stats.total_wins / gameStatus.stats.total_games) * 100)
-                  : 0}%
-              </div>
-              <div style={{ color: '#ccc', fontSize: '0.75rem' }}>Винрейт</div>
-            </div>
-            <div>
               <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>⭐</div>
               <div style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.1rem' }}>
                 x{gameStatus.winMultiplier}
@@ -626,18 +625,26 @@ const CosmicShellsGame: React.FC = () => {
             <div>
               <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>💰</div>
               <div style={{ 
-                color: gameStatus.stats.total_won > gameStatus.stats.total_bet ? colorStyle : '#ef4444', 
+                color: gameStatus.stats.total_won >= gameStatus.stats.total_bet ? '#00ff00' : '#ff0000', 
                 fontWeight: 'bold', 
                 fontSize: '1.1rem' 
               }}>
-                {gameStatus.stats.total_won > gameStatus.stats.total_bet ? '+' : ''}
-                {(gameStatus.stats.total_won - gameStatus.stats.total_bet).toLocaleString()}
+                {(() => {
+                  const profit = gameStatus.stats.total_won - gameStatus.stats.total_bet;
+                  if (profit > 0) {
+                    return `+${profit.toLocaleString()}`;
+                  } else if (profit < 0) {
+                    return `${profit.toLocaleString()}`; // Минус уже есть в числе
+                  } else {
+                    return '0';
+                  }
+                })()}
               </div>
               <div style={{ color: '#ccc', fontSize: '0.75rem' }}>Прибыль</div>
             </div>
           </div>
         </div>
-        
+                
         {/* Панель ставки */}
         {gameState === 'waiting' && (
           <div style={{
@@ -786,37 +793,16 @@ const CosmicShellsGame: React.FC = () => {
           </div>
         )}
 
-        {/* Кнопки управления */}
-        <div style={{
+{/* Кнопки управления */}
+<div style={{
           display: 'flex',
           gap: '15px',
           flexWrap: 'wrap',
           justifyContent: 'center',
           marginTop: '30px'
         }}>
-          {/* Кнопка истории */}
-          <button
-            onClick={() => {
-              setShowHistory(true);
-              loadGameHistory();
-            }}
-            style={{
-              padding: '12px 25px',
-              background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
-              border: `2px solid ${colorStyle}`,
-              borderRadius: '15px',
-              color: colorStyle,
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              textShadow: `0 0 10px ${colorStyle}`
-            }}
-          >
-            📋 История
-          </button>
-
-          {/* Кнопка рекламы */}
-          {gameStatus.canWatchAd && gameState === 'waiting' && !gameStatus.canPlayFree && (
+          {/* ИСПРАВЛЕНО: Кнопка рекламы появляется когда игры закончились */}
+          {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && (
             <button
               onClick={handleWatchAd}
               disabled={isWatchingAd}
@@ -838,32 +824,33 @@ const CosmicShellsGame: React.FC = () => {
             </button>
           )}
 
-          {/* Кнопка назад */}
-          <button
+{/* Кнопка назад */}
+<button
             onClick={() => navigate('/games')}
             style={{
               padding: '12px 25px',
-              background: 'linear-gradient(45deg, rgba(128,128,128,0.2), rgba(128,128,128,0.4))',
-              border: '2px solid #888',
+              background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`, // ИСПРАВЛЕНО: тот же цвет что у других кнопок
+              border: `2px solid ${colorStyle}`, // ИСПРАВЛЕНО: цвет границы
               borderRadius: '15px',
-              color: '#888',
+              color: colorStyle, // ИСПРАВЛЕНО: цвет текста
               cursor: 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold',
+              textShadow: `0 0 10px ${colorStyle}`, // ИСПРАВЛЕНО: свечение текста
               transition: 'all 0.3s ease'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.color = '#fff';
-              e.currentTarget.style.borderColor = '#fff';
+              e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
+              e.currentTarget.style.transform = 'scale(1.05)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.color = '#888';
-              e.currentTarget.style.borderColor = '#888';
+              e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
             ← {t('games.backToGames')}
           </button>
-        </div>
+          </div>
 
         {/* Инструкция */}
         <div style={{
@@ -886,7 +873,102 @@ const CosmicShellsGame: React.FC = () => {
             <p>📺 <strong>{t('games.shells.rule5')}</strong></p>
           </div>
         </div>
-      </div>
+
+{/* ИСПРАВЛЕНО: Таблица последних 10 игр с правильным размером */}
+<div style={{
+          background: 'rgba(0,0,0,0.3)',
+          border: `1px solid ${colorStyle}`,
+          borderRadius: '15px',
+          padding: '20px',
+          marginTop: '20px',
+          maxWidth: '400px', // ИСПРАВЛЕНО: тот же размер что у панели ставки
+          width: '100%'
+        }}>
+          <h3 style={{ color: colorStyle, marginBottom: '15px', textAlign: 'center' }}>
+            🕒 Последние игры
+          </h3>
+          
+          {recentHistory.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#ccc', padding: '20px' }}>
+              История игр пуста
+            </div>
+          ) : (
+            <>
+              <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '0.9rem'
+              }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${colorStyle}` }}>
+                    <th style={{ color: colorStyle, padding: '10px', textAlign: 'left' }}>Время</th>
+                    <th style={{ color: colorStyle, padding: '10px', textAlign: 'center' }}>Ставка</th>
+                    <th style={{ color: colorStyle, padding: '10px', textAlign: 'center' }}>Результат</th>
+                    <th style={{ color: colorStyle, padding: '10px', textAlign: 'center' }}>Итог</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gameHistory.map((game) => (
+                    <tr key={game.id} style={{ borderBottom: '1px solid #333' }}>
+                      <td style={{ color: '#ccc', padding: '10px' }}>
+                        {formatDate(game.date)}
+                      </td>
+                      <td style={{ color: '#ccc', padding: '10px', textAlign: 'center' }}>
+                        {game.betAmount.toLocaleString()} CCC
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        {game.result === 'win' ? (
+                          <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                            ✅ Выигрыш
+                          </span>
+                        ) : (
+                          <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
+                            ❌ Проигрыш
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ 
+                        padding: '10px', 
+                        textAlign: 'center',
+                        color: game.profit > 0 ? '#00ff00' : '#ff0000',
+                        fontWeight: 'bold'
+                      }}>
+                        {game.profit > 0 ? '+' : ''}{game.profit.toLocaleString()} CCC
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+              
+              {/* Кнопка показать всю историю */}
+              <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                <button
+                  onClick={() => {
+                    setShowFullHistory(true);
+                    loadFullHistory();
+                  }}
+                  style={{
+                    padding: '8px 16px', // УМЕНЬШЕН размер кнопки
+                    background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
+                    border: `2px solid ${colorStyle}`,
+                    borderRadius: '10px',
+                    color: colorStyle,
+                    cursor: 'pointer',
+                    fontSize: '0.8rem', // УМЕНЬШЕН размер шрифта
+                    fontWeight: 'bold',
+                    textShadow: `0 0 5px ${colorStyle}`
+                  }}
+                >
+                  📋 Вся история
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        
+        </div>
 
       {/* CSS анимации */}
       <style>{`
