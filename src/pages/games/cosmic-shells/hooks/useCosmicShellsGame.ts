@@ -24,11 +24,12 @@ export const useCosmicShellsGame = (
   useEffect(() => {
     const initAds = async () => {
       try {
-        // Ваш Block ID от Adsgram
+        // Ваш Block ID от Adsgram (только числовая часть)
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
         
         console.log('🎯 Starting ad service initialization...');
         console.log('🎯 Block ID from env:', ADSGRAM_BLOCK_ID);
+        console.log('🎯 Block ID type:', typeof ADSGRAM_BLOCK_ID);
         console.log('🎯 Environment variables:', {
           nodeEnv: process.env.NODE_ENV,
           hasBlockId: !!ADSGRAM_BLOCK_ID

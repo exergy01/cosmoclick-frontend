@@ -191,6 +191,7 @@ interface AdsgramController {
           const startTime = Date.now();
   
           console.log('🎯 Creating Adsgram controller with Block ID:', this.blockId);
+          console.log('🎯 Block ID type:', typeof this.blockId, 'length:', this.blockId.length);
   
           // Создаем контроллер рекламы
           this.controller = window.Adsgram!.init({
