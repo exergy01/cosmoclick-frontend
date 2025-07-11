@@ -14,6 +14,7 @@ import CosmicShellsGameHistory from './components/CosmicShellsGameHistory';
 import CosmicShellsHistoryModal from './components/CosmicShellsHistoryModal';
 import ShellsGameField from '../../../components/games/ShellsGameField';
 import CurrencyPanel from '../../../components/CurrencyPanel';
+import AdsgramDiagnostic from '../../../components/AdsgramDiagnostic';
 
 // Хуки
 import { useGameStatus } from './hooks/useGameStatus';
@@ -49,7 +50,7 @@ const CosmicShellsGame: React.FC = () => {
   } = useGameHistory(player?.telegram_id);
   const { toasts, showToast, removeToast } = useToastNotifications();
   
-  // ИСПРАВЛЕНО: Колбэк для обновления всех данных
+  // Колбэк для обновления всех данных
   const handleDataUpdate = useCallback(() => {
     console.log('🎮 Frontend: Updating all game data...');
     refreshPlayer();
@@ -57,7 +58,7 @@ const CosmicShellsGame: React.FC = () => {
     refreshHistory();
   }, [refreshPlayer, loadGameStatus, refreshHistory]);
   
-  // ИСПРАВЛЕНО: Передаем колбэк в хук игры
+  // Передаем колбэк в хук игры
   const {
     gameState,
     betAmount,
@@ -73,7 +74,7 @@ const CosmicShellsGame: React.FC = () => {
     gameStatus,
     showToast,
     t,
-    handleDataUpdate  // ДОБАВЛЕНО: передаем колбэк
+    handleDataUpdate
   );
 
   // Загрузка истории при монтировании
@@ -82,9 +83,6 @@ const CosmicShellsGame: React.FC = () => {
       loadRecentHistory();
     }
   }, [player?.telegram_id, loadRecentHistory]);
-
-  // ИСПРАВЛЕНО: Убрал дублирующее обновление после игры
-  // Обновление теперь происходит внутри хука игры
 
   // Загрузочный экран
   if (loading) {
@@ -225,7 +223,7 @@ const CosmicShellsGame: React.FC = () => {
           justifyContent: 'center',
           marginTop: '30px'
         }}>
-          {/* ИСПРАВЛЕНО: Кнопка рекламы с улучшенным отображением */}
+          {/* Кнопка рекламы */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && (
             <button
               onClick={watchAd}
@@ -256,7 +254,7 @@ const CosmicShellsGame: React.FC = () => {
           {/* Кнопка назад */}
           <button
             onClick={() => navigate('/games')}
-            disabled={isWatchingAd} // ДОБАВЛЕНО: отключаем во время просмотра рекламы
+            disabled={isWatchingAd}
             style={{
               padding: '12px 25px',
               background: isWatchingAd 
@@ -287,6 +285,9 @@ const CosmicShellsGame: React.FC = () => {
             ← {t.backToGames}
           </button>
         </div>
+
+        {/* ДИАГНОСТИКА ADSGRAM - ВРЕМЕННО */}
+        <AdsgramDiagnostic />
 
         {/* Инструкция */}
         <div style={{
