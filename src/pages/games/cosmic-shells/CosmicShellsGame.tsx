@@ -1,6 +1,6 @@
 // cosmic-shells/CosmicShellsGame.tsx
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../../../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
@@ -35,7 +35,7 @@ const CosmicShellsGame: React.FC = () => {
   // Локализация
   const t = getTranslation(i18n.language);
   
-  // Хуки состояния - ИСПРАВЛЕНО: только основные функции
+  // Хуки состояния
   const { gameStatus, loading, loadGameStatus } = useGameStatus(player?.telegram_id);
   const { 
     recentHistory, 
@@ -49,7 +49,15 @@ const CosmicShellsGame: React.FC = () => {
   } = useGameHistory(player?.telegram_id);
   const { toasts, showToast, removeToast } = useToastNotifications();
   
-  // Главный хук игры - ИСПРАВЛЕНО: убрал локальные функции
+  // ИСПРАВЛЕНО: Колбэк для обновления всех данных
+  const handleDataUpdate = useCallback(() => {
+    console.log('🎮 Frontend: Updating all game data...');
+    refreshPlayer();
+    loadGameStatus();
+    refreshHistory();
+  }, [refreshPlayer, loadGameStatus, refreshHistory]);
+  
+  // ИСПРАВЛЕНО: Передаем колбэк в хук игры
   const {
     gameState,
     betAmount,
@@ -64,7 +72,8 @@ const CosmicShellsGame: React.FC = () => {
     player?.telegram_id,
     gameStatus,
     showToast,
-    t
+    t,
+    handleDataUpdate  // ДОБАВЛЕНО: передаем колбэк
   );
 
   // Загрузка истории при монтировании
@@ -74,20 +83,8 @@ const CosmicShellsGame: React.FC = () => {
     }
   }, [player?.telegram_id, loadRecentHistory]);
 
-  // ИСПРАВЛЕНО: Простое обновление данных после игры
-  const handleGameComplete = () => {
-    refreshPlayer();
-    loadGameStatus();
-    refreshHistory();
-  };
-
-  // Обновление данных после завершения игры
-  useEffect(() => {
-    if (gameState === 'finished') {
-      // Задержка для плавности UI
-      setTimeout(handleGameComplete, 2000);
-    }
-  }, [gameState]);
+  // ИСПРАВЛЕНО: Убрал дублирующее обновление после игры
+  // Обновление теперь происходит внутри хука игры
 
   // Загрузочный экран
   if (loading) {
@@ -228,7 +225,7 @@ const CosmicShellsGame: React.FC = () => {
           justifyContent: 'center',
           marginTop: '30px'
         }}>
-          {/* Кнопка рекламы - ИСПРАВЛЕНО: показывает прогресс */}
+          {/* ИСПРАВЛЕНО: Кнопка рекламы с улучшенным отображением */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && (
             <button
               onClick={watchAd}
@@ -244,11 +241,13 @@ const CosmicShellsGame: React.FC = () => {
                 cursor: isWatchingAd ? 'not-allowed' : 'pointer',
                 fontSize: '1rem',
                 fontWeight: 'bold',
-                textShadow: isWatchingAd ? 'none' : `0 0 10px ${warningColor}`
+                textShadow: isWatchingAd ? 'none' : `0 0 10px ${warningColor}`,
+                transition: 'all 0.3s ease',
+                position: 'relative'
               }}
             >
               {isWatchingAd 
-                ? `⏳ ${t.watching}` 
+                ? `⏳ ${t.watching}...` 
                 : `📺 ${t.extraGame} (${gameStatus.dailyAds || 0}/20)`
               }
             </button>
@@ -257,25 +256,32 @@ const CosmicShellsGame: React.FC = () => {
           {/* Кнопка назад */}
           <button
             onClick={() => navigate('/games')}
+            disabled={isWatchingAd} // ДОБАВЛЕНО: отключаем во время просмотра рекламы
             style={{
               padding: '12px 25px',
-              background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
-              border: `2px solid ${colorStyle}`,
+              background: isWatchingAd 
+                ? 'rgba(128,128,128,0.3)'
+                : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
+              border: `2px solid ${isWatchingAd ? '#888' : colorStyle}`,
               borderRadius: '15px',
-              color: colorStyle,
-              cursor: 'pointer',
+              color: isWatchingAd ? '#888' : colorStyle,
+              cursor: isWatchingAd ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold',
-              textShadow: `0 0 10px ${colorStyle}`,
+              textShadow: isWatchingAd ? 'none' : `0 0 10px ${colorStyle}`,
               transition: 'all 0.3s ease'
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
-              e.currentTarget.style.transform = 'scale(1.05)';
+              if (!isWatchingAd) {
+                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
-              e.currentTarget.style.transform = 'scale(1)';
+              if (!isWatchingAd) {
+                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
+                e.currentTarget.style.transform = 'scale(1)';
+              }
             }}
           >
             ← {t.backToGames}
@@ -316,5 +322,4 @@ const CosmicShellsGame: React.FC = () => {
   );
 };
 
-export default CosmicShellsGame; 
-export {};
+export default CosmicShellsGame;
