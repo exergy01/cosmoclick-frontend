@@ -7,6 +7,7 @@ interface ShellsGameFieldProps {
   winningPosition?: number;
   chosenPosition?: number;
   colorStyle: string;
+  t?: any; // Переводы
 }
 
 const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
@@ -15,7 +16,8 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
   revealedPositions,
   winningPosition,
   chosenPosition,
-  colorStyle
+  colorStyle,
+  t
 }) => {
   const [shuffleAnimation, setShuffleAnimation] = useState(false);
   const [shellPositions, setShellPositions] = useState([0, 1, 2]);
@@ -179,7 +181,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
           </div>
         )}
 
-        {/* ИСПРАВЛЕНО: Подсказка при наведении */}
+        {/* ИСПРАВЛЕНО: Подсказка при наведении с переводом */}
         {isClickable && isHovered && (
           <div style={{
             position: 'absolute',
@@ -197,11 +199,33 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
             zIndex: 15, // УВЕЛИЧЕН z-index
             boxShadow: `0 0 10px ${colorStyle}50`
           }}>
-            Выбрать
+            {t?.choose || 'Choose'}
           </div>
         )}
       </div>
     );
+  };
+
+  // ИСПРАВЛЕНО: Функция получения текста инструкции с переводами
+  const getInstructionText = () => {
+    if (!t?.gameStates) {
+      // Fallback на английский если нет переводов
+      switch (gameState) {
+        case 'waiting': return '🎯 Place bet to start game';
+        case 'shuffling': return '🌀 Shells shuffling...';
+        case 'choosing': return '👆 Choose the shell with galaxy!';
+        case 'revealing': return '✨ Revealing result...';
+        default: return '';
+      }
+    }
+
+    switch (gameState) {
+      case 'waiting': return `🎯 ${t.gameStates.waiting}`;
+      case 'shuffling': return `🌀 ${t.gameStates.shuffling}`;
+      case 'choosing': return `👆 ${t.gameStates.choosing}`;
+      case 'revealing': return `✨ ${t.gameStates.revealing}`;
+      default: return '';
+    }
   };
 
   return (
@@ -231,10 +255,10 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         {[0, 1, 2].map(renderShell)}
       </div>
 
-      {/* Инструкция для игрока */}
+      {/* ИСПРАВЛЕНО: Инструкция для игрока с переводами */}
       <div style={{
         position: 'absolute',
-        bottom: '0px', // ИСПРАВЛЕНО: позиция
+        bottom: '0px',
         left: '50%',
         transform: 'translateX(-50%)',
         textAlign: 'center',
@@ -242,24 +266,9 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         fontSize: '0.9rem',
         whiteSpace: 'nowrap'
       }}>
-        {gameState === 'waiting' && (
+        {getInstructionText() && (
           <p style={{ color: colorStyle, fontWeight: 'bold' }}>
-            🎯 Сделайте ставку чтобы начать игру
-          </p>
-        )}
-        {gameState === 'shuffling' && (
-          <p style={{ color: colorStyle, fontWeight: 'bold' }}>
-            🌀 Тарелки перемешиваются...
-          </p>
-        )}
-        {gameState === 'choosing' && (
-          <p style={{ color: colorStyle, fontWeight: 'bold' }}>
-            👆 Выберите тарелку с галактикой!
-          </p>
-        )}
-        {gameState === 'revealing' && (
-          <p style={{ color: colorStyle, fontWeight: 'bold' }}>
-            ✨ Открываем результат...
+            {getInstructionText()}
           </p>
         )}
       </div>

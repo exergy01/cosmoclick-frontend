@@ -15,7 +15,7 @@ import AlphabetPage from './pages/AlphabetPage';
 
 // Импортируем только существующие игры
 import TapperGame from './pages/games/TapperGame';
-import CosmicShellsGame from './pages/games/CosmicShellsGame';
+import CosmicShellsGame from './pages/games/cosmic-shells';
 
 // Компонент для логики приложения (внутри провайдеров)
 const AppContent: React.FC = () => {
