@@ -59,12 +59,29 @@ interface AdsgramController {
       this.isLoading = true;
   
       try {
+        // ПРИНУДИТЕЛЬНО загружаем SDK независимо от среды
         if (!window.Adsgram) {
           await this.loadAdsgramScript();
         }
   
+        // Ждем дополнительное время для инициализации
+        await new Promise(resolve => setTimeout(resolve, 2000));
+  
         if (!window.Adsgram) {
           throw new Error('Adsgram SDK не загрузился');
+        }
+  
+        // Тестируем что SDK работает
+        try {
+          const testController = window.Adsgram.init({
+            blockId: this.blockId,
+            debug: true
+          });
+          if (!testController) {
+            throw new Error('Не удалось создать контроллер');
+          }
+        } catch (err) {
+          throw new Error(`Ошибка инициализации контроллера: ${err}`);
         }
   
         this.isInitialized = true;
@@ -80,17 +97,54 @@ interface AdsgramController {
   
     private loadAdsgramScript(): Promise<void> {
       return new Promise((resolve, reject) => {
-        if (document.querySelector('script[src*="adsgram"]')) {
-          resolve();
-          return;
-        }
+        // Удаляем старые скрипты
+        const oldScripts = document.querySelectorAll('script[src*="adsgram"]');
+        oldScripts.forEach(script => script.remove());
   
         const script = document.createElement('script');
         script.src = 'https://sad.adsgram.ai/js/adsgram.min.js';
         script.async = true;
         
         let retryCount = 0;
-        const maxRetries = 15;
+        const maxRetries = 20; // Увеличили количество попыток
+  
+        const checkSDK = (): void => {
+          if (window.Adsgram) {
+            resolve();
+            return;
+          }
+          
+          retryCount++;
+          if (retryCount < maxRetries) {
+            setTimeout(checkSDK, 500); // Уменьшили интервал
+          } else {
+            // Пробуем альтернативный URL
+            this.loadAlternativeScript().then(resolve).catch(reject);
+          }
+        };
+  
+        script.onload = () => {
+          setTimeout(checkSDK, 100);
+        };
+        
+        script.onerror = () => {
+          // Пробуем альтернативный URL при ошибке
+          this.loadAlternativeScript().then(resolve).catch(reject);
+        };
+  
+        document.head.appendChild(script);
+      });
+    }
+  
+    // Пробуем альтернативный URL
+    private loadAlternativeScript(): Promise<void> {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://sad.adsgram.ai/js/sad.min.js'; // Альтернативный URL
+        script.async = true;
+        
+        let retryCount = 0;
+        const maxRetries = 10;
   
         const checkSDK = (): void => {
           if (window.Adsgram) {
@@ -102,15 +156,17 @@ interface AdsgramController {
           if (retryCount < maxRetries) {
             setTimeout(checkSDK, 1000);
           } else {
-            reject(new Error('SDK не загрузился'));
+            reject(new Error('Все попытки загрузки SDK провалились'));
           }
         };
   
         script.onload = () => {
-          setTimeout(checkSDK, 100);
+          setTimeout(checkSDK, 500);
         };
         
-        script.onerror = () => reject(new Error('Ошибка загрузки скрипта'));
+        script.onerror = () => {
+          reject(new Error('Альтернативный SDK тоже не загрузился'));
+        };
   
         document.head.appendChild(script);
       });
@@ -281,10 +337,26 @@ interface AdsgramController {
     async initialize(blockId?: string): Promise<void> {
       await this.mockService.initialize();
   
+      // ПРИНУДИТЕЛЬНО пытаемся инициализировать Adsgram с любым Block ID
       if (blockId && blockId.trim()) {
         this.adsgramService = new AdsgramService(blockId.trim());
+        
+        // Даем больше времени для инициализации
         const ready = await this.adsgramService.initialize();
-        this.currentProvider = ready ? 'adsgram' : 'mock';
+        
+        if (ready) {
+          this.currentProvider = 'adsgram';
+        } else {
+          // Если не получилось, пробуем еще раз через 3 секунды
+          setTimeout(async () => {
+            const retryReady = await this.adsgramService!.initialize();
+            if (retryReady) {
+              this.currentProvider = 'adsgram';
+            }
+          }, 3000);
+          
+          this.currentProvider = 'mock';
+        }
       }
     }
   
