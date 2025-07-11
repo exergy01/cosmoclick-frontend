@@ -186,7 +186,7 @@ export const useCosmicShellsGame = (
         await adService.initialize(ADSGRAM_BLOCK_ID);
         
         if (!adService.isAvailable()) {
-          showToast('Рекламный сервис недоступен. Попробуйте позже.', 'error');
+          showToast(t.errors.adServiceUnavailable, 'error');
           return;
         }
       }
@@ -235,7 +235,7 @@ export const useCosmicShellsGame = (
           
         } else {
           console.error('🎯❌ Backend API error:', apiResult.error);
-          showToast(apiResult.error || 'Ошибка обработки награды', 'error');
+          showToast(apiResult.error || t.errors.rewardProcessError, 'error');
         }
       } else {
         console.error('🎯❌ Ad service error:', adResult.error);
@@ -248,7 +248,7 @@ export const useCosmicShellsGame = (
       
     } catch (error) {
       console.error('🎯❌ Watch ad error:', error);
-      showToast('Произошла ошибка при показе рекламы', 'error');
+      showToast(t.errors.adShowError, 'error');
     } finally {
       // Убираем статус просмотра через задержку для плавности UI
       setTimeout(() => {

@@ -50,7 +50,7 @@ const GamesPage: React.FC = () => {
     fetchGameStats();
   }, [player?.telegram_id]);
 
-  // Конфигурация игр
+  // Конфигурация игр - только работающие игры
   const gameCards = [
     {
       id: 'tapper',
@@ -58,7 +58,7 @@ const GamesPage: React.FC = () => {
       description: 'Разрушайте астероиды и получайте CCC! Восстанавливайте энергию.',
       icon: '💥',
       status: 'available',
-      color: '#ff6b6b',
+      color: colorStyle, // Используем цвет игрока
       route: '/games/tapper',
       type: 'idle'
     },
@@ -68,17 +68,19 @@ const GamesPage: React.FC = () => {
       description: 'Найдите галактику под летающими тарелками. Шанс 33%!',
       icon: '🛸',
       status: 'available',
-      color: '#4ecdc4',
+      color: colorStyle, // Используем цвет игрока
       route: '/games/cosmic-shells',
       type: 'gambling'
-    },
+    }
+    // Закомментированные игры - будем открывать по мере создания
+    /*
     {
       id: 'orbital_roulette',
       title: 'Орбитальная Рулетка',
       description: 'Запустите планетарную систему и выиграйте до x10!',
       icon: '🌌',
       status: 'available',
-      color: '#45b7d1',
+      color: colorStyle,
       route: '/games/orbital-roulette',
       type: 'gambling'
     },
@@ -88,7 +90,7 @@ const GamesPage: React.FC = () => {
       description: 'Классические слоты 3x5 с каскадными выигрышами!',
       icon: '🎰',
       status: 'available',
-      color: '#96ceb4',
+      color: colorStyle,
       route: '/games/galactic-slots',
       type: 'gambling'
     },
@@ -98,7 +100,7 @@ const GamesPage: React.FC = () => {
       description: 'Пролетите через астероидное поле на максимальной скорости!',
       icon: '🚀',
       status: 'available',
-      color: '#feca57',
+      color: colorStyle,
       route: '/games/asteroid-slalom',
       type: 'skill'
     },
@@ -108,20 +110,12 @@ const GamesPage: React.FC = () => {
       description: 'Защитите станцию от астероидной атаки! Точность решает всё.',
       icon: '🎯',
       status: 'available',
-      color: '#ff9ff3',
+      color: colorStyle,
       route: '/games/cosmic-sniper',
       type: 'skill'
     }
+    */
   ];
-
-  const getGameTypeLabel = (type: string) => {
-    switch (type) {
-      case 'idle': return '⚡ Фарм';
-      case 'gambling': return '🎲 Азарт';
-      case 'skill': return '🎮 Скилл';
-      default: return '🎯 Игра';
-    }
-  };
 
   return (
     <div
@@ -153,69 +147,42 @@ const GamesPage: React.FC = () => {
             fontSize: '2.5rem', 
             marginBottom: '20px'
           }}>
+            🎮 Космические Игры
           </h2>
 
-          {/* Статистика и джекпот */}
+          {/* Джекпот - перемещен вверх */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '15px',
-            maxWidth: '800px',
-            margin: '0 auto 30px',
-            fontSize: '0.9rem'
+            width: '93%',
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '30px'
           }}>
-            {/* Статистика игрока */}
             <div style={{
               background: 'rgba(0, 0, 0, 0.3)',
               border: `2px solid ${colorStyle}`,
-              borderRadius: '15px',
-              padding: '15px',
-              boxShadow: `0 0 15px ${colorStyle}30`
+              borderRadius: '20px',
+              padding: '20px',
+              boxShadow: `0 0 20px ${colorStyle}30`
             }}>
-              <h4 style={{ color: colorStyle, margin: '0 0 10px', textShadow: `0 0 10px ${colorStyle}` }}>
-                📊 Ваша статистика
-              </h4>
-              <div style={{ textAlign: 'left', lineHeight: '1.4' }}>
-                <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  🎯 Игр сыграно: <span style={{ color: '#fff', fontWeight: 'bold' }}>{gameStats.totalGames}</span>
-                </p>
-                <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  🏆 Побед: <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{gameStats.totalWins}</span>
-                </p>
-                <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  💀 Поражений: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{gameStats.totalLosses}</span>
-                </p>
-                <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  📈 Винрейт: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                    {gameStats.totalGames > 0 ? Math.round((gameStats.totalWins / gameStats.totalGames) * 100) : 0}%
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Джекпот */}
-            <div style={{
-              background: 'rgba(255, 215, 0, 0.1)',
-              border: '2px solid #ffd700',
-              borderRadius: '15px',
-              padding: '15px',
-              boxShadow: '0 0 15px #ffd70030',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <h4 style={{ color: '#ffd700', margin: '0 0 10px', textShadow: '0 0 10px #ffd700' }}>
+              <h3 style={{ 
+                color: colorStyle, 
+                margin: '0 0 15px', 
+                textShadow: `0 0 10px ${colorStyle}`,
+                fontSize: '1.5rem'
+              }}>
                 🎰 ДЖЕКПОТ
-              </h4>
+              </h3>
               <div style={{ 
-                fontSize: '1.5rem', 
+                fontSize: '2rem', 
                 fontWeight: 'bold', 
-                color: '#ffd700',
-                textShadow: '0 0 15px #ffd700',
-                animation: 'pulse 2s infinite'
+                color: colorStyle,
+                textShadow: `0 0 15px ${colorStyle}`,
+                marginBottom: '10px'
               }}>
                 {gameStats.jackpotAmount.toLocaleString()} CCC
               </div>
-              <p style={{ margin: '5px 0 0', color: '#ffed4a', fontSize: '0.8rem' }}>
+              <p style={{ margin: '0', color: '#ccc', fontSize: '0.9rem' }}>
                 💫 Выигрывается в азартных играх!
               </p>
             </div>
@@ -223,21 +190,24 @@ const GamesPage: React.FC = () => {
 
           {/* Сетка игр */}
           <div style={{
+            width: '93%',
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(-50%)',
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '20px',
-            maxWidth: '1200px',
-            margin: '0 auto'
+            marginBottom: '40px'
           }}>
             {gameCards.map((game) => (
               <div
                 key={game.id}
                 style={{
                   background: 'rgba(0, 0, 0, 0.3)',
-                  border: `2px solid ${game.color}`,
+                  border: `2px solid ${colorStyle}`, // Используем цвет игрока
                   borderRadius: '20px',
                   padding: '25px',
-                  boxShadow: `0 0 20px ${game.color}30`,
+                  boxShadow: `0 0 20px ${colorStyle}30`, // Используем цвет игрока
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   position: 'relative',
@@ -245,42 +215,26 @@ const GamesPage: React.FC = () => {
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = `0 10px 30px ${game.color}50`;
+                  e.currentTarget.style.boxShadow = `0 10px 30px ${colorStyle}50`;
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = `0 0 20px ${game.color}30`;
+                  e.currentTarget.style.boxShadow = `0 0 20px ${colorStyle}30`;
                 }}
               >
-                {/* Тип игры */}
-                <div style={{
-                  position: 'absolute',
-                  top: '15px',
-                  right: '15px',
-                  background: `${game.color}20`,
-                  color: game.color,
-                  padding: '5px 10px',
-                  borderRadius: '15px',
-                  fontSize: '0.7rem',
-                  fontWeight: 'bold',
-                  border: `1px solid ${game.color}`
-                }}>
-                  {getGameTypeLabel(game.type)}
-                </div>
-
                 {/* Иконка игры */}
                 <div style={{
                   fontSize: '3rem',
                   marginBottom: '15px',
-                  filter: `drop-shadow(0 0 10px ${game.color})`
+                  filter: `drop-shadow(0 0 10px ${colorStyle})`
                 }}>
                   {game.icon}
                 </div>
 
                 {/* Название */}
                 <h3 style={{
-                  color: game.color,
-                  textShadow: `0 0 10px ${game.color}`,
+                  color: colorStyle, // Используем цвет игрока
+                  textShadow: `0 0 10px ${colorStyle}`,
                   fontSize: '1.3rem',
                   marginBottom: '10px',
                   fontWeight: 'bold'
@@ -303,23 +257,23 @@ const GamesPage: React.FC = () => {
                   onClick={() => navigate(game.route)}
                   style={{
                     padding: '12px 25px',
-                    background: `linear-gradient(45deg, ${game.color}20, ${game.color}40)`,
-                    border: `2px solid ${game.color}`,
+                    background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`, // Используем цвет игрока
+                    border: `2px solid ${colorStyle}`, // Используем цвет игрока
                     borderRadius: '15px',
-                    color: game.color,
+                    color: colorStyle, // Используем цвет игрока
                     cursor: 'pointer',
                     fontSize: '1rem',
                     fontWeight: 'bold',
-                    textShadow: `0 0 10px ${game.color}`,
+                    textShadow: `0 0 10px ${colorStyle}`,
                     transition: 'all 0.3s ease',
                     width: '100%'
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = `linear-gradient(45deg, ${game.color}40, ${game.color}60)`;
+                    e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
                     e.currentTarget.style.transform = 'scale(1.05)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = `linear-gradient(45deg, ${game.color}20, ${game.color}40)`;
+                    e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
                     e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
@@ -329,55 +283,64 @@ const GamesPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Информационный блок */}
+          {/* Статистика игрока - перемещена под игры */}
           <div style={{
-            margin: '40px auto 0',
-            padding: '25px',
+            width: '93%',
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: '30px'
+          }}>
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${colorStyle}`,
+              borderRadius: '20px',
+              padding: '20px',
+              boxShadow: `0 0 20px ${colorStyle}30`
+            }}>
+              <h3 style={{ 
+                color: colorStyle,
+                margin: '0 0 15px', 
+                textShadow: `0 0 10px ${colorStyle}`,
+                fontSize: '1.5rem'
+              }}>
+                📊 Ваша статистика
+              </h3>
+              <div style={{ textAlign: 'left', lineHeight: '1.4' }}>
+                <p style={{ margin: '5px 0', color: '#ccc' }}>
+                  🎯 Игр сыграно: <span style={{ color: '#fff', fontWeight: 'bold' }}>{gameStats.totalGames}</span>
+                </p>
+                <p style={{ margin: '5px 0', color: '#ccc' }}>
+                  🏆 Побед: <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{gameStats.totalWins}</span>
+                </p>
+                <p style={{ margin: '5px 0', color: '#ccc' }}>
+                  💀 Поражений: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{gameStats.totalLosses}</span>
+                </p>
+                <p style={{ margin: '5px 0', color: '#ccc' }}>
+                  📈 Винрейт: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                    {gameStats.totalGames > 0 ? Math.round((gameStats.totalWins / gameStats.totalGames) * 100) : 0}%
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Информация о джекпоте - под статистикой */}
+          <div style={{
+            width: '93%',
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '20px',
             background: 'rgba(0, 0, 0, 0.3)',
             border: `2px solid ${colorStyle}`,
             borderRadius: '20px',
-            boxShadow: `0 0 30px ${colorStyle}30`,
-            maxWidth: '700px'
+            boxShadow: `0 0 20px ${colorStyle}30`
           }}>
-            <h3 style={{ 
-              color: colorStyle, 
-              marginBottom: '15px', 
-              fontSize: '1.5rem',
-              textShadow: `0 0 10px ${colorStyle}`
-            }}>
-              🎯 Типы игр
-            </h3>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-              gap: '15px',
-              textAlign: 'left', 
-              lineHeight: '1.6', 
-              color: '#ccc' 
-            }}>
-              <div>
-                <p><strong style={{ color: '#ff6b6b' }}>⚡ Фарм игры:</strong><br/>Стабильный доход CCC</p>
-              </div>
-              <div>
-                <p><strong style={{ color: '#4ecdc4' }}>🎲 Азартные игры:</strong><br/>Высокие выигрыши + джекпот</p>
-              </div>
-              <div>
-                <p><strong style={{ color: '#feca57' }}>🎮 Скилл игры:</strong><br/>Награда за мастерство</p>
-              </div>
-            </div>
-
-            <div style={{
-              marginTop: '20px',
-              padding: '15px',
-              background: 'rgba(0, 240, 255, 0.1)',
-              borderRadius: '10px',
-              border: `1px solid ${colorStyle}`
-            }}>
-              <p style={{ color: colorStyle, fontSize: '0.9rem', margin: 0 }}>
-                🎰 <strong>Джекпот разыгрывается автоматически</strong> при достижении 1M CCC!<br/>
-                💫 Участвуйте в азартных играх для шанса на крупный выигрыш.
-              </p>
-            </div>
+            <p style={{ color: colorStyle, fontSize: '1rem', margin: 0, lineHeight: '1.5' }}>
+              🎰 <strong>Джекпот разыгрывается автоматически</strong> при достижении 1M CCC!<br/>
+              💫 Участвуйте в азартных играх для шанса на крупный выигрыш.
+            </p>
           </div>
         </div>
       </div>
@@ -386,10 +349,7 @@ const GamesPage: React.FC = () => {
       <NavigationMenu colorStyle={colorStyle} />
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
+        /* Стили для анимаций */
       `}</style>
     </div>
   );

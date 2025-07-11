@@ -14,7 +14,6 @@ import CosmicShellsGameHistory from './components/CosmicShellsGameHistory';
 import CosmicShellsHistoryModal from './components/CosmicShellsHistoryModal';
 import ShellsGameField from '../../../components/games/ShellsGameField';
 import CurrencyPanel from '../../../components/CurrencyPanel';
-import AdsgramDiagnostic from '../../../components/AdsgramDiagnostic';
 
 // Хуки
 import { useGameStatus } from './hooks/useGameStatus';
@@ -285,9 +284,6 @@ const CosmicShellsGame: React.FC = () => {
             ← {t.backToGames}
           </button>
         </div>
-
-        {/* ДИАГНОСТИКА ADSGRAM - ВРЕМЕННО */}
-        <AdsgramDiagnostic />
 
         {/* Инструкция */}
         <div style={{
