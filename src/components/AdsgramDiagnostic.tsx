@@ -103,7 +103,7 @@ const AdsgramDiagnostic: React.FC = () => {
 
         try {
           const controller = (window as any).Adsgram.init({
-            blockId: blockId,
+            blockId: String(blockId).trim(),
             debug: true
           });
 

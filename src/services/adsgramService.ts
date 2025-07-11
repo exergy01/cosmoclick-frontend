@@ -74,7 +74,7 @@ interface AdsgramController {
         // Тестируем что SDK работает
         try {
           const testController = window.Adsgram.init({
-            blockId: this.blockId,
+            blockId: String(this.blockId).trim(),
             debug: true
           });
           if (!testController) {
@@ -191,7 +191,7 @@ interface AdsgramController {
           let adClosed = false;
   
           this.controller = window.Adsgram!.init({
-            blockId: this.blockId,
+            blockId: String(this.blockId).trim(),
             debug: true
           });
   
