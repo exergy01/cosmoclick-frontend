@@ -151,20 +151,21 @@ const GamesPage: React.FC = () => {
           </h2>
 
           {/* Джекпот - перемещен вверх */}
-          <div style={{
-            width: '93%',
-            position: 'relative',
-            left: '50%',
+          <div style={{ 
+            width: '93%', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            padding: '3px', 
+            background: 'rgba(0, 0, 0, 0.3)', 
+            border: `2px solid ${colorStyle}`, 
+            borderRadius: '20px', 
+            boxShadow: `0 0 20px ${colorStyle}30`, 
+            position: 'relative', 
+            left: '50%', 
             transform: 'translateX(-50%)',
             marginBottom: '30px'
           }}>
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: `2px solid ${colorStyle}`,
-              borderRadius: '20px',
-              padding: '20px',
-              boxShadow: `0 0 20px ${colorStyle}30`
-            }}>
+            <div style={{ textAlign: 'center', padding: '15px', width: '100%' }}>
               <h3 style={{ 
                 color: colorStyle, 
                 margin: '0 0 15px', 
@@ -189,14 +190,15 @@ const GamesPage: React.FC = () => {
           </div>
 
           {/* Сетка игр */}
-          <div style={{
-            width: '93%',
-            position: 'relative',
-            left: '50%',
-            transform: 'translateX(-50%)',
+          <div style={{ 
+            width: '93%', 
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '20px',
+            padding: '3px', 
+            position: 'relative', 
+            left: '50%', 
+            transform: 'translateX(-50%)',
             marginBottom: '40px'
           }}>
             {gameCards.map((game) => (
@@ -284,20 +286,21 @@ const GamesPage: React.FC = () => {
           </div>
 
           {/* Статистика игрока - перемещена под игры */}
-          <div style={{
-            width: '93%',
-            position: 'relative',
-            left: '50%',
+          <div style={{ 
+            width: '93%', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            padding: '3px', 
+            background: 'rgba(0, 0, 0, 0.3)', 
+            border: `2px solid ${colorStyle}`, 
+            borderRadius: '20px', 
+            boxShadow: `0 0 20px ${colorStyle}30`, 
+            position: 'relative', 
+            left: '50%', 
             transform: 'translateX(-50%)',
             marginBottom: '30px'
           }}>
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: `2px solid ${colorStyle}`,
-              borderRadius: '20px',
-              padding: '20px',
-              boxShadow: `0 0 20px ${colorStyle}30`
-            }}>
+            <div style={{ width: '100%', padding: '15px' }}>
               <h3 style={{ 
                 color: colorStyle,
                 margin: '0 0 15px', 
@@ -326,16 +329,18 @@ const GamesPage: React.FC = () => {
           </div>
 
           {/* Информация о джекпоте - под статистикой */}
-          <div style={{
-            width: '93%',
-            position: 'relative',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '20px',
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: `2px solid ${colorStyle}`,
-            borderRadius: '20px',
-            boxShadow: `0 0 20px ${colorStyle}30`
+          <div style={{ 
+            width: '93%', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            padding: '20px', 
+            background: 'rgba(0, 0, 0, 0.3)', 
+            border: `2px solid ${colorStyle}`, 
+            borderRadius: '20px', 
+            boxShadow: `0 0 20px ${colorStyle}30`, 
+            position: 'relative', 
+            left: '50%', 
+            transform: 'translateX(-50%)'
           }}>
             <p style={{ color: colorStyle, fontSize: '1rem', margin: 0, lineHeight: '1.5' }}>
               🎰 <strong>Джекпот разыгрывается автоматически</strong> при достижении 1M CCC!<br/>
