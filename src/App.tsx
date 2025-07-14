@@ -13,9 +13,10 @@ import WalletPage from './pages/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
 
-// Импортируем только существующие игры
+// Импортируем все доступные игры
 import TapperGame from './pages/games/TapperGame';
 import CosmicShellsGame from './pages/games/cosmic-shells';
+import GalacticSlotsGame from './pages/games/galactic-slots';
 
 // Компонент для логики приложения (внутри провайдеров)
 const AppContent: React.FC = () => {
@@ -50,9 +51,10 @@ const AppContent: React.FC = () => {
         <Route path="/ref" element={<ReferralsPage />} />
         <Route path="/alphabet" element={<AlphabetPage />} />
         
-        {/* Роуты игр - только существующие */}
+        {/* Роуты игр - все доступные игры */}
         <Route path="/games/tapper" element={<TapperGame />} />
         <Route path="/games/cosmic-shells" element={<CosmicShellsGame />} />
+        <Route path="/games/galactic-slots" element={<GalacticSlotsGame />} />
       </Routes>
     </Suspense>
   );

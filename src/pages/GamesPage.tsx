@@ -50,7 +50,7 @@ const GamesPage: React.FC = () => {
     fetchGameStats();
   }, [player?.telegram_id]);
 
-  // Конфигурация игр - только работающие игры
+  // Конфигурация игр - теперь включая слоты!
   const gameCards = [
     {
       id: 'tapper',
@@ -58,7 +58,7 @@ const GamesPage: React.FC = () => {
       description: 'Разрушайте астероиды и получайте CCC! Восстанавливайте энергию.',
       icon: '💥',
       status: 'available',
-      color: colorStyle, // Используем цвет игрока
+      color: colorStyle,
       route: '/games/tapper',
       type: 'idle'
     },
@@ -68,30 +68,30 @@ const GamesPage: React.FC = () => {
       description: 'Найдите галактику под летающими тарелками. Шанс 33%!',
       icon: '🛸',
       status: 'available',
-      color: colorStyle, // Используем цвет игрока
+      color: colorStyle,
       route: '/games/cosmic-shells',
       type: 'gambling'
+    },
+    {
+      id: 'galactic_slots',
+      title: 'Галактические Слоты',
+      description: 'Космические слоты 3x5 с выигрышными линиями. Множители до x5000!',
+      icon: '🎰',
+      status: 'available',
+      color: colorStyle,
+      route: '/games/galactic-slots',
+      type: 'gambling'
     }
-    // Закомментированные игры - будем открывать по мере создания
+    // Остальные игры пока закомментированы
     /*
     {
       id: 'orbital_roulette',
       title: 'Орбитальная Рулетка',
       description: 'Запустите планетарную систему и выиграйте до x10!',
       icon: '🌌',
-      status: 'available',
+      status: 'coming_soon',
       color: colorStyle,
       route: '/games/orbital-roulette',
-      type: 'gambling'
-    },
-    {
-      id: 'galactic_slots',
-      title: 'Космические Слоты',
-      description: 'Классические слоты 3x5 с каскадными выигрышами!',
-      icon: '🎰',
-      status: 'available',
-      color: colorStyle,
-      route: '/games/galactic-slots',
       type: 'gambling'
     },
     {
@@ -99,7 +99,7 @@ const GamesPage: React.FC = () => {
       title: 'Астероидный Слалом',
       description: 'Пролетите через астероидное поле на максимальной скорости!',
       icon: '🚀',
-      status: 'available',
+      status: 'coming_soon',
       color: colorStyle,
       route: '/games/asteroid-slalom',
       type: 'skill'
@@ -109,7 +109,7 @@ const GamesPage: React.FC = () => {
       title: 'Снайпер Астероидов',
       description: 'Защитите станцию от астероидной атаки! Точность решает всё.',
       icon: '🎯',
-      status: 'available',
+      status: 'coming_soon',
       color: colorStyle,
       route: '/games/cosmic-sniper',
       type: 'skill'
@@ -150,7 +150,7 @@ const GamesPage: React.FC = () => {
             🎮 Космические Игры
           </h2>
 
-          {/* Джекпот - перемещен вверх */}
+          {/* Джекпот */}
           <div style={{ 
             width: '93%', 
             display: 'flex', 
@@ -206,10 +206,10 @@ const GamesPage: React.FC = () => {
                 key={game.id}
                 style={{
                   background: 'rgba(0, 0, 0, 0.3)',
-                  border: `2px solid ${colorStyle}`, // Используем цвет игрока
+                  border: `2px solid ${colorStyle}`,
                   borderRadius: '20px',
                   padding: '25px',
-                  boxShadow: `0 0 20px ${colorStyle}30`, // Используем цвет игрока
+                  boxShadow: `0 0 20px ${colorStyle}30`,
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   position: 'relative',
@@ -235,7 +235,7 @@ const GamesPage: React.FC = () => {
 
                 {/* Название */}
                 <h3 style={{
-                  color: colorStyle, // Используем цвет игрока
+                  color: colorStyle,
                   textShadow: `0 0 10px ${colorStyle}`,
                   fontSize: '1.3rem',
                   marginBottom: '10px',
@@ -254,21 +254,37 @@ const GamesPage: React.FC = () => {
                   {game.description}
                 </p>
 
+                {/* Тип игры */}
+                <div style={{
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  background: game.type === 'gambling' ? '#ff660040' : '#00ff0040',
+                  border: `1px solid ${game.type === 'gambling' ? '#ff6600' : '#00ff00'}`,
+                  borderRadius: '8px',
+                  fontSize: '0.7rem',
+                  color: game.type === 'gambling' ? '#ff6600' : '#00ff00',
+                  marginBottom: '15px',
+                  fontWeight: 'bold'
+                }}>
+                  {game.type === 'gambling' ? '🎲 АЗАРТНАЯ' : game.type === 'idle' ? '🔄 КЛИКЕР' : '🎯 СКИЛЛ'}
+                </div>
+
                 {/* Кнопка играть */}
                 <button
                   onClick={() => navigate(game.route)}
                   style={{
                     padding: '12px 25px',
-                    background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`, // Используем цвет игрока
-                    border: `2px solid ${colorStyle}`, // Используем цвет игрока
+                    background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
+                    border: `2px solid ${colorStyle}`,
                     borderRadius: '15px',
-                    color: colorStyle, // Используем цвет игрока
+                    color: colorStyle,
                     cursor: 'pointer',
                     fontSize: '1rem',
                     fontWeight: 'bold',
                     textShadow: `0 0 10px ${colorStyle}`,
                     transition: 'all 0.3s ease',
-                    width: '100%'
+                    width: '100%',
+                    display: 'block'
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
@@ -285,7 +301,7 @@ const GamesPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Статистика игрока - перемещена под игры */}
+          {/* Статистика игрока */}
           <div style={{ 
             width: '93%', 
             display: 'flex', 
@@ -328,7 +344,7 @@ const GamesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Информация о джекпоте - под статистикой */}
+          {/* Информация о джекпоте */}
           <div style={{ 
             width: '93%', 
             display: 'flex', 
@@ -352,10 +368,6 @@ const GamesPage: React.FC = () => {
 
       {/* Нижняя навигация */}
       <NavigationMenu colorStyle={colorStyle} />
-
-      <style>{`
-        /* Стили для анимаций */
-      `}</style>
     </div>
   );
 };

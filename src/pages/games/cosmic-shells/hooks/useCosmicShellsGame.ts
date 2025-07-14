@@ -182,11 +182,10 @@ export const useCosmicShellsGame = (
       if (!isServiceAvailable) {
         // Пытаемся переинициализировать
         console.log('🎯 Service not available, attempting re-initialization...');
-        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
-        await adService.initialize(ADSGRAM_BLOCK_ID);
+        await adService.initialize(); // Без Block ID
         
         if (!adService.isAvailable()) {
-          showToast(t.errors.adServiceUnavailable, 'error');
+          showToast('Ad service unavailable. Please rotate screen to portrait mode.', 'error');
           return;
         }
       }
@@ -208,9 +207,9 @@ export const useCosmicShellsGame = (
           console.log('🎯✅ Ad reward processed successfully');
           
           // Формируем сообщение с информацией о провайдере
-          let message = '🎮 Дополнительная игра получена!';
+          let message = '🎮 Extra game received!';
           if (apiResult.adsWatched && apiResult.maxAds) {
-            message = `🎮 Дополнительная игра получена! (${apiResult.adsWatched}/${apiResult.maxAds})`;
+            message = `🎮 Extra game received! (${apiResult.adsWatched}/${apiResult.maxAds})`;
           } else if (apiResult.message) {
             message = apiResult.message;
           }
@@ -219,8 +218,10 @@ export const useCosmicShellsGame = (
           const currentProvider = adService.getProviderInfo();
           if (currentProvider.name === 'mock') {
             message += ' [Тест]';
+          } else if (currentProvider.name === 'roboforex') {
+            message += ' [Partner]';
           } else {
-            message += ' [Adsgram]';
+            message += ' [Ad]';
           }
           
           showToast(message, 'success', 4000);
@@ -235,11 +236,11 @@ export const useCosmicShellsGame = (
           
         } else {
           console.error('🎯❌ Backend API error:', apiResult.error);
-          showToast(apiResult.error || t.errors.rewardProcessError, 'error');
+          showToast(apiResult.error || 'Ошибка обработки награды', 'error');
         }
       } else {
         console.error('🎯❌ Ad service error:', adResult.error);
-        let errorMessage = 'Не удалось показать рекламу';
+        let errorMessage = 'Failed to show advertisement';
         if (adResult.debug) {
           console.log('🎯 Debug info:', adResult.debug);
         }
@@ -248,7 +249,7 @@ export const useCosmicShellsGame = (
       
     } catch (error) {
       console.error('🎯❌ Watch ad error:', error);
-      showToast(t.errors.adShowError, 'error');
+      showToast('An error occurred while showing advertisement', 'error');
     } finally {
       // Убираем статус просмотра через задержку для плавности UI
       setTimeout(() => {
