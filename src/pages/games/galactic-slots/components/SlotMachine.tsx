@@ -16,32 +16,55 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
   const [winningPositions, setWinningPositions] = useState<Set<number>>(new Set());
   const [showWinLines, setShowWinLines] = useState(false);
 
-  // Анимация спина
+  // ИСПРАВЛЕНО: Улучшенная анимация спина с правильной синхронизацией
   useEffect(() => {
     if (gameState === 'spinning') {
       setWinningPositions(new Set());
       setShowWinLines(false);
       
-      // Анимация вращения - быстрая смена символов
       const symbols: SlotSymbol[] = ['🌟', '🚀', '🌌', '⭐', '🌍', '☄️'];
-      const spinInterval = setInterval(() => {
+      let animationInterval: NodeJS.Timeout;
+      
+      console.log('🎰 Starting spin animation...');
+      
+      // Быстрая анимация первые 1.5 секунды
+      animationInterval = setInterval(() => {
         setDisplaySymbols(prev => 
           prev.map(() => symbols[Math.floor(Math.random() * symbols.length)])
         );
       }, 100);
 
-      // Остановка через 2 секунды
+      // Замедляем к концу
       setTimeout(() => {
-        clearInterval(spinInterval);
-      }, 2000);
+        clearInterval(animationInterval);
+        
+        // Финальная медленная анимация
+        animationInterval = setInterval(() => {
+          setDisplaySymbols(prev => 
+            prev.map(() => symbols[Math.floor(Math.random() * symbols.length)])
+          );
+        }, 200);
+        
+        // Полная остановка через 0.5 секунды
+        setTimeout(() => {
+          clearInterval(animationInterval);
+          console.log('🎰 Spin animation completed');
+        }, 500);
+        
+      }, 1500);
 
-      return () => clearInterval(spinInterval);
+      return () => {
+        if (animationInterval) {
+          clearInterval(animationInterval);
+        }
+      };
     }
   }, [gameState]);
 
   // Показ результата
   useEffect(() => {
     if (gameState === 'revealing' && lastResult) {
+      console.log('🎰 Revealing result:', lastResult);
       setDisplaySymbols(lastResult.symbols);
       
       // Показываем выигрышные позиции через секунду
@@ -50,10 +73,13 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
           const positions = new Set<number>();
           lastResult.winningLines.forEach((line: WinningLine) => {
             const payline = PAYLINES[line.line - 1];
-            payline.slice(0, line.count).forEach(pos => positions.add(pos));
+            if (payline) {
+              payline.slice(0, line.count).forEach(pos => positions.add(pos));
+            }
           });
           setWinningPositions(positions);
           setShowWinLines(true);
+          console.log('🎰 Showing winning positions:', Array.from(positions));
         }
       }, 1000);
     }
@@ -86,7 +112,11 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         : '1px solid rgba(255, 255, 255, 0.2)',
       borderRadius: '8px',
       transition: 'all 0.3s ease',
-      transform: isSpinning ? 'scale(0.9)' : isWinning ? 'scale(1.1)' : 'scale(1)',
+      transform: isSpinning 
+        ? 'scale(0.9)' 
+        : isWinning 
+        ? 'scale(1.1)' 
+        : 'scale(1)',
       boxShadow: isWinning 
         ? `0 0 20px ${colorStyle}80` 
         : isSpinning 
@@ -114,6 +144,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
       }}>
         {lastResult.winningLines.map((line: WinningLine, index: number) => {
           const payline = PAYLINES[line.line - 1];
+          if (!payline) return null;
+          
           const positions = payline.slice(0, line.count);
           
           return (
@@ -162,6 +194,36 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     return path;
   };
 
+  // ДОБАВЛЕНО: Функция получения статуса игры на текущем языке
+  const getGameStatusMessage = () => {
+    switch (gameState) {
+      case 'waiting':
+        return '🎲 Готов к игре';
+      case 'spinning':
+        return '🌀 Вращение...';
+      case 'revealing':
+        return '✨ Результат...';
+      case 'finished':
+        if (lastResult) {
+          if (lastResult.isWin) {
+            const multiplier = Math.round(lastResult.totalWin / lastResult.betAmount);
+            if (multiplier >= 20) {
+              return `💎 МЕГА ВЫИГРЫШ: ${lastResult.totalWin.toLocaleString()} CCC!`;
+            } else if (multiplier >= 5) {
+              return `⭐ БОЛЬШОЙ ВЫИГРЫШ: ${lastResult.totalWin.toLocaleString()} CCC!`;
+            } else {
+              return `🎉 Выигрыш: ${lastResult.totalWin.toLocaleString()} CCC!`;
+            }
+          } else {
+            return '💸 Удачи в следующий раз!';
+          }
+        }
+        return '✅ Игра завершена';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div style={{
       position: 'relative',
@@ -181,8 +243,16 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
           }
           
           @keyframes win-pulse {
-            0%, 100% { transform: scale(1.1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
+            0%, 100% { 
+              transform: scale(1.1); 
+              opacity: 1; 
+              box-shadow: 0 0 20px ${colorStyle}80;
+            }
+            50% { 
+              transform: scale(1.2); 
+              opacity: 0.8; 
+              box-shadow: 0 0 30px ${colorStyle};
+            }
           }
           
           @keyframes line-draw {
@@ -230,40 +300,66 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         textAlign: 'center',
         marginTop: '15px',
         color: '#ccc',
-        fontSize: '0.9rem'
+        fontSize: '0.9rem',
+        minHeight: '20px'
       }}>
-        {gameState === 'waiting' && '🎲 Готов к игре'}
-        {gameState === 'spinning' && '🌀 Вращение...'}
-        {gameState === 'revealing' && '✨ Результат...'}
-        {gameState === 'finished' && lastResult && (
-          lastResult.isWin 
-            ? `🎉 Выигрыш: ${lastResult.totalWin} CCC!`
-            : '💸 Удачи в следующий раз!'
-        )}
+        {getGameStatusMessage()}
       </div>
 
-      {/* Информация о последнем выигрыше */}
-      {lastResult && lastResult.winningLines.length > 0 && (
+      {/* ДОБАВЛЕНО: Информация о последнем выигрыше */}
+      {lastResult && lastResult.winningLines.length > 0 && gameState === 'finished' && (
         <div style={{
-          marginTop: '10px',
-          padding: '10px',
+          marginTop: '15px',
+          padding: '12px',
           background: `${colorStyle}20`,
           border: `1px solid ${colorStyle}`,
           borderRadius: '8px',
           fontSize: '0.8rem',
           color: '#ccc'
         }}>
-          <div style={{ color: colorStyle, fontWeight: 'bold', marginBottom: '5px' }}>
+          <div style={{ 
+            color: colorStyle, 
+            fontWeight: 'bold', 
+            marginBottom: '8px',
+            textAlign: 'center'
+          }}>
             🏆 Выигрышные линии:
           </div>
-          {lastResult.winningLines.map((line, index) => (
-            <div key={index} style={{ marginBottom: '2px' }}>
-              Линия {line.line}: {line.symbol} x{line.count} = {line.winAmount} CCC
-              {line.hasWild && <span style={{ color: '#ffd700' }}> ⭐WILD</span>}
-            </div>
-          ))}
+          <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+            {lastResult.winningLines.map((line, index) => (
+              <div key={index} style={{ 
+                marginBottom: '4px',
+                padding: '4px',
+                background: 'rgba(255,255,255,0.05)',
+                borderRadius: '4px'
+              }}>
+                <strong>Линия {line.line}:</strong> {line.symbol} x{line.count} = {line.winAmount.toLocaleString()} CCC
+                {line.hasWild && <span style={{ color: '#ffd700' }}> ⭐WILD x2</span>}
+              </div>
+            ))}
+          </div>
+          <div style={{ 
+            marginTop: '8px', 
+            textAlign: 'center',
+            color: colorStyle,
+            fontWeight: 'bold',
+            borderTop: `1px solid ${colorStyle}40`,
+            paddingTop: '8px'
+          }}>
+            Общий выигрыш: {lastResult.totalWin.toLocaleString()} CCC
+          </div>
         </div>
       )}
+
+      {/* ДОБАВЛЕНО: Индикатор линий выплат */}
+      <div style={{
+        marginTop: '10px',
+        textAlign: 'center',
+        fontSize: '0.8rem',
+        color: '#999'
+      }}>
+        20 активных линий выплат • RTP: 80%
+      </div>
     </div>
   );
 };

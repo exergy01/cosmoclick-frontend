@@ -231,23 +231,21 @@ const GalacticSlotsGame: React.FC = () => {
           />
         </div>
 
-        {/* Панель ставок - исправлена проверка состояния */}
-        {gameState === 'waiting' && (
-          <BetPanel
-            gameStatus={gameStatus}
-            betAmount={betAmount}
-            onBetAmountChange={setBetAmount}
-            onSpin={spin}
-            onAutoSpin={startAutoSpin}
-            onStopAutoSpin={stopAutoSpin}
-            onMaxBet={setMaxBet}
-            isSpinning={gameState !== 'waiting'}
-            isAutoSpinning={isAutoSpinning}
-            autoSpinCount={autoSpinCount}
-            colorStyle={colorStyle}
-            t={t}
-          />
-        )}
+        {/* ИСПРАВЛЕНО: Панель ставок всегда видна, но заблокирована при спине */}
+        <BetPanel
+          gameStatus={gameStatus}
+          betAmount={betAmount}
+          onBetAmountChange={setBetAmount}
+          onSpin={spin}
+          onAutoSpin={startAutoSpin}
+          onStopAutoSpin={stopAutoSpin}
+          onMaxBet={setMaxBet}
+          isSpinning={gameState !== 'waiting'}
+          isAutoSpinning={isAutoSpinning}
+          autoSpinCount={autoSpinCount}
+          colorStyle={colorStyle}
+          t={t}
+        />
 
         {/* Кнопки управления */}
         <div style={{
@@ -255,7 +253,7 @@ const GalacticSlotsGame: React.FC = () => {
           gap: '15px',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          marginTop: '30px'
+          marginTop: '20px'
         }}>
           {/* Кнопка рекламы */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && (
@@ -286,24 +284,44 @@ const GalacticSlotsGame: React.FC = () => {
           {/* Кнопка назад */}
           <button
             onClick={() => navigate('/games')}
-            disabled={isWatchingAd || gameState !== 'waiting'}
+            disabled={isWatchingAd || isAutoSpinning}
             style={{
               padding: '12px 25px',
-              background: (isWatchingAd || gameState !== 'waiting')
+              background: (isWatchingAd || isAutoSpinning)
                 ? 'rgba(128,128,128,0.3)'
                 : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
-              border: `2px solid ${(isWatchingAd || gameState !== 'waiting') ? '#888' : colorStyle}`,
+              border: `2px solid ${(isWatchingAd || isAutoSpinning) ? '#888' : colorStyle}`,
               borderRadius: '15px',
-              color: (isWatchingAd || gameState !== 'waiting') ? '#888' : colorStyle,
-              cursor: (isWatchingAd || gameState !== 'waiting') ? 'not-allowed' : 'pointer',
+              color: (isWatchingAd || isAutoSpinning) ? '#888' : colorStyle,
+              cursor: (isWatchingAd || isAutoSpinning) ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold',
-              textShadow: (isWatchingAd || gameState !== 'waiting') ? 'none' : `0 0 10px ${colorStyle}`
+              textShadow: (isWatchingAd || isAutoSpinning) ? 'none' : `0 0 10px ${colorStyle}`
             }}
           >
             ← {t.backToGames}
           </button>
         </div>
+
+        {/* Индикатор автоспина */}
+        {isAutoSpinning && (
+          <div style={{
+            marginTop: '20px',
+            padding: '15px',
+            background: 'rgba(255,165,0,0.2)',
+            border: '2px solid #ffa500',
+            borderRadius: '15px',
+            textAlign: 'center',
+            animation: 'pulse 2s infinite'
+          }}>
+            <div style={{ color: '#ffa500', fontSize: '1.2rem', fontWeight: 'bold' }}>
+              🎰 АВТОСПИН АКТИВЕН
+            </div>
+            <div style={{ color: '#ccc', fontSize: '1rem', marginTop: '5px' }}>
+              Осталось: {autoSpinCount} спинов
+            </div>
+          </div>
+        )}
 
         {/* Таблица выплат */}
         <div style={{
@@ -352,11 +370,21 @@ const GalacticSlotsGame: React.FC = () => {
             }}>
               * Коэффициенты для 3/4/5 символов в ряд<br/>
               * WILD удваивает выигрыш<br/>
-              * 20 активных линий выплат
+              * 20 активных линий выплат<br/>
             </div>
           </div>
         </div>
       </div>
+
+      {/* CSS анимации */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+          }
+        `}
+      </style>
     </div>
   );
 };

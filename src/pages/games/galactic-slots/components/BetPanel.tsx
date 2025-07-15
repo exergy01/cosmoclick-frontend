@@ -45,7 +45,16 @@ const BetPanel: React.FC<BetPanelProps> = ({
 
   const quickBets = [100, 500, 1000, 2500];
 
-  const canSpin = !isSpinning && !isAutoSpinning && gameStatus.canPlayFree && betAmount <= gameStatus.balance;
+  // ИСПРАВЛЕНО: Правильная логика проверки возможности спина
+  const canSpin = !isSpinning && 
+                 !isAutoSpinning && 
+                 gameStatus.canPlayFree && 
+                 betAmount >= gameStatus.minBet &&
+                 betAmount <= gameStatus.maxBet &&
+                 betAmount <= gameStatus.balance;
+
+  // ИСПРАВЛЕНО: Блокировка элементов управления во время игры
+  const isGameActive = isSpinning || isAutoSpinning;
 
   return (
     <div style={{
@@ -55,7 +64,10 @@ const BetPanel: React.FC<BetPanelProps> = ({
       padding: '20px',
       marginTop: '20px',
       maxWidth: '500px',
-      width: '100%'
+      width: '100%',
+      // ДОБАВЛЕНО: Визуальная индикация блокировки
+      opacity: isGameActive ? 0.7 : 1,
+      transition: 'opacity 0.3s ease'
     }}>
       {/* Заголовок */}
       <h3 style={{
@@ -67,6 +79,27 @@ const BetPanel: React.FC<BetPanelProps> = ({
       }}>
         💰 {t.placeBet || 'Сделать ставку'}
       </h3>
+
+      {/* ДОБАВЛЕНО: Индикатор статуса игры */}
+      {isGameActive && (
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '15px',
+          padding: '10px',
+          background: 'rgba(255,165,0,0.2)',
+          border: '1px solid #ffa500',
+          borderRadius: '8px',
+          color: '#ffa500',
+          fontWeight: 'bold'
+        }}>
+          {isAutoSpinning 
+            ? `🎰 Автоспин: ${autoSpinCount} осталось...`
+            : isSpinning 
+            ? '🌀 Вращение...'
+            : 'Игра в процессе...'
+          }
+        </div>
+      )}
 
       {/* Текущая ставка */}
       <div style={{
@@ -85,16 +118,17 @@ const BetPanel: React.FC<BetPanelProps> = ({
         }}>
           <button
             onClick={() => adjustBet(-100)}
-            disabled={betAmount <= gameStatus.minBet || isSpinning || isAutoSpinning}
+            disabled={betAmount <= gameStatus.minBet || isGameActive}
             style={{
               padding: '8px 12px',
-              background: betAmount <= gameStatus.minBet ? '#444' : `${colorStyle}40`,
+              background: (betAmount <= gameStatus.minBet || isGameActive) ? '#444' : `${colorStyle}40`,
               border: `1px solid ${colorStyle}`,
               borderRadius: '8px',
-              color: betAmount <= gameStatus.minBet ? '#888' : colorStyle,
-              cursor: betAmount <= gameStatus.minBet || isSpinning || isAutoSpinning ? 'not-allowed' : 'pointer',
+              color: (betAmount <= gameStatus.minBet || isGameActive) ? '#888' : colorStyle,
+              cursor: (betAmount <= gameStatus.minBet || isGameActive) ? 'not-allowed' : 'pointer',
               fontSize: '1.2rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
             }}
           >
             -
@@ -106,32 +140,34 @@ const BetPanel: React.FC<BetPanelProps> = ({
             onChange={handleBetChange}
             min={gameStatus.minBet}
             max={gameStatus.maxBet}
-            disabled={isSpinning || isAutoSpinning}
+            disabled={isGameActive}
             style={{
               width: '100px',
               padding: '8px',
               textAlign: 'center',
-              background: 'rgba(255,255,255,0.1)',
+              background: isGameActive ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
               border: `1px solid ${colorStyle}`,
               borderRadius: '8px',
-              color: 'white',
+              color: isGameActive ? '#888' : 'white',
               fontSize: '1rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              cursor: isGameActive ? 'not-allowed' : 'text'
             }}
           />
           
           <button
             onClick={() => adjustBet(100)}
-            disabled={betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance || isSpinning || isAutoSpinning}
+            disabled={betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance || isGameActive}
             style={{
               padding: '8px 12px',
-              background: (betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance) ? '#444' : `${colorStyle}40`,
+              background: (betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance || isGameActive) ? '#444' : `${colorStyle}40`,
               border: `1px solid ${colorStyle}`,
               borderRadius: '8px',
-              color: (betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance) ? '#888' : colorStyle,
-              cursor: (betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance || isSpinning || isAutoSpinning) ? 'not-allowed' : 'pointer',
+              color: (betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance || isGameActive) ? '#888' : colorStyle,
+              cursor: (betAmount >= gameStatus.maxBet || betAmount >= gameStatus.balance || isGameActive) ? 'not-allowed' : 'pointer',
               fontSize: '1.2rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
             }}
           >
             +
@@ -151,16 +187,17 @@ const BetPanel: React.FC<BetPanelProps> = ({
           <button
             key={amount}
             onClick={() => onBetAmountChange(Math.min(amount, gameStatus.balance, gameStatus.maxBet))}
-            disabled={amount > gameStatus.balance || isSpinning || isAutoSpinning}
+            disabled={amount > gameStatus.balance || isGameActive}
             style={{
               padding: '6px 12px',
-              background: amount > gameStatus.balance ? '#444' : `${colorStyle}20`,
+              background: (amount > gameStatus.balance || isGameActive) ? '#444' : `${colorStyle}20`,
               border: `1px solid ${colorStyle}`,
               borderRadius: '8px',
-              color: amount > gameStatus.balance ? '#888' : colorStyle,
-              cursor: amount > gameStatus.balance || isSpinning || isAutoSpinning ? 'not-allowed' : 'pointer',
+              color: (amount > gameStatus.balance || isGameActive) ? '#888' : colorStyle,
+              cursor: (amount > gameStatus.balance || isGameActive) ? 'not-allowed' : 'pointer',
               fontSize: '0.9rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
             }}
           >
             {amount}
@@ -169,16 +206,17 @@ const BetPanel: React.FC<BetPanelProps> = ({
         
         <button
           onClick={onMaxBet}
-          disabled={isSpinning || isAutoSpinning}
+          disabled={isGameActive}
           style={{
             padding: '6px 12px',
-            background: isSpinning || isAutoSpinning ? '#444' : `${colorStyle}40`,
+            background: isGameActive ? '#444' : `${colorStyle}40`,
             border: `1px solid ${colorStyle}`,
             borderRadius: '8px',
-            color: isSpinning || isAutoSpinning ? '#888' : colorStyle,
-            cursor: isSpinning || isAutoSpinning ? 'not-allowed' : 'pointer',
+            color: isGameActive ? '#888' : colorStyle,
+            cursor: isGameActive ? 'not-allowed' : 'pointer',
             fontSize: '0.9rem',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease'
           }}
         >
           MAX
@@ -204,6 +242,13 @@ const BetPanel: React.FC<BetPanelProps> = ({
           textShadow: `0 0 10px ${colorStyle}`
         }}>
           {(betAmount * 5000).toLocaleString()} CCC
+        </div>
+        <div style={{ 
+          color: '#999', 
+          fontSize: '0.8rem', 
+          marginTop: '5px'
+        }}>
+          (при комбинации 5x 🌟 WILD)
         </div>
       </div>
 
@@ -232,7 +277,8 @@ const BetPanel: React.FC<BetPanelProps> = ({
             textShadow: !canSpin ? 'none' : `0 0 10px ${colorStyle}`,
             minWidth: '120px',
             transition: 'all 0.3s ease',
-            transform: isSpinning ? 'scale(0.95)' : 'scale(1)'
+            transform: isSpinning ? 'scale(0.95)' : 'scale(1)',
+            animation: isSpinning ? 'spin-button 1s infinite' : 'none'
           }}
         >
           {isSpinning ? '🌀 СПИН...' : '🎰 СПИН'}
@@ -252,7 +298,8 @@ const BetPanel: React.FC<BetPanelProps> = ({
                 color: !canSpin ? '#888' : colorStyle,
                 cursor: !canSpin ? 'not-allowed' : 'pointer',
                 fontSize: '1rem',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease'
               }}
             >
               AUTO x10
@@ -269,7 +316,8 @@ const BetPanel: React.FC<BetPanelProps> = ({
                 color: !canSpin ? '#888' : colorStyle,
                 cursor: !canSpin ? 'not-allowed' : 'pointer',
                 fontSize: '1rem',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease'
               }}
             >
               AUTO x50
@@ -280,16 +328,18 @@ const BetPanel: React.FC<BetPanelProps> = ({
             onClick={onStopAutoSpin}
             style={{
               padding: '12px 20px',
-              background: '#ff4444',
-              border: '1px solid #ff6666',
+              background: 'linear-gradient(45deg, #ff4444, #ff6666)',
+              border: '2px solid #ff6666',
               borderRadius: '10px',
               color: 'white',
               cursor: 'pointer',
               fontSize: '1rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              textShadow: '0 0 10px #ff4444',
+              animation: 'pulse-red 1.5s infinite'
             }}
           >
-            СТОП ({autoSpinCount})
+            ⏹️ СТОП ({autoSpinCount})
           </button>
         )}
       </div>
@@ -301,8 +351,49 @@ const BetPanel: React.FC<BetPanelProps> = ({
         fontSize: '0.9rem',
         color: '#999'
       }}>
-        {t.gamesLeft || 'Игр осталось'}: {gameStatus.gamesLeft} / {5 + gameStatus.dailyAds}
+        <div>
+          {t.gamesLeft || 'Игр осталось'}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+            {gameStatus.gamesLeft}
+          </span> / {5 + gameStatus.dailyAds}
+        </div>
+        {!gameStatus.canPlayFree && gameStatus.canWatchAd && (
+          <div style={{ color: '#ffa500', marginTop: '5px', fontSize: '0.8rem' }}>
+            📺 Смотрите рекламу для дополнительных игр
+          </div>
+        )}
       </div>
+
+      {/* CSS анимации */}
+      <style>
+        {`
+          @keyframes spin-button {
+            0% { transform: scale(0.95) rotate(0deg); }
+            100% { transform: scale(0.95) rotate(360deg); }
+          }
+          
+          @keyframes pulse-red {
+            0%, 100% { 
+              background: linear-gradient(45deg, #ff4444, #ff6666);
+              transform: scale(1);
+            }
+            50% { 
+              background: linear-gradient(45deg, #ff6666, #ff8888);
+              transform: scale(1.05);
+            }
+          }
+          
+          /* Убираем стрелочки у input number */
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
+        `}
+      </style>
     </div>
   );
 };

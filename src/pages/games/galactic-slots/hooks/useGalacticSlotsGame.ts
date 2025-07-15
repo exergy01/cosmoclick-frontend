@@ -33,11 +33,13 @@ export const useGalacticSlotsGame = (
     return { valid: true };
   }, [gameStatus]);
 
-  // Один спин
+  // ИСПРАВЛЕНО: Один спин с правильной передачей данных в API
   const spin = useCallback(async (customBet?: number): Promise<boolean> => {
     if (!telegramId || gameState === 'spinning') return false;
 
     const currentBet = customBet || betAmount;
+    
+    console.log('🎰 Hook: Starting spin with bet:', currentBet, typeof currentBet);
     
     // Валидация ставки
     const validation = validateBet(currentBet);
@@ -53,36 +55,42 @@ export const useGalacticSlotsGame = (
       return false;
     }
 
-    setGameState('spinning');
-    setLastResult(null);
-
     try {
-      const result = await GalacticSlotsApi.spin(telegramId, currentBet);
+      setGameState('spinning');
+      setLastResult(null);
+
+      console.log('🎰 Hook: Calling API with clean data');
+      
+      // ИСПРАВЛЕНО: Убеждаемся что передаем только число, без React объектов
+      const cleanBetAmount = Number(currentBet);
+      const result = await GalacticSlotsApi.spin(telegramId, cleanBetAmount);
+      
+      console.log('🎰 Hook: API result received:', result);
       
       if (result.success && result.result) {
         setLastResult(result.result);
         
-        // Анимация спина (2 секунды)
+        // Анимация: 2 сек спин + 1 сек показ результата + 2 сек финиш
         setTimeout(() => {
           setGameState('revealing');
           
-          // Показываем результат через 1 секунду
           setTimeout(() => {
             setGameState('finished');
             
+            // Показываем уведомление о результате
             if (result.result!.isWin) {
               const winAmount = result.result!.totalWin;
-              const profit = result.result!.profit;
+              const multiplier = Math.round(winAmount / cleanBetAmount);
               
-              if (profit >= currentBet * 10) {
-                showToast(`🎰💎 МЕГА ВЫИГРЫШ! +${winAmount} CCC (x${Math.round(winAmount/currentBet)})`, 'success', 6000);
-              } else if (profit >= currentBet * 3) {
-                showToast(`🎰⭐ БОЛЬШОЙ ВЫИГРЫШ! +${winAmount} CCC`, 'success', 5000);
+              if (multiplier >= 20) {
+                showToast(`🎰💎 МЕГА ВЫИГРЫШ! +${winAmount.toLocaleString()} CCC (x${multiplier})`, 'success', 6000);
+              } else if (multiplier >= 5) {
+                showToast(`🎰⭐ БОЛЬШОЙ ВЫИГРЫШ! +${winAmount.toLocaleString()} CCC (x${multiplier})`, 'success', 5000);
               } else {
-                showToast(`🎰✨ Выигрыш! +${winAmount} CCC`, 'success', 4000);
+                showToast(`🎰✨ Выигрыш! +${winAmount.toLocaleString()} CCC (x${multiplier})`, 'success', 4000);
               }
             } else {
-              showToast(`🎰💸 Проигрыш -${currentBet} CCC`, 'error', 3000);
+              showToast(`🎰💸 Проигрыш -${cleanBetAmount.toLocaleString()} CCC`, 'error', 3000);
             }
             
             // Обновляем данные
@@ -90,10 +98,10 @@ export const useGalacticSlotsGame = (
               setTimeout(onDataUpdate, 1000);
             }
             
-            // Возвращаемся в ожидание через 3 секунды
+            // Возвращаемся в ожидание через 2 секунды
             setTimeout(() => {
               setGameState('waiting');
-            }, 3000);
+            }, 2000);
             
           }, 1000);
         }, 2000);
@@ -105,54 +113,100 @@ export const useGalacticSlotsGame = (
         return false;
       }
     } catch (error) {
+      console.error('🎰❌ Hook: Spin error:', error);
       setGameState('waiting');
-      showToast(t.errors.spinError, 'error');
+      showToast('Ошибка подключения к серверу', 'error');
       return false;
     }
   }, [telegramId, gameState, betAmount, gameStatus, validateBet, showToast, t, onDataUpdate]);
 
-  // Автоспины
+  // ИСПРАВЛЕНО: Безопасная логика автоспинов с проверками лимитов
   const startAutoSpin = useCallback(async (count: number) => {
     if (gameState !== 'waiting' || isAutoSpinning) return;
     
+    console.log(`🎰 Starting auto-spin: ${count} spins`);
     setAutoSpinCount(count);
     setIsAutoSpinning(true);
     
-    for (let i = 0; i < count; i++) {
-      if (!isAutoSpinning) break; // Остановка автоспинов
+    let spinsCompleted = 0;
+    let shouldContinue = true;
+    
+    while (spinsCompleted < count && shouldContinue && isAutoSpinning) {
+      console.log(`🎰 Auto-spin ${spinsCompleted + 1}/${count}`);
       
+      // КРИТИЧНО: Проверяем актуальные лимиты перед каждым спином
+      try {
+        const currentStatus = await GalacticSlotsApi.getStatus(telegramId!);
+        
+        if (!currentStatus.canPlayFree) {
+          console.log('🎰 Auto-spin stopped: no games left');
+          showToast('Автоспин остановлен: лимит игр исчерпан', 'warning');
+          shouldContinue = false;
+          break;
+        }
+        
+        if (betAmount > currentStatus.balance) {
+          console.log('🎰 Auto-spin stopped: insufficient balance');
+          showToast('Автоспин остановлен: недостаточно средств', 'error');
+          shouldContinue = false;
+          break;
+        }
+      } catch (error) {
+        console.error('🎰❌ Error checking status during auto-spin:', error);
+        showToast('Автоспин остановлен: ошибка проверки статуса', 'error');
+        shouldContinue = false;
+        break;
+      }
+      
+      // Выполняем спин
       const success = await spin();
-      if (!success) break; // Прерываем при ошибке
+      if (!success) {
+        console.log('🎰 Auto-spin stopped: spin failed');
+        shouldContinue = false;
+        break;
+      }
       
-      setAutoSpinCount(count - i - 1);
+      spinsCompleted++;
+      setAutoSpinCount(count - spinsCompleted);
       
-      // Ждем завершения текущего спина
-      await new Promise(resolve => {
-        const checkState = () => {
-          if (gameState === 'waiting') {
-            resolve(undefined);
-          } else {
-            setTimeout(checkState, 100);
-          }
-        };
-        checkState();
-      });
+      // КРИТИЧНО: Ждем полного завершения анимации (5 секунд)
+      // 2 сек спин + 1 сек показ + 2 сек финиш = 5 секунд
+      await new Promise(resolve => setTimeout(resolve, 5500));
       
-      // Пауза между спинами
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Проверяем, не остановили ли автоспин вручную
+      if (!isAutoSpinning) {
+        console.log('🎰 Auto-spin manually stopped');
+        shouldContinue = false;
+        break;
+      }
     }
     
+    console.log(`🎰 Auto-spin completed: ${spinsCompleted}/${count} spins`);
     setIsAutoSpinning(false);
     setAutoSpinCount(0);
-  }, [gameState, isAutoSpinning, spin]);
+    
+    // Обновляем данные после завершения автоспинов
+    if (onDataUpdate) {
+      setTimeout(() => {
+        onDataUpdate();
+      }, 1000);
+    }
+    
+    // Показываем итоговое уведомление
+    if (spinsCompleted > 0) {
+      showToast(`🎰 Автоспин завершен: ${spinsCompleted} игр`, 'success');
+    }
+  }, [gameState, isAutoSpinning, spin, telegramId, betAmount, showToast, onDataUpdate]);
 
-  // Остановка автоспинов
+  // ИСПРАВЛЕНО: Немедленная остановка автоспинов
   const stopAutoSpin = useCallback(() => {
+    console.log('🎰 Stopping auto-spin manually');
     setIsAutoSpinning(false);
     setAutoSpinCount(0);
-  }, []);
+    showToast('🎰 Автоспин остановлен', 'warning');
+  }, [showToast]);
 
-  // Просмотр рекламы
+  // Просмотр рекламы (без изменений)
   const watchAd = useCallback(async () => {
     if (!telegramId || !gameStatus.canWatchAd || isWatchingAd) return;
     
@@ -189,6 +243,8 @@ export const useGalacticSlotsGame = (
           const currentProvider = adService.getProviderInfo();
           if (currentProvider.name === 'mock') {
             message += ' [Тест]';
+          } else if (currentProvider.name === 'roboforex') {
+            message += ' [Partner]';
           } else {
             message += ' [Adsgram]';
           }

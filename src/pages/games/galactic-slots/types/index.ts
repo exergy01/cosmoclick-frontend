@@ -11,6 +11,7 @@ export interface WinningLine {
   winAmount: number;
 }
 
+// ИСПРАВЛЕНО: Синхронизация с backend ответом
 export interface SlotResult {
   gameId: string;
   symbols: SlotSymbol[];
@@ -19,6 +20,8 @@ export interface SlotResult {
   profit: number;
   isWin: boolean;
   betAmount: number;
+  // ДОБАВЛЕНО для совместимости с backend:
+  timestamp?: number;
 }
 
 export interface GalacticSlotsStatus {
@@ -50,6 +53,7 @@ export interface SpinResponse {
   error?: string;
 }
 
+// ИСПРАВЛЕНО: Синхронизация с backend ответом
 export interface AdWatchResponse {
   success: boolean;
   adsRemaining: number;
