@@ -12,7 +12,7 @@ const API_BASE = process.env.NODE_ENV === 'production'
   : 'http://localhost:5000';
 
 class GalacticSlotsApiService {
-  // Получить статус игры
+  // ИСПРАВЛЕНО: Правильный роут
   async getStatus(telegramId: string): Promise<GalacticSlotsStatus> {
     try {
       const response = await fetch(`${API_BASE}/api/games/galactic-slots/status/${telegramId}`, {
@@ -27,6 +27,7 @@ class GalacticSlotsApiService {
       }
 
       const data = await response.json();
+      console.log('🎰 API: Status received:', data);
       return data;
     } catch (error) {
       console.error('🎰❌ API Error - getStatus:', error);
@@ -47,31 +48,36 @@ class GalacticSlotsApiService {
           total_losses: 0,
           total_bet: 0,
           total_won: 0,
-          best_win: 0,
-          worst_loss: 0
+          best_streak: 0,    // ИСПРАВЛЕНО
+          worst_streak: 0    // ИСПРАВЛЕНО
         },
         error: 'Ошибка подключения к серверу'
       };
     }
   }
 
-  // ИСПРАВЛЕНО: Крутить слоты без circular structure
+  // ИСПРАВЛЕНО: Чистый спин без circular структур
   async spin(telegramId: string, betAmount: number): Promise<SpinResponse> {
     try {
-      console.log('🎰 API: Sending spin request:', { telegramId, betAmount });
+      console.log('🎰 API: Sending spin request:', { telegramId, betAmount, type: typeof betAmount });
+      
+      // Очищаем данные перед отправкой
+      const cleanBetAmount = Number(betAmount);
+      if (isNaN(cleanBetAmount)) {
+        throw new Error('Invalid bet amount');
+      }
       
       const response = await fetch(`${API_BASE}/api/games/galactic-slots/spin/${telegramId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // ИСПРАВЛЕНО: Отправляем только чистые данные
         body: JSON.stringify({ 
-          betAmount: Number(betAmount) // Убеждаемся что это число
+          betAmount: cleanBetAmount
         }),
       });
 
-      console.log('🎰 API: Response status:', response.status);
+      console.log('🎰 API: Spin response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -89,12 +95,12 @@ class GalacticSlotsApiService {
       console.error('🎰❌ API Error - spin:', error);
       return {
         success: false,
-        error: 'Ошибка подключения к серверу'
+        error: error instanceof Error ? error.message : 'Ошибка подключения к серверу'
       };
     }
   }
 
-  // Посмотреть рекламу
+  // ИСПРАВЛЕНО: Правильный роут для рекламы
   async watchAd(telegramId: string): Promise<AdWatchResponse> {
     try {
       console.log('🎰 API: Sending watch ad request:', { telegramId });
@@ -104,7 +110,6 @@ class GalacticSlotsApiService {
         headers: {
           'Content-Type': 'application/json',
         },
-        // ИСПРАВЛЕНО: Отправляем пустой объект или без body
         body: JSON.stringify({}),
       });
 
@@ -112,7 +117,7 @@ class GalacticSlotsApiService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('🎰❌ API Error response:', errorData);
+        console.error('🎰❌ API Watch ad error:', errorData);
         return {
           success: false,
           adsRemaining: 0,
@@ -137,7 +142,7 @@ class GalacticSlotsApiService {
     }
   }
 
-  // Получить историю игр
+  // ИСПРАВЛЕНО: Правильный роут для истории
   async getHistory(telegramId: string, limit = 20, offset = 0): Promise<SlotHistoryResponse> {
     try {
       console.log('🎰 API: Getting history:', { telegramId, limit, offset });

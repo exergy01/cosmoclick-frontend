@@ -11,7 +11,7 @@ export interface WinningLine {
   winAmount: number;
 }
 
-// ИСПРАВЛЕНО: Синхронизация с backend ответом
+// ИСПРАВЛЕНО: Полная синхронизация с backend ответом
 export interface SlotResult {
   gameId: string;
   symbols: SlotSymbol[];
@@ -20,10 +20,10 @@ export interface SlotResult {
   profit: number;
   isWin: boolean;
   betAmount: number;
-  // ДОБАВЛЕНО для совместимости с backend:
-  timestamp?: number;
+  timestamp?: number; // Опционально для совместимости
 }
 
+// ИСПРАВЛЕНО: Синхронизация с backend статусом
 export interface GalacticSlotsStatus {
   success: boolean;
   balance: number;
@@ -41,8 +41,8 @@ export interface GalacticSlotsStatus {
     total_losses: number;
     total_bet: number;
     total_won: number;
-    best_win: number;
-    worst_loss: number;
+    best_streak: number;    // Изменено с best_win
+    worst_streak: number;   // Изменено с worst_loss
   };
   error?: string;
 }
@@ -53,7 +53,7 @@ export interface SpinResponse {
   error?: string;
 }
 
-// ИСПРАВЛЕНО: Синхронизация с backend ответом
+// ИСПРАВЛЕНО: Полная синхронизация с backend ответом
 export interface AdWatchResponse {
   success: boolean;
   adsRemaining: number;
@@ -92,6 +92,7 @@ export interface ToastNotification {
   duration: number;
 }
 
+// ИСПРАВЛЕНО: Сбалансированные символы (синхронизация с backend)
 export interface SymbolInfo {
   id: string;
   multipliers: number[];
@@ -99,14 +100,15 @@ export interface SymbolInfo {
 }
 
 export const SYMBOL_INFO: Record<SlotSymbol, SymbolInfo> = {
-  '🌟': { id: 'wild', multipliers: [50, 500, 5000], probability: 0.5 },
-  '🚀': { id: 'ship', multipliers: [15, 75, 500], probability: 2.0 },
-  '🌌': { id: 'galaxy', multipliers: [10, 50, 250], probability: 4.0 },
-  '⭐': { id: 'star', multipliers: [8, 40, 150], probability: 8.0 },
-  '🌍': { id: 'planet', multipliers: [4, 15, 50], probability: 20.0 },
-  '☄️': { id: 'asteroid', multipliers: [2, 5, 15], probability: 65.5 }
+  '🌟': { id: 'wild', multipliers: [50, 500, 5000], probability: 0.8 },    // Исправлено
+  '🚀': { id: 'ship', multipliers: [15, 75, 500], probability: 2.5 },      // Исправлено
+  '🌌': { id: 'galaxy', multipliers: [10, 50, 250], probability: 5.0 },    // Исправлено
+  '⭐': { id: 'star', multipliers: [8, 40, 150], probability: 8.0 },        // Без изменений
+  '🌍': { id: 'planet', multipliers: [4, 15, 50], probability: 15.0 },      // Исправлено
+  '☄️': { id: 'asteroid', multipliers: [2, 5, 15], probability: 68.7 }      // Исправлено
 };
 
+// 20 линий выплат (точная копия из backend)
 export const PAYLINES = [
   [0, 1, 2, 3, 4],     // Линия 1: верхний ряд
   [5, 6, 7, 8, 9],     // Линия 2: средний ряд  
@@ -130,49 +132,32 @@ export const PAYLINES = [
   [0, 1, 12, 3, 4]     // Линия 20: дуга
 ];
 
-export interface GalacticSlotsTranslations {
+// ИСПРАВЛЕНО: Убрал большой интерфейс локализации - упростил
+export interface SlotTranslations {
   title: string;
   subtitle: string;
-  howToPlay: string;
   placeBet: string;
   betAmount: string;
   spin: string;
-  autoSpin: string;
-  maxBet: string;
   gamesLeft: string;
   extraGame: string;
   watching: string;
   backToGames: string;
-  paytable: string;
-  history: string;
-  fullHistory: string;
-  totalWin: string;
-  bigWin: string;
-  megaWin: string;
   loading: string;
-  spinning: string;
-  celebrating: string;
-  symbols: {
-    wild: string;
-    ship: string;
-    galaxy: string;
-    star: string;
-    planet: string;
-    asteroid: string;
-  };
-  rules: {
-    rule1: string;
-    rule2: string;
-    rule3: string;
-    rule4: string;
-    rule5: string;
-  };
+  lastGames: string;
+  fullHistory: string;
+  time: string;
+  bet: string;
+  result: string;
+  outcome: string;
+  win: string;
+  loss: string;
   errors: {
-    betRange: string;
+    betTooLow: string;
+    betTooHigh: string;
     insufficientFunds: string;
     dailyLimit: string;
     spinError: string;
-    watchAd: string;
   };
   notifications: {
     winMessage: string;

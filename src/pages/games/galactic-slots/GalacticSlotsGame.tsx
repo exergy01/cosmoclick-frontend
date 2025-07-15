@@ -9,26 +9,36 @@ import { useTranslation } from 'react-i18next';
 import SlotMachine from './components/SlotMachine';
 import BetPanel from './components/BetPanel';
 import CurrencyPanel from '../../../components/CurrencyPanel';
-import CosmicShellsToast from '../cosmic-shells/components/CosmicShellsToast'; // Переиспользуем
+import CosmicShellsToast from '../cosmic-shells/components/CosmicShellsToast';
+import SlotsGameHistory from './components/SlotsGameHistory';
+import SlotsHistoryModal from './components/SlotsHistoryModal';
 
 // Хуки
 import { useGalacticSlotsStatus } from './hooks/useGalacticSlotsStatus';
 import { useGalacticSlotsGame } from './hooks/useGalacticSlotsGame';
-import { useToastNotifications } from '../cosmic-shells/hooks/useToastNotifications'; // Переиспользуем
+import { useToastNotifications } from '../cosmic-shells/hooks/useToastNotifications';
+import { useSlotsHistory } from './hooks/useSlotsHistory';
 
-// Локализация (пока используем простую)
+// Локализация
 const getTranslation = (language: string) => ({
   title: 'GALACTIC FORTUNE',
   subtitle: 'Космические слоты',
   placeBet: 'Сделать ставку',
   betAmount: 'Ставка',
   spin: 'СПИН',
-  autoSpin: 'АВТОСПИН',
   gamesLeft: 'Игр осталось',
   extraGame: 'Дополнительная игра',
   watching: 'Смотрим рекламу',
   backToGames: 'К играм',
   loading: 'Загрузка...',
+  lastGames: 'Последние игры',
+  fullHistory: 'Вся история',
+  time: 'Время',
+  bet: 'Ставка',
+  result: 'Результат',
+  outcome: 'Итог',
+  win: 'Выигрыш',
+  loss: 'Проигрыш',
   errors: {
     betTooLow: 'Минимальная ставка 100 CCC',
     betTooHigh: 'Максимальная ставка 5,000 CCC',
@@ -46,7 +56,7 @@ const getTranslation = (language: string) => ({
 
 const GalacticSlotsGame: React.FC = () => {
   const { i18n } = useTranslation();
-  const { player, currentSystem, refreshPlayer } = usePlayer();
+  const { player, currentSystem } = usePlayer(); // УБРАЛИ refreshPlayer
   const navigate = useNavigate();
   
   const colorStyle = player?.color || '#00f0ff';
@@ -59,34 +69,50 @@ const GalacticSlotsGame: React.FC = () => {
   const { gameStatus, loading, loadGameStatus } = useGalacticSlotsStatus(player?.telegram_id);
   const { toasts, showToast, removeToast } = useToastNotifications();
   
-  // Колбэк для обновления данных
-  const handleDataUpdate = useCallback(() => {
-    console.log('🎰 Frontend: Updating slots game data...');
-    refreshPlayer();
-    loadGameStatus();
-  }, [refreshPlayer, loadGameStatus]);
+  // История игр
+  const { 
+    recentHistory, 
+    fullHistory, 
+    historyLoading, 
+    showFullHistory, 
+    loadRecentHistory,
+    openFullHistory, 
+    closeFullHistory, 
+    refreshHistory 
+  } = useSlotsHistory(player?.telegram_id);
   
-  // Главный хук игры
+  // ИСПРАВЛЕНО: Колбэк БЕЗ перерисовки всей страницы
+  const handleDataUpdate = useCallback(() => {
+    console.log('🎰 Frontend: Updating only game status...');
+    loadGameStatus(); // Только статус игры
+    refreshHistory(); // Только история
+    // НЕ ОБНОВЛЯЕМ player - чтобы не было перерисовки!
+  }, [loadGameStatus, refreshHistory]);
+  
+  // ИСПРАВЛЕНО: Правильный вызов хука игры
   const {
     gameState,
     betAmount,
     setBetAmount,
     lastResult,
     isWatchingAd,
-    autoSpinCount,
-    isAutoSpinning,
     spin,
-    startAutoSpin,
-    stopAutoSpin,
     watchAd,
     setMaxBet
   } = useGalacticSlotsGame(
-    player?.telegram_id,
-    gameStatus,
-    showToast,
-    t,
-    handleDataUpdate
+    player?.telegram_id,  // Первый параметр
+    gameStatus,           // Второй параметр
+    showToast,           // Третий параметр
+    t,                   // Четвертый параметр
+    handleDataUpdate     // Пятый параметр
   );
+
+  // Загрузка истории при монтировании
+  useEffect(() => {
+    if (player?.telegram_id) {
+      loadRecentHistory();
+    }
+  }, [player?.telegram_id, loadRecentHistory]);
 
   // Загрузочный экран
   if (loading) {
@@ -134,6 +160,16 @@ const GalacticSlotsGame: React.FC = () => {
         colorStyle={colorStyle}
       />
 
+      {/* Модальное окно истории */}
+      <SlotsHistoryModal
+        isOpen={showFullHistory}
+        gameHistory={fullHistory}
+        historyLoading={historyLoading}
+        onClose={closeFullHistory}
+        colorStyle={colorStyle}
+        t={t}
+      />
+
       {/* Верхняя панель с валютами */}
       <CurrencyPanel 
         player={player}
@@ -170,54 +206,6 @@ const GalacticSlotsGame: React.FC = () => {
           {t.subtitle}
         </p>
 
-        {/* Статистика игрока */}
-        <div style={{
-          display: 'flex',
-          gap: '20px',
-          marginBottom: '30px',
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'rgba(0,0,0,0.4)',
-            padding: '15px 20px',
-            borderRadius: '10px',
-            border: `1px solid ${colorStyle}`,
-            textAlign: 'center'
-          }}>
-            <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Баланс</div>
-            <div style={{ color: colorStyle, fontSize: '1.2rem', fontWeight: 'bold' }}>
-              {gameStatus.balance.toLocaleString()} CCC
-            </div>
-          </div>
-          
-          <div style={{
-            background: 'rgba(0,0,0,0.4)',
-            padding: '15px 20px',
-            borderRadius: '10px',
-            border: `1px solid ${colorStyle}`,
-            textAlign: 'center'
-          }}>
-            <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Игр сегодня</div>
-            <div style={{ color: colorStyle, fontSize: '1.2rem', fontWeight: 'bold' }}>
-              {gameStatus.dailyGames} / {5 + gameStatus.dailyAds}
-            </div>
-          </div>
-          
-          <div style={{
-            background: 'rgba(0,0,0,0.4)',
-            padding: '15px 20px',
-            borderRadius: '10px',
-            border: `1px solid ${colorStyle}`,
-            textAlign: 'center'
-          }}>
-            <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Всего игр</div>
-            <div style={{ color: colorStyle, fontSize: '1.2rem', fontWeight: 'bold' }}>
-              {gameStatus.stats.total_games}
-            </div>
-          </div>
-        </div>
-
         {/* Слот-машина */}
         <div style={{
           width: '100%',
@@ -231,18 +219,14 @@ const GalacticSlotsGame: React.FC = () => {
           />
         </div>
 
-        {/* ИСПРАВЛЕНО: Панель ставок всегда видна, но заблокирована при спине */}
+        {/* Панель ставок */}
         <BetPanel
           gameStatus={gameStatus}
           betAmount={betAmount}
           onBetAmountChange={setBetAmount}
           onSpin={spin}
-          onAutoSpin={startAutoSpin}
-          onStopAutoSpin={stopAutoSpin}
           onMaxBet={setMaxBet}
           isSpinning={gameState !== 'waiting'}
-          isAutoSpinning={isAutoSpinning}
-          autoSpinCount={autoSpinCount}
           colorStyle={colorStyle}
           t={t}
         />
@@ -284,44 +268,32 @@ const GalacticSlotsGame: React.FC = () => {
           {/* Кнопка назад */}
           <button
             onClick={() => navigate('/games')}
-            disabled={isWatchingAd || isAutoSpinning}
+            disabled={isWatchingAd || gameState !== 'waiting'}
             style={{
               padding: '12px 25px',
-              background: (isWatchingAd || isAutoSpinning)
+              background: (isWatchingAd || gameState !== 'waiting')
                 ? 'rgba(128,128,128,0.3)'
                 : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
-              border: `2px solid ${(isWatchingAd || isAutoSpinning) ? '#888' : colorStyle}`,
+              border: `2px solid ${(isWatchingAd || gameState !== 'waiting') ? '#888' : colorStyle}`,
               borderRadius: '15px',
-              color: (isWatchingAd || isAutoSpinning) ? '#888' : colorStyle,
-              cursor: (isWatchingAd || isAutoSpinning) ? 'not-allowed' : 'pointer',
+              color: (isWatchingAd || gameState !== 'waiting') ? '#888' : colorStyle,
+              cursor: (isWatchingAd || gameState !== 'waiting') ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold',
-              textShadow: (isWatchingAd || isAutoSpinning) ? 'none' : `0 0 10px ${colorStyle}`
+              textShadow: (isWatchingAd || gameState !== 'waiting') ? 'none' : `0 0 10px ${colorStyle}`
             }}
           >
             ← {t.backToGames}
           </button>
         </div>
 
-        {/* Индикатор автоспина */}
-        {isAutoSpinning && (
-          <div style={{
-            marginTop: '20px',
-            padding: '15px',
-            background: 'rgba(255,165,0,0.2)',
-            border: '2px solid #ffa500',
-            borderRadius: '15px',
-            textAlign: 'center',
-            animation: 'pulse 2s infinite'
-          }}>
-            <div style={{ color: '#ffa500', fontSize: '1.2rem', fontWeight: 'bold' }}>
-              🎰 АВТОСПИН АКТИВЕН
-            </div>
-            <div style={{ color: '#ccc', fontSize: '1rem', marginTop: '5px' }}>
-              Осталось: {autoSpinCount} спинов
-            </div>
-          </div>
-        )}
+        {/* История игр */}
+        <SlotsGameHistory
+          recentHistory={recentHistory}
+          onShowFullHistory={openFullHistory}
+          colorStyle={colorStyle}
+          t={t}
+        />
 
         {/* Таблица выплат */}
         <div style={{
@@ -371,20 +343,11 @@ const GalacticSlotsGame: React.FC = () => {
               * Коэффициенты для 3/4/5 символов в ряд<br/>
               * WILD удваивает выигрыш<br/>
               * 20 активных линий выплат<br/>
+              * RTP: 85% (УЛУЧШЕНО!)
             </div>
           </div>
         </div>
       </div>
-
-      {/* CSS анимации */}
-      <style>
-        {`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-          }
-        `}
-      </style>
     </div>
   );
 };

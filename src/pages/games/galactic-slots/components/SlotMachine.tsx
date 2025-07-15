@@ -1,6 +1,6 @@
 // galactic-slots/components/SlotMachine.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { SlotGameState, SlotSymbol, SlotResult, WinningLine, PAYLINES } from '../types';
 
 interface SlotMachineProps {
@@ -9,61 +9,127 @@ interface SlotMachineProps {
   colorStyle: string;
 }
 
+// ИСПРАВЛЕНО: Константы анимации прямо в компоненте
+const ANIMATION_CONFIG = {
+  SPIN_DURATION_BASE: 1500,
+  SPIN_DURATION_INCREMENT: 300,
+  SPIN_SPEED: 50,
+  REVEAL_DELAY: 1000,
+  WIN_ANIMATION_DURATION: 2000
+};
+
 const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorStyle }) => {
   const [displaySymbols, setDisplaySymbols] = useState<SlotSymbol[]>(
     Array(15).fill('☄️') as SlotSymbol[]
   );
   const [winningPositions, setWinningPositions] = useState<Set<number>>(new Set());
   const [showWinLines, setShowWinLines] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  
+  // Refs для каждого барабана
+  const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  // Все возможные символы для вращения
+  const allSymbols: SlotSymbol[] = ['🌟', '🚀', '🌌', '⭐', '🌍', '☄️'];
+  
+  // Функция для установки ref
+  const setReelRef = (index: number) => (el: HTMLDivElement | null) => {
+    reelRefs.current[index] = el;
+  };
+  
+  // Создаем длинную полосу символов для каждого барабана
+  const createReelStrip = () => {
+    const strip: SlotSymbol[] = [];
+    for (let i = 0; i < 30; i++) { // 30 символов на барабан
+      strip.push(allSymbols[Math.floor(Math.random() * allSymbols.length)]);
+    }
+    return strip;
+  };
 
-  // ИСПРАВЛЕНО: Улучшенная анимация спина с правильной синхронизацией
+  // РЕАЛЬНАЯ АНИМАЦИЯ ВРАЩЕНИЯ БАРАБАНОВ
   useEffect(() => {
     if (gameState === 'spinning') {
+      console.log('🎰 Starting REAL slot machine spin...');
+      setIsSpinning(true);
       setWinningPositions(new Set());
       setShowWinLines(false);
       
-      const symbols: SlotSymbol[] = ['🌟', '🚀', '🌌', '⭐', '🌍', '☄️'];
-      let animationInterval: NodeJS.Timeout;
-      
-      console.log('🎰 Starting spin animation...');
-      
-      // Быстрая анимация первые 1.5 секунды
-      animationInterval = setInterval(() => {
-        setDisplaySymbols(prev => 
-          prev.map(() => symbols[Math.floor(Math.random() * symbols.length)])
-        );
-      }, 100);
-
-      // Замедляем к концу
-      setTimeout(() => {
-        clearInterval(animationInterval);
+      // Запускаем вращение каждого барабана с задержкой
+      const spinReels = async () => {
+        const promises = [];
         
-        // Финальная медленная анимация
-        animationInterval = setInterval(() => {
-          setDisplaySymbols(prev => 
-            prev.map(() => symbols[Math.floor(Math.random() * symbols.length)])
-          );
-        }, 200);
-        
-        // Полная остановка через 0.5 секунды
-        setTimeout(() => {
-          clearInterval(animationInterval);
-          console.log('🎰 Spin animation completed');
-        }, 500);
-        
-      }, 1500);
-
-      return () => {
-        if (animationInterval) {
-          clearInterval(animationInterval);
+        for (let reelIndex = 0; reelIndex < 5; reelIndex++) {
+          const promise = new Promise<void>((resolve) => {
+            setTimeout(() => {
+              spinSingleReel(reelIndex, resolve);
+            }, reelIndex * 200); // Задержка между барабанами
+          });
+          promises.push(promise);
         }
+        
+        // Ждем завершения всех барабанов
+        await Promise.all(promises);
+        setIsSpinning(false);
+        console.log('🎰 All reels stopped spinning');
       };
+      
+      spinReels();
     }
   }, [gameState]);
 
+  // Вращение одного барабана
+  const spinSingleReel = (reelIndex: number, onComplete: () => void) => {
+    const reel = reelRefs.current[reelIndex];
+    if (!reel) return;
+    
+    const spinDuration = ANIMATION_CONFIG.SPIN_DURATION_BASE + reelIndex * ANIMATION_CONFIG.SPIN_DURATION_INCREMENT;
+    const spinSpeed = ANIMATION_CONFIG.SPIN_SPEED;
+    
+    console.log(`🎰 Spinning reel ${reelIndex} for ${spinDuration}ms`);
+    
+    let currentStrip = createReelStrip();
+    let currentIndex = 0;
+    
+    const spinInterval = setInterval(() => {
+      // Обновляем символы в этом барабане (3 символа подряд)
+      for (let row = 0; row < 3; row++) {
+        const symbolIndex = reelIndex + row * 5; // Позиция в массиве 15 символов
+        const stripIndex = (currentIndex + row) % currentStrip.length;
+        
+        setDisplaySymbols(prev => {
+          const newSymbols = [...prev];
+          newSymbols[symbolIndex] = currentStrip[stripIndex];
+          return newSymbols;
+        });
+      }
+      
+      currentIndex = (currentIndex + 1) % currentStrip.length;
+      
+      // Добавляем эффект размытия во время вращения
+      if (reel) {
+        reel.style.filter = 'blur(1px)';
+        reel.style.transform = 'scale(0.98)';
+      }
+    }, spinSpeed);
+    
+    // Останавливаем барабан
+    setTimeout(() => {
+      clearInterval(spinInterval);
+      
+      // Убираем эффекты
+      if (reel) {
+        reel.style.filter = 'none';
+        reel.style.transform = 'scale(1)';
+      }
+      
+      console.log(`🎰 Reel ${reelIndex} stopped`);
+      onComplete();
+    }, spinDuration);
+  };
+
   // Показ результата
   useEffect(() => {
-    if (gameState === 'revealing' && lastResult) {
+    if (gameState === 'revealing' && lastResult && !isSpinning) {
       console.log('🎰 Revealing result:', lastResult);
       setDisplaySymbols(lastResult.symbols);
       
@@ -81,21 +147,22 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
           setShowWinLines(true);
           console.log('🎰 Showing winning positions:', Array.from(positions));
         }
-      }, 1000);
+      }, ANIMATION_CONFIG.REVEAL_DELAY);
     }
-  }, [gameState, lastResult]);
+  }, [gameState, lastResult, isSpinning]);
 
   // Сброс при новой игре
   useEffect(() => {
     if (gameState === 'waiting') {
       setWinningPositions(new Set());
       setShowWinLines(false);
+      setIsSpinning(false);
     }
   }, [gameState]);
 
   const getSymbolStyle = (index: number): React.CSSProperties => {
     const isWinning = winningPositions.has(index);
-    const isSpinning = gameState === 'spinning';
+    const currentlySpinning = isSpinning;
     
     return {
       width: '60px',
@@ -111,22 +178,23 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         ? `2px solid ${colorStyle}` 
         : '1px solid rgba(255, 255, 255, 0.2)',
       borderRadius: '8px',
-      transition: 'all 0.3s ease',
-      transform: isSpinning 
-        ? 'scale(0.9)' 
-        : isWinning 
-        ? 'scale(1.1)' 
-        : 'scale(1)',
+      transition: currentlySpinning ? 'none' : 'all 0.3s ease',
+      transform: isWinning ? 'scale(1.1)' : 'scale(1)',
       boxShadow: isWinning 
         ? `0 0 20px ${colorStyle}80` 
-        : isSpinning 
-        ? '0 0 10px rgba(255,255,255,0.3)'
         : 'none',
-      animation: isSpinning 
-        ? 'spin-blur 0.1s infinite' 
-        : isWinning 
+      animation: isWinning 
         ? 'win-pulse 1s infinite' 
         : 'none'
+    };
+  };
+
+  const getReelStyle = (reelIndex: number): React.CSSProperties => {
+    return {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      transition: 'all 0.2s ease'
     };
   };
 
@@ -176,8 +244,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     const getPosition = (index: number) => {
       const row = Math.floor(index / 5);
       const col = index % 5;
-      const x = col * 70 + 35; // 60px ширина + 10px отступ
-      const y = row * 70 + 35; // 60px высота + 10px отступ
+      const x = col * 70 + 35;
+      const y = row * 70 + 35;
       return { x, y };
     };
 
@@ -194,13 +262,12 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     return path;
   };
 
-  // ДОБАВЛЕНО: Функция получения статуса игры на текущем языке
   const getGameStatusMessage = () => {
     switch (gameState) {
       case 'waiting':
         return '🎲 Готов к игре';
       case 'spinning':
-        return '🌀 Вращение...';
+        return '🎰 Вращение барабанов...';
       case 'revealing':
         return '✨ Результат...';
       case 'finished':
@@ -236,12 +303,6 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
       {/* CSS анимации */}
       <style>
         {`
-          @keyframes spin-blur {
-            0% { filter: blur(0px); }
-            50% { filter: blur(2px); }
-            100% { filter: blur(0px); }
-          }
-          
           @keyframes win-pulse {
             0%, 100% { 
               transform: scale(1.1); 
@@ -274,21 +335,35 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         🎰 GALACTIC FORTUNE
       </div>
 
-      {/* Игровое поле 3x5 */}
+      {/* Игровое поле 3x5 с настоящими барабанами */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 60px)',
-        gridTemplateRows: 'repeat(3, 60px)',
+        gridTemplateColumns: 'repeat(5, 1fr)',
         gap: '10px',
         justifyContent: 'center',
-        position: 'relative'
+        position: 'relative',
+        maxWidth: '400px',
+        margin: '0 auto'
       }}>
-        {displaySymbols.map((symbol, index) => (
+        {/* Рендерим по барабанам */}
+        {[0, 1, 2, 3, 4].map(reelIndex => (
           <div
-            key={index}
-            style={getSymbolStyle(index)}
+            key={reelIndex}
+            ref={setReelRef(reelIndex)}
+            style={getReelStyle(reelIndex)}
           >
-            {symbol}
+            {/* 3 символа в каждом барабане */}
+            {[0, 1, 2].map(row => {
+              const symbolIndex = reelIndex + row * 5;
+              return (
+                <div
+                  key={symbolIndex}
+                  style={getSymbolStyle(symbolIndex)}
+                >
+                  {displaySymbols[symbolIndex]}
+                </div>
+              );
+            })}
           </div>
         ))}
         
@@ -306,7 +381,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         {getGameStatusMessage()}
       </div>
 
-      {/* ДОБАВЛЕНО: Информация о последнем выигрыше */}
+      {/* Информация о выигрыше */}
       {lastResult && lastResult.winningLines.length > 0 && gameState === 'finished' && (
         <div style={{
           marginTop: '15px',
@@ -351,14 +426,14 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         </div>
       )}
 
-      {/* ДОБАВЛЕНО: Индикатор линий выплат */}
+      {/* Индикатор линий выплат */}
       <div style={{
         marginTop: '10px',
         textAlign: 'center',
         fontSize: '0.8rem',
         color: '#999'
       }}>
-        20 активных линий выплат • RTP: 80%
+        20 активных линий выплат • RTP: 85%
       </div>
     </div>
   );

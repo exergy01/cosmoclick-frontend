@@ -21,8 +21,8 @@ const initialStatus: GalacticSlotsStatus = {
     total_losses: 0,
     total_bet: 0,
     total_won: 0,
-    best_win: 0,
-    worst_loss: 0
+    best_streak: 0,
+    worst_streak: 0
   }
 };
 
