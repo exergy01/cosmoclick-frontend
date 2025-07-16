@@ -1,6 +1,15 @@
 // galactic-slots/types/index.ts
 
-export type SlotSymbol = '🌟' | '🚀' | '🌌' | '⭐' | '🌍' | '☄️';
+export type SlotSymbol = '🌟' | '🚀' | '🌌' | '⭐' | '🌍' | '☄️' | '💀';
+
+// Конфиг анимации для SlotMachine
+export const ANIMATION_CONFIG = {
+  SPIN_DURATION_BASE: 1500,
+  SPIN_DURATION_INCREMENT: 300,
+  SPIN_SPEED: 50,
+  REVEAL_DELAY: 1000,
+  WIN_ANIMATION_DURATION: 2000
+};
 
 export interface WinningLine {
   line: number;
@@ -11,7 +20,6 @@ export interface WinningLine {
   winAmount: number;
 }
 
-// ИСПРАВЛЕНО: Полная синхронизация с backend ответом
 export interface SlotResult {
   gameId: string;
   symbols: SlotSymbol[];
@@ -20,10 +28,9 @@ export interface SlotResult {
   profit: number;
   isWin: boolean;
   betAmount: number;
-  timestamp?: number; // Опционально для совместимости
+  timestamp?: number;
 }
 
-// ИСПРАВЛЕНО: Синхронизация с backend статусом
 export interface GalacticSlotsStatus {
   success: boolean;
   balance: number;
@@ -41,8 +48,8 @@ export interface GalacticSlotsStatus {
     total_losses: number;
     total_bet: number;
     total_won: number;
-    best_streak: number;    // Изменено с best_win
-    worst_streak: number;   // Изменено с worst_loss
+    best_streak: number;
+    worst_streak: number;
   };
   error?: string;
 }
@@ -53,7 +60,6 @@ export interface SpinResponse {
   error?: string;
 }
 
-// ИСПРАВЛЕНО: Полная синхронизация с backend ответом
 export interface AdWatchResponse {
   success: boolean;
   adsRemaining: number;
@@ -92,23 +98,24 @@ export interface ToastNotification {
   duration: number;
 }
 
-// ИСПРАВЛЕНО: Сбалансированные символы (синхронизация с backend)
 export interface SymbolInfo {
   id: string;
   multipliers: number[];
   probability: number;
 }
 
+// ИСПРАВЛЕНО: Включает мертвый символ 💀
 export const SYMBOL_INFO: Record<SlotSymbol, SymbolInfo> = {
-  '🌟': { id: 'wild', multipliers: [50, 500, 5000], probability: 0.8 },    // Исправлено
-  '🚀': { id: 'ship', multipliers: [15, 75, 500], probability: 2.5 },      // Исправлено
-  '🌌': { id: 'galaxy', multipliers: [10, 50, 250], probability: 5.0 },    // Исправлено
-  '⭐': { id: 'star', multipliers: [8, 40, 150], probability: 8.0 },        // Без изменений
-  '🌍': { id: 'planet', multipliers: [4, 15, 50], probability: 15.0 },      // Исправлено
-  '☄️': { id: 'asteroid', multipliers: [2, 5, 15], probability: 68.7 }      // Исправлено
+  '🌟': { id: 'wild', multipliers: [10, 40, 200], probability: 0.0 },
+  '🚀': { id: 'ship', multipliers: [8, 25, 150], probability: 0.0 },
+  '🌌': { id: 'galaxy', multipliers: [5, 15, 80], probability: 0.0 },
+  '⭐': { id: 'star', multipliers: [3, 8, 40], probability: 0.0 },
+  '🌍': { id: 'planet', multipliers: [2, 5, 20], probability: 0.0 },
+  '☄️': { id: 'asteroid', multipliers: [1, 2, 8], probability: 0.0 },
+  '💀': { id: 'void', multipliers: [0, 0, 0], probability: 0.0 }
 };
 
-// 20 линий выплат (точная копия из backend)
+// 20 линий выплат
 export const PAYLINES = [
   [0, 1, 2, 3, 4],     // Линия 1: верхний ряд
   [5, 6, 7, 8, 9],     // Линия 2: средний ряд  
@@ -132,7 +139,6 @@ export const PAYLINES = [
   [0, 1, 12, 3, 4]     // Линия 20: дуга
 ];
 
-// ИСПРАВЛЕНО: Убрал большой интерфейс локализации - упростил
 export interface SlotTranslations {
   title: string;
   subtitle: string;

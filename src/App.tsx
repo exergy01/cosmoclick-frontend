@@ -12,6 +12,8 @@ import GamesPage from './pages/GamesPage';
 import WalletPage from './pages/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
+import SlotTestPage from './pages/SlotTestPage';
+
 
 // Импортируем все доступные игры
 import TapperGame from './pages/games/TapperGame';
@@ -50,6 +52,7 @@ const AppContent: React.FC = () => {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/ref" element={<ReferralsPage />} />
         <Route path="/alphabet" element={<AlphabetPage />} />
+        <Route path="/slot-test" element={<SlotTestPage />} />
         
         {/* Роуты игр - все доступные игры */}
         <Route path="/games/tapper" element={<TapperGame />} />

@@ -61,6 +61,22 @@ export const useGalacticSlotsStatus = (telegramId: string | undefined) => {
     }
   }, [telegramId]);
 
+  // ✅ НОВАЯ ФУНКЦИЯ: Локальное обновление статуса без перезагрузки
+  const updateLocalStatus = useCallback((newStatus: Partial<GalacticSlotsStatus>) => {
+    setGameStatus(prev => ({
+      ...prev,
+      ...newStatus
+    }));
+    
+    console.log('🎰 Status updated locally:', newStatus);
+  }, []);
+
+  // ✅ НОВАЯ ФУНКЦИЯ: Принудительное обновление с сервера (для критических случаев)
+  const forceRefresh = useCallback(async () => {
+    console.log('🎰 Force refreshing status from server...');
+    await loadGameStatus();
+  }, [loadGameStatus]);
+
   // Загрузка при монтировании
   useEffect(() => {
     loadGameStatus();
@@ -70,6 +86,8 @@ export const useGalacticSlotsStatus = (telegramId: string | undefined) => {
     gameStatus,
     loading,
     error,
-    loadGameStatus
+    loadGameStatus,
+    updateLocalStatus, // ✅ Экспортируем новую функцию
+    forceRefresh // ✅ Экспортируем принудительное обновление
   };
 };
