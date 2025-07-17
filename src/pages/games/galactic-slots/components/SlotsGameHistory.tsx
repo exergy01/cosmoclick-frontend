@@ -1,13 +1,14 @@
 // galactic-slots/components/SlotsGameHistory.tsx
 
 import React from 'react';
-import { SlotGameHistory } from '../types';
+import { SlotGameHistory, SlotTranslations } from '../types';
+import { formatShortDate, formatProfit, getProfitColor } from '../utils/formatters';
 
 interface SlotsGameHistoryProps {
   recentHistory: SlotGameHistory[];
   onShowFullHistory: () => void;
   colorStyle: string;
-  t: any;
+  t: SlotTranslations;
 }
 
 const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
@@ -16,32 +17,6 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
   colorStyle,
   t
 }) => {
-  const formatShortDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).slice(0, 8);
-  };
-
-  const formatProfit = (profit: number): string => {
-    if (profit > 0) {
-      return `+${profit.toLocaleString()}`;
-    } else if (profit < 0) {
-      return profit.toLocaleString();
-    } else {
-      return '0';
-    }
-  };
-
-  const getProfitColor = (profit: number): string => {
-    if (profit > 0) return '#00ff00';
-    if (profit < 0) return '#ff0000';
-    return '#ffffff';
-  };
-
   return (
     <div style={{
       background: 'rgba(0,0,0,0.3)',
@@ -52,13 +27,18 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
       maxWidth: '500px',
       width: '100%'
     }}>
-      <h3 style={{ color: colorStyle, marginBottom: '15px', textAlign: 'center' }}>
-        🕒 {t.lastGames || 'Последние игры'}
+      <h3 style={{ 
+        color: colorStyle, 
+        marginBottom: '15px', 
+        textAlign: 'center',
+        textShadow: `0 0 10px ${colorStyle}`
+      }}>
+        🕒 {t.lastGames}
       </h3>
       
       {recentHistory.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#ccc', padding: '20px' }}>
-          История игр пуста
+          {t.loading === 'Загрузка...' ? 'История игр пуста' : 'Game history is empty'}
         </div>
       ) : (
         <>
@@ -70,37 +50,74 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
             }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colorStyle}` }}>
-                  <th style={{ color: colorStyle, padding: '6px', textAlign: 'left', fontSize: '0.7rem' }}>
-                    {t.time || 'Время'}
+                  <th style={{ 
+                    color: colorStyle, 
+                    padding: '6px', 
+                    textAlign: 'left', 
+                    fontSize: '0.7rem',
+                    textShadow: `0 0 5px ${colorStyle}`
+                  }}>
+                    {t.time}
                   </th>
-                  <th style={{ color: colorStyle, padding: '6px', textAlign: 'center', fontSize: '0.7rem' }}>
-                    {t.bet || 'Ставка'}
+                  <th style={{ 
+                    color: colorStyle, 
+                    padding: '6px', 
+                    textAlign: 'center', 
+                    fontSize: '0.7rem',
+                    textShadow: `0 0 5px ${colorStyle}`
+                  }}>
+                    {t.bet}
                   </th>
-                  <th style={{ color: colorStyle, padding: '6px', textAlign: 'center', fontSize: '0.7rem' }}>
-                    {t.result || 'Результат'}
+                  <th style={{ 
+                    color: colorStyle, 
+                    padding: '6px', 
+                    textAlign: 'center', 
+                    fontSize: '0.7rem',
+                    textShadow: `0 0 5px ${colorStyle}`
+                  }}>
+                    {t.result}
                   </th>
-                  <th style={{ color: colorStyle, padding: '6px', textAlign: 'center', fontSize: '0.7rem' }}>
-                    {t.outcome || 'Итог'}
+                  <th style={{ 
+                    color: colorStyle, 
+                    padding: '6px', 
+                    textAlign: 'center', 
+                    fontSize: '0.7rem',
+                    textShadow: `0 0 5px ${colorStyle}`
+                  }}>
+                    {t.outcome}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {recentHistory.map((game) => (
                   <tr key={game.id} style={{ borderBottom: '1px solid #444' }}>
-                    <td style={{ color: '#ccc', padding: '6px', fontSize: '0.65rem' }}>
+                    <td style={{ 
+                      color: '#ccc', 
+                      padding: '6px', 
+                      fontSize: '0.65rem' 
+                    }}>
                       {formatShortDate(game.date)}
                     </td>
-                    <td style={{ color: '#ccc', padding: '6px', textAlign: 'center', fontSize: '0.65rem' }}>
+                    <td style={{ 
+                      color: '#ccc', 
+                      padding: '6px', 
+                      textAlign: 'center', 
+                      fontSize: '0.65rem' 
+                    }}>
                       {game.betAmount.toLocaleString()}
                     </td>
-                    <td style={{ padding: '6px', textAlign: 'center', fontSize: '0.65rem' }}>
+                    <td style={{ 
+                      padding: '6px', 
+                      textAlign: 'center', 
+                      fontSize: '0.65rem' 
+                    }}>
                       {game.result === 'win' ? (
                         <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
-                          ✅ {t.win || 'Выигрыш'}
+                          ✅ {t.win}
                         </span>
                       ) : (
                         <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
-                          ❌ {t.loss || 'Проигрыш'}
+                          ❌ {t.loss}
                         </span>
                       )}
                     </td>
@@ -132,10 +149,19 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
                 cursor: 'pointer',
                 fontSize: '0.8rem',
                 fontWeight: 'bold',
-                textShadow: `0 0 5px ${colorStyle}`
+                textShadow: `0 0 5px ${colorStyle}`,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              📋 {t.fullHistory || 'Вся история'}
+              📋 {t.fullHistory}
             </button>
           </div>
         </>

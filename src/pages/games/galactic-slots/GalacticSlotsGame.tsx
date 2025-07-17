@@ -18,45 +18,12 @@ import { useToastNotifications } from '../cosmic-shells/hooks/useToastNotificati
 import { useSlotsHistory } from './hooks/useSlotsHistory';
 
 // Локализация
-const getTranslation = (language: string) => ({
-  title: 'GALACTIC FORTUNE',
-  subtitle: 'Космические слоты',
-  placeBet: 'Сделать ставку',
-  betAmount: 'Ставка',
-  spin: 'СПИН',
-  autoSpin: 'АВТОСПИН',
-  stopAutoSpin: 'СТОП',
-  gamesLeft: 'Игр осталось',
-  extraGame: 'Дополнительная игра',
-  watching: 'Смотрим рекламу',
-  backToGames: 'К играм',
-  loading: 'Загрузка...',
-  lastGames: 'Последние игры',
-  fullHistory: 'Вся история',
-  time: 'Время',
-  bet: 'Ставка',
-  result: 'Результат',
-  outcome: 'Итог',
-  win: 'Выигрыш',
-  loss: 'Проигрыш',
-  errors: {
-    betTooLow: 'Минимальная ставка 100 CCC',
-    betTooHigh: 'Максимальная ставка 5,000 CCC',
-    insufficientFunds: 'Недостаточно средств',
-    dailyLimit: 'Лимит игр исчерпан',
-    spinError: 'Ошибка спина'
-  },
-  notifications: {
-    winMessage: 'Выигрыш!',
-    bigWinMessage: 'Большой выигрыш!',
-    lossMessage: 'Проигрыш',
-    extraGameReceived: 'Дополнительная игра получена!'
-  }
-});
+import { getTranslation } from './locales';
+import { formatTranslation } from './utils/formatters';
 
 const GalacticSlotsGame: React.FC = () => {
   const { i18n } = useTranslation();
-  const { player, currentSystem, setPlayer } = usePlayer(); // ✅ ИСПРАВЛЕНО: используем setPlayer
+  const { player, currentSystem, setPlayer } = usePlayer();
   const navigate = useNavigate();
   
   const colorStyle = player?.color || '#00f0ff';
@@ -64,7 +31,7 @@ const GalacticSlotsGame: React.FC = () => {
   // Локализация
   const t = getTranslation(i18n.language);
   
-  // ✅ ИСПРАВЛЕННЫЕ хуки состояния
+  // Хуки состояния
   const { 
     gameStatus, 
     loading, 
@@ -86,7 +53,7 @@ const GalacticSlotsGame: React.FC = () => {
     refreshHistory 
   } = useSlotsHistory(player?.telegram_id);
   
-  // ✅ ИСПРАВЛЕНО: Обновление баланса игрока через setPlayer
+  // Обновление баланса игрока
   const handlePlayerBalanceUpdate = useCallback((newBalance: number) => {
     console.log('🎰 Frontend: Updating player balance:', newBalance);
     if (player) {
@@ -103,13 +70,13 @@ const GalacticSlotsGame: React.FC = () => {
     updateLocalStatus(newStatus);
   }, [updateLocalStatus]);
   
-  // Обновляем только историю игр
+  // Обновление истории игр
   const handleHistoryUpdate = useCallback(() => {
-    console.log('🎰 Frontend: Updating only game history...');
+    console.log('🎰 Frontend: Updating game history...');
     refreshHistory();
   }, [refreshHistory]);
   
-  // ✅ ИСПРАВЛЕННЫЙ хук игры с правильным балансом
+  // Хук игры
   const {
     gameState,
     betAmount,
@@ -204,7 +171,7 @@ const GalacticSlotsGame: React.FC = () => {
         t={t}
       />
 
-      {/* ✅ ОБНОВЛЕННАЯ верхняя панель с валютами */}
+      {/* Верхняя панель с валютами */}
       <CurrencyPanel 
         player={player}
         currentSystem={currentSystem}
@@ -240,7 +207,7 @@ const GalacticSlotsGame: React.FC = () => {
           {t.subtitle}
         </p>
 
-        {/* ✅ ИСПРАВЛЕННАЯ слот-машина */}
+        {/* Слот-машина */}
         <div style={{
           width: '100%',
           maxWidth: '500px',
@@ -250,6 +217,7 @@ const GalacticSlotsGame: React.FC = () => {
             gameState={gameState}
             lastResult={lastResult}
             colorStyle={colorStyle}
+            t={t}
           />
         </div>
 
@@ -273,7 +241,7 @@ const GalacticSlotsGame: React.FC = () => {
           justifyContent: 'center',
           marginTop: '20px'
         }}>
-          {/* ✅ ИСПРАВЛЕНО: Кнопка автоспина всегда видна когда активна */}
+          {/* Кнопка автоспина */}
           {(gameStatus.canPlayFree || autoSpinActive) && (
             <button
               onClick={autoSpinActive ? stopAutoSpin : autoSpin}
@@ -302,7 +270,7 @@ const GalacticSlotsGame: React.FC = () => {
             </button>
           )}
 
-          {/* ✅ ИСПРАВЛЕНО: Кнопка рекламы не блокирует автоспин */}
+          {/* Кнопка рекламы */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && !autoSpinActive && (
             <button
               onClick={watchAd}
@@ -328,7 +296,7 @@ const GalacticSlotsGame: React.FC = () => {
             </button>
           )}
 
-          {/* ✅ ИСПРАВЛЕНО: Кнопка назад блокируется только при автоспине */}
+          {/* Кнопка назад */}
           <button
             onClick={() => navigate('/games')}
             disabled={isWatchingAd || autoSpinActive}
@@ -350,7 +318,7 @@ const GalacticSlotsGame: React.FC = () => {
           </button>
         </div>
 
-        {/* ✅ УЛУЧШЕННЫЙ статус автоспина */}
+        {/* Статус автоспина */}
         {autoSpinActive && (
           <div style={{
             marginTop: '15px',
@@ -365,18 +333,18 @@ const GalacticSlotsGame: React.FC = () => {
             textShadow: '0 0 10px #ff4444',
             boxShadow: '0 0 20px rgba(255,68,68,0.3)'
           }}>
-            🔄 Автоспин активен: {autoSpinCount}/100 спинов
+            🔄 {formatTranslation(t.autoSpinActive + ': {count}/100 ' + t.spinsCount, { count: autoSpinCount })}
             <div style={{ 
               fontSize: '0.9rem', 
               marginTop: '5px',
               color: '#ffaaaa'
             }}>
-              Следующий спин через {gameState === 'waiting' ? 'готов' : 'ожидание...'}
+              {t.nextSpin} {gameState === 'waiting' ? t.ready : t.waiting}
             </div>
           </div>
         )}
 
-        {/* ✅ УЛУЧШЕННАЯ информация о лимитах */}
+        {/* Информация о лимитах */}
         <div style={{
           marginTop: '20px',
           padding: '15px',
@@ -393,7 +361,7 @@ const GalacticSlotsGame: React.FC = () => {
             marginBottom: '10px',
             fontWeight: 'bold'
           }}>
-            📊 Статистика игры
+            📊 {t.dailyStats}
           </div>
           <div style={{ 
             display: 'grid',
@@ -402,22 +370,22 @@ const GalacticSlotsGame: React.FC = () => {
             fontSize: '0.9rem'
           }}>
             <div style={{ color: '#ccc' }}>
-              Игр сегодня: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.dailyGames}
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              Игр осталось: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t.gamesRemaining}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.gamesLeft}
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              Реклам: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.dailyAds}/200
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              Баланс: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.balance.toLocaleString()} CCC
               </span>
             </div>
@@ -430,7 +398,7 @@ const GalacticSlotsGame: React.FC = () => {
             fontSize: '0.8rem',
             color: '#aaa'
           }}>
-            RTP: ~75% | Автоспин: до 100 спинов | Лимит: 250 игр/день
+            {t.rtpInfo} | {t.autoSpinInfo} | {t.limitInfo}
           </div>
         </div>
 
@@ -442,7 +410,7 @@ const GalacticSlotsGame: React.FC = () => {
           t={t}
         />
 
-        {/* ✅ ОБНОВЛЕННАЯ таблица выплат */}
+        {/* Таблица выплат */}
         <div style={{
           background: 'rgba(0,0,0,0.3)',
           border: `1px solid ${colorStyle}`,
@@ -458,30 +426,30 @@ const GalacticSlotsGame: React.FC = () => {
             marginBottom: '15px',
             textShadow: `0 0 10px ${colorStyle}`
           }}>
-            💰 Таблица выплат
+            💰 {t.payoutTable}
           </h3>
           
           <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.6' }}>
             <div style={{ marginBottom: '10px' }}>
-              <strong>🌟 Квазар (WILD):</strong> x0.2 / x0.5 / x1.2 (удваивает выигрыш)
+              <strong>🌟 {t.symbols.wild}:</strong> x0.2 / x0.5 / x1.2 ({t.symbols.wildDescription})
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <strong>🚀 Корабль:</strong> x0.15 / x0.4 / x1.0
+              <strong>🚀 {t.symbols.ship}:</strong> x0.15 / x0.4 / x1.0
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <strong>🌌 Галактика:</strong> x0.1 / x0.3 / x0.8
+              <strong>🌌 {t.symbols.galaxy}:</strong> x0.1 / x0.3 / x0.8
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <strong>⭐ Звезда:</strong> x0.08 / x0.2 / x0.5
+              <strong>⭐ {t.symbols.star}:</strong> x0.08 / x0.2 / x0.5
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <strong>🌍 Планета:</strong> x0.05 / x0.15 / x0.3
+              <strong>🌍 {t.symbols.planet}:</strong> x0.05 / x0.15 / x0.3
             </div>
             <div style={{ marginBottom: '10px' }}>
-              <strong>☄️ Астероид:</strong> x0.03 / x0.1 / x0.2
+              <strong>☄️ {t.symbols.asteroid}:</strong> x0.03 / x0.1 / x0.2
             </div>
             <div style={{ marginBottom: '15px' }}>
-              <strong>💀 Черная дыра:</strong> БЛОКИРУЕТ линии выплат
+              <strong>💀 {t.symbols.blackhole}:</strong> {t.symbols.blocksPaylines}
             </div>
             
             <div style={{ 
@@ -490,11 +458,11 @@ const GalacticSlotsGame: React.FC = () => {
               fontSize: '0.8rem',
               color: '#999'
             }}>
-              * Коэффициенты для 3/4/5 символов в ряд<br/>
-              * WILD удваивает выигрыш<br/>
-              * 20 активных линий выплат<br/>
-              * ✅ ИСПРАВЛЕНО: 25% шанс выигрыша, RTP ~75%<br/>
-              * Лимит: 50 игр + 200 за рекламу = 250 игр/день
+              * {t.symbols.multipliers}<br/>
+              * WILD {t.symbols.wildDescription}<br/>
+              * 20 {t.symbols.activePaylines}<br/>
+              * {t.symbols.fixedRtp}<br/>
+              * {t.symbols.dailyLimit}
             </div>
           </div>
         </div>

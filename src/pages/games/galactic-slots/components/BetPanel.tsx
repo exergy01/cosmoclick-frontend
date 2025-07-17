@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { GalacticSlotsStatus } from '../types';
+import { formatTranslation } from '../utils/formatters';
 
 interface BetPanelProps {
   gameStatus: GalacticSlotsStatus;
@@ -25,22 +26,31 @@ const BetPanel: React.FC<BetPanelProps> = ({
   t
 }) => {
 
-  // ✅ ИСПРАВЛЕНО: Свободный ввод ставки без автокоррекции
+  // Свободный ввод ставки без автокоррекции
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
-    onBetAmountChange(value); // Позволяем любое значение
+    onBetAmountChange(value);
   };
 
-  // ✅ НОВОЕ: Функция для проверки валидности ставки
+  // Функция для проверки валидности ставки
   const getBetValidation = () => {
     if (betAmount < gameStatus.minBet) {
-      return { isValid: false, error: `Минимум ${gameStatus.minBet} CCC` };
+      return { 
+        isValid: false, 
+        error: formatTranslation(t.errors.betTooLow, { min: gameStatus.minBet }) 
+      };
     }
     if (betAmount > gameStatus.maxBet) {
-      return { isValid: false, error: `Максимум ${gameStatus.maxBet} CCC` };
+      return { 
+        isValid: false, 
+        error: formatTranslation(t.errors.betTooHigh, { max: gameStatus.maxBet }) 
+      };
     }
     if (betAmount > gameStatus.balance) {
-      return { isValid: false, error: 'Недостаточно средств' };
+      return { 
+        isValid: false, 
+        error: t.errors.insufficientFunds 
+      };
     }
     return { isValid: true, error: '' };
   };
@@ -49,10 +59,10 @@ const BetPanel: React.FC<BetPanelProps> = ({
 
   const quickBets = [100, 500, 1000, 2500];
 
-  // ✅ ИСПРАВЛЕНО: Правильная логика проверки возможности спина
+  // Правильная логика проверки возможности спина
   const canSpin = !isSpinning && 
                  gameStatus.canPlayFree && 
-                 validation.isValid; // Используем валидацию вместо жестких проверок
+                 validation.isValid;
 
   return (
     <div style={{
@@ -74,10 +84,10 @@ const BetPanel: React.FC<BetPanelProps> = ({
         fontSize: '1.2rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        💰 {t.placeBet || 'Сделать ставку'}
+        💰 {t.placeBet}
       </h3>
 
-      {/* ✅ УЛУЧШЕННЫЙ индикатор спина */}
+      {/* Индикатор спина */}
       {isSpinning && (
         <div style={{
           textAlign: 'center',
@@ -94,7 +104,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         </div>
       )}
 
-      {/* ✅ ИСПРАВЛЕНО: Свободный ввод ставки с валидацией */}
+      {/* Свободный ввод ставки с валидацией */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -102,7 +112,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         marginBottom: '15px'
       }}>
         <label style={{ color: '#ccc', fontSize: '1rem' }}>
-          {t.betAmount || 'Ставка'}:
+          {t.betAmount}:
         </label>
         <div style={{
           display: 'flex',
@@ -129,7 +139,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
               cursor: isSpinning ? 'not-allowed' : 'text'
             }}
           />
-          {/* ✅ НОВОЕ: Отображение ошибки валидации */}
+          {/* Отображение ошибки валидации */}
           {!validation.isValid && (
             <div style={{
               color: '#ff4444',
@@ -240,7 +250,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         </div>
       </div>
 
-      {/* ✅ УЛУЧШЕННАЯ кнопка спина */}
+      {/* Кнопка спина */}
       <div style={{
         display: 'flex',
         justifyContent: 'center'
@@ -287,10 +297,10 @@ const BetPanel: React.FC<BetPanelProps> = ({
               }}>
                 🎰
               </span>
-              СПИН...
+              {t.spin}...
             </span>
           ) : (
-            '🎰 СПИН'
+            `🎰 ${t.spin}`
           )}
         </button>
       </div>
@@ -303,7 +313,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         color: '#999'
       }}>
         <div style={{ marginBottom: '5px' }}>
-          {t.gamesLeft || 'Игр осталось'}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+          {t.gamesLeft}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
             {gameStatus.gamesLeft}
           </span>
         </div>

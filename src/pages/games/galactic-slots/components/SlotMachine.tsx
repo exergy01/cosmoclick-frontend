@@ -1,15 +1,17 @@
 // galactic-slots/components/SlotMachine.tsx
 
 import React, { useEffect, useState, useRef } from 'react';
-import { SlotGameState, SlotSymbol, SlotResult, WinningLine, PAYLINES } from '../types';
+import { SlotGameState, SlotSymbol, SlotResult, WinningLine, PAYLINES, SlotTranslations } from '../types';
+import { formatTranslation } from '../utils/formatters';
 
 interface SlotMachineProps {
   gameState: SlotGameState;
   lastResult: SlotResult | null;
   colorStyle: string;
+  t: any; // <-- вот так
 }
 
-const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorStyle }) => {
+const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorStyle, t }) => {
   const [displaySymbols, setDisplaySymbols] = useState<SlotSymbol[]>(
     Array(15).fill('☄️') as SlotSymbol[]
   );
@@ -37,10 +39,10 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     return strip;
   };
 
-  // ✅ ИСПРАВЛЕНО: Правильная анимация вращения барабанов
+  // Анимация вращения барабанов
   useEffect(() => {
     if (gameState === 'spinning') {
-      console.log('🎰 Starting PROPER slot machine spin...');
+      console.log('🎰 Starting slot machine spin...');
       setIsSpinning(true);
       setWinningPositions(new Set());
       setShowWinLines(false);
@@ -59,12 +61,11 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
           const promise = new Promise<void>((resolve) => {
             setTimeout(() => {
               spinSingleReel(reelIndex, resolve);
-            }, reelIndex * 100); // Небольшая задержка между барабанами
+            }, reelIndex * 100);
           });
           promises.push(promise);
         }
         
-        // Ждем завершения всех барабанов
         await Promise.all(promises);
         setIsSpinning(false);
         console.log('🎰 All reels stopped spinning');
@@ -74,14 +75,13 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     }
   }, [gameState]);
 
-  // ✅ ИСПРАВЛЕНО: Правильное вращение с визуальными эффектами
+  // Вращение одного барабана
   const spinSingleReel = (reelIndex: number, onComplete: () => void) => {
     const reel = reelRefs.current[reelIndex];
     if (!reel) return;
     
-    // ✅ УВЕЛИЧЕНО время вращения: 2.5 секунды
     const spinDuration = 2500 + reelIndex * 200;
-    const spinSpeed = 80; // Скорость обновления символов
+    const spinSpeed = 80;
     
     console.log(`🎰 Spinning reel ${reelIndex} for ${spinDuration}ms`);
     
@@ -96,7 +96,6 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     }
     
     const spinInterval = setInterval(() => {
-      // Обновляем ВСЕ 3 символа в столбце ОДНОВРЕМЕННО
       const newSymbols = [...displaySymbols];
       for (let row = 0; row < 3; row++) {
         const symbolIndex = reelIndex + row * 5;
@@ -108,11 +107,9 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
       currentIndex = (currentIndex + 1) % currentStrip.length;
     }, spinSpeed);
     
-    // Останавливаем барабан
     setTimeout(() => {
       clearInterval(spinInterval);
       
-      // Убираем эффекты
       if (reel) {
         reel.style.filter = 'none';
         reel.style.transform = 'scale(1)';
@@ -124,26 +121,21 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     }, spinDuration);
   };
 
-  // ✅ ИСПРАВЛЕНО: Показ результата только после завершения анимации
+  // Показ результата
   useEffect(() => {
     if (gameState === 'revealing' && lastResult && !isSpinning) {
       console.log('🎰 Revealing final result:', lastResult);
-      
-      // ✅ ВАЖНО: Показываем финальный результат
       setDisplaySymbols(lastResult.symbols);
-      
-      // Сбрасываем состояния
       setWinningPositions(new Set());
       setShowWinLines(false);
     }
   }, [gameState, lastResult, isSpinning]);
 
-  // ✅ ИСПРАВЛЕНО: Показ выигрышных линий только в состоянии 'finished'
+  // Показ выигрышных линий
   useEffect(() => {
     if (gameState === 'finished' && lastResult && !isSpinning) {
       console.log('🎰 Showing winning lines:', lastResult.winningLines);
       
-      // Показываем выигрышные позиции
       if (lastResult.winningLines.length > 0) {
         const positions = new Set<number>();
         lastResult.winningLines.forEach((line: WinningLine) => {
@@ -207,7 +199,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     };
   };
 
-  // ✅ ИСПРАВЛЕНО: Показ линий только в состоянии 'finished'
+  // Показ линий выплат
   const renderWinLines = () => {
     if (!showWinLines || !lastResult?.winningLines.length || gameState !== 'finished') return null;
 
@@ -273,31 +265,31 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     return path;
   };
 
-  // ✅ ИСПРАВЛЕНО: Правильные сообщения статуса
+  // Сообщения статуса игры
   const getGameStatusMessage = () => {
     switch (gameState) {
       case 'waiting':
-        return '🎲 Готов к игре';
+        return `🎲 ${t.gameStates.waiting}`;
       case 'spinning':
-        return '🎰 Вращение барабанов...';
+        return `🎰 ${t.gameStates.spinning}`;
       case 'revealing':
-        return '✨ Показ результата...';
+        return `✨ ${t.gameStates.revealing}`;
       case 'finished':
         if (lastResult) {
           if (lastResult.isWin) {
             const multiplier = Math.round(lastResult.totalWin / lastResult.betAmount);
             if (multiplier >= 5) {
-              return `💎 ОТЛИЧНЫЙ ВЫИГРЫШ: ${lastResult.totalWin.toLocaleString()} CCC!`;
+              return formatTranslation(t.winMessages.excellentWin, { amount: lastResult.totalWin.toLocaleString() });
             } else if (multiplier >= 2) {
-              return `⭐ ХОРОШИЙ ВЫИГРЫШ: ${lastResult.totalWin.toLocaleString()} CCC!`;
+              return formatTranslation(t.winMessages.goodWin, { amount: lastResult.totalWin.toLocaleString() });
             } else {
-              return `🎉 Выигрыш: ${lastResult.totalWin.toLocaleString()} CCC!`;
+              return formatTranslation(t.winMessages.regularWin, { amount: lastResult.totalWin.toLocaleString() });
             }
           } else {
-            return '💸 Удачи в следующий раз!';
+            return t.winMessages.loss;
           }
         }
-        return '✅ Игра завершена';
+        return t.gameStates.finished;
       default:
         return '';
     }
@@ -344,7 +336,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         fontWeight: 'bold',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        🎰 GALACTIC FORTUNE
+        🎰 {t.title}
       </div>
 
       {/* Игровое поле 3x5 */}
@@ -393,7 +385,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         {getGameStatusMessage()}
       </div>
 
-      {/* ✅ ИСПРАВЛЕНО: Информация о выигрыше только в состоянии 'finished' */}
+      {/* Информация о выигрыше */}
       {lastResult && lastResult.winningLines.length > 0 && gameState === 'finished' && (
         <div style={{
           marginTop: '15px',
@@ -412,7 +404,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
             marginBottom: '8px',
             textAlign: 'center'
           }}>
-            🏆 Выигрышные линии:
+            🏆 {t.winningLines.title}
           </div>
           {lastResult.winningLines.map((line, index) => (
             <div key={index} style={{ 
@@ -422,8 +414,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
               borderRadius: '4px',
               fontSize: '0.75rem'
             }}>
-              <strong>Линия {line.line}:</strong> {line.symbol} x{line.count} = {line.winAmount.toLocaleString()} CCC
-              {line.hasWild && <span style={{ color: '#ffd700' }}> ⭐WILD x2</span>}
+              <strong>{t.winningLines.line} {line.line}:</strong> {line.symbol} x{line.count} = {line.winAmount.toLocaleString()} CCC
+              {line.hasWild && <span style={{ color: '#ffd700' }}> ⭐{t.winningLines.wild}</span>}
             </div>
           ))}
           <div style={{ 
@@ -434,7 +426,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
             borderTop: `1px solid ${colorStyle}40`,
             paddingTop: '8px'
           }}>
-            Общий выигрыш: {lastResult.totalWin.toLocaleString()} CCC
+            {t.winningLines.totalWin}: {lastResult.totalWin.toLocaleString()} CCC
           </div>
         </div>
       )}
@@ -446,7 +438,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         fontSize: '0.8rem',
         color: '#999'
       }}>
-        20 активных линий выплат • RTP: 75%
+        20 {t.symbols.activePaylines} • {t.rtpInfo}
       </div>
     </div>
   );
