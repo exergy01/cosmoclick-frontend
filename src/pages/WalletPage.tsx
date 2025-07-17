@@ -22,29 +22,36 @@ const WalletPage: React.FC = () => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const colorStyle = player?.color || '#00f0ff';
 
   useEffect(() => {
     setConnectedWallet(player?.telegram_wallet || null);
+    setDebugInfo(`Player: ${JSON.stringify({ telegram_id: player?.telegram_id, telegram_wallet: player?.telegram_wallet, ton: player?.ton })}\nAPI_URL: ${API_URL}`);
   }, [player]);
 
   const connectTelegramWallet = async () => {
     setIsConnecting(true);
     setError(null);
+    setDebugInfo(prev => `${prev}\nAttempting connection at ${new Date().toLocaleTimeString()}...`);
     
     try {
       if (player?.telegram_id) {
-        await axios.post(`${API_URL}/api/player/connect-telegram-wallet`, {
+        setDebugInfo(prev => `${prev}\nSending request with telegram_id: ${player.telegram_id}`);
+        const response = await axios.post(`${API_URL}/api/player/connect-telegram-wallet`, {
           telegram_id: player.telegram_id
         });
+        setDebugInfo(prev => `${prev}\nResponse: ${JSON.stringify(response.data)}`);
         await updatePlayer();
         setSuccess(t('wallet.wallet_connected'));
       } else {
         setError(t('wallet.telegram_not_linked'));
+        setDebugInfo(prev => `${prev}\nError: Telegram ID not found`);
       }
     } catch (err: any) {
       setError(t('wallet.connection_failed'));
+      setDebugInfo(prev => `${prev}\nError: ${err.message}\nStatus: ${err.response?.status}`);
     } finally {
       setIsConnecting(false);
     }
@@ -66,6 +73,7 @@ const WalletPage: React.FC = () => {
     
     setIsConnecting(true);
     try {
+      setDebugInfo(prev => `${prev}\nWithdrawing ${amount} TON to ${withdrawAddress}`);
       await axios.post(`${API_URL}/api/player/withdraw`, {
         telegram_id: player?.telegram_id,
         amount,
@@ -78,6 +86,7 @@ const WalletPage: React.FC = () => {
       setWithdrawAddress('');
     } catch (err: any) {
       setError(t('wallet.withdraw_failed'));
+      setDebugInfo(prev => `${prev}\nWithdraw Error: ${err.message}`);
     } finally {
       setIsConnecting(false);
     }
@@ -108,6 +117,11 @@ const WalletPage: React.FC = () => {
                 💸 {t('wallet.withdraw')}
               </button>
             )}
+          </div>
+
+          {/* Отладочная информация */}
+          <div style={{ background: 'rgba(0, 0, 0, 0.8)', padding: '15px', margin: '20px auto', maxWidth: '500px', borderRadius: '15px', color: '#ccc', fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>
+            Debug Info:<br />{debugInfo}
           </div>
         </div>
       </div>
