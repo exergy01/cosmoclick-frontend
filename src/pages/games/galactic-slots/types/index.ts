@@ -1,6 +1,6 @@
 // galactic-slots/types/index.ts
 
-export type SlotSymbol = '🌟' | '🚀' | '🌌' | '⭐' | '🌍' | '☄️' | '💀';
+export type SlotSymbol = '🌟' | '🚀' | '🌌' | '⭐' | '🌍' | '☄️' | '🛸';
 
 // Конфиг анимации для SlotMachine
 export const ANIMATION_CONFIG = {
@@ -112,7 +112,7 @@ export const SYMBOL_INFO: Record<SlotSymbol, SymbolInfo> = {
   '⭐': { id: 'star', multipliers: [3, 8, 40], probability: 0.0 },
   '🌍': { id: 'planet', multipliers: [2, 5, 20], probability: 0.0 },
   '☄️': { id: 'asteroid', multipliers: [1, 2, 8], probability: 0.0 },
-  '💀': { id: 'void', multipliers: [0, 0, 0], probability: 0.0 }
+  '🛸': { id: 'ufo', multipliers: [0, 0, 0], probability: 0.0 }
 };
 
 // 20 линий выплат

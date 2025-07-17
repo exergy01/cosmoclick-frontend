@@ -65,7 +65,7 @@ const WalletPage: React.FC = () => {
         id: 'activity',
         title: t('wallet.verification.activity_title'),
         description: t('wallet.verification.activity_desc'),
-        completed: (player?.ccc || 0) >= 1000,
+        completed: (parseFloat(player?.ccc || '0') >= 1000),
         required: true
       },
       {
@@ -179,7 +179,7 @@ const WalletPage: React.FC = () => {
       return;
     }
     
-    if ((player?.ton || 0) < amount) {
+    if (parseFloat(player?.ton || '0') < amount) {
       setError(t('wallet.insufficient_balance'));
       return;
     }
@@ -341,7 +341,7 @@ const WalletPage: React.FC = () => {
               marginBottom: '30px',
               fontFamily: 'monospace'
             }}>
-              {(player?.ton || 0).toFixed(8)} TON
+              {parseFloat(player?.ton || '0').toFixed(8)} TON
             </div>
 
             {/* Кнопки действий */}
@@ -388,20 +388,20 @@ const WalletPage: React.FC = () => {
                 <>
                   <button
                     onClick={() => setShowWithdrawModal(true)}
-                    disabled={(player?.ton || 0) < getMinWithdrawAmount()}
+                    disabled={parseFloat(player?.ton || '0') < getMinWithdrawAmount()}
                     style={{
                       padding: '18px 20px',
-                      background: (player?.ton || 0) >= getMinWithdrawAmount()
+                      background: parseFloat(player?.ton || '0') >= getMinWithdrawAmount()
                         ? `linear-gradient(135deg, ${colorStyle}80, ${colorStyle}40)`
                         : 'rgba(128, 128, 128, 0.3)',
-                      border: `2px solid ${(player?.ton || 0) >= getMinWithdrawAmount() ? colorStyle : '#555'}`,
+                      border: `2px solid ${parseFloat(player?.ton || '0') >= getMinWithdrawAmount() ? colorStyle : '#555'}`,
                       borderRadius: '15px',
                       color: '#fff',
                       fontSize: '1rem',
                       fontWeight: 'bold',
-                      cursor: (player?.ton || 0) >= getMinWithdrawAmount() ? 'pointer' : 'not-allowed',
+                      cursor: parseFloat(player?.ton || '0') >= getMinWithdrawAmount() ? 'pointer' : 'not-allowed',
                       transition: 'all 0.3s ease',
-                      boxShadow: (player?.ton || 0) >= getMinWithdrawAmount() ? `0 0 25px ${colorStyle}60` : 'none'
+                      boxShadow: parseFloat(player?.ton || '0') >= getMinWithdrawAmount() ? `0 0 25px ${colorStyle}60` : 'none'
                     }}
                   >
                     💸 {t('wallet.withdraw')}

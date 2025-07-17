@@ -21,7 +21,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
   const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
   
   // Все возможные символы для вращения
-  const allSymbols: SlotSymbol[] = ['🌟', '🚀', '🌌', '⭐', '🌍', '☄️', '💀'];
+  const allSymbols: SlotSymbol[] = ['🌟', '🚀', '🌌', '⭐', '🌍', '☄️', '🛸'];
   
   // Функция для установки ref
   const setReelRef = (index: number) => (el: HTMLDivElement | null) => {
