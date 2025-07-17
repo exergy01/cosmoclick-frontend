@@ -1,3 +1,5 @@
+// src/pages/WalletPage.tsx
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
@@ -34,16 +36,23 @@ const WalletPage: React.FC = () => {
   const connectTelegramWallet = async () => {
     setIsConnecting(true);
     setError(null);
+    setSuccess(null); // Очищаем предыдущее сообщение об успехе
     setDebugInfo(prev => `${prev}\nAttempting connection at ${new Date().toLocaleTimeString()}...`);
     
     try {
       if (player?.telegram_id) {
         setDebugInfo(prev => `${prev}\nSending request with telegram_id: ${player.telegram_id}`);
-        const response = await axios.post(`${API_URL}/api/player/connect-telegram-wallet`, {
+        
+        // 🔥 ИСПРАВЛЕНИЕ ЗДЕСЬ: URL теперь правильный
+        const response = await axios.post(`${API_URL}/api/player/connect-wallet`, {
           telegram_id: player.telegram_id
         });
+
         setDebugInfo(prev => `${prev}\nResponse: ${JSON.stringify(response.data)}`);
-        await updatePlayer();
+        
+        // Обновляем данные игрока, чтобы получить новый кошелек
+        await updatePlayer(); 
+        
         setSuccess(t('wallet.wallet_connected'));
       } else {
         setError(t('wallet.telegram_not_linked'));
@@ -92,7 +101,7 @@ const WalletPage: React.FC = () => {
     }
   };
 
-  const formatAddress = (address: string) => address ? `${address.slice(0, 6)}...${address.slice(-6)}` : '';
+  const formatAddress = (address: string | null) => address ? `${address.slice(0, 6)}...${address.slice(-6)}` : '';
 
   return (
     <div style={{ backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`, backgroundSize: 'cover', minHeight: '100vh', color: '#fff', padding: '10px' }}>
@@ -106,7 +115,7 @@ const WalletPage: React.FC = () => {
           <div style={{ background: 'rgba(0, 0, 0, 0.7)', padding: '40px', margin: '20px auto', maxWidth: '500px', borderRadius: '25px' }}>
             <div style={{ fontSize: '3rem', color: colorStyle, marginBottom: '30px' }}>{parseFloat(player?.ton || '0').toFixed(8)} TON</div>
             <div style={{ marginBottom: '20px' }}>
-              <p style={{ color: '#aaa' }}>{t('wallet.connected_wallet')}: {formatAddress(connectedWallet || '')}</p>
+              <p style={{ color: '#aaa' }}>{t('wallet.connected_wallet')}: {connectedWallet ? formatAddress(connectedWallet) : t('wallet.not_connected')}</p>
             </div>
             {!connectedWallet ? (
               <button onClick={connectTelegramWallet} disabled={isConnecting} style={{ padding: '18px', background: `linear-gradient(135deg, ${colorStyle}80, ${colorStyle}40)`, border: `2px solid ${colorStyle}`, borderRadius: '15px', color: '#fff', fontSize: '1.1rem' }}>
@@ -120,7 +129,7 @@ const WalletPage: React.FC = () => {
           </div>
 
           {/* Отладочная информация */}
-          <div style={{ background: 'rgba(0, 0, 0, 0.8)', padding: '15px', margin: '20px auto', maxWidth: '500px', borderRadius: '15px', color: '#ccc', fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>
+          <div style={{ background: 'rgba(0, 0, 0, 0.8)', padding: '15px', margin: '20px auto', maxWidth: '500px', borderRadius: '15px', color: '#ccc', fontSize: '0.8rem', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
             Debug Info:<br />{debugInfo}
           </div>
         </div>
