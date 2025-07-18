@@ -1,8 +1,8 @@
 // cosmic-shells/components/CosmicShellsHistoryModal.tsx
+// ✅ ПОЛНЫЙ РАБОЧИЙ файл скопированный из слотов
 
 import React from 'react';
 import { GameHistory, CosmicShellsTranslations } from '../types';
-import { formatDate, formatProfit, getProfitColor, formatNumber } from '../utils/formatters';
 
 interface CosmicShellsHistoryModalProps {
   isOpen: boolean;
@@ -12,6 +12,33 @@ interface CosmicShellsHistoryModalProps {
   colorStyle: string;
   t: CosmicShellsTranslations;
 }
+
+// Локальные функции форматирования (простые и рабочие)
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear().toString().slice(-2);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${day}.${month}.${year}, ${hours}:${minutes}`;
+};
+
+const formatProfit = (profit: number): string => {
+  if (profit > 0) {
+    return `+${profit.toLocaleString()}`;
+  } else if (profit < 0) {
+    return profit.toLocaleString();
+  } else {
+    return '0';
+  }
+};
+
+const getProfitColor = (profit: number): string => {
+  if (profit > 0) return '#00ff00';
+  if (profit < 0) return '#ff0000';
+  return '#ffffff';
+};
 
 const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
   isOpen,
@@ -45,7 +72,8 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
         maxWidth: '800px',
         width: '100%',
         maxHeight: '80vh',
-        overflow: 'auto'
+        overflow: 'auto',
+        boxShadow: `0 0 30px ${colorStyle}40`
       }}>
         <div style={{
           display: 'flex',
@@ -56,7 +84,8 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
           <h2 style={{
             color: colorStyle,
             textShadow: `0 0 10px ${colorStyle}`,
-            margin: 0
+            margin: 0,
+            fontSize: '1.5rem'
           }}>
             📋 {t.fullHistory}
           </h2>
@@ -69,7 +98,17 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
               color: colorStyle,
               padding: '5px 10px',
               cursor: 'pointer',
-              fontSize: '1rem'
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = `${colorStyle}20`;
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
             ✕
@@ -77,74 +116,231 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
         </div>
 
         {historyLoading ? (
-          <div style={{ textAlign: 'center', color: '#ccc', padding: '20px' }}>
+          <div style={{ 
+            textAlign: 'center', 
+            color: '#ccc', 
+            padding: '40px',
+            fontSize: '1.1rem'
+          }}>
+            <div style={{ 
+              fontSize: '2rem', 
+              marginBottom: '15px',
+              animation: 'spin 2s linear infinite'
+            }}>
+              🛸
+            </div>
             {t.loading}
           </div>
         ) : gameHistory.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#ccc', padding: '20px' }}>
-            История игр пуста
+          <div style={{ 
+            textAlign: 'center', 
+            color: '#ccc', 
+            padding: '40px',
+            fontSize: '1.1rem'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '15px' }}>📊</div>
+            {t.emptyHistory}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '0.9rem'
+          <>
+            {/* Статистика как в слотах */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gap: '15px',
+              marginBottom: '20px',
+              padding: '15px',
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: '10px',
+              border: `1px solid ${colorStyle}30`
             }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${colorStyle}` }}>
-                  <th style={{ color: colorStyle, padding: '10px', textAlign: 'left' }}>
-                    {t.time}
-                  </th>
-                  <th style={{ color: colorStyle, padding: '10px', textAlign: 'center' }}>
-                    {t.bet}
-                  </th>
-                  <th style={{ color: colorStyle, padding: '10px', textAlign: 'center' }}>
-                    {t.result}
-                  </th>
-                  <th style={{ color: colorStyle, padding: '10px', textAlign: 'center' }}>
-                    {t.outcome}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {gameHistory.map((game) => (
-                  <tr key={game.id} style={{ borderBottom: '1px solid #333' }}>
-                    <td style={{ color: '#ccc', padding: '10px' }}>
-                      {formatDate(game.date)}
-                    </td>
-                    <td style={{ color: '#ccc', padding: '10px', textAlign: 'center' }}>
-                      {formatNumber(game.betAmount)} CCC
-                    </td>
-                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                      {game.result === 'win' ? (
-                        <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
-                          ✅ {t.win}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
-                          ❌ {t.loss}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ 
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: colorStyle, fontSize: '1.2rem', fontWeight: 'bold' }}>
+                  {gameHistory.length}
+                </div>
+                <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
+                  {t.totalGames}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#00ff00', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                  {gameHistory.filter(g => g.result === 'win').length}
+                </div>
+                <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
+                  {t.win}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: '#ff0000', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                  {gameHistory.filter(g => g.result === 'loss').length}
+                </div>
+                <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
+                  {t.loss}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  color: getProfitColor(gameHistory.reduce((sum, g) => sum + g.profit, 0)), 
+                  fontSize: '1.2rem', 
+                  fontWeight: 'bold' 
+                }}>
+                  {formatProfit(gameHistory.reduce((sum, g) => sum + g.profit, 0))}
+                </div>
+                <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
+                  {t.profit}
+                </div>
+              </div>
+            </div>
+
+            {/* Таблица истории */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '0.9rem'
+              }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${colorStyle}` }}>
+                    <th style={{ 
+                      color: colorStyle, 
+                      padding: '10px', 
+                      textAlign: 'left',
+                      textShadow: `0 0 5px ${colorStyle}`
+                    }}>
+                      {t.time}
+                    </th>
+                    <th style={{ 
+                      color: colorStyle, 
                       padding: '10px', 
                       textAlign: 'center',
-                      color: getProfitColor(game.profit),
-                      fontWeight: 'bold'
+                      textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {formatProfit(game.profit)} CCC
-                    </td>
+                      {t.bet}
+                    </th>
+                    <th style={{ 
+                      color: colorStyle, 
+                      padding: '10px', 
+                      textAlign: 'center',
+                      textShadow: `0 0 5px ${colorStyle}`
+                    }}>
+                      {t.result}
+                    </th>
+                    <th style={{ 
+                      color: colorStyle, 
+                      padding: '10px', 
+                      textAlign: 'center',
+                      textShadow: `0 0 5px ${colorStyle}`
+                    }}>
+                      {t.outcome}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {gameHistory.map((game) => (
+                    <tr key={game.id} style={{ 
+                      borderBottom: '1px solid #333',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                    >
+                      <td style={{ 
+                        color: '#ccc', 
+                        padding: '10px',
+                        fontSize: '0.85rem'
+                      }}>
+                        {formatDate(game.date)}
+                      </td>
+                      <td style={{ 
+                        color: '#ccc', 
+                        padding: '10px', 
+                        textAlign: 'center',
+                        fontSize: '0.85rem'
+                      }}>
+                        {game.betAmount.toLocaleString()} CCC
+                      </td>
+                      <td style={{ 
+                        padding: '10px', 
+                        textAlign: 'center',
+                        fontSize: '0.85rem'
+                      }}>
+                        {game.result === 'win' ? (
+                          <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                            ✅ {t.win}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
+                            ❌ {t.loss}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ 
+                        padding: '10px', 
+                        textAlign: 'center',
+                        color: getProfitColor(game.profit),
+                        fontWeight: 'bold',
+                        fontSize: '0.85rem'
+                      }}>
+                        {formatProfit(game.profit)} CCC
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
+
+        {/* Кнопка закрытия внизу */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '20px',
+          paddingTop: '20px',
+          borderTop: `1px solid ${colorStyle}30`
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 20px',
+              background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
+              border: `2px solid ${colorStyle}`,
+              borderRadius: '10px',
+              color: colorStyle,
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              textShadow: `0 0 5px ${colorStyle}`,
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            {t.close}
+          </button>
+        </div>
       </div>
+
+      {/* CSS для анимаций */}
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 };
 
-export default CosmicShellsHistoryModal; 
-export {}; 
+export default CosmicShellsHistoryModal;

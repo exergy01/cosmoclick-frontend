@@ -1,4 +1,5 @@
 // cosmic-shells/CosmicShellsGame.tsx
+// ✅ ИСПРАВЛЕНО: Мультиязычность, лимиты, результаты в игровом поле
 
 import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -7,9 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 // Компоненты
 import CosmicShellsToast from './components/CosmicShellsToast';
-import CosmicShellsStats from './components/CosmicShellsStats';
 import CosmicShellsBetPanel from './components/CosmicShellsBetPanel';
-import CosmicShellsGameResult from './components/CosmicShellsGameResult';
 import CosmicShellsGameHistory from './components/CosmicShellsGameHistory';
 import CosmicShellsHistoryModal from './components/CosmicShellsHistoryModal';
 import ShellsGameField from '../../../components/games/ShellsGameField';
@@ -36,7 +35,13 @@ const CosmicShellsGame: React.FC = () => {
   const t = getTranslation(i18n.language);
   
   // Хуки состояния
-  const { gameStatus, loading, loadGameStatus } = useGameStatus(player?.telegram_id);
+  const { 
+    gameStatus, 
+    loading, 
+    updateLocalStatus,
+    forceRefresh 
+  } = useGameStatus(player?.telegram_id);
+  
   const { 
     recentHistory, 
     fullHistory, 
@@ -47,17 +52,17 @@ const CosmicShellsGame: React.FC = () => {
     closeFullHistory, 
     refreshHistory 
   } = useGameHistory(player?.telegram_id);
+  
   const { toasts, showToast, removeToast } = useToastNotifications();
   
-  // Колбэк для обновления всех данных
+  // ✅ ПРОСТОЕ обновление данных
   const handleDataUpdate = useCallback(() => {
-    console.log('🎮 Frontend: Updating all game data...');
-    refreshPlayer();
-    loadGameStatus();
+    console.log('🛸 Simple data update...');
+    forceRefresh();
     refreshHistory();
-  }, [refreshPlayer, loadGameStatus, refreshHistory]);
+  }, [forceRefresh, refreshHistory]);
   
-  // Передаем колбэк в хук игры
+  // Хук игры с правильными параметрами
   const {
     gameState,
     betAmount,
@@ -148,104 +153,157 @@ const CosmicShellsGame: React.FC = () => {
 
       {/* Основной контент */}
       <div style={{ 
-        marginTop: '150px', 
-        paddingBottom: '100px',
+        marginTop: '120px',
+        paddingBottom: '80px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        flex: 1
+        flex: 1,
+        maxWidth: '100vw',
+        overflow: 'hidden'
       }}>
-        {/* Заголовок */}
+        {/* ✅ ИСПРАВЛЕН: Заголовок с мультиязычным подзаголовком */}
         <h1 style={{
           color: colorStyle,
           textShadow: `0 0 15px ${colorStyle}`,
-          fontSize: '2.5rem',
-          marginBottom: '20px',
+          fontSize: '2rem',
+          marginBottom: '5px',
           textAlign: 'center'
         }}>
           🛸 {t.title}
         </h1>
-
-        {/* Статистика */}
-        <CosmicShellsStats
-          gameStatus={gameStatus}
-          colorStyle={colorStyle}
-          t={t}
-        />
         
-        {/* Панель ставки */}
-        {gameState === 'waiting' && (
+        <p style={{
+          color: '#ccc',
+          fontSize: '1rem',
+          marginBottom: '15px',
+          textAlign: 'center'
+        }}>
+          {t.subtitle}
+        </p>
+
+        {/* ПОРЯДОК 1: Игровое поле с результатами ВНУТРИ - ФИКСИРОВАННАЯ ширина 93% */}
+        <div style={{
+          width: '93%',
+          marginBottom: '15px'
+        }}>
+          <div style={{
+            background: 'rgba(0,0,0,0.4)',
+            border: `2px solid ${colorStyle}`,
+            borderRadius: '15px',
+            padding: '20px',
+            boxShadow: `0 0 30px ${colorStyle}40`
+          }}>
+            <ShellsGameField
+              gameState={gameState}
+              onShellClick={makeChoice}
+              revealedPositions={gameResult?.positions}
+              winningPosition={gameResult?.winningPosition}
+              chosenPosition={gameResult?.chosenPosition}
+              colorStyle={colorStyle}
+              t={t}
+            />
+
+            {/* ✅ ПРОСТОЕ отображение результата */}
+            {gameState === 'finished' && gameResult && (
+              <div style={{
+                marginTop: '20px',
+                padding: '15px',
+                background: gameResult.isWin 
+                  ? `rgba(0, 255, 0, 0.1)` 
+                  : `rgba(255, 0, 0, 0.1)`,
+                border: `2px solid ${gameResult.isWin ? '#00ff00' : '#ff0000'}`,
+                borderRadius: '10px',
+                textAlign: 'center',
+                animation: 'fadeIn 0.5s ease-in'
+              }}>
+                <h3 style={{ 
+                  color: gameResult.isWin ? '#00ff00' : '#ff0000',
+                  marginBottom: '10px',
+                  fontSize: '1.2rem'
+                }}>
+                  {gameResult.isWin ? `🎉 ${t.win.toUpperCase()}!` : `💀 ${t.loss.toUpperCase()}!`}
+                </h3>
+                
+                <div style={{ color: '#ccc', lineHeight: '1.5', fontSize: '0.9rem' }}>
+                  <p>{t.bet}: {gameResult.betAmount.toLocaleString()} CCC</p>
+                  {gameResult.isWin ? (
+                    <>
+                      <p>{t.win}: <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                        {gameResult.winAmount.toLocaleString()} CCC
+                      </span></p>
+                      <p>{t.profit}: <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                        +{gameResult.profit.toLocaleString()} CCC
+                      </span></p>
+                    </>
+                  ) : (
+                    <p style={{ color: '#ff0000' }}>{t.lost}: {gameResult.betAmount.toLocaleString()} CCC</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* CSS для анимации */}
+            <style>
+              {`
+                @keyframes fadeIn {
+                  from { opacity: 0; transform: translateY(-10px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}
+            </style>
+          </div>
+        </div>
+
+        {/* ✅ ИСПРАВЛЕНО: Панель ставки ВСЕГДА видна (как в слотах) - активна/неактивна */}
+        <div style={{
+          width: '93%',
+          marginBottom: '15px'
+        }}>
           <CosmicShellsBetPanel
             gameStatus={gameStatus}
             betAmount={betAmount}
             onBetAmountChange={setBetAmount}
             onStartGame={startGame}
-            colorStyle={colorStyle}
-            t={t}
-          />
-        )}
-
-        {/* Игровое поле */}
-        <div style={{
-          width: '100%',
-          maxWidth: '600px',
-          overflow: 'hidden',
-          padding: '20px',
-          boxSizing: 'border-box'
-        }}>
-          <ShellsGameField
-            gameState={gameState}
-            onShellClick={makeChoice}
-            revealedPositions={gameResult?.positions}
-            winningPosition={gameResult?.winningPosition}
-            chosenPosition={gameResult?.chosenPosition}
+            isSpinning={gameState !== 'waiting'} // ✅ Передаем состояние для блокировки
             colorStyle={colorStyle}
             t={t}
           />
         </div>
 
-        {/* Результат игры */}
-        {gameState === 'finished' && gameResult && (
-          <CosmicShellsGameResult
-            gameResult={gameResult}
-            onNewGame={newGame}
-            colorStyle={colorStyle}
-            t={t}
-          />
-        )}
-
-        {/* Кнопки управления */}
+        {/* ПОРЯДОК 4: Кнопки РЕКЛАМА и НАЗАД - ФИКСИРОВАННАЯ ширина 93% */}
         <div style={{
           display: 'flex',
-          gap: '15px',
-          flexWrap: 'wrap',
+          gap: '10px',
           justifyContent: 'center',
-          marginTop: '30px'
+          marginBottom: '15px',
+          width: '93%'
         }}>
-          {/* Кнопка рекламы */}
+          {/* ✅ ИСПРАВЛЕНО: Кнопка рекламы с правильными лимитами напёрстков */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && (
             <button
               onClick={watchAd}
               disabled={isWatchingAd}
               style={{
-                padding: '12px 25px',
+                flex: '1',
+                padding: '12px 20px',
                 background: isWatchingAd 
                   ? 'rgba(128,128,128,0.3)'
-                  : `linear-gradient(45deg, ${warningColor}20, ${warningColor}40)`,
+                  : `linear-gradient(45deg, ${warningColor}, #ff8c00)`,
                 border: `2px solid ${isWatchingAd ? '#888' : warningColor}`,
-                borderRadius: '15px',
-                color: isWatchingAd ? '#888' : warningColor,
+                borderRadius: '10px',
+                color: isWatchingAd ? '#888' : '#fff',
                 cursor: isWatchingAd ? 'not-allowed' : 'pointer',
                 fontSize: '1rem',
                 fontWeight: 'bold',
                 textShadow: isWatchingAd ? 'none' : `0 0 10px ${warningColor}`,
-                transition: 'all 0.3s ease',
-                position: 'relative'
+                boxShadow: `0 0 20px ${warningColor}`,
+                transition: 'all 0.3s ease'
               }}
             >
               {isWatchingAd 
                 ? `⏳ ${t.watching}...` 
-                : `📺 ${t.extraGame} (${gameStatus.dailyAds || 0}/20)`
+                : `📺 ${t.extraGame} (${gameStatus.dailyAds}/10)`
               }
             </button>
           )}
@@ -255,50 +313,100 @@ const CosmicShellsGame: React.FC = () => {
             onClick={() => navigate('/games')}
             disabled={isWatchingAd}
             style={{
-              padding: '12px 25px',
-              background: isWatchingAd 
+              flex: (gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0) ? '1' : '0 0 200px',
+              padding: '12px 20px',
+              background: isWatchingAd
                 ? 'rgba(128,128,128,0.3)'
                 : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
               border: `2px solid ${isWatchingAd ? '#888' : colorStyle}`,
-              borderRadius: '15px',
+              borderRadius: '10px',
               color: isWatchingAd ? '#888' : colorStyle,
               cursor: isWatchingAd ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold',
               textShadow: isWatchingAd ? 'none' : `0 0 10px ${colorStyle}`,
+              boxShadow: `0 0 20px ${colorStyle}`,
               transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={e => {
-              if (!isWatchingAd) {
-                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (!isWatchingAd) {
-                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
-                e.currentTarget.style.transform = 'scale(1)';
-              }
             }}
           >
             ← {t.backToGames}
           </button>
         </div>
 
-        {/* Инструкция */}
+        {/* ✅ ИСПРАВЛЕНО: Информация о лимитах с мультиязычностью */}
         <div style={{
-          background: 'rgba(0,0,0,0.3)',
-          border: `1px solid ${colorStyle}`,
-          borderRadius: '15px',
-          padding: '20px',
-          marginTop: '30px',
-          maxWidth: '500px',
-          textAlign: 'center'
+          marginBottom: '15px',
+          padding: '12px',
+          background: 'rgba(0,0,0,0.4)',
+          border: `2px solid ${colorStyle}`,
+          borderRadius: '10px',
+          textAlign: 'center',
+          boxShadow: `0 0 20px ${colorStyle}`,
+          width: '93%'
         }}>
-          <h3 style={{ color: colorStyle, marginBottom: '15px' }}>
+          <div style={{ 
+            color: colorStyle, 
+            fontSize: '0.9rem',
+            marginBottom: '8px',
+            fontWeight: 'bold'
+          }}>
+            📊 {t.dailyStats}
+          </div>
+          <div style={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '8px',
+            fontSize: '0.8rem'
+          }}>
+            <div style={{ color: '#ccc' }}>
+              {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.dailyGames}
+              </span>
+            </div>
+            <div style={{ color: '#ccc' }}>
+              {t.gamesLeft}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.gamesLeft}
+              </span>
+            </div>
+            <div style={{ color: '#ccc' }}>
+              {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.dailyAds}/10
+              </span>
+            </div>
+            <div style={{ color: '#ccc' }}>
+              {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.balance.toLocaleString()} CCC
+              </span>
+            </div>
+          </div>
+          <div style={{ 
+            marginTop: '8px',
+            padding: '6px',
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            color: '#aaa'
+          }}>
+            {t.rtpInfo} | {t.limitInfo}
+          </div>
+        </div>
+
+        {/* ✅ ЗАКОММЕНТИРОВАНО: Инструкция (убрана нафиг, но не удалена) */}
+        {/*
+        <div style={{
+          background: 'rgba(0,0,0,0.4)',
+          border: `1px solid ${colorStyle}`,
+          borderRadius: '10px',
+          padding: '15px',
+          marginBottom: '15px',
+          textAlign: 'center',
+          width: '93%',
+          boxShadow: `0 0 20px ${colorStyle}`
+        }}>
+          <h3 style={{ color: colorStyle, marginBottom: '10px', fontSize: '1rem' }}>
             📖 {t.howToPlay}
           </h3>
-          <div style={{ color: '#ccc', lineHeight: '1.5', textAlign: 'left' }}>
+          <div style={{ color: '#ccc', lineHeight: '1.4', textAlign: 'left', fontSize: '0.8rem' }}>
             <p>🛸 <strong>{t.rule1}</strong></p>
             <p>🌌 <strong>{t.rule2}</strong></p>
             <p>🕳️ <strong>{t.rule3}</strong></p>
@@ -306,14 +414,19 @@ const CosmicShellsGame: React.FC = () => {
             <p>📺 <strong>{t.rule5}</strong></p>
           </div>
         </div>
+        */}
 
-        {/* История игр */}
-        <CosmicShellsGameHistory
-          recentHistory={recentHistory}
-          onShowFullHistory={openFullHistory}
-          colorStyle={colorStyle}
-          t={t}
-        />
+        {/* ПОРЯДОК 7: История игр - ФИКСИРОВАННАЯ ширина 93% */}
+        <div style={{
+          width: '93%'
+        }}>
+          <CosmicShellsGameHistory
+            recentHistory={recentHistory}
+            onShowFullHistory={openFullHistory}
+            colorStyle={colorStyle}
+            t={t}
+          />
+        </div>
       </div>
     </div>
   );

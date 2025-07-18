@@ -1,4 +1,5 @@
 // cosmic-shells/hooks/useGameStatus.ts
+// ✅ УНИФИЦИРОВАНО: Добавлены функции локального обновления как в слотах
 
 import { useState, useEffect, useCallback } from 'react';
 import { CosmicShellsStatus } from '../types';
@@ -40,12 +41,13 @@ export const useGameStatus = (telegramId: string | undefined) => {
       setError(null);
       const status = await CosmicShellsApi.getStatus(telegramId);
       
-      console.log('🎮 Frontend: Loaded game status from backend:', {
+      console.log('🛸 Frontend: Loaded game status from backend:', {
         dailyGames: status.dailyGames,
         dailyAds: status.dailyAds,
         gamesLeft: status.gamesLeft,
         canPlayFree: status.canPlayFree,
-        canWatchAd: status.canWatchAd
+        canWatchAd: status.canWatchAd,
+        balance: status.balance
       });
       
       setGameStatus(status);
@@ -55,11 +57,27 @@ export const useGameStatus = (telegramId: string | undefined) => {
       }
     } catch (err) {
       setError('Ошибка загрузки игры');
-      console.error('Load game status error:', err);
+      console.error('🛸❌ Load game status error:', err);
     } finally {
       setLoading(false);
     }
   }, [telegramId]);
+
+  // ✅ НОВАЯ ФУНКЦИЯ: Локальное обновление статуса без перезагрузки (как в слотах)
+  const updateLocalStatus = useCallback((newStatus: Partial<CosmicShellsStatus>) => {
+    setGameStatus(prev => ({
+      ...prev,
+      ...newStatus
+    }));
+    
+    console.log('🛸 Status updated locally:', newStatus);
+  }, []);
+
+  // ✅ НОВАЯ ФУНКЦИЯ: Принудительное обновление с сервера (для критических случаев)
+  const forceRefresh = useCallback(async () => {
+    console.log('🛸 Force refreshing status from server...');
+    await loadGameStatus();
+  }, [loadGameStatus]);
 
   // Загрузка при монтировании
   useEffect(() => {
@@ -70,8 +88,8 @@ export const useGameStatus = (telegramId: string | undefined) => {
     gameStatus,
     loading,
     error,
-    loadGameStatus
+    loadGameStatus,
+    updateLocalStatus, // ✅ Экспортируем новую функцию
+    forceRefresh // ✅ Экспортируем принудительное обновление
   };
 };
-
-export {};

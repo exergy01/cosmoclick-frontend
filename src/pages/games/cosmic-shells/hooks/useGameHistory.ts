@@ -1,5 +1,5 @@
- 
 // cosmic-shells/hooks/useGameHistory.ts
+// ✅ СОЗДАН: Недостающий хук для истории игр
 
 import { useState, useCallback } from 'react';
 import { GameHistory } from '../types';
@@ -21,7 +21,7 @@ export const useGameHistory = (telegramId: string | undefined) => {
         setRecentHistory(response.history || []);
       }
     } catch (err) {
-      console.error('Error loading recent game history:', err);
+      console.error('Error loading recent cosmic shells history:', err);
     }
   }, [telegramId]);
 
@@ -36,7 +36,7 @@ export const useGameHistory = (telegramId: string | undefined) => {
         setFullHistory(response.history || []);
       }
     } catch (err) {
-      console.error('Error loading full game history:', err);
+      console.error('Error loading full cosmic shells history:', err);
     } finally {
       setHistoryLoading(false);
     }
@@ -72,4 +72,4 @@ export const useGameHistory = (telegramId: string | undefined) => {
     closeFullHistory,
     refreshHistory
   };
-};export {}; 
+};

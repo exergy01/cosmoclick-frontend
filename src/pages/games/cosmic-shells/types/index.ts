@@ -1,4 +1,5 @@
 // cosmic-shells/types/index.ts
+// ✅ ИСПРАВЛЕНО: Добавлены все недостающие поля
 
 export interface ToastNotification {
   id: number;
@@ -66,12 +67,11 @@ export interface GameResult {
   error?: string;
 }
 
-// ИСПРАВЛЕНО: Добавлены новые поля для прогресса рекламы
 export interface AdWatchResult {
   success: boolean;
   adsRemaining: number;
-  adsWatched?: number;  // ДОБАВЛЕНО
-  maxAds?: number;      // ДОБАВЛЕНО
+  adsWatched?: number;
+  maxAds?: number;
   message?: string;
   error?: string;
 }
@@ -88,6 +88,7 @@ export type GameState = 'waiting' | 'shuffling' | 'choosing' | 'revealing' | 'fi
 
 export interface CosmicShellsTranslations {
   title: string;
+  subtitle: string; // ✅ ДОБАВЛЕНО
   howToPlay: string;
   rule1: string;
   rule2: string;
@@ -123,6 +124,15 @@ export interface CosmicShellsTranslations {
   emptyHistory: string;
   makeBetToStart: string;
   choose: string;
+  dailyStats: string; // ✅ ДОБАВЛЕНО
+  gamesPlayed: string; // ✅ ДОБАВЛЕНО
+  adsWatched: string; // ✅ ДОБАВЛЕНО
+  balance: string; // ✅ ДОБАВЛЕНО
+  totalGames: string; // ✅ ДОБАВЛЕНО
+  close: string; // ✅ ДОБАВЛЕНО
+  autoHiding: string; // ✅ ДОБАВЛЕНО
+  rtpInfo: string; // ✅ ДОБАВЛЕНО
+  limitInfo: string; // ✅ ДОБАВЛЕНО
   gameStates: {
     waiting: string;
     shuffling: string;

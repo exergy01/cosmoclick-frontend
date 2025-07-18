@@ -1,10 +1,12 @@
 // cosmic-shells/locales/index.ts
+// ✅ ИСПРАВЛЕНО: Полная правильная локализация без ошибок
 
 import { CosmicShellsTranslations } from '../types';
 
 export const translations: Record<string, CosmicShellsTranslations> = {
   ru: {
     title: 'Космические Напёрстки',
+    subtitle: 'Найди галактику среди черных дыр',
     howToPlay: 'Как играть',
     rule1: 'Сделайте ставку и выберите тарелку',
     rule2: 'Найдите галактику среди черных дыр',
@@ -40,6 +42,15 @@ export const translations: Record<string, CosmicShellsTranslations> = {
     emptyHistory: 'История игр пуста',
     makeBetToStart: 'Сделайте ставку чтобы начать игру',
     choose: 'Выбрать',
+    dailyStats: 'Статистика дня',
+    gamesPlayed: 'Игр сегодня',
+    adsWatched: 'Реклам просмотрено',
+    balance: 'Баланс',
+    totalGames: 'Всего игр', // ✅ ДОБАВЛЕНО
+    close: 'Закрыть', // ✅ ДОБАВЛЕНО
+    autoHiding: 'Автоматически скроется через 3 секунды...', // ✅ ДОБАВЛЕНО
+    rtpInfo: 'Шанс выигрыша: 33%',
+    limitInfo: 'Лимит: 250 игр/день (25 + 10 реклам × 20)',
     gameStates: {
       waiting: 'Сделайте ставку чтобы начать игру',
       shuffling: 'Тарелки перемешиваются...',
@@ -66,6 +77,7 @@ export const translations: Record<string, CosmicShellsTranslations> = {
   },
   en: {
     title: 'Cosmic Shells',
+    subtitle: 'Find the galaxy among black holes',
     howToPlay: 'How to Play',
     rule1: 'Place your bet and choose a shell',
     rule2: 'Find the galaxy among black holes',
@@ -101,6 +113,15 @@ export const translations: Record<string, CosmicShellsTranslations> = {
     emptyHistory: 'Game history is empty',
     makeBetToStart: 'Place bet to start game',
     choose: 'Choose',
+    dailyStats: 'Daily Statistics',
+    gamesPlayed: 'Games Today',
+    adsWatched: 'Ads Watched',
+    balance: 'Balance',
+    totalGames: 'Total Games', // ✅ ДОБАВЛЕНО
+    close: 'Close', // ✅ ДОБАВЛЕНО
+    autoHiding: 'Auto-hiding in 3 seconds...', // ✅ ДОБАВЛЕНО
+    rtpInfo: 'Win chance: 33%',
+    limitInfo: 'Limit: 250 games/day (25 + 10 ads × 20)',
     gameStates: {
       waiting: 'Place bet to start game',
       shuffling: 'Shells shuffling...',
@@ -127,7 +148,7 @@ export const translations: Record<string, CosmicShellsTranslations> = {
   }
 };
 
-// ИСПРАВЛЕНО: Правильный fallback на английский для неизвестных языков
+// ✅ ИСПРАВЛЕНО: Правильный fallback на английский для неизвестных языков
 export const getTranslation = (language: string): CosmicShellsTranslations => {
   // Сначала проверяем точное совпадение
   if (translations[language]) {
@@ -143,5 +164,3 @@ export const getTranslation = (language: string): CosmicShellsTranslations => {
   // Fallback на английский вместо русского
   return translations.en;
 };
-
-export {};

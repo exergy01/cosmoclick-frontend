@@ -1,7 +1,8 @@
 // cosmic-shells/hooks/useCosmicShellsGame.ts
+// ✅ ПРОСТАЯ РАБОЧАЯ ВЕРСИЯ без экспериментов
 
 import { useState, useCallback, useEffect } from 'react';
-import { GameState, GameResult } from '../types';
+import { GameState, GameResult, CosmicShellsStatus } from '../types';
 import { CosmicShellsApi } from '../services/cosmicShellsApi';
 import { validateBet, isBigBet } from '../utils/gameLogic';
 import { formatTranslation } from '../utils/formatters';
@@ -9,7 +10,7 @@ import { adService } from '../../../../services/adsgramService';
 
 export const useCosmicShellsGame = (
   telegramId: string | undefined,
-  gameStatus: any,
+  gameStatus: CosmicShellsStatus,
   showToast: (message: string, type?: 'success' | 'error' | 'warning', duration?: number) => void,
   t: any,
   onDataUpdate?: () => void
@@ -20,42 +21,25 @@ export const useCosmicShellsGame = (
   const [gameResult, setGameResult] = useState<GameResult['result'] | null>(null);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
 
-  // Инициализация рекламного сервиса с диагностикой
+  // Инициализация рекламного сервиса
   useEffect(() => {
     const initAds = async () => {
       try {
-        // Ваш Block ID от Adsgram (только числовая часть)
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
-        
-        console.log('🎯 Starting ad service initialization...');
-        console.log('🎯 Block ID from env:', ADSGRAM_BLOCK_ID);
-        console.log('🎯 Block ID type:', typeof ADSGRAM_BLOCK_ID);
-        console.log('🎯 Environment variables:', {
-          nodeEnv: process.env.NODE_ENV,
-          hasBlockId: !!ADSGRAM_BLOCK_ID
-        });
-        
         await adService.initialize(ADSGRAM_BLOCK_ID);
-        
-        const providerInfo = adService.getProviderInfo();
-        console.log('🎯✅ Ad Service initialization complete:', providerInfo);
-        
-        if (providerInfo.name === 'mock') {
-          console.log('🎯ℹ️ Using Mock ads - в реальном Telegram будет Adsgram');
-        }
-        
+        console.log('🛸 Ad Service initialized');
       } catch (error) {
-        console.error('🎯❌ Ad service initialization failed:', error);
+        console.error('🛸❌ Ad service initialization failed:', error);
       }
     };
-
     initAds();
   }, []);
 
+  // Простая функция startGame
   const startGame = useCallback(async () => {
     if (!telegramId || gameState !== 'waiting') return;
     
-    console.log('🎮 Frontend: Starting game with backend validation');
+    console.log('🛸 Starting game with bet:', betAmount);
     
     // Валидация ставки
     const validation = validateBet(betAmount, gameStatus.minBet, gameStatus.maxBet, gameStatus.balance);
@@ -69,7 +53,7 @@ export const useCosmicShellsGame = (
     }
 
     // Проверка лимитов
-    if (!gameStatus.canPlayFree && !gameStatus.canWatchAd) {
+    if (!gameStatus.canPlayFree) {
       showToast(t.errors.dailyLimit, 'warning');
       return;
     }
@@ -88,9 +72,9 @@ export const useCosmicShellsGame = (
         setGameState('shuffling');
         setGameResult(null);
         
-        console.log('🎮 Frontend: Game started successfully');
+        console.log('🛸 Game started successfully');
         
-        // Автоматически переходим к выбору через 5 секунд
+        // Переходим к выбору через 5 секунд
         setTimeout(() => {
           setGameState('choosing');
         }, 5000);
@@ -103,6 +87,7 @@ export const useCosmicShellsGame = (
     }
   }, [telegramId, gameState, betAmount, gameStatus, showToast, t]);
 
+  // Простая функция makeChoice
   const makeChoice = useCallback(async (position: number) => {
     if (!telegramId || !currentGameId || gameState !== 'choosing') return;
     
@@ -113,8 +98,6 @@ export const useCosmicShellsGame = (
       
       if (result.success && result.result) {
         setGameResult(result.result);
-        
-        console.log('🎮 Frontend: Game completed, backend manages all data');
         
         // Показываем результат через 2 секунды
         setTimeout(() => {
@@ -133,10 +116,18 @@ export const useCosmicShellsGame = (
             showToast(message, 'error', 4000);
           }
           
-          // Обновляем данные после завершения игры
-          if (onDataUpdate) {
-            setTimeout(onDataUpdate, 2000);
-          }
+          // Автоматически скрываем результат через 4 секунды
+          setTimeout(() => {
+            setGameState('waiting');
+            setGameResult(null);
+            setCurrentGameId(null);
+            
+            // Обновляем данные
+            if (onDataUpdate) {
+              onDataUpdate();
+            }
+          }, 4000);
+          
         }, 2000);
         
       } else {
@@ -155,113 +146,77 @@ export const useCosmicShellsGame = (
     setGameResult(null);
   }, []);
 
-  // Улучшенный просмотр рекламы с диагностикой
+  // Простая функция watchAd
   const watchAd = useCallback(async () => {
-    if (!telegramId || !gameStatus.canWatchAd || isWatchingAd) {
-      console.log('🎯 Ad watch blocked:', {
-        hasTelegramId: !!telegramId,
-        canWatchAd: gameStatus.canWatchAd,
-        isWatchingAd
-      });
-      return;
-    }
+    if (!telegramId || !gameStatus.canWatchAd || isWatchingAd) return;
     
     setIsWatchingAd(true);
     
     try {
-      console.log('🎯 Starting ad watch process...');
+      console.log('🛸 Starting ad watch...');
       
-      // Проверяем инициализацию сервиса
-      const providerInfo = adService.getProviderInfo();
-      console.log('🎯 Current ad service state:', providerInfo);
-      
-      // Проверяем доступность рекламного сервиса
-      const isServiceAvailable = adService.isAvailable();
-      console.log('🎯 Ad service availability:', isServiceAvailable);
-      
-      if (!isServiceAvailable) {
-        // Пытаемся переинициализировать
-        console.log('🎯 Service not available, attempting re-initialization...');
-        await adService.initialize(); // Без Block ID
-        
+      if (!adService.isAvailable()) {
+        await adService.initialize();
         if (!adService.isAvailable()) {
-          showToast('Ad service unavailable. Please rotate screen to portrait mode.', 'error');
+          showToast('Ad service unavailable', 'error');
           return;
         }
       }
       
-      console.log('🎯 Ad service confirmed available, showing ad...');
-      
-      // Показываем рекламу через Adsgram или Mock
       const adResult = await adService.showRewardedAd();
-      console.log('🎯 Ad result received:', adResult);
       
       if (adResult.success) {
-        console.log('🎯 Ad watched successfully, notifying backend...');
-        
-        // Уведомляем backend о просмотре рекламы
         const apiResult = await CosmicShellsApi.watchAd(telegramId);
-        console.log('🎯 Backend API result:', apiResult);
         
         if (apiResult.success) {
-          console.log('🎯✅ Ad reward processed successfully');
-          
-          // Формируем сообщение с информацией о провайдере
-          let message = '🎮 Extra game received!';
+          let message = '🛸 Extra game received!';
           if (apiResult.adsWatched && apiResult.maxAds) {
-            message = `🎮 Extra game received! (${apiResult.adsWatched}/${apiResult.maxAds})`;
-          } else if (apiResult.message) {
-            message = apiResult.message;
-          }
-          
-          // Добавляем информацию о типе рекламы
-          const currentProvider = adService.getProviderInfo();
-          if (currentProvider.name === 'mock') {
-            message += ' [Тест]';
-          } else if (currentProvider.name === 'roboforex') {
-            message += ' [Partner]';
-          } else {
-            message += ' [Ad]';
+            message = `🛸 Extra game received! (${apiResult.adsWatched}/${apiResult.maxAds})`;
           }
           
           showToast(message, 'success', 4000);
           
-          // Обновляем данные после успешного просмотра
+          // Обновляем данные
           if (onDataUpdate) {
-            console.log('🎯 Scheduling data update...');
-            setTimeout(() => {
-              onDataUpdate();
-            }, 2000);
+            onDataUpdate();
           }
           
         } else {
-          console.error('🎯❌ Backend API error:', apiResult.error);
           showToast(apiResult.error || 'Ошибка обработки награды', 'error');
         }
       } else {
-        console.error('🎯❌ Ad service error:', adResult.error);
-        let errorMessage = 'Failed to show advertisement';
-        if (adResult.debug) {
-          console.log('🎯 Debug info:', adResult.debug);
-        }
-        showToast(adResult.error || errorMessage, 'error');
+        showToast(adResult.error || 'Failed to show advertisement', 'error');
       }
       
     } catch (error) {
-      console.error('🎯❌ Watch ad error:', error);
+      console.error('🛸❌ Watch ad error:', error);
       showToast('An error occurred while showing advertisement', 'error');
     } finally {
-      // Убираем статус просмотра через задержку для плавности UI
       setTimeout(() => {
         setIsWatchingAd(false);
       }, 1000);
     }
-  }, [telegramId, gameStatus.canWatchAd, isWatchingAd, showToast, t, onDataUpdate]);
+  }, [telegramId, gameStatus.canWatchAd, isWatchingAd, showToast, onDataUpdate]);
+
+  // Безопасная установка ставки
+  const setBetAmountSafe = useCallback((amount: number) => {
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || !isFinite(numAmount)) {
+      return;
+    }
+    
+    const clampedAmount = Math.max(
+      gameStatus.minBet, 
+      Math.min(numAmount, gameStatus.maxBet, gameStatus.balance)
+    );
+    
+    setBetAmount(clampedAmount);
+  }, [gameStatus.minBet, gameStatus.maxBet, gameStatus.balance]);
 
   return {
     gameState,
     betAmount,
-    setBetAmount,
+    setBetAmount: setBetAmountSafe,
     currentGameId,
     gameResult,
     isWatchingAd,
