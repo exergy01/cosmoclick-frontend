@@ -32,9 +32,9 @@ export const getTranslation = (language: string) => {
         gamesRemaining: 'Игр осталось',
         adsWatched: 'Реклам',
         balance: 'Баланс',
-        rtpInfo: 'RTP: ~75%',
-        autoSpinInfo: 'Автоспин: до 100 спинов',
-        limitInfo: 'Лимит: 250 игр/день',
+        rtpInfo: 'RTP: ~72%',
+        autoSpinInfo: 'Автоспин: до 20 спинов',
+        limitInfo: 'Лимит: 250 игр/день (50 + 10 реклам × 20)',
         payoutTable: 'Таблица выплат',
         spinningReels: 'Барабаны вращаются...',
         nextSpin: 'Следующий спин',
@@ -42,6 +42,12 @@ export const getTranslation = (language: string) => {
         waiting: 'ожидание...',
         autoSpinActive: 'Автоспин активен',
         spinsCount: 'спинов',
+        dailyTotal: 'Всего за день',
+        watchAdForGames: 'Смотрите рекламу для дополнительных игр',
+        wildComboInfo: '(при комбинации 5x 🌟 WILD x2)',
+        totalGames: 'Всего игр',
+        emptyHistory: 'История игр пуста',
+        close: 'Закрыть',
         gameStates: {
           waiting: 'Готов к игре',
           spinning: 'Вращение барабанов...',
@@ -49,8 +55,8 @@ export const getTranslation = (language: string) => {
           finished: 'Игра завершена'
         },
         errors: {
-          betTooLow: 'Минимальная ставка 100 CCC',
-          betTooHigh: 'Максимальная ставка 5,000 CCC',
+          betTooLow: 'Минимальная ставка {min} CCC',
+          betTooHigh: 'Максимальная ставка {max} CCC',
           insufficientFunds: 'Недостаточно средств',
           dailyLimit: 'Лимит игр исчерпан',
           spinError: 'Ошибка спина',
@@ -59,13 +65,13 @@ export const getTranslation = (language: string) => {
           adServiceUnavailable: 'Рекламный сервис недоступен'
         },
         notifications: {
-          winMessage: 'Выигрыш!',
-          bigWinMessage: 'Большой выигрыш!',
+          winMessage: 'Выигрыш',
+          bigWinMessage: 'Большой выигрыш',
           excellentWinMessage: 'ОТЛИЧНЫЙ ВЫИГРЫШ',
           goodWinMessage: 'ХОРОШИЙ ВЫИГРЫШ',
           lossMessage: 'Проигрыш',
           extraGameReceived: 'Дополнительная игра получена!',
-          autoSpinCompleted: 'Автоспин завершен! Выполнено 100 спинов',
+          autoSpinCompleted: 'Автоспин завершен! Выполнено 20 спинов',
           autoSpinStopped: 'Автоспин остановлен! Выполнено {count} спинов',
           gamesEnded: 'Игры закончились, автоспин остановлен',
           insufficientBalance: 'Недостаточно средств ({balance} < {bet})',
@@ -85,8 +91,8 @@ export const getTranslation = (language: string) => {
           blocksPaylines: 'БЛОКИРУЕТ линии выплат',
           multipliers: 'Коэффициенты для 3/4/5 символов в ряд',
           activePaylines: 'активных линий выплат',
-          fixedRtp: 'ИСПРАВЛЕНО: 25% шанс выигрыша, RTP ~75%',
-          dailyLimit: 'Лимит: 50 игр + 200 за рекламу = 250 игр/день'
+          fixedRtp: 'ИСПРАВЛЕНО: 20% шанс выигрыша, RTP ~72%',
+          dailyLimit: 'Лимит: 50 игр + 10 реклам × 20 игр = 250 игр/день'
         },
         winMessages: {
           excellentWin: 'ОТЛИЧНЫЙ ВЫИГРЫШ: {amount} CCC!',
@@ -131,9 +137,9 @@ export const getTranslation = (language: string) => {
         gamesRemaining: 'Games Left',
         adsWatched: 'Ads Watched',
         balance: 'Balance',
-        rtpInfo: 'RTP: ~75%',
-        autoSpinInfo: 'Auto Spin: up to 100 spins',
-        limitInfo: 'Limit: 250 games/day',
+        rtpInfo: 'RTP: ~72%',
+        autoSpinInfo: 'Auto Spin: up to 20 spins',
+        limitInfo: 'Limit: 250 games/day (50 + 10 ads × 20)',
         payoutTable: 'Payout Table',
         spinningReels: 'Spinning Reels...',
         nextSpin: 'Next Spin',
@@ -141,6 +147,12 @@ export const getTranslation = (language: string) => {
         waiting: 'waiting...',
         autoSpinActive: 'Auto Spin Active',
         spinsCount: 'spins',
+        dailyTotal: 'Total Today',
+        watchAdForGames: 'Watch ads for extra games',
+        wildComboInfo: '(with 5x 🌟 WILD x2 combo)',
+        totalGames: 'Total Games',
+        emptyHistory: 'Game history is empty',
+        close: 'Close',
         gameStates: {
           waiting: 'Ready to Play',
           spinning: 'Spinning Reels...',
@@ -148,8 +160,8 @@ export const getTranslation = (language: string) => {
           finished: 'Game Completed'
         },
         errors: {
-          betTooLow: 'Minimum bet 100 CCC',
-          betTooHigh: 'Maximum bet 5,000 CCC',
+          betTooLow: 'Minimum bet {min} CCC',
+          betTooHigh: 'Maximum bet {max} CCC',
           insufficientFunds: 'Insufficient funds',
           dailyLimit: 'Daily limit exceeded',
           spinError: 'Spin error',
@@ -164,7 +176,7 @@ export const getTranslation = (language: string) => {
           goodWinMessage: 'GOOD WIN',
           lossMessage: 'Loss',
           extraGameReceived: 'Extra game received!',
-          autoSpinCompleted: 'Auto spin completed! 100 spins done',
+          autoSpinCompleted: 'Auto spin completed! 20 spins done',
           autoSpinStopped: 'Auto spin stopped! {count} spins completed',
           gamesEnded: 'Games ended, auto spin stopped',
           insufficientBalance: 'Insufficient funds ({balance} < {bet})',
@@ -184,8 +196,8 @@ export const getTranslation = (language: string) => {
           blocksPaylines: 'BLOCKS paylines',
           multipliers: 'Multipliers for 3/4/5 symbols in a row',
           activePaylines: 'active paylines',
-          fixedRtp: 'FIXED: 25% win chance, RTP ~75%',
-          dailyLimit: 'Limit: 50 games + 200 for ads = 250 games/day'
+          fixedRtp: 'FIXED: 20% win chance, RTP ~72%',
+          dailyLimit: 'Limit: 50 games + 10 ads × 20 games = 250 games/day'
         },
         winMessages: {
           excellentWin: 'EXCELLENT WIN: {amount} CCC!',

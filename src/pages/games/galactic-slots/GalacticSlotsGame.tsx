@@ -243,58 +243,58 @@ const GalacticSlotsGame: React.FC = () => {
         }}>
           {/* Кнопка автоспина */}
           {(gameStatus.canPlayFree || autoSpinActive) && (
-            <button
-              onClick={autoSpinActive ? stopAutoSpin : autoSpin}
-              disabled={isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)}
-              style={{
-                padding: '12px 25px',
-                background: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive))
-                  ? 'rgba(128,128,128,0.3)'
-                  : autoSpinActive
-                    ? `linear-gradient(45deg, #ff4444, #cc0000)`
-                    : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
-                border: `2px solid ${(isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#ff4444' : colorStyle}`,
-                borderRadius: '15px',
-                color: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#fff' : colorStyle,
-                cursor: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'not-allowed' : 'pointer',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                textShadow: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'none' : `0 0 10px ${autoSpinActive ? '#ff4444' : colorStyle}`,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {autoSpinActive 
-                ? `🛑 ${t.stopAutoSpin} (${autoSpinCount}/100)`
-                : `🔄 ${t.autoSpin}`
-              }
-            </button>
-          )}
+  <button
+    onClick={autoSpinActive ? stopAutoSpin : autoSpin}
+    disabled={isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)}
+    style={{
+      padding: '12px 25px',
+      background: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive))
+        ? 'rgba(128,128,128,0.3)'
+        : autoSpinActive
+          ? `linear-gradient(45deg, #ff4444, #cc0000)`
+          : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
+      border: `2px solid ${(isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#ff4444' : colorStyle}`,
+      borderRadius: '15px',
+      color: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#fff' : colorStyle,
+      cursor: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'not-allowed' : 'pointer',
+      fontSize: '1rem',
+      fontWeight: 'bold',
+      textShadow: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'none' : `0 0 10px ${autoSpinActive ? '#ff4444' : colorStyle}`,
+      transition: 'all 0.3s ease'
+    }}
+  >
+    {autoSpinActive 
+      ? `🛑 ${t.stopAutoSpin} (${autoSpinCount}/20)`  // ✅ ИСПРАВЛЕНО: /20 вместо /100
+      : `🔄 ${t.autoSpin}`
+    }
+  </button>
+)}
 
           {/* Кнопка рекламы */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && !autoSpinActive && (
-            <button
-              onClick={watchAd}
-              disabled={isWatchingAd}
-              style={{
-                padding: '12px 25px',
-                background: isWatchingAd 
-                  ? 'rgba(128,128,128,0.3)'
-                  : `linear-gradient(45deg, #ffa500, #ff8c00)`,
-                border: `2px solid ${isWatchingAd ? '#888' : '#ffa500'}`,
-                borderRadius: '15px',
-                color: isWatchingAd ? '#888' : '#fff',
-                cursor: isWatchingAd ? 'not-allowed' : 'pointer',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                textShadow: isWatchingAd ? 'none' : `0 0 10px #ffa500`
-              }}
-            >
-              {isWatchingAd 
-                ? `⏳ ${t.watching}...` 
-                : `📺 ${t.extraGame} (${gameStatus.dailyAds}/200)`
-              }
-            </button>
-          )}
+  <button
+    onClick={watchAd}
+    disabled={isWatchingAd}
+    style={{
+      padding: '12px 25px',
+      background: isWatchingAd 
+        ? 'rgba(128,128,128,0.3)'
+        : `linear-gradient(45deg, #ffa500, #ff8c00)`,
+      border: `2px solid ${isWatchingAd ? '#888' : '#ffa500'}`,
+      borderRadius: '15px',
+      color: isWatchingAd ? '#888' : '#fff',
+      cursor: isWatchingAd ? 'not-allowed' : 'pointer',
+      fontSize: '1rem',
+      fontWeight: 'bold',
+      textShadow: isWatchingAd ? 'none' : `0 0 10px #ffa500`
+    }}
+  >
+    {isWatchingAd 
+      ? `⏳ ${t.watching}...` 
+      : `📺 +20 ${t.extraGame} (${gameStatus.dailyAds}/10)`  // ✅ ИСПРАВЛЕНО: +20 игр, /10 реклам
+    }
+  </button>
+)}
 
           {/* Кнопка назад */}
           <button
@@ -320,29 +320,29 @@ const GalacticSlotsGame: React.FC = () => {
 
         {/* Статус автоспина */}
         {autoSpinActive && (
-          <div style={{
-            marginTop: '15px',
-            padding: '15px 25px',
-            background: 'rgba(255,68,68,0.2)',
-            border: '2px solid #ff4444',
-            borderRadius: '10px',
-            color: '#ff4444',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            textShadow: '0 0 10px #ff4444',
-            boxShadow: '0 0 20px rgba(255,68,68,0.3)'
-          }}>
-            🔄 {formatTranslation(t.autoSpinActive + ': {count}/100 ' + t.spinsCount, { count: autoSpinCount })}
-            <div style={{ 
-              fontSize: '0.9rem', 
-              marginTop: '5px',
-              color: '#ffaaaa'
-            }}>
-              {t.nextSpin} {gameState === 'waiting' ? t.ready : t.waiting}
-            </div>
-          </div>
-        )}
+  <div style={{
+    marginTop: '15px',
+    padding: '15px 25px',
+    background: 'rgba(255,68,68,0.2)',
+    border: '2px solid #ff4444',
+    borderRadius: '10px',
+    color: '#ff4444',
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadow: '0 0 10px #ff4444',
+    boxShadow: '0 0 20px rgba(255,68,68,0.3)'
+  }}>
+    🔄 {formatTranslation(t.autoSpinActive + ': {count}/20 ' + t.spinsCount, { count: autoSpinCount })}  {/* ✅ ИСПРАВЛЕНО: /20 */}
+    <div style={{ 
+      fontSize: '0.9rem', 
+      marginTop: '5px',
+      color: '#ffaaaa'
+    }}>
+      {t.nextSpin} {gameState === 'waiting' ? t.ready : t.waiting}
+    </div>
+  </div>
+)}
 
         {/* Информация о лимитах */}
         <div style={{
@@ -364,32 +364,32 @@ const GalacticSlotsGame: React.FC = () => {
             📊 {t.dailyStats}
           </div>
           <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '10px',
-            fontSize: '0.9rem'
-          }}>
-            <div style={{ color: '#ccc' }}>
-              {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                {gameStatus.dailyGames}
-              </span>
-            </div>
-            <div style={{ color: '#ccc' }}>
-              {t.gamesRemaining}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                {gameStatus.gamesLeft}
-              </span>
-            </div>
-            <div style={{ color: '#ccc' }}>
-              {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                {gameStatus.dailyAds}/200
-              </span>
-            </div>
-            <div style={{ color: '#ccc' }}>
-              {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                {gameStatus.balance.toLocaleString()} CCC
-              </span>
-            </div>
-          </div>
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, 1fr)',
+  gap: '10px',
+  fontSize: '0.9rem'
+}}>
+  <div style={{ color: '#ccc' }}>
+    {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+      {gameStatus.dailyGames}
+    </span>
+  </div>
+  <div style={{ color: '#ccc' }}>
+    {t.gamesRemaining}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+      {gameStatus.gamesLeft}
+    </span>
+  </div>
+  <div style={{ color: '#ccc' }}>
+  {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+    {gameStatus.dailyAds}/10  {/* ✅ ИСПРАВЛЕНО: /10 вместо /20 */}
+  </span>
+</div>
+  <div style={{ color: '#ccc' }}>
+    {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+      {gameStatus.balance.toLocaleString()} CCC
+    </span>
+  </div>
+</div>
           <div style={{ 
             marginTop: '10px',
             padding: '8px',

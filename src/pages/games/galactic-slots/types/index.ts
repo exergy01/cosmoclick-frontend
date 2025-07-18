@@ -1,4 +1,5 @@
 // galactic-slots/types/index.ts
+// ⚠️ ВАЖНО: Полностью заменить весь файл на этот код!
 
 export type SlotSymbol = '🌟' | '🚀' | '🌌' | '⭐' | '🌍' | '☄️' | '🛸';
 
@@ -172,5 +173,3 @@ export interface SlotTranslations {
     extraGameReceived: string;
   };
 }
-
-export {};

@@ -112,7 +112,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
             fontSize: '1.1rem'
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '15px' }}>📊</div>
-            {t.loading === 'Загрузка...' ? 'История игр пуста' : 'Game history is empty'}
+            {t.emptyHistory}
           </div>
         ) : (
           <>
@@ -132,7 +132,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                   {gameHistory.length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.loading === 'Загрузка...' ? 'Всего игр' : 'Total Games'}
+                  {t.totalGames}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -298,7 +298,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            {t.loading === 'Загрузка...' ? 'Закрыть' : 'Close'}
+            {t.close}
           </button>
         </div>
       </div>

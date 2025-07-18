@@ -100,7 +100,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
           fontWeight: 'bold',
           animation: 'pulse 1s infinite'
         }}>
-          🎰 Барабаны вращаются...
+          🎰 {t.spinningReels}
         </div>
       )}
 
@@ -231,7 +231,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ color: '#ccc', fontSize: '0.9rem', marginBottom: '5px' }}>
-          Максимальный выигрыш:
+          {t.possibleWin}:
         </div>
         <div style={{ 
           color: colorStyle, 
@@ -246,7 +246,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
           fontSize: '0.8rem', 
           marginTop: '5px'
         }}>
-          (при комбинации 5x 🌟 WILD x2)
+          {t.wildComboInfo}
         </div>
       </div>
 
@@ -318,11 +318,11 @@ const BetPanel: React.FC<BetPanelProps> = ({
           </span>
         </div>
         <div style={{ fontSize: '0.8rem' }}>
-          Всего за день: {gameStatus.dailyGames} | Реклам: {gameStatus.dailyAds}/200
+          {t.dailyTotal}: {gameStatus.dailyGames} | {t.adsWatched}: {gameStatus.dailyAds}/200
         </div>
         {!gameStatus.canPlayFree && gameStatus.canWatchAd && (
           <div style={{ color: '#ffa500', marginTop: '5px', fontSize: '0.8rem' }}>
-            📺 Смотрите рекламу для дополнительных игр
+            📺 {t.watchAdForGames}
           </div>
         )}
       </div>
