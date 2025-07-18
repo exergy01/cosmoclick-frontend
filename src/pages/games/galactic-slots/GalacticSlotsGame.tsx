@@ -180,19 +180,21 @@ const GalacticSlotsGame: React.FC = () => {
 
       {/* Основной контент */}
       <div style={{ 
-        marginTop: '150px', 
-        paddingBottom: '100px',
+        marginTop: '120px',
+        paddingBottom: '80px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        flex: 1
+        flex: 1,
+        maxWidth: '100vw',
+        overflow: 'hidden'
       }}>
-        {/* Заголовок */}
+        {/* Заголовок - компактный */}
         <h1 style={{
           color: colorStyle,
           textShadow: `0 0 15px ${colorStyle}`,
-          fontSize: '2.5rem',
-          marginBottom: '10px',
+          fontSize: '2rem',
+          marginBottom: '5px',
           textAlign: 'center'
         }}>
           🎰 {t.title}
@@ -200,18 +202,17 @@ const GalacticSlotsGame: React.FC = () => {
         
         <p style={{
           color: '#ccc',
-          fontSize: '1.2rem',
-          marginBottom: '30px',
+          fontSize: '1rem',
+          marginBottom: '15px',
           textAlign: 'center'
         }}>
           {t.subtitle}
         </p>
 
-        {/* Слот-машина */}
+        {/* Слот-машина - ФИКСИРОВАННАЯ ширина 93% */}
         <div style={{
-          width: '100%',
-          maxWidth: '500px',
-          marginBottom: '20px'
+          width: '93%',
+          marginBottom: '15px'
         }}>
           <SlotMachine
             gameState={gameState}
@@ -221,250 +222,244 @@ const GalacticSlotsGame: React.FC = () => {
           />
         </div>
 
-        {/* Панель ставок */}
-        <BetPanel
-          gameStatus={gameStatus}
-          betAmount={betAmount}
-          onBetAmountChange={setBetAmount}
-          onSpin={spin}
-          onMaxBet={setMaxBet}
-          isSpinning={gameState !== 'waiting'}
-          colorStyle={colorStyle}
-          t={t}
-        />
+        {/* Панель ставок - ФИКСИРОВАННАЯ ширина 93% */}
+        <div style={{
+          width: '93%',
+          marginBottom: '15px'
+        }}>
+          <BetPanel
+            gameStatus={gameStatus}
+            betAmount={betAmount}
+            onBetAmountChange={setBetAmount}
+            onSpin={spin}
+            onMaxBet={setMaxBet}
+            isSpinning={gameState !== 'waiting'}
+            colorStyle={colorStyle}
+            t={t}
+          />
+        </div>
 
-        {/* Кнопки управления */}
+        {/* Кнопки СПИН и АВТОСПИН - ФИКСИРОВАННАЯ ширина 93% */}
         <div style={{
           display: 'flex',
-          gap: '15px',
-          flexWrap: 'wrap',
+          gap: '10px',
           justifyContent: 'center',
-          marginTop: '20px'
+          marginBottom: '15px',
+          width: '93%'
         }}>
-          {/* Кнопка автоспина */}
-          {(gameStatus.canPlayFree || autoSpinActive) && (
-  <button
-    onClick={autoSpinActive ? stopAutoSpin : autoSpin}
-    disabled={isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)}
-    style={{
-      padding: '12px 25px',
-      background: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive))
-        ? 'rgba(128,128,128,0.3)'
-        : autoSpinActive
-          ? `linear-gradient(45deg, #ff4444, #cc0000)`
-          : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
-      border: `2px solid ${(isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#ff4444' : colorStyle}`,
-      borderRadius: '15px',
-      color: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#fff' : colorStyle,
-      cursor: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'not-allowed' : 'pointer',
-      fontSize: '1rem',
-      fontWeight: 'bold',
-      textShadow: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'none' : `0 0 10px ${autoSpinActive ? '#ff4444' : colorStyle}`,
-      transition: 'all 0.3s ease'
-    }}
-  >
-    {autoSpinActive 
-      ? `🛑 ${t.stopAutoSpin} (${autoSpinCount}/20)`  // ✅ ИСПРАВЛЕНО: /20 вместо /100
-      : `🔄 ${t.autoSpin}`
-    }
-  </button>
-)}
+          {/* Спин */}
+          <button
+            onClick={spin}
+            disabled={gameState !== 'waiting' || !gameStatus.canPlayFree || isWatchingAd}
+            style={{
+              flex: '1',
+              padding: '12px 20px',
+              background: (gameState !== 'waiting' || !gameStatus.canPlayFree || isWatchingAd)
+                ? 'rgba(128,128,128,0.3)'
+                : `linear-gradient(45deg, ${colorStyle}60, ${colorStyle}80)`,
+              border: `2px solid ${(gameState !== 'waiting' || !gameStatus.canPlayFree || isWatchingAd) ? '#888' : colorStyle}`,
+              borderRadius: '10px',
+              color: (gameState !== 'waiting' || !gameStatus.canPlayFree || isWatchingAd) ? '#888' : 'white',
+              cursor: (gameState !== 'waiting' || !gameStatus.canPlayFree || isWatchingAd) ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              textShadow: (gameState !== 'waiting' || !gameStatus.canPlayFree || isWatchingAd) ? 'none' : `0 0 10px ${colorStyle}`,
+              boxShadow: `0 0 20px ${colorStyle}`,
+              transition: 'all 0.3s ease'
+            }}
+          >
+            🎰 {t.spin}
+          </button>
 
+          {/* Автоспин */}
+          {(gameStatus.canPlayFree || autoSpinActive) && (
+            <button
+              onClick={autoSpinActive ? stopAutoSpin : autoSpin}
+              disabled={isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)}
+              style={{
+                flex: '1',
+                padding: '12px 20px',
+                background: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive))
+                  ? 'rgba(128,128,128,0.3)'
+                  : autoSpinActive
+                    ? `linear-gradient(45deg, #ff4444, #cc0000)`
+                    : `linear-gradient(45deg, ${colorStyle}60, ${colorStyle}80)`,
+                border: `2px solid ${(isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : autoSpinActive ? '#ff4444' : colorStyle}`,
+                borderRadius: '10px',
+                color: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? '#888' : 'white',
+                cursor: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'not-allowed' : 'pointer',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                textShadow: (isWatchingAd || (!gameStatus.canPlayFree && !autoSpinActive)) ? 'none' : `0 0 10px ${autoSpinActive ? '#ff4444' : colorStyle}`,
+                boxShadow: `0 0 20px ${autoSpinActive ? '#ff4444' : colorStyle}`,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {autoSpinActive 
+                ? `🛑 ${t.stopAutoSpin} (${autoSpinCount}/20)`
+                : `🔄 ${t.autoSpin}`
+              }
+            </button>
+          )}
+        </div>
+
+        {/* Кнопки РЕКЛАМА и НАЗАД - ФИКСИРОВАННАЯ ширина 93% */}
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          justifyContent: 'center',
+          marginBottom: '15px',
+          width: '93%'
+        }}>
           {/* Кнопка рекламы */}
           {gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && !autoSpinActive && (
-  <button
-    onClick={watchAd}
-    disabled={isWatchingAd}
-    style={{
-      padding: '12px 25px',
-      background: isWatchingAd 
-        ? 'rgba(128,128,128,0.3)'
-        : `linear-gradient(45deg, #ffa500, #ff8c00)`,
-      border: `2px solid ${isWatchingAd ? '#888' : '#ffa500'}`,
-      borderRadius: '15px',
-      color: isWatchingAd ? '#888' : '#fff',
-      cursor: isWatchingAd ? 'not-allowed' : 'pointer',
-      fontSize: '1rem',
-      fontWeight: 'bold',
-      textShadow: isWatchingAd ? 'none' : `0 0 10px #ffa500`
-    }}
-  >
-    {isWatchingAd 
-      ? `⏳ ${t.watching}...` 
-      : `📺 +20 ${t.extraGame} (${gameStatus.dailyAds}/10)`  // ✅ ИСПРАВЛЕНО: +20 игр, /10 реклам
-    }
-  </button>
-)}
+            <button
+              onClick={watchAd}
+              disabled={isWatchingAd}
+              style={{
+                flex: '1',
+                padding: '12px 20px',
+                background: isWatchingAd 
+                  ? 'rgba(128,128,128,0.3)'
+                  : `linear-gradient(45deg, #ffa500, #ff8c00)`,
+                border: `2px solid ${isWatchingAd ? '#888' : '#ffa500'}`,
+                borderRadius: '10px',
+                color: isWatchingAd ? '#888' : '#fff',
+                cursor: isWatchingAd ? 'not-allowed' : 'pointer',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                textShadow: isWatchingAd ? 'none' : `0 0 10px #ffa500`,
+                boxShadow: '0 0 20px #ffa500',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {isWatchingAd 
+                ? `⏳ ${t.watching}...` 
+                : `📺 +20 ${t.extraGame} (${gameStatus.dailyAds}/10)`
+              }
+            </button>
+          )}
 
           {/* Кнопка назад */}
           <button
             onClick={() => navigate('/games')}
             disabled={isWatchingAd || autoSpinActive}
             style={{
-              padding: '12px 25px',
+              flex: gameStatus.canWatchAd && gameState === 'waiting' && gameStatus.gamesLeft === 0 && !autoSpinActive ? '1' : '0 0 200px',
+              padding: '12px 20px',
               background: (isWatchingAd || autoSpinActive)
                 ? 'rgba(128,128,128,0.3)'
                 : `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
               border: `2px solid ${(isWatchingAd || autoSpinActive) ? '#888' : colorStyle}`,
-              borderRadius: '15px',
+              borderRadius: '10px',
               color: (isWatchingAd || autoSpinActive) ? '#888' : colorStyle,
               cursor: (isWatchingAd || autoSpinActive) ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold',
-              textShadow: (isWatchingAd || autoSpinActive) ? 'none' : `0 0 10px ${colorStyle}`
+              textShadow: (isWatchingAd || autoSpinActive) ? 'none' : `0 0 10px ${colorStyle}`,
+              boxShadow: `0 0 20px ${colorStyle}`,
+              transition: 'all 0.3s ease'
             }}
           >
             ← {t.backToGames}
           </button>
         </div>
 
-        {/* Статус автоспина */}
+        {/* Статус автоспина - ФИКСИРОВАННАЯ ширина 93% */}
         {autoSpinActive && (
-  <div style={{
-    marginTop: '15px',
-    padding: '15px 25px',
-    background: 'rgba(255,68,68,0.2)',
-    border: '2px solid #ff4444',
-    borderRadius: '10px',
-    color: '#ff4444',
-    fontSize: '1.1rem',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textShadow: '0 0 10px #ff4444',
-    boxShadow: '0 0 20px rgba(255,68,68,0.3)'
-  }}>
-    🔄 {formatTranslation(t.autoSpinActive + ': {count}/20 ' + t.spinsCount, { count: autoSpinCount })}  {/* ✅ ИСПРАВЛЕНО: /20 */}
-    <div style={{ 
-      fontSize: '0.9rem', 
-      marginTop: '5px',
-      color: '#ffaaaa'
-    }}>
-      {t.nextSpin} {gameState === 'waiting' ? t.ready : t.waiting}
-    </div>
-  </div>
-)}
+          <div style={{
+            marginBottom: '15px',
+            padding: '10px 20px',
+            background: 'rgba(255,68,68,0.2)',
+            border: '2px solid #ff4444',
+            borderRadius: '10px',
+            color: '#ff4444',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            textShadow: '0 0 10px #ff4444',
+            boxShadow: '0 0 20px rgba(255,68,68,0.3)',
+            width: '93%'
+          }}>
+            🔄 {formatTranslation(t.autoSpinActive + ': {count}/20 ' + t.spinsCount, { count: autoSpinCount })}
+            <div style={{ 
+              fontSize: '0.8rem',
+              marginTop: '3px',
+              color: '#ffaaaa'
+            }}>
+              {t.nextSpin} {gameState === 'waiting' ? t.ready : t.waiting}
+            </div>
+          </div>
+        )}
 
-        {/* Информация о лимитах */}
+        {/* Информация о лимитах - ФИКСИРОВАННАЯ ширина 93% */}
         <div style={{
-          marginTop: '20px',
-          padding: '15px',
+          marginBottom: '15px',
+          padding: '12px',
           background: 'rgba(0,0,0,0.4)',
-          border: `1px solid ${colorStyle}`,
+          border: `2px solid ${colorStyle}`,
           borderRadius: '10px',
           textAlign: 'center',
-          maxWidth: '500px',
-          width: '100%'
+          boxShadow: `0 0 20px ${colorStyle}`,
+          width: '93%'
         }}>
           <div style={{ 
             color: colorStyle, 
-            fontSize: '1rem', 
-            marginBottom: '10px',
+            fontSize: '0.9rem',
+            marginBottom: '8px',
             fontWeight: 'bold'
           }}>
             📊 {t.dailyStats}
           </div>
           <div style={{ 
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, 1fr)',
-  gap: '10px',
-  fontSize: '0.9rem'
-}}>
-  <div style={{ color: '#ccc' }}>
-    {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-      {gameStatus.dailyGames}
-    </span>
-  </div>
-  <div style={{ color: '#ccc' }}>
-    {t.gamesRemaining}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-      {gameStatus.gamesLeft}
-    </span>
-  </div>
-  <div style={{ color: '#ccc' }}>
-  {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-    {gameStatus.dailyAds}/10  {/* ✅ ИСПРАВЛЕНО: /10 вместо /20 */}
-  </span>
-</div>
-  <div style={{ color: '#ccc' }}>
-    {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-      {gameStatus.balance.toLocaleString()} CCC
-    </span>
-  </div>
-</div>
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '8px',
+            fontSize: '0.8rem'
+          }}>
+            <div style={{ color: '#ccc' }}>
+              {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.dailyGames}
+              </span>
+            </div>
+            <div style={{ color: '#ccc' }}>
+              {t.gamesRemaining}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.gamesLeft}
+              </span>
+            </div>
+            <div style={{ color: '#ccc' }}>
+              {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.dailyAds}/10
+              </span>
+            </div>
+            <div style={{ color: '#ccc' }}>
+              {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                {gameStatus.balance.toLocaleString()} CCC
+              </span>
+            </div>
+          </div>
           <div style={{ 
-            marginTop: '10px',
-            padding: '8px',
+            marginTop: '8px',
+            padding: '6px',
             background: 'rgba(255,255,255,0.05)',
-            borderRadius: '5px',
-            fontSize: '0.8rem',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
             color: '#aaa'
           }}>
             {t.rtpInfo} | {t.autoSpinInfo} | {t.limitInfo}
           </div>
         </div>
 
-        {/* История игр */}
-        <SlotsGameHistory
-          recentHistory={recentHistory}
-          onShowFullHistory={openFullHistory}
-          colorStyle={colorStyle}
-          t={t}
-        />
-
-        {/* Таблица выплат */}
+        {/* История игр - ФИКСИРОВАННАЯ ширина 93% */}
         <div style={{
-          background: 'rgba(0,0,0,0.3)',
-          border: `1px solid ${colorStyle}`,
-          borderRadius: '15px',
-          padding: '20px',
-          marginTop: '30px',
-          maxWidth: '500px',
-          width: '100%'
+          width: '85%'
         }}>
-          <h3 style={{ 
-            color: colorStyle, 
-            textAlign: 'center',
-            marginBottom: '15px',
-            textShadow: `0 0 10px ${colorStyle}`
-          }}>
-            💰 {t.payoutTable}
-          </h3>
-          
-          <div style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.6' }}>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>🌟 {t.symbols.wild}:</strong> x0.2 / x0.5 / x1.2 ({t.symbols.wildDescription})
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>🚀 {t.symbols.ship}:</strong> x0.15 / x0.4 / x1.0
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>🌌 {t.symbols.galaxy}:</strong> x0.1 / x0.3 / x0.8
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>⭐ {t.symbols.star}:</strong> x0.08 / x0.2 / x0.5
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>🌍 {t.symbols.planet}:</strong> x0.05 / x0.15 / x0.3
-            </div>
-            <div style={{ marginBottom: '10px' }}>
-              <strong>☄️ {t.symbols.asteroid}:</strong> x0.03 / x0.1 / x0.2
-            </div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>💀 {t.symbols.blackhole}:</strong> {t.symbols.blocksPaylines}
-            </div>
-            
-            <div style={{ 
-              borderTop: `1px solid ${colorStyle}40`,
-              paddingTop: '10px',
-              fontSize: '0.8rem',
-              color: '#999'
-            }}>
-              * {t.symbols.multipliers}<br/>
-              * WILD {t.symbols.wildDescription}<br/>
-              * 20 {t.symbols.activePaylines}<br/>
-              * {t.symbols.fixedRtp}<br/>
-              * {t.symbols.dailyLimit}
-            </div>
-          </div>
+          <SlotsGameHistory
+            recentHistory={recentHistory}
+            onShowFullHistory={openFullHistory}
+            colorStyle={colorStyle}
+            t={t}
+          />
         </div>
       </div>
     </div>

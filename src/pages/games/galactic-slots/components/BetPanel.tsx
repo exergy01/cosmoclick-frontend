@@ -25,14 +25,27 @@ const BetPanel: React.FC<BetPanelProps> = ({
   colorStyle,
   t
 }) => {
-
-  // Свободный ввод ставки без автокоррекции
+  // Обработчик изменения ставки
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 0;
-    onBetAmountChange(value);
+    const rawValue = e.target.value;
+    
+    // Разрешаем пустую строку (для очистки поля)
+    if (rawValue === '') {
+      onBetAmountChange(0);
+      return;
+    }
+    
+    // Оставляем только цифры
+    const numericValue = rawValue.replace(/[^0-9]/g, '');
+    
+    // Если есть цифры - преобразуем в число, иначе 0
+    const newValue = numericValue ? parseInt(numericValue, 10) : 0;
+    
+    // Передаем новое значение, даже если оно вне диапазона
+    onBetAmountChange(newValue);
   };
 
-  // Функция для проверки валидности ставки
+  // Проверка валидности ставки (только для отображения ошибки)
   const getBetValidation = () => {
     if (betAmount < gameStatus.minBet) {
       return { 
@@ -57,74 +70,71 @@ const BetPanel: React.FC<BetPanelProps> = ({
 
   const validation = getBetValidation();
 
-  const quickBets = [100, 500, 1000, 2500];
-
-  // Правильная логика проверки возможности спина
+  // Проверка возможности спина
   const canSpin = !isSpinning && 
                  gameStatus.canPlayFree && 
                  validation.isValid;
 
+  const handleMinBet = () => {
+    onBetAmountChange(gameStatus.minBet);
+  };
+
   return (
-    <div style={{
-      background: 'rgba(0,0,0,0.4)',
-      border: `1px solid ${colorStyle}`,
-      borderRadius: '15px',
-      padding: '20px',
-      marginTop: '20px',
-      maxWidth: '500px',
-      width: '100%',
-      opacity: isSpinning ? 0.7 : 1,
-      transition: 'opacity 0.3s ease'
+    <div style={{ 
+      background: 'rgba(0,0,0,0.4)', 
+      border: `2px solid ${colorStyle}`, 
+      borderRadius: '10px', 
+      padding: '15px', 
+      marginTop: '0px', 
+      width: '93%', 
+      maxWidth: '93%', 
+      opacity: isSpinning ? 0.7 : 1, 
+      transition: 'opacity 0.3s ease', 
+      boxShadow: `0 0 20px ${colorStyle}`, 
+      marginLeft: 'auto', 
+      marginRight: 'auto' 
     }}>
       {/* Заголовок */}
       <h3 style={{
         color: colorStyle,
         textAlign: 'center',
-        marginBottom: '20px',
-        fontSize: '1.2rem',
+        marginBottom: '15px',
+        fontSize: '1.1rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
         💰 {t.placeBet}
       </h3>
 
-      {/* Индикатор спина */}
-      {isSpinning && (
-        <div style={{
-          textAlign: 'center',
-          marginBottom: '15px',
-          padding: '10px',
-          background: 'rgba(255,165,0,0.2)',
-          border: '2px solid #ffa500',
-          borderRadius: '8px',
-          color: '#ffa500',
-          fontWeight: 'bold',
-          animation: 'pulse 1s infinite'
-        }}>
-          🎰 {t.spinningReels}
-        </div>
-      )}
-
-      {/* Свободный ввод ставки с валидацией */}
+      {/* Блок с кнопками и вводом ставки */}
       <div style={{
         display: 'flex',
+        justifyContent: 'center',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '15px'
+        gap: '15px',
+        marginBottom: '15px',
+        flexDirection: 'column'
       }}>
-        <label style={{ color: '#ccc', fontSize: '1rem' }}>
-          {t.betAmount}:
-        </label>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <button
+            onClick={handleMinBet}
+            disabled={isSpinning}
+            style={{
+              padding: '10px',
+              background: isSpinning ? '#444' : `${colorStyle}40`,
+              border: `1px solid ${colorStyle}`,
+              borderRadius: '8px',
+              color: isSpinning ? '#888' : colorStyle,
+              cursor: isSpinning ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            MIN
+          </button>
           <input
-            type="number"
-            value={betAmount}
+            type="text"
+            value={betAmount === 0 ? '' : betAmount}
             onChange={handleBetChange}
-            min={gameStatus.minBet}
-            max={gameStatus.maxBet}
             disabled={isSpinning}
             style={{
               width: '120px',
@@ -139,177 +149,40 @@ const BetPanel: React.FC<BetPanelProps> = ({
               cursor: isSpinning ? 'not-allowed' : 'text'
             }}
           />
-          {/* Отображение ошибки валидации */}
-          {!validation.isValid && (
-            <div style={{
-              color: '#ff4444',
-              fontSize: '0.7rem',
-              marginTop: '4px',
-              textAlign: 'center'
-            }}>
-              {validation.error}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Быстрые ставки */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '15px',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-      }}>
-        {quickBets.map(amount => (
           <button
-            key={amount}
-            onClick={() => onBetAmountChange(Math.min(amount, gameStatus.balance, gameStatus.maxBet))}
-            disabled={amount > gameStatus.balance || isSpinning}
+            onClick={onMaxBet}
+            disabled={isSpinning}
             style={{
-              padding: '8px 15px',
-              background: (amount > gameStatus.balance || isSpinning) ? '#444' : `${colorStyle}20`,
+              padding: '10px',
+              background: isSpinning ? '#444' : `${colorStyle}40`,
               border: `1px solid ${colorStyle}`,
               borderRadius: '8px',
-              color: (amount > gameStatus.balance || isSpinning) ? '#888' : colorStyle,
-              cursor: (amount > gameStatus.balance || isSpinning) ? 'not-allowed' : 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: 'bold',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={e => {
-              if (amount <= gameStatus.balance && !isSpinning) {
-                e.currentTarget.style.background = `${colorStyle}40`;
-              }
-            }}
-            onMouseLeave={e => {
-              if (amount <= gameStatus.balance && !isSpinning) {
-                e.currentTarget.style.background = `${colorStyle}20`;
-              }
+              color: isSpinning ? '#888' : colorStyle,
+              cursor: isSpinning ? 'not-allowed' : 'pointer',
+              fontSize: '1rem',
+              fontWeight: 'bold'
             }}
           >
-            {amount}
+            MAX
           </button>
-        ))}
-        
-        <button
-          onClick={onMaxBet}
-          disabled={isSpinning}
-          style={{
-            padding: '8px 15px',
-            background: isSpinning ? '#444' : `${colorStyle}40`,
-            border: `1px solid ${colorStyle}`,
-            borderRadius: '8px',
-            color: isSpinning ? '#888' : colorStyle,
-            cursor: isSpinning ? 'not-allowed' : 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={e => {
-            if (!isSpinning) {
-              e.currentTarget.style.background = `${colorStyle}60`;
-            }
-          }}
-          onMouseLeave={e => {
-            if (!isSpinning) {
-              e.currentTarget.style.background = `${colorStyle}40`;
-            }
-          }}
-        >
-          MAX
-        </button>
-      </div>
-
-      {/* Возможный выигрыш */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '20px',
-        padding: '10px',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '8px',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <div style={{ color: '#ccc', fontSize: '0.9rem', marginBottom: '5px' }}>
-          {t.possibleWin}:
         </div>
-        <div style={{ 
-          color: colorStyle, 
-          fontSize: '1.2rem', 
-          fontWeight: 'bold',
-          textShadow: `0 0 10px ${colorStyle}`
-        }}>
-          {(betAmount * 6).toLocaleString()} CCC
-        </div>
-        <div style={{ 
-          color: '#999', 
-          fontSize: '0.8rem', 
-          marginTop: '5px'
-        }}>
-          {t.wildComboInfo}
-        </div>
-      </div>
-
-      {/* Кнопка спина */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center'
-      }}>
-        <button
-          onClick={onSpin}
-          disabled={!canSpin}
-          style={{
-            padding: '15px 40px',
-            background: !canSpin 
-              ? '#444' 
-              : `linear-gradient(45deg, ${colorStyle}60, ${colorStyle}80)`,
-            border: `2px solid ${!canSpin ? '#666' : colorStyle}`,
-            borderRadius: '12px',
-            color: !canSpin ? '#888' : 'white',
-            cursor: !canSpin ? 'not-allowed' : 'pointer',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            textShadow: !canSpin ? 'none' : `0 0 10px ${colorStyle}`,
-            minWidth: '150px',
-            transition: 'all 0.3s ease',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-          onMouseEnter={e => {
-            if (canSpin) {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = `0 0 20px ${colorStyle}`;
-            }
-          }}
-          onMouseLeave={e => {
-            if (canSpin) {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = 'none';
-            }
-          }}
-        >
-          {isSpinning ? (
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ 
-                animation: 'spin 1s linear infinite', 
-                marginRight: '8px',
-                display: 'inline-block'
-              }}>
-                🎰
-              </span>
-              {t.spin}...
-            </span>
-          ) : (
-            `🎰 ${t.spin}`
-          )}
-        </button>
+        {/* Отображение ошибки валидации */}
+        {!validation.isValid && betAmount > 0 && (
+          <div style={{
+            color: '#ff4444',
+            fontSize: '0.7rem',
+            textAlign: 'center'
+          }}>
+            {validation.error}
+          </div>
+        )}
       </div>
 
       {/* Информация о лимитах */}
       <div style={{
         marginTop: '15px',
         textAlign: 'center',
-        fontSize: '0.9rem',
+        fontSize: '0.8rem',
         color: '#999'
       }}>
         <div style={{ marginBottom: '5px' }}>
@@ -317,37 +190,27 @@ const BetPanel: React.FC<BetPanelProps> = ({
             {gameStatus.gamesLeft}
           </span>
         </div>
-        <div style={{ fontSize: '0.8rem' }}>
-          {t.dailyTotal}: {gameStatus.dailyGames} | {t.adsWatched}: {gameStatus.dailyAds}/200
+        <div style={{ fontSize: '0.7rem' }}>
+          {t.dailyTotal}: {gameStatus.dailyGames} | {t.adsWatched}: {gameStatus.dailyAds}/10
         </div>
         {!gameStatus.canPlayFree && gameStatus.canWatchAd && (
-          <div style={{ color: '#ffa500', marginTop: '5px', fontSize: '0.8rem' }}>
+          <div style={{ color: '#ffa500', marginTop: '5px', fontSize: '0.7rem' }}>
             📺 {t.watchAdForGames}
           </div>
         )}
       </div>
 
-      {/* CSS для анимаций */}
+      {/* Стили для input */}
       <style>
         {`
-          input[type="number"]::-webkit-outer-spin-button,
-          input[type="number"]::-webkit-inner-spin-button {
+          input[type="text"]::-webkit-outer-spin-button,
+          input[type="text"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
           }
           
-          input[type="number"] {
+          input[type="text"] {
             -moz-appearance: textfield;
-          }
-          
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
           }
         `}
       </style>

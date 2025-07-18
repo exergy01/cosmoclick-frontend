@@ -32,7 +32,7 @@ export const getTranslation = (language: string) => {
         gamesRemaining: 'Игр осталось',
         adsWatched: 'Реклам',
         balance: 'Баланс',
-        rtpInfo: 'RTP: ~72%',
+        rtpInfo: 'RTP: ~75%',
         autoSpinInfo: 'Автоспин: до 20 спинов',
         limitInfo: 'Лимит: 250 игр/день (50 + 10 реклам × 20)',
         payoutTable: 'Таблица выплат',
@@ -91,7 +91,7 @@ export const getTranslation = (language: string) => {
           blocksPaylines: 'БЛОКИРУЕТ линии выплат',
           multipliers: 'Коэффициенты для 3/4/5 символов в ряд',
           activePaylines: 'активных линий выплат',
-          fixedRtp: 'ИСПРАВЛЕНО: 20% шанс выигрыша, RTP ~72%',
+          fixedRtp: 'ИСПРАВЛЕНО: 35% шанс выигрыша, RTP ~75%',
           dailyLimit: 'Лимит: 50 игр + 10 реклам × 20 игр = 250 игр/день'
         },
         winMessages: {
@@ -137,7 +137,7 @@ export const getTranslation = (language: string) => {
         gamesRemaining: 'Games Left',
         adsWatched: 'Ads Watched',
         balance: 'Balance',
-        rtpInfo: 'RTP: ~72%',
+        rtpInfo: 'RTP: ~75%',
         autoSpinInfo: 'Auto Spin: up to 20 spins',
         limitInfo: 'Limit: 250 games/day (50 + 10 ads × 20)',
         payoutTable: 'Payout Table',
@@ -196,7 +196,7 @@ export const getTranslation = (language: string) => {
           blocksPaylines: 'BLOCKS paylines',
           multipliers: 'Multipliers for 3/4/5 symbols in a row',
           activePaylines: 'active paylines',
-          fixedRtp: 'FIXED: 20% win chance, RTP ~72%',
+          fixedRtp: 'FIXED: 35% win chance, RTP ~75%',
           dailyLimit: 'Limit: 50 games + 10 ads × 20 games = 250 games/day'
         },
         winMessages: {
