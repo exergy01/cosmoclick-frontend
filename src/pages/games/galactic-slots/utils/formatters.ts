@@ -11,18 +11,28 @@ export const formatDate = (dateString: string, locale: string = 'ru-RU'): string
     });
   };
   
+  export const formatGameTime = (dateString: string | Date, format: 'short' | 'full' = 'full'): string => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    if (format === 'short') {
+      return `${day}.${month}, ${hours}:${minutes}`;
+    } else {
+      const year = date.getFullYear().toString().slice(-2);
+      return `${day}.${month}.${year}, ${hours}:${minutes}`;
+    }
+  };
+  
   export const formatShortDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).slice(0, 8);
+    return formatGameTime(dateString, 'short');
   };
   
   export const formatNumber = (num: number): string => {
-    return num.toLocaleString();
+    return num.toLocaleString('ru-RU');
   };
   
   export const formatProfit = (profit: number): string => {

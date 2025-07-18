@@ -452,7 +452,7 @@ const GalacticSlotsGame: React.FC = () => {
 
         {/* История игр - ФИКСИРОВАННАЯ ширина 93% */}
         <div style={{
-          width: '85%'
+          width: '100%'
         }}>
           <SlotsGameHistory
             recentHistory={recentHistory}

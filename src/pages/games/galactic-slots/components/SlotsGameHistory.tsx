@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { SlotGameHistory, SlotTranslations } from '../types';
-import { formatShortDate, formatProfit, getProfitColor } from '../utils/formatters';
+import { formatGameTime, formatProfit, getProfitColor } from '../utils/formatters';
 
 interface SlotsGameHistoryProps {
   recentHistory: SlotGameHistory[];
@@ -17,28 +17,36 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
   colorStyle,
   t
 }) => {
+  // Берем только последние 10 игр
+  const lastTenGames = recentHistory.slice(0, 10);
+
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.3)',
-      border: `1px solid ${colorStyle}`,
-      borderRadius: '15px',
-      padding: '20px',
+      background: 'rgba(0,0,0,0.4)',
+      border: `2px solid ${colorStyle}`,
+      borderRadius: '10px',
+      padding: '15px',
       marginTop: '20px',
-      maxWidth: '500px',
-      width: '100%'
+      width: '93%',
+      maxWidth: '93%',
+      boxShadow: `0 0 20px ${colorStyle}`,
+      marginLeft: 'auto',
+      marginRight: 'auto'
     }}>
+      {/* Упрощенный заголовок без количества */}
       <h3 style={{ 
         color: colorStyle, 
         marginBottom: '15px', 
         textAlign: 'center',
+        fontSize: '1.1rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        🕒 {t.lastGames}
+        🕒 {t.lastGames} (10)
       </h3>
       
-      {recentHistory.length === 0 ? (
+      {lastTenGames.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#ccc', padding: '20px' }}>
-          {t.loading === 'Загрузка...' ? 'История игр пуста' : 'Game history is empty'}
+          История игр пуста
         </div>
       ) : (
         <>
@@ -50,83 +58,34 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
             }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colorStyle}` }}>
-                  <th style={{ 
-                    color: colorStyle, 
-                    padding: '6px', 
-                    textAlign: 'left', 
-                    fontSize: '0.7rem',
-                    textShadow: `0 0 5px ${colorStyle}`
-                  }}>
-                    {t.time}
-                  </th>
-                  <th style={{ 
-                    color: colorStyle, 
-                    padding: '6px', 
-                    textAlign: 'center', 
-                    fontSize: '0.7rem',
-                    textShadow: `0 0 5px ${colorStyle}`
-                  }}>
-                    {t.bet}
-                  </th>
-                  <th style={{ 
-                    color: colorStyle, 
-                    padding: '6px', 
-                    textAlign: 'center', 
-                    fontSize: '0.7rem',
-                    textShadow: `0 0 5px ${colorStyle}`
-                  }}>
-                    {t.result}
-                  </th>
-                  <th style={{ 
-                    color: colorStyle, 
-                    padding: '6px', 
-                    textAlign: 'center', 
-                    fontSize: '0.7rem',
-                    textShadow: `0 0 5px ${colorStyle}`
-                  }}>
-                    {t.outcome}
-                  </th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'left' }}>{t.time}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t.bet}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t.result}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t.outcome}</th>
                 </tr>
               </thead>
               <tbody>
-                {recentHistory.map((game) => (
+                {lastTenGames.map((game) => (
                   <tr key={game.id} style={{ borderBottom: '1px solid #444' }}>
-                    <td style={{ 
-                      color: '#ccc', 
-                      padding: '6px', 
-                      fontSize: '0.65rem' 
-                    }}>
-                      {formatShortDate(game.date)}
+                    <td style={{ color: '#ccc', padding: '8px' }}>
+                      {formatGameTime(game.date, 'short')}
                     </td>
-                    <td style={{ 
-                      color: '#ccc', 
-                      padding: '6px', 
-                      textAlign: 'center', 
-                      fontSize: '0.65rem' 
-                    }}>
+                    <td style={{ color: '#ccc', padding: '8px', textAlign: 'center' }}>
                       {game.betAmount.toLocaleString()}
                     </td>
-                    <td style={{ 
-                      padding: '6px', 
-                      textAlign: 'center', 
-                      fontSize: '0.65rem' 
-                    }}>
-                      {game.result === 'win' ? (
-                        <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
-                          ✅ {t.win}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
-                          ❌ {t.loss}
-                        </span>
-                      )}
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      <span style={{ 
+                        color: game.result === 'win' ? '#00ff00' : '#ff0000',
+                        fontWeight: 'bold'
+                      }}>
+                        {game.result === 'win' ? '✅' : '❌'} {game.result === 'win' ? t.win : t.loss}
+                      </span>
                     </td>
                     <td style={{ 
-                      padding: '6px', 
+                      padding: '8px',
                       textAlign: 'center',
                       color: getProfitColor(game.profit),
-                      fontWeight: 'bold',
-                      fontSize: '0.65rem'
+                      fontWeight: 'bold'
                     }}>
                       {formatProfit(game.profit)}
                     </td>
@@ -135,8 +94,7 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
               </tbody>
             </table>
           </div>
-          
-          {/* Кнопка показать всю историю */}
+
           <div style={{ textAlign: 'center', marginTop: '15px' }}>
             <button
               onClick={onShowFullHistory}
@@ -144,21 +102,11 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
                 padding: '8px 16px',
                 background: `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`,
                 border: `2px solid ${colorStyle}`,
-                borderRadius: '10px',
+                borderRadius: '8px',
                 color: colorStyle,
                 cursor: 'pointer',
                 fontSize: '0.8rem',
-                fontWeight: 'bold',
-                textShadow: `0 0 5px ${colorStyle}`,
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}40, ${colorStyle}60)`;
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = `linear-gradient(45deg, ${colorStyle}20, ${colorStyle}40)`;
-                e.currentTarget.style.transform = 'scale(1)';
+                fontWeight: 'bold'
               }}
             >
               📋 {t.fullHistory}

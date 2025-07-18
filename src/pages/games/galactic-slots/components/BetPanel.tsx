@@ -1,6 +1,6 @@
 // galactic-slots/components/BetPanel.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { GalacticSlotsStatus } from '../types';
 import { formatTranslation } from '../utils/formatters';
 
@@ -25,27 +25,26 @@ const BetPanel: React.FC<BetPanelProps> = ({
   colorStyle,
   t
 }) => {
-  // Обработчик изменения ставки
+  const [inputValue, setInputValue] = useState<string>(betAmount.toString());
+
+  // Синхронизируем значение при изменении извне
+  useEffect(() => {
+    setInputValue(betAmount.toString());
+  }, [betAmount]);
+
+  // Обработчик ввода - разрешает только цифры
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
+    const value = e.target.value;
     
-    // Разрешаем пустую строку (для очистки поля)
-    if (rawValue === '') {
-      onBetAmountChange(0);
-      return;
+    // Разрешаем только цифры и пустую строку
+    if (value === '' || /^[0-9]*$/.test(value)) {
+      setInputValue(value);
+      const numValue = value === '' ? 0 : parseInt(value, 10);
+      onBetAmountChange(numValue);
     }
-    
-    // Оставляем только цифры
-    const numericValue = rawValue.replace(/[^0-9]/g, '');
-    
-    // Если есть цифры - преобразуем в число, иначе 0
-    const newValue = numericValue ? parseInt(numericValue, 10) : 0;
-    
-    // Передаем новое значение, даже если оно вне диапазона
-    onBetAmountChange(newValue);
   };
 
-  // Проверка валидности ставки (только для отображения ошибки)
+  // Проверка валидности ставки
   const getBetValidation = () => {
     if (betAmount < gameStatus.minBet) {
       return { 
@@ -70,15 +69,6 @@ const BetPanel: React.FC<BetPanelProps> = ({
 
   const validation = getBetValidation();
 
-  // Проверка возможности спина
-  const canSpin = !isSpinning && 
-                 gameStatus.canPlayFree && 
-                 validation.isValid;
-
-  const handleMinBet = () => {
-    onBetAmountChange(gameStatus.minBet);
-  };
-
   return (
     <div style={{ 
       background: 'rgba(0,0,0,0.4)', 
@@ -94,7 +84,6 @@ const BetPanel: React.FC<BetPanelProps> = ({
       marginLeft: 'auto', 
       marginRight: 'auto' 
     }}>
-      {/* Заголовок */}
       <h3 style={{
         color: colorStyle,
         textAlign: 'center',
@@ -105,7 +94,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         💰 {t.placeBet}
       </h3>
 
-      {/* Блок с кнопками и вводом ставки */}
+      {/* Основной блок ввода ставки */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
@@ -116,7 +105,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
       }}>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           <button
-            onClick={handleMinBet}
+            onClick={() => onBetAmountChange(gameStatus.minBet)}
             disabled={isSpinning}
             style={{
               padding: '10px',
@@ -131,9 +120,12 @@ const BetPanel: React.FC<BetPanelProps> = ({
           >
             MIN
           </button>
+          
           <input
             type="text"
-            value={betAmount === 0 ? '' : betAmount}
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={inputValue}
             onChange={handleBetChange}
             disabled={isSpinning}
             style={{
@@ -149,6 +141,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
               cursor: isSpinning ? 'not-allowed' : 'text'
             }}
           />
+          
           <button
             onClick={onMaxBet}
             disabled={isSpinning}
@@ -166,7 +159,8 @@ const BetPanel: React.FC<BetPanelProps> = ({
             MAX
           </button>
         </div>
-        {/* Отображение ошибки валидации */}
+        
+        {/* Отображение ошибок валидации */}
         {!validation.isValid && betAmount > 0 && (
           <div style={{
             color: '#ff4444',
