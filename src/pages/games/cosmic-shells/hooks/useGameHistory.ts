@@ -25,15 +25,17 @@ export const useGameHistory = (telegramId: string | undefined) => {
     }
   }, [telegramId]);
 
-  // Загрузка полной истории игр
+  // Загрузка полной истории игр БЕЗ ЛИМИТА
   const loadFullHistory = useCallback(async () => {
     if (!telegramId) return;
     
     setHistoryLoading(true);
     try {
-      const response = await CosmicShellsApi.getHistory(telegramId);
+      // ✅ ИСПРАВЛЕНО: Запрашиваем БЕЗ лимита для полной истории
+      const response = await CosmicShellsApi.getHistory(telegramId); // Без параметров = все игры
       if (response.success) {
         setFullHistory(response.history || []);
+        console.log('🛸 Loaded full history:', response.history?.length || 0, 'games total');
       }
     } catch (err) {
       console.error('Error loading full cosmic shells history:', err);

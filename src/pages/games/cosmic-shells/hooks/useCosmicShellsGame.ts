@@ -13,7 +13,9 @@ export const useCosmicShellsGame = (
   gameStatus: CosmicShellsStatus,
   showToast: (message: string, type?: 'success' | 'error' | 'warning', duration?: number) => void,
   t: any,
-  onDataUpdate?: () => void
+  onLocalStatusUpdate?: (newStatus: Partial<CosmicShellsStatus>) => void,
+  onHistoryUpdate?: () => void,
+  onPlayerBalanceUpdate?: (newBalance: number) => void
 ) => {
   const [gameState, setGameState] = useState<GameState>('waiting');
   const [betAmount, setBetAmount] = useState(100);
@@ -65,6 +67,31 @@ export const useCosmicShellsGame = (
     }
 
     try {
+      // ✅ ДОБАВЛЕНО: Получаем свежий баланс перед игрой
+      const freshStatus = await CosmicShellsApi.getStatus(telegramId);
+      if (!freshStatus.success) {
+        showToast(t.errors.createGame, 'error');
+        return;
+      }
+      
+      const currentBalance = freshStatus.balance;
+      console.log('🛸 Fresh balance before game:', currentBalance);
+      
+      // ✅ ДОБАВЛЕНО: Мгновенно показываем баланс после ставки
+      const balanceAfterBet = currentBalance - betAmount;
+      if (onPlayerBalanceUpdate) {
+        onPlayerBalanceUpdate(balanceAfterBet);
+      }
+      if (onLocalStatusUpdate) {
+        onLocalStatusUpdate({ 
+          balance: balanceAfterBet,
+          dailyGames: freshStatus.dailyGames,
+          gamesLeft: freshStatus.gamesLeft,
+          canPlayFree: freshStatus.canPlayFree,
+          canWatchAd: freshStatus.canWatchAd
+        });
+      }
+      
       const result = await CosmicShellsApi.startGame(telegramId, betAmount);
       
       if (result.success && result.gameId) {
@@ -85,7 +112,7 @@ export const useCosmicShellsGame = (
     } catch (err) {
       showToast(t.errors.createGame, 'error');
     }
-  }, [telegramId, gameState, betAmount, gameStatus, showToast, t]);
+  }, [telegramId, gameState, betAmount, gameStatus, showToast, t, onPlayerBalanceUpdate, onLocalStatusUpdate]);
 
   // Простая функция makeChoice
   const makeChoice = useCallback(async (position: number) => {
@@ -122,10 +149,33 @@ export const useCosmicShellsGame = (
             setGameResult(null);
             setCurrentGameId(null);
             
-            // Обновляем данные
-            if (onDataUpdate) {
-              onDataUpdate();
-            }
+            // ✅ ДОБАВЛЕНО: Получаем финальный баланс из базы и обновляем
+            setTimeout(async () => {
+              try {
+                const finalStatus = await CosmicShellsApi.getStatus(telegramId);
+                if (finalStatus.success) {
+                  console.log('🛸 Final balance from database:', finalStatus.balance);
+                  
+                  if (onPlayerBalanceUpdate) {
+                    onPlayerBalanceUpdate(finalStatus.balance);
+                  }
+                  if (onLocalStatusUpdate) {
+                    onLocalStatusUpdate({
+                      balance: finalStatus.balance,
+                      dailyGames: finalStatus.dailyGames,
+                      gamesLeft: finalStatus.gamesLeft,
+                      canPlayFree: finalStatus.canPlayFree,
+                      canWatchAd: finalStatus.canWatchAd
+                    });
+                  }
+                  if (onHistoryUpdate) {
+                    onHistoryUpdate();
+                  }
+                }
+              } catch (error) {
+                console.error('❌ Failed to get final status:', error);
+              }
+            }, 500);
           }, 4000);
           
         }, 2000);
@@ -138,7 +188,7 @@ export const useCosmicShellsGame = (
       setGameState('choosing');
       showToast(t.errors.makeChoice, 'error');
     }
-  }, [telegramId, currentGameId, gameState, showToast, t, onDataUpdate]);
+  }, [telegramId, currentGameId, gameState, showToast, t, onPlayerBalanceUpdate, onLocalStatusUpdate, onHistoryUpdate]);
 
   const newGame = useCallback(() => {
     setGameState('waiting');
@@ -176,9 +226,16 @@ export const useCosmicShellsGame = (
           
           showToast(message, 'success', 4000);
           
-          // Обновляем данные
-          if (onDataUpdate) {
-            onDataUpdate();
+          // ✅ ДОБАВЛЕНО: Локальное обновление статуса
+          const newStatus: Partial<CosmicShellsStatus> = {
+            dailyAds: gameStatus.dailyAds + 1,
+            gamesLeft: gameStatus.gamesLeft + 20, // 20 игр за рекламу
+            canPlayFree: true,
+            canWatchAd: gameStatus.dailyAds + 1 < 10 // максимум 10 реклам
+          };
+          
+          if (onLocalStatusUpdate) {
+            onLocalStatusUpdate(newStatus);
           }
           
         } else {
@@ -196,7 +253,7 @@ export const useCosmicShellsGame = (
         setIsWatchingAd(false);
       }, 1000);
     }
-  }, [telegramId, gameStatus.canWatchAd, isWatchingAd, showToast, onDataUpdate]);
+  }, [telegramId, gameStatus.canWatchAd, isWatchingAd, showToast, onLocalStatusUpdate]);
 
   // Безопасная установка ставки
   const setBetAmountSafe = useCallback((amount: number) => {

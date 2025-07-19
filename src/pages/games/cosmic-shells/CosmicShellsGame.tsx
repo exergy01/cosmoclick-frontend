@@ -25,7 +25,7 @@ import { getTranslation } from './locales';
 
 const CosmicShellsGame: React.FC = () => {
   const { i18n } = useTranslation();
-  const { player, currentSystem, refreshPlayer } = usePlayer();
+  const { player, currentSystem, setPlayer } = usePlayer();
   const navigate = useNavigate();
   
   const colorStyle = player?.color || '#00f0ff';
@@ -55,14 +55,30 @@ const CosmicShellsGame: React.FC = () => {
   
   const { toasts, showToast, removeToast } = useToastNotifications();
   
-  // ✅ ПРОСТОЕ обновление данных
-  const handleDataUpdate = useCallback(() => {
-    console.log('🛸 Simple data update...');
-    forceRefresh();
-    refreshHistory();
-  }, [forceRefresh, refreshHistory]);
+  // ✅ ВОССТАНОВЛЕНО: Обновление баланса как в слотах
+  const handlePlayerBalanceUpdate = useCallback((newBalance: number) => {
+    console.log('🛸 Frontend: Updating player balance:', newBalance);
+    if (player) {
+      setPlayer({
+        ...player,
+        ccc: newBalance
+      });
+    }
+  }, [player, setPlayer]);
   
-  // Хук игры с правильными параметрами
+  // ✅ ВОССТАНОВЛЕНО: Локальное обновление статуса
+  const handleLocalStatusUpdate = useCallback((newStatus: any) => {
+    console.log('🛸 Frontend: Local status update:', newStatus);
+    updateLocalStatus(newStatus);
+  }, [updateLocalStatus]);
+  
+  // ✅ ВОССТАНОВЛЕНО: Обновление истории
+  const handleHistoryUpdate = useCallback(() => {
+    console.log('🛸 Frontend: Updating game history...');
+    refreshHistory();
+  }, [refreshHistory]);
+  
+  // Хук игры с правильными колбэками как в слотах
   const {
     gameState,
     betAmount,
@@ -78,7 +94,9 @@ const CosmicShellsGame: React.FC = () => {
     gameStatus,
     showToast,
     t,
-    handleDataUpdate
+    handleLocalStatusUpdate,
+    handleHistoryUpdate,
+    handlePlayerBalanceUpdate
   );
 
   // Загрузка истории при монтировании

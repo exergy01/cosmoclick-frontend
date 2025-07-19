@@ -1,4 +1,3 @@
- 
 // cosmic-shells/services/cosmicShellsApi.ts
 
 import axios from 'axios';
@@ -26,7 +25,7 @@ export class CosmicShellsApi {
         gamesLeft: 0,
         adsLeft: 0,
         minBet: 100,
-        maxBet: 100000,
+        maxBet: 5000, // ✅ ИСПРАВЛЕНО: как в backend
         winMultiplier: 2,
         stats: {
           total_games: 0,
@@ -90,8 +89,8 @@ export class CosmicShellsApi {
     }
   }
 
-  // Получить историю игр
-  static async getHistory(telegramId: string, limit: number = 20, offset: number = 0): Promise<GameHistoryResponse> {
+  // ✅ ИСПРАВЛЕНО: Получить историю игр с увеличенным лимитом
+  static async getHistory(telegramId: string, limit: number = 1000, offset: number = 0): Promise<GameHistoryResponse> {
     try {
       const response = await axios.get(`${API_URL}/api/games/cosmic-shells/history/${telegramId}`, {
         params: { limit, offset }
@@ -108,4 +107,6 @@ export class CosmicShellsApi {
       };
     }
   }
-}export {}; 
+}
+
+export {};
