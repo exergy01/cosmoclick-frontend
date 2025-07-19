@@ -325,7 +325,7 @@ const MainPage: React.FC = () => {
       />
 
       {/* Основной контент */}
-      <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
         
         {/* Выбор системы */}
         <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
@@ -402,7 +402,7 @@ const MainPage: React.FC = () => {
             </div>
 
             {/* Сейф с новым счетчиком и индикатором загрузки */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '80px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '50px' }}>
               <div 
                 style={{ 
                   position: 'relative', 
@@ -448,12 +448,6 @@ const MainPage: React.FC = () => {
                 {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
               </p>
               
-              {/* Статус сбора */}
-              {isCollecting && (
-                <p style={{ fontSize: '1rem', color: '#ffa500', textAlign: 'center', marginTop: '5px' }}>
-                  Сбор...
-                </p>
-              )}
             </div>
           </>
         )}

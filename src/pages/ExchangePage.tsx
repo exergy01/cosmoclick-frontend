@@ -310,17 +310,17 @@ const ExchangePage: React.FC = () => {
       />
 
       {/* Основной контент */}
-      <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ flex: 1, padding: '10px', textAlign: 'center' }}>
-          <h1 style={{ 
+          <h3 style={{ 
             color: colorStyle, 
             textShadow: `0 0 20px ${colorStyle}`, 
-            fontSize: '2.5rem', 
+            fontSize: '2rem', 
             marginBottom: '30px',
             fontWeight: 'bold'
           }}>
             💱 {t('exchange')}
-          </h1>
+          </h3>
 
           {/* Уведомления */}
           {success && (

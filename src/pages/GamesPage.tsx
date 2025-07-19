@@ -153,16 +153,16 @@ const GamesPage: React.FC = () => {
       />
 
       {/* Основной контент */}
-      <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
-          <h2 style={{ 
+          <h3 style={{ 
             color: colorStyle, 
             textShadow: `0 0 10px ${colorStyle}`, 
-            fontSize: '2.5rem', 
+            fontSize: '2rem', 
             marginBottom: '20px'
           }}>
             🎮 {t('gamesPage.title')}
-          </h2>
+          </h3>
 
           {/* Джекпот */}
           <div style={{ 

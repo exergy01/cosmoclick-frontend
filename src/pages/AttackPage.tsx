@@ -64,12 +64,12 @@ const AttackPage: React.FC = () => {
       />
 
       {/* Основной контент */}
-      <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
           <h2 style={{ 
             color: colorStyle, 
             textShadow: `0 0 10px ${colorStyle}`, 
-            fontSize: '2.5rem', 
+            fontSize: '2rem', 
             marginBottom: '30px',
             textAlign: 'center'
           }}>

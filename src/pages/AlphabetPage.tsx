@@ -73,7 +73,7 @@ const AlphabetPage: React.FC = () => {
         colorStyle={colorStyle}
       />
 
-      <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ flex: 1, padding: '10px', textAlign: 'center' }}>
           <h2 style={{ color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, fontSize: '2rem', marginBottom: '30px' }}>
             ⚙️ {t('settings')}
@@ -198,13 +198,13 @@ const AlphabetPage: React.FC = () => {
           }}>
             <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>ℹ️ {t('about_game')}</h3>
             <div style={{ textAlign: 'left', lineHeight: '1.6', color: '#ccc' }}>
-              <p><strong style={{ color: colorStyle }}>🌌 Звёздные системы:</strong> 7 уникальных систем с собственной экономикой и ресурсами</p>
+              <p><strong style={{ color: colorStyle }}>🌌 Звёздные системы:</strong> 5 уникальных систем с собственной экономикой и ресурсами</p>
               <p><strong style={{ color: colorStyle }}>🤖 Дроны:</strong> Автоматическая добыча CCC, CS и TON. Покупка и улучшение</p>
               <p><strong style={{ color: colorStyle }}>🌍 Астероиды:</strong> Источники ресурсов. Требуют покупки и разработки дронами</p>
-              <p><strong style={{ color: colorStyle }}>📦 Карго:</strong> Ограничивает объём сбора. 5-й уровень = автосбор</p>
+              <p><strong style={{ color: colorStyle }}>📦 Карго:</strong> Ограничивает объём сбора. 5-й уровень = максимальное накопление</p>
               <p><strong style={{ color: colorStyle }}>💠 CCC:</strong> Основная валюта системы</p>
               <p><strong style={{ color: colorStyle }}>✨ CS:</strong> Валюта прокачки через обмен или задания</p>
-              <p><strong style={{ color: colorStyle }}>💎 TON:</strong> Редкая награда в поздних системах</p>
+              <p><strong style={{ color: colorStyle }}>💎 TON:</strong> Редкая награда в пятой системе</p>
               <p><strong style={{ color: colorStyle }}>🔄 Обмен:</strong> Конвертация валют с курсом и комиссией</p>
               <p><strong style={{ color: colorStyle }}>🎯 Задания:</strong> Ежедневные и разовые задачи с наградами</p>
               <p><strong style={{ color: colorStyle }}>🎮 Мини-игры:</strong> От таймеров до PvP сражений</p>
