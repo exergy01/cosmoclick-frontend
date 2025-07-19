@@ -1,18 +1,17 @@
 // cosmic-shells/components/CosmicShellsGameHistory.tsx
-// ✅ ИСПРАВЛЕНО: Точно как в слотах - другой вид и наполнение
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React from 'react';
-import { GameHistory, CosmicShellsTranslations } from '../types';
+import { GameHistory } from '../types';
 import { formatDate, formatProfit, getProfitColor } from '../utils/formatters';
 
 interface CosmicShellsGameHistoryProps {
   recentHistory: GameHistory[];
   onShowFullHistory: () => void;
   colorStyle: string;
-  t: CosmicShellsTranslations;
+  t: (key: string) => string;
 }
 
-// ✅ ИСПРАВЛЕНО: Функция для краткого времени как в слотах
 const formatGameTime = (dateString: string): string => {
   const date = new Date(dateString);
   const day = date.getDate().toString().padStart(2, '0');
@@ -28,7 +27,6 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
   colorStyle,
   t
 }) => {
-  // Берем только последние 10 игр как в слотах
   const lastTenGames = recentHistory.slice(0, 10);
 
   return (
@@ -44,7 +42,6 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
       marginLeft: 'auto',
       marginRight: 'auto'
     }}>
-      {/* ✅ КАК В СЛОТАХ: Упрощенный заголовок с количеством */}
       <h3 style={{ 
         color: colorStyle, 
         marginBottom: '15px', 
@@ -52,7 +49,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
         fontSize: '1.1rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        🕒 {t.lastGames} (10)
+        🕒 {t('games.shells.lastGames')} (10)
       </h3>
       
       {lastTenGames.length === 0 ? (
@@ -63,7 +60,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
           fontSize: '1.1rem'
         }}>
           <div style={{ fontSize: '2rem', marginBottom: '15px' }}>📊</div>
-          {t.emptyHistory}
+          {t('games.shells.emptyHistory')}
         </div>
       ) : (
         <>
@@ -81,7 +78,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
                     textAlign: 'left',
                     textShadow: `0 0 5px ${colorStyle}`
                   }}>
-                    {t.time}
+                    {t('games.shells.time')}
                   </th>
                   <th style={{ 
                     color: colorStyle, 
@@ -89,7 +86,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
                     textAlign: 'center',
                     textShadow: `0 0 5px ${colorStyle}`
                   }}>
-                    {t.bet}
+                    {t('games.shells.bet')}
                   </th>
                   <th style={{ 
                     color: colorStyle, 
@@ -97,7 +94,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
                     textAlign: 'center',
                     textShadow: `0 0 5px ${colorStyle}`
                   }}>
-                    {t.result}
+                    {t('games.shells.result')}
                   </th>
                   <th style={{ 
                     color: colorStyle, 
@@ -105,7 +102,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
                     textAlign: 'center',
                     textShadow: `0 0 5px ${colorStyle}`
                   }}>
-                    {t.outcome}
+                    {t('games.shells.outcome')}
                   </th>
                 </tr>
               </thead>
@@ -146,7 +143,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
                         color: game.result === 'win' ? '#00ff00' : '#ff0000',
                         fontWeight: 'bold'
                       }}>
-                        {game.result === 'win' ? '✅' : '❌'} {game.result === 'win' ? t.win : t.loss}
+                        {game.result === 'win' ? '✅' : '❌'} {game.result === 'win' ? t('games.win') : t('games.loss')}
                       </span>
                     </td>
                     <td style={{ 
@@ -188,7 +185,7 @@ const CosmicShellsGameHistory: React.FC<CosmicShellsGameHistoryProps> = ({
                 e.currentTarget.style.transform = 'scale(1)';
               }}
             >
-              📋 {t.fullHistory}
+              📋 {t('games.shells.fullHistory')}
             </button>
           </div>
         </>

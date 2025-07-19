@@ -1,7 +1,8 @@
 // galactic-slots/components/SlotsHistoryModal.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React from 'react';
-import { SlotGameHistory, SlotTranslations } from '../types';
+import { SlotGameHistory } from '../types';
 import { formatDate, formatProfit, getProfitColor } from '../utils/formatters';
 
 interface SlotsHistoryModalProps {
@@ -10,7 +11,7 @@ interface SlotsHistoryModalProps {
   historyLoading: boolean;
   onClose: () => void;
   colorStyle: string;
-  t: any;
+  t: (key: string) => string;
 }
 
 const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
@@ -60,7 +61,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
             margin: 0,
             fontSize: '1.5rem'
           }}>
-            📋 {t.fullHistory}
+            📋 {t('games.slots.fullHistory')}
           </h2>
           <button
             onClick={onClose}
@@ -102,7 +103,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
             }}>
               🎰
             </div>
-            {t.loading}
+            {t('loading')}
           </div>
         ) : gameHistory.length === 0 ? (
           <div style={{ 
@@ -112,7 +113,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
             fontSize: '1.1rem'
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '15px' }}>📊</div>
-            {t.emptyHistory}
+            {t('games.slots.emptyHistory')}
           </div>
         ) : (
           <>
@@ -132,7 +133,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                   {gameHistory.length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.totalGames}
+                  {t('games.slots.totalGames')}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -140,7 +141,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                   {gameHistory.filter(g => g.result === 'win').length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.win}
+                  {t('games.win')}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -148,7 +149,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                   {gameHistory.filter(g => g.result === 'loss').length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.loss}
+                  {t('games.loss')}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -160,7 +161,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                   {formatProfit(gameHistory.reduce((sum, g) => sum + g.profit, 0))}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.profit}
+                  {t('games.slots.profit')}
                 </div>
               </div>
             </div>
@@ -180,7 +181,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                       textAlign: 'left',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.time}
+                      {t('games.slots.time')}
                     </th>
                     <th style={{ 
                       color: colorStyle, 
@@ -188,7 +189,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                       textAlign: 'center',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.bet}
+                      {t('games.slots.bet')}
                     </th>
                     <th style={{ 
                       color: colorStyle, 
@@ -196,7 +197,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                       textAlign: 'center',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.result}
+                      {t('games.slots.result')}
                     </th>
                     <th style={{ 
                       color: colorStyle, 
@@ -204,7 +205,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                       textAlign: 'center',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.outcome}
+                      {t('games.slots.outcome')}
                     </th>
                   </tr>
                 </thead>
@@ -243,11 +244,11 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
                       }}>
                         {game.result === 'win' ? (
                           <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
-                            ✅ {t.win}
+                            ✅ {t('games.win')}
                           </span>
                         ) : (
                           <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
-                            ❌ {t.loss}
+                            ❌ {t('games.loss')}
                           </span>
                         )}
                       </td>
@@ -298,7 +299,7 @@ const SlotsHistoryModal: React.FC<SlotsHistoryModalProps> = ({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            {t.close}
+            {t('games.slots.close')}
           </button>
         </div>
       </div>

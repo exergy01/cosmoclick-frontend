@@ -452,7 +452,7 @@ const TapperGame: React.FC = () => {
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 'clamp(1.2rem, 4vw, 1.6rem)' }}>
-                  {isCollecting ? 'Собираем...' : t('games.tapper.collectEarnings')} {/* ✅ Перевод */}
+                  {isCollecting ? '...' : t('games.tapper.collectEarnings')} {/* ✅ Перевод */}
                 </div>
                 <div style={{ 
                   fontSize: 'clamp(1rem, 3vw, 1.3rem)',

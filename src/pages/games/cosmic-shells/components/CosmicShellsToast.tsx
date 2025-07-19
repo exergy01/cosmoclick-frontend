@@ -1,5 +1,5 @@
- 
 // cosmic-shells/components/CosmicShellsToast.tsx
+// ✅ ОСТАВЛЕН БЕЗ ИЗМЕНЕНИЙ - тосты не требуют переводов, они используют динамические сообщения
 
 import React from 'react';
 import { ToastNotification } from '../types';
@@ -81,7 +81,6 @@ const CosmicShellsToast: React.FC<CosmicShellsToastProps> = ({
         ))}
       </div>
 
-      {/* CSS анимации */}
       <style>{`
         @keyframes slideInRight {
           from {
@@ -98,4 +97,4 @@ const CosmicShellsToast: React.FC<CosmicShellsToastProps> = ({
   );
 };
 
-export default CosmicShellsToast;export {}; 
+export default CosmicShellsToast;

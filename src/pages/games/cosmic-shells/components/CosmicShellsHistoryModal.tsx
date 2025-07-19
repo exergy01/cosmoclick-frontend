@@ -1,8 +1,8 @@
 // cosmic-shells/components/CosmicShellsHistoryModal.tsx
-// ✅ ПОЛНЫЙ РАБОЧИЙ файл скопированный из слотов
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React from 'react';
-import { GameHistory, CosmicShellsTranslations } from '../types';
+import { GameHistory } from '../types';
 
 interface CosmicShellsHistoryModalProps {
   isOpen: boolean;
@@ -10,10 +10,9 @@ interface CosmicShellsHistoryModalProps {
   historyLoading: boolean;
   onClose: () => void;
   colorStyle: string;
-  t: CosmicShellsTranslations;
+  t: (key: string) => string;
 }
 
-// Локальные функции форматирования (простые и рабочие)
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   const day = date.getDate().toString().padStart(2, '0');
@@ -87,7 +86,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
             margin: 0,
             fontSize: '1.5rem'
           }}>
-            📋 {t.fullHistory}
+            📋 {t('games.shells.fullHistory')}
           </h2>
           <button
             onClick={onClose}
@@ -129,7 +128,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
             }}>
               🛸
             </div>
-            {t.loading}
+            {t('loading')}
           </div>
         ) : gameHistory.length === 0 ? (
           <div style={{ 
@@ -139,11 +138,10 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
             fontSize: '1.1rem'
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '15px' }}>📊</div>
-            {t.emptyHistory}
+            {t('games.shells.emptyHistory')}
           </div>
         ) : (
           <>
-            {/* Статистика как в слотах */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -159,7 +157,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                   {gameHistory.length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.totalGames}
+                  {t('games.shells.totalGames')}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -167,7 +165,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                   {gameHistory.filter(g => g.result === 'win').length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.win}
+                  {t('games.win')}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -175,7 +173,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                   {gameHistory.filter(g => g.result === 'loss').length}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.loss}
+                  {t('games.loss')}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -187,12 +185,11 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                   {formatProfit(gameHistory.reduce((sum, g) => sum + g.profit, 0))}
                 </div>
                 <div style={{ color: '#ccc', fontSize: '0.8rem' }}>
-                  {t.profit}
+                  {t('games.shells.profit')}
                 </div>
               </div>
             </div>
 
-            {/* Таблица истории */}
             <div style={{ overflowX: 'auto' }}>
               <table style={{
                 width: '100%',
@@ -207,7 +204,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                       textAlign: 'left',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.time}
+                      {t('games.shells.time')}
                     </th>
                     <th style={{ 
                       color: colorStyle, 
@@ -215,7 +212,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                       textAlign: 'center',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.bet}
+                      {t('games.shells.bet')}
                     </th>
                     <th style={{ 
                       color: colorStyle, 
@@ -223,7 +220,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                       textAlign: 'center',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.result}
+                      {t('games.shells.result')}
                     </th>
                     <th style={{ 
                       color: colorStyle, 
@@ -231,7 +228,7 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                       textAlign: 'center',
                       textShadow: `0 0 5px ${colorStyle}`
                     }}>
-                      {t.outcome}
+                      {t('games.shells.outcome')}
                     </th>
                   </tr>
                 </thead>
@@ -270,11 +267,11 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
                       }}>
                         {game.result === 'win' ? (
                           <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
-                            ✅ {t.win}
+                            ✅ {t('games.win')}
                           </span>
                         ) : (
                           <span style={{ color: '#ff0000', fontWeight: 'bold' }}>
-                            ❌ {t.loss}
+                            ❌ {t('games.loss')}
                           </span>
                         )}
                       </td>
@@ -295,7 +292,6 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
           </>
         )}
 
-        {/* Кнопка закрытия внизу */}
         <div style={{ 
           textAlign: 'center', 
           marginTop: '20px',
@@ -325,12 +321,11 @@ const CosmicShellsHistoryModal: React.FC<CosmicShellsHistoryModalProps> = ({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            {t.close}
+            {t('games.shells.close')}
           </button>
         </div>
       </div>
 
-      {/* CSS для анимаций */}
       <style>
         {`
           @keyframes spin {

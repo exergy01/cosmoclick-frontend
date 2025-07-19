@@ -1,8 +1,8 @@
 // cosmic-shells/components/CosmicShellsBetPanel.tsx
-// ✅ УНИФИЦИРОВАНО под стиль слотов с MIN/MAX кнопками
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React, { useState, useEffect } from 'react';
-import { CosmicShellsStatus, CosmicShellsTranslations } from '../types';
+import { CosmicShellsStatus } from '../types';
 import { formatNumber } from '../utils/formatters';
 
 interface CosmicShellsBetPanelProps {
@@ -10,9 +10,9 @@ interface CosmicShellsBetPanelProps {
   betAmount: number;
   onBetAmountChange: (amount: number) => void;
   onStartGame: () => void;
-  isSpinning?: boolean; // ✅ ДОБАВЛЕНО: для блокировки как в слотах
+  isSpinning?: boolean;
   colorStyle: string;
-  t: CosmicShellsTranslations;
+  t: (key: string) => string;
 }
 
 const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
@@ -20,22 +20,19 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
   betAmount,
   onBetAmountChange,
   onStartGame,
-  isSpinning = false, // ✅ ДОБАВЛЕНО: по умолчанию false
+  isSpinning = false,
   colorStyle,
   t
 }) => {
   const [inputValue, setInputValue] = useState<string>(betAmount.toString());
 
-  // ✅ УНИФИЦИРОВАНО: Синхронизация как в слотах
   useEffect(() => {
     setInputValue(betAmount.toString());
   }, [betAmount]);
 
-  // ✅ УНИФИЦИРОВАНО: Обработчик ввода как в слотах
   const handleBetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     
-    // Разрешаем только цифры и пустую строку
     if (value === '' || /^[0-9]*$/.test(value)) {
       setInputValue(value);
       const numValue = value === '' ? 0 : parseInt(value, 10);
@@ -43,34 +40,32 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
     }
   };
 
-  // ✅ УНИФИЦИРОВАНО: Валидация как в слотах
   const getBetValidation = () => {
     if (betAmount < gameStatus.minBet) {
       return { 
         isValid: false, 
-        error: `Минимальная ставка ${gameStatus.minBet.toLocaleString()} CCC`
+        error: `${t('games.shells.minBet')} ${gameStatus.minBet.toLocaleString()} CCC`
       };
     }
     if (betAmount > gameStatus.maxBet) {
       return { 
         isValid: false, 
-        error: `Максимальная ставка ${gameStatus.maxBet.toLocaleString()} CCC`
+        error: `${t('games.shells.maxBet')} ${gameStatus.maxBet.toLocaleString()} CCC`
       };
     }
     if (betAmount > gameStatus.balance) {
       return { 
         isValid: false, 
-        error: t.errors.insufficientFunds || 'Недостаточно средств'
+        error: t('games.shells.insufficientFunds')
       };
     }
     return { isValid: true, error: '' };
   };
 
   const validation = getBetValidation();
-  const canStart = gameStatus.canPlayFree && validation.isValid && !isSpinning; // ✅ ДОБАВЛЕНО: проверка isSpinning
+  const canStart = gameStatus.canPlayFree && validation.isValid && !isSpinning;
   const possibleWin = betAmount * gameStatus.winMultiplier;
 
-  // ✅ НОВЫЕ ФУНКЦИИ: MIN/MAX кнопки как в слотах
   const setMinBet = () => {
     onBetAmountChange(gameStatus.minBet);
   };
@@ -99,10 +94,9 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
         fontSize: '1.1rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        💰 {t.placeBet}
+        💰 {t('games.shells.placeBet')}
       </h3>
 
-      {/* ✅ УНИФИЦИРОВАНО: Основной блок ввода как в слотах */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
@@ -112,10 +106,9 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
         flexDirection: 'column'
       }}>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          {/* ✅ НОВОЕ: MIN кнопка */}
           <button
             onClick={setMinBet}
-            disabled={isSpinning} // ✅ ДОБАВЛЕНО: блокировка
+            disabled={isSpinning}
             style={{
               padding: '10px',
               background: isSpinning ? '#444' : `${colorStyle}40`,
@@ -137,14 +130,13 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
             MIN
           </button>
           
-          {/* ✅ УНИФИЦИРОВАН: Input поле */}
           <input
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
             value={inputValue}
             onChange={handleBetChange}
-            disabled={isSpinning} // ✅ ДОБАВЛЕНО: блокировка
+            disabled={isSpinning}
             style={{
               width: '120px',
               padding: '10px',
@@ -156,17 +148,15 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
               fontSize: '1.1rem',
               fontWeight: 'bold',
               cursor: isSpinning ? 'not-allowed' : 'text',
-              // Убираем стрелочки
               appearance: 'textfield',
               MozAppearance: 'textfield',
               WebkitAppearance: 'none'
             }}
           />
           
-          {/* ✅ НОВОЕ: MAX кнопка */}
           <button
             onClick={setMaxBet}
-            disabled={isSpinning} // ✅ ДОБАВЛЕНО: блокировка
+            disabled={isSpinning}
             style={{
               padding: '10px',
               background: isSpinning ? '#444' : `${colorStyle}40`,
@@ -189,7 +179,6 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
           </button>
         </div>
         
-        {/* ✅ УНИФИЦИРОВАНО: Отображение ошибок как в слотах */}
         {!validation.isValid && betAmount > 0 && (
           <div style={{
             color: '#ff4444',
@@ -201,19 +190,17 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
         )}
       </div>
 
-      {/* ✅ УНИФИЦИРОВАНО: Возможный выигрыш */}
       <div style={{ 
         marginBottom: '15px', 
         textAlign: 'center', 
         color: '#ccc',
         fontSize: '0.9rem'
       }}>
-        <p>{t.possibleWin} <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+        <p>{t('games.shells.possibleWin')} <span style={{ color: colorStyle, fontWeight: 'bold' }}>
           {formatNumber(possibleWin)} CCC
         </span></p>
       </div>
 
-      {/* ✅ УНИФИЦИРОВАНА: Кнопка старта */}
       <button
         onClick={onStartGame}
         disabled={!canStart}
@@ -246,10 +233,9 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
           }
         }}
       >
-        🛸 {t.startGame}
+        🛸 {t('games.shells.startGame')}
       </button>
 
-      {/* ✅ УНИФИЦИРОВАНО: Информация о лимитах как в слотах */}
       <div style={{
         marginTop: '15px',
         textAlign: 'center',
@@ -257,21 +243,20 @@ const CosmicShellsBetPanel: React.FC<CosmicShellsBetPanelProps> = ({
         color: '#999'
       }}>
         <div style={{ marginBottom: '5px' }}>
-          {t.gamesLeft}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+          {t('games.shells.gamesLeft')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
             {gameStatus.gamesLeft}
           </span>
         </div>
         <div style={{ fontSize: '0.7rem' }}>
-          {t.min}: {formatNumber(gameStatus.minBet)} | {t.max}: {formatNumber(gameStatus.maxBet)}
+          {t('games.shells.min')}: {formatNumber(gameStatus.minBet)} | {t('games.shells.max')}: {formatNumber(gameStatus.maxBet)}
         </div>
         {!gameStatus.canPlayFree && gameStatus.canWatchAd && (
           <div style={{ color: '#ffa500', marginTop: '5px', fontSize: '0.7rem' }}>
-            📺 {t.extraGame}
+            📺 {t('games.shells.extraGame')}
           </div>
         )}
       </div>
 
-      {/* CSS для убирания стрелочек */}
       <style>
         {`
           input[type="text"]::-webkit-outer-spin-button,

@@ -1,14 +1,15 @@
 // cosmic-shells/components/CosmicShellsGameResult.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React from 'react';
-import { GameResult, CosmicShellsTranslations } from '../types';
+import { GameResult } from '../types';
 import { formatNumber } from '../utils/formatters';
 
 interface CosmicShellsGameResultProps {
   gameResult: GameResult['result'];
   onNewGame: () => void;
   colorStyle: string;
-  t: CosmicShellsTranslations;
+  t: (key: string) => string;
 }
 
 const CosmicShellsGameResult: React.FC<CosmicShellsGameResultProps> = ({
@@ -37,22 +38,22 @@ const CosmicShellsGameResult: React.FC<CosmicShellsGameResultProps> = ({
         marginBottom: '15px',
         fontSize: '1.5rem'
       }}>
-        {gameResult.isWin ? `🎉 ${t.win.toUpperCase()}!` : `💀 ${t.loss.toUpperCase()}!`}
+        {gameResult.isWin ? `🎉 ${t('games.win').toUpperCase()}!` : `💀 ${t('games.loss').toUpperCase()}!`}
       </h3>
       
       <div style={{ color: '#ccc', lineHeight: '1.5' }}>
-        <p>{t.bet}: {formatNumber(gameResult.betAmount)} CCC</p>
+        <p>{t('games.shells.bet')}: {formatNumber(gameResult.betAmount)} CCC</p>
         {gameResult.isWin ? (
           <>
-            <p>{t.win}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+            <p>{t('games.win')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
               {formatNumber(gameResult.winAmount)} CCC
             </span></p>
-            <p>{t.profit}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+            <p>{t('games.shells.profit')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
               +{formatNumber(gameResult.profit)} CCC
             </span></p>
           </>
         ) : (
-          <p style={{ color: errorColor }}>Потеряно: {formatNumber(gameResult.betAmount)} CCC</p>
+          <p style={{ color: errorColor }}>{t('games.shells.lost')}: {formatNumber(gameResult.betAmount)} CCC</p>
         )}
       </div>
 
@@ -71,11 +72,10 @@ const CosmicShellsGameResult: React.FC<CosmicShellsGameResultProps> = ({
           textShadow: `0 0 10px ${colorStyle}`
         }}
       >
-        🎮 {t.newGame}
+        🎮 {t('games.shells.newGame')}
       </button>
     </div>
   );
 };
 
-export default CosmicShellsGameResult; 
-export {}; 
+export default CosmicShellsGameResult;

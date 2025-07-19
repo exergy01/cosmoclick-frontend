@@ -1,5 +1,5 @@
 // cosmic-shells/hooks/useCosmicShellsGame.ts
-// ✅ ПРОСТАЯ РАБОЧАЯ ВЕРСИЯ без экспериментов
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import { useState, useCallback, useEffect } from 'react';
 import { GameState, GameResult, CosmicShellsStatus } from '../types';
@@ -12,7 +12,7 @@ export const useCosmicShellsGame = (
   telegramId: string | undefined,
   gameStatus: CosmicShellsStatus,
   showToast: (message: string, type?: 'success' | 'error' | 'warning', duration?: number) => void,
-  t: any,
+  t: (key: string) => string, // ✅ ИСПРАВЛЕНО: правильный тип
   onLocalStatusUpdate?: (newStatus: Partial<CosmicShellsStatus>) => void,
   onHistoryUpdate?: () => void,
   onPlayerBalanceUpdate?: (newBalance: number) => void
@@ -37,6 +37,18 @@ export const useCosmicShellsGame = (
     initAds();
   }, []);
 
+  // ✅ ИСПРАВЛЕНО: Функция получения сообщения об ошибке валидации
+  const getValidationErrorMessage = (validation: any) => {
+    switch (validation.error) {
+      case 'betRange':
+        return formatTranslation(t('games.shells.errors.betRange'), validation.params || {});
+      case 'insufficientFunds':
+        return t('games.shells.errors.insufficientFunds');
+      default:
+        return t('games.shells.errors.createGame');
+    }
+  };
+
   // Простая функция startGame
   const startGame = useCallback(async () => {
     if (!telegramId || gameState !== 'waiting') return;
@@ -46,23 +58,20 @@ export const useCosmicShellsGame = (
     // Валидация ставки
     const validation = validateBet(betAmount, gameStatus.minBet, gameStatus.maxBet, gameStatus.balance);
     if (!validation.valid) {
-      const errorKey = validation.error as keyof typeof t.errors;
-      const errorMessage = t.errors[errorKey] 
-        ? formatTranslation(t.errors[errorKey], validation.params || {})
-        : t.errors.createGame;
+      const errorMessage = getValidationErrorMessage(validation);
       showToast(errorMessage, 'warning');
       return;
     }
 
     // Проверка лимитов
     if (!gameStatus.canPlayFree) {
-      showToast(t.errors.dailyLimit, 'warning');
+      showToast(t('games.shells.errors.dailyLimit'), 'warning');
       return;
     }
 
     // Предупреждение о большой ставке
     if (isBigBet(betAmount, gameStatus.balance)) {
-      const confirmed = window.confirm(t.notifications.confirmBigBet);
+      const confirmed = window.confirm(t('games.shells.notifications.confirmBigBet'));
       if (!confirmed) return;
     }
 
@@ -70,7 +79,7 @@ export const useCosmicShellsGame = (
       // ✅ ДОБАВЛЕНО: Получаем свежий баланс перед игрой
       const freshStatus = await CosmicShellsApi.getStatus(telegramId);
       if (!freshStatus.success) {
-        showToast(t.errors.createGame, 'error');
+        showToast(t('games.shells.errors.createGame'), 'error');
         return;
       }
       
@@ -107,10 +116,10 @@ export const useCosmicShellsGame = (
         }, 5000);
         
       } else {
-        showToast(result.error || t.errors.createGame, 'error');
+        showToast(result.error || t('games.shells.errors.createGame'), 'error');
       }
     } catch (err) {
-      showToast(t.errors.createGame, 'error');
+      showToast(t('games.shells.errors.createGame'), 'error');
     }
   }, [telegramId, gameState, betAmount, gameStatus, showToast, t, onPlayerBalanceUpdate, onLocalStatusUpdate]);
 
@@ -131,13 +140,13 @@ export const useCosmicShellsGame = (
           setGameState('finished');
           
           if (result.result!.isWin) {
-            const message = formatTranslation(t.notifications.winMessage, {
+            const message = formatTranslation(t('games.shells.notifications.winMessage'), {
               amount: result.result!.winAmount,
               profit: result.result!.profit
             });
             showToast(message, 'success', 5000);
           } else {
-            const message = formatTranslation(t.notifications.lossMessage, {
+            const message = formatTranslation(t('games.shells.notifications.lossMessage'), {
               amount: result.result!.betAmount
             });
             showToast(message, 'error', 4000);
@@ -182,11 +191,11 @@ export const useCosmicShellsGame = (
         
       } else {
         setGameState('choosing');
-        showToast(result.error || t.errors.makeChoice, 'error');
+        showToast(result.error || t('games.shells.errors.makeChoice'), 'error');
       }
     } catch (err) {
       setGameState('choosing');
-      showToast(t.errors.makeChoice, 'error');
+      showToast(t('games.shells.errors.makeChoice'), 'error');
     }
   }, [telegramId, currentGameId, gameState, showToast, t, onPlayerBalanceUpdate, onLocalStatusUpdate, onHistoryUpdate]);
 
@@ -208,7 +217,7 @@ export const useCosmicShellsGame = (
       if (!adService.isAvailable()) {
         await adService.initialize();
         if (!adService.isAvailable()) {
-          showToast('Ad service unavailable', 'error');
+          showToast(t('errors.adServiceUnavailable'), 'error');
           return;
         }
       }
@@ -219,9 +228,9 @@ export const useCosmicShellsGame = (
         const apiResult = await CosmicShellsApi.watchAd(telegramId);
         
         if (apiResult.success) {
-          let message = '🛸 Extra game received!';
+          let message = t('games.shells.notifications.extraGameReceived');
           if (apiResult.adsWatched && apiResult.maxAds) {
-            message = `🛸 Extra game received! (${apiResult.adsWatched}/${apiResult.maxAds})`;
+            message = `${t('games.shells.notifications.extraGameReceived')} (${apiResult.adsWatched}/${apiResult.maxAds})`;
           }
           
           showToast(message, 'success', 4000);
@@ -239,21 +248,21 @@ export const useCosmicShellsGame = (
           }
           
         } else {
-          showToast(apiResult.error || 'Ошибка обработки награды', 'error');
+          showToast(apiResult.error || t('games.shells.errors.watchAd'), 'error');
         }
       } else {
-        showToast(adResult.error || 'Failed to show advertisement', 'error');
+        showToast(adResult.error || t('errors.adError'), 'error');
       }
       
     } catch (error) {
       console.error('🛸❌ Watch ad error:', error);
-      showToast('An error occurred while showing advertisement', 'error');
+      showToast(t('errors.adError'), 'error');
     } finally {
       setTimeout(() => {
         setIsWatchingAd(false);
       }, 1000);
     }
-  }, [telegramId, gameStatus.canWatchAd, isWatchingAd, showToast, onLocalStatusUpdate]);
+  }, [telegramId, gameStatus.canWatchAd, isWatchingAd, showToast, t, onLocalStatusUpdate]);
 
   // Безопасная установка ставки
   const setBetAmountSafe = useCallback((amount: number) => {

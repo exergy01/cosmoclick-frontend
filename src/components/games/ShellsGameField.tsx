@@ -7,7 +7,7 @@ interface ShellsGameFieldProps {
   winningPosition?: number;
   chosenPosition?: number;
   colorStyle: string;
-  t?: any; // Переводы
+  t: (key: string) => string; // ✅ ИСПРАВЛЕНО: правильный тип для react-i18next
 }
 
 const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
@@ -118,7 +118,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         style={{
           position: 'relative',
           width: '100px',
-          height: '120px', // УВЕЛИЧЕНО для подсказки
+          height: '120px',
           margin: '0 10px',
           cursor: isClickable ? 'pointer' : 'default',
           transform: `translate(${shuffleTranslateX}px, ${shuffleTranslateY}px) scale(${isHovered && isClickable ? 1.1 : 1})`,
@@ -126,7 +126,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
             ? 'transform 0.15s ease-in-out'
             : 'transform 0.3s ease',
           zIndex: isChosen ? 10 : 5,
-          flexShrink: 0 // Предотвращаем сжатие
+          flexShrink: 0
         }}
         onClick={() => isClickable && onShellClick(position)}
         onMouseEnter={() => isClickable && setHoveredShell(position)}
@@ -181,11 +181,11 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
           </div>
         )}
 
-        {/* ИСПРАВЛЕНО: Подсказка при наведении с переводом */}
+        {/* ✅ ИСПРАВЛЕНО: Подсказка при наведении с правильным переводом */}
         {isClickable && isHovered && (
           <div style={{
             position: 'absolute',
-            bottom: '10px', // ИСПРАВЛЕНО: поднято выше
+            bottom: '10px',
             left: '50%',
             transform: 'translateX(-50%)',
             background: 'rgba(0,0,0,0.9)',
@@ -196,34 +196,23 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
             whiteSpace: 'nowrap',
             textShadow: `0 0 5px ${colorStyle}`,
             border: `1px solid ${colorStyle}`,
-            zIndex: 15, // УВЕЛИЧЕН z-index
+            zIndex: 15,
             boxShadow: `0 0 10px ${colorStyle}50`
           }}>
-            {t?.choose || 'Choose'}
+            {t('games.shells.choose')}
           </div>
         )}
       </div>
     );
   };
 
-  // ИСПРАВЛЕНО: Функция получения текста инструкции с переводами
+  // ✅ ИСПРАВЛЕНО: Функция получения текста инструкции с правильными переводами
   const getInstructionText = () => {
-    if (!t?.gameStates) {
-      // Fallback на английский если нет переводов
-      switch (gameState) {
-        case 'waiting': return '🎯 Place bet to start game';
-        case 'shuffling': return '🌀 Shells shuffling...';
-        case 'choosing': return '👆 Choose the shell with galaxy!';
-        case 'revealing': return '✨ Revealing result...';
-        default: return '';
-      }
-    }
-
     switch (gameState) {
-      case 'waiting': return `🎯 ${t.gameStates.waiting}`;
-      case 'shuffling': return `🌀 ${t.gameStates.shuffling}`;
-      case 'choosing': return `👆 ${t.gameStates.choosing}`;
-      case 'revealing': return `✨ ${t.gameStates.revealing}`;
+      case 'waiting': return `🎯 ${t('games.shells.gameStates.waiting')}`;
+      case 'shuffling': return `🌀 ${t('games.shells.gameStates.shuffling')}`;
+      case 'choosing': return `👆 ${t('games.shells.gameStates.choosing')}`;
+      case 'revealing': return `✨ ${t('games.shells.gameStates.revealing')}`;
       default: return '';
     }
   };
@@ -233,7 +222,7 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      minHeight: '200px', // УВЕЛИЧЕНО для подсказки
+      minHeight: '200px',
       margin: '20px 0',
       position: 'relative',
       width: '100%',
@@ -248,14 +237,14 @@ const ShellsGameField: React.FC<ShellsGameFieldProps> = ({
         position: 'relative',
         width: '100%',
         maxWidth: '400px',
-        overflow: 'visible', // ИСПРАВЛЕНО: показываем подсказку
-        padding: '20px 0 40px 0', // УВЕЛИЧЕН padding снизу
+        overflow: 'visible',
+        padding: '20px 0 40px 0',
         boxSizing: 'border-box'
       }}>
         {[0, 1, 2].map(renderShell)}
       </div>
 
-      {/* ИСПРАВЛЕНО: Инструкция для игрока с переводами */}
+      {/* ✅ ИСПРАВЛЕНО: Инструкция для игрока с правильными переводами */}
       <div style={{
         position: 'absolute',
         bottom: '0px',

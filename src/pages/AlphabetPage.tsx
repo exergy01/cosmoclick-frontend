@@ -87,16 +87,16 @@ const AlphabetPage: React.FC = () => {
             borderRadius: '15px',
             boxShadow: `0 0 20px ${colorStyle}30`
           }}>
-            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>🌍 {t('language')}</h3>
+            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>{t('language')}</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
               {[
-                { code: 'en', name: 'English', flag: '🇺🇸' },
-                { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-                { code: 'es', name: 'Español', flag: '🇪🇸' },
-                { code: 'fr', name: 'Français', flag: '🇫🇷' },
-                { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-                { code: 'zh', name: '中文', flag: '🇨🇳' },
-                { code: 'ja', name: '日本語', flag: '🇯🇵' }
+                { code: 'en', name: t('en'), flag: '🇺🇸' },
+                { code: 'ru', name: t('ru'), flag: '🇷🇺' },
+                { code: 'es', name: t('es'), flag: '🇪🇸' },
+                { code: 'fr', name: t('fr'), flag: '🇫🇷' },
+                { code: 'de', name: t('de'), flag: '🇩🇪' },
+                { code: 'zh', name: t('zh'), flag: '🇨🇳' },
+                { code: 'ja', name: t('ja'), flag: '🇯🇵' }
               ].map(({ code, name, flag }) => (
                 <button
                   key={code}
@@ -142,15 +142,15 @@ const AlphabetPage: React.FC = () => {
             borderRadius: '15px',
             boxShadow: `0 0 20px ${colorStyle}30`
           }}>
-            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>🎨 {t('theme_color')}</h3>
+            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>{t('theme_color')}</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
               {[
-                { color: '#00f0ff', name: 'Кибер Синий' },
-                { color: '#bf00ff', name: 'Неон Фиолетовый' },
-                { color: '#ff00ff', name: 'Плазма Розовый' },
-                { color: '#00ffbf', name: 'Космо Зеленый' },
-                { color: '#ffbf00', name: 'Звездное Золото' },
-                { color: '#ff4444', name: 'Марс Красный' }
+                { color: '#00f0ff', name: t('cyber_blue') },
+                { color: '#bf00ff', name: t('neon_purple') },
+                { color: '#ff00ff', name: t('plasma_pink') },
+                { color: '#00ffbf', name: t('cosmo_green') },
+                { color: '#ffbf00', name: t('star_gold') },
+                { color: '#ff4444', name: t('mars_red') }
               ].map(({ color, name }) => (
                 <button
                   key={color}
@@ -196,18 +196,18 @@ const AlphabetPage: React.FC = () => {
             borderRadius: '15px',
             boxShadow: `0 0 20px ${colorStyle}30`
           }}>
-            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>ℹ️ {t('about_game')}</h3>
+            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>{t('about_game')}</h3>
             <div style={{ textAlign: 'left', lineHeight: '1.6', color: '#ccc' }}>
-              <p><strong style={{ color: colorStyle }}>🌌 Звёздные системы:</strong> 5 уникальных систем с собственной экономикой и ресурсами</p>
-              <p><strong style={{ color: colorStyle }}>🤖 Дроны:</strong> Автоматическая добыча CCC, CS и TON. Покупка и улучшение</p>
-              <p><strong style={{ color: colorStyle }}>🌍 Астероиды:</strong> Источники ресурсов. Требуют покупки и разработки дронами</p>
-              <p><strong style={{ color: colorStyle }}>📦 Карго:</strong> Ограничивает объём сбора. 5-й уровень = максимальное накопление</p>
-              <p><strong style={{ color: colorStyle }}>💠 CCC:</strong> Основная валюта системы</p>
-              <p><strong style={{ color: colorStyle }}>✨ CS:</strong> Валюта прокачки через обмен или задания</p>
-              <p><strong style={{ color: colorStyle }}>💎 TON:</strong> Редкая награда в пятой системе</p>
-              <p><strong style={{ color: colorStyle }}>🔄 Обмен:</strong> Конвертация валют с курсом и комиссией</p>
-              <p><strong style={{ color: colorStyle }}>🎯 Задания:</strong> Ежедневные и разовые задачи с наградами</p>
-              <p><strong style={{ color: colorStyle }}>🎮 Мини-игры:</strong> От таймеров до PvP сражений</p>
+              <p><strong style={{ color: colorStyle }}>{t('star_systems')}:</strong> {t('star_systems_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('drones')}:</strong> {t('drones_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('asteroids')}:</strong> {t('asteroids_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('cargo')}:</strong> {t('cargo_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('ccc')}:</strong> {t('ccc_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('cs')}:</strong> {t('cs_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('ton')}:</strong> {t('ton_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('exchange')}:</strong> {t('exchange_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('quests')}:</strong> {t('quests_desc')}</p>
+              <p><strong style={{ color: colorStyle }}>{t('mini_games')}:</strong> {t('mini_games_desc')}</p>
             </div>
           </div>
         </div>

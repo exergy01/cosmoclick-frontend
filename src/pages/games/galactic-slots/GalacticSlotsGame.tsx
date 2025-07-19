@@ -1,3 +1,6 @@
+// galactic-slots/GalacticSlotsGame.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
+
 import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlayer } from '../../../context/PlayerContext';
@@ -17,19 +20,15 @@ import { useGalacticSlotsGame } from './hooks/useGalacticSlotsGame';
 import { useToastNotifications } from '../cosmic-shells/hooks/useToastNotifications';
 import { useSlotsHistory } from './hooks/useSlotsHistory';
 
-// Локализация
-import { getTranslation } from './locales';
+// Утилиты
 import { formatTranslation } from './utils/formatters';
 
 const GalacticSlotsGame: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t } = useTranslation();
   const { player, currentSystem, setPlayer } = usePlayer();
   const navigate = useNavigate();
   
   const colorStyle = player?.color || '#00f0ff';
-  
-  // Локализация
-  const t = getTranslation(i18n.language);
   
   // Хуки состояния
   const { 
@@ -136,7 +135,7 @@ const GalacticSlotsGame: React.FC = () => {
           textAlign: 'center'
         }}>
           <div style={{ fontSize: '2rem', marginBottom: '20px' }}>🎰</div>
-          <p>{t.loading}</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     );
@@ -197,7 +196,7 @@ const GalacticSlotsGame: React.FC = () => {
           marginBottom: '5px',
           textAlign: 'center'
         }}>
-          🎰 {t.title}
+          🎰 {t('games.slots.title')}
         </h1>
         
         <p style={{
@@ -206,7 +205,7 @@ const GalacticSlotsGame: React.FC = () => {
           marginBottom: '15px',
           textAlign: 'center'
         }}>
-          {t.subtitle}
+          {t('games.slots.subtitle')}
         </p>
 
         {/* Слот-машина - ФИКСИРОВАННАЯ ширина 93% */}
@@ -268,7 +267,7 @@ const GalacticSlotsGame: React.FC = () => {
               transition: 'all 0.3s ease'
             }}
           >
-            🎰 {t.spin}
+            🎰 {t('games.slots.spin')}
           </button>
 
           {/* Автоспин */}
@@ -296,8 +295,8 @@ const GalacticSlotsGame: React.FC = () => {
               }}
             >
               {autoSpinActive 
-                ? `🛑 ${t.stopAutoSpin} (${autoSpinCount}/20)`
-                : `🔄 ${t.autoSpin}`
+                ? `🛑 ${t('games.slots.stopAutoSpin')} (${autoSpinCount}/20)`
+                : `🔄 ${t('games.slots.autoSpin')}`
               }
             </button>
           )}
@@ -334,8 +333,8 @@ const GalacticSlotsGame: React.FC = () => {
               }}
             >
               {isWatchingAd 
-                ? `⏳ ${t.watching}...` 
-                : `📺 +20 ${t.extraGame} (${gameStatus.dailyAds}/10)`
+                ? `⏳ ${t('games.slots.watching')}...` 
+                : `📺 +20 ${t('games.slots.extraGame')} (${gameStatus.dailyAds}/10)`
               }
             </button>
           )}
@@ -361,7 +360,7 @@ const GalacticSlotsGame: React.FC = () => {
               transition: 'all 0.3s ease'
             }}
           >
-            ← {t.backToGames}
+            ← {t('games.backToGames')}
           </button>
         </div>
 
@@ -381,13 +380,13 @@ const GalacticSlotsGame: React.FC = () => {
             boxShadow: '0 0 20px rgba(255,68,68,0.3)',
             width: '93%'
           }}>
-            🔄 {formatTranslation(t.autoSpinActive + ': {count}/20 ' + t.spinsCount, { count: autoSpinCount })}
+            🔄 {formatTranslation(t('games.slots.autoSpinActive') + ': {count}/20 ' + t('games.slots.spinsCount'), { count: autoSpinCount })}
             <div style={{ 
               fontSize: '0.8rem',
               marginTop: '3px',
               color: '#ffaaaa'
             }}>
-              {t.nextSpin} {gameState === 'waiting' ? t.ready : t.waiting}
+              {t('games.slots.nextSpin')} {gameState === 'waiting' ? t('games.slots.ready') : t('games.slots.waiting')}
             </div>
           </div>
         )}
@@ -409,7 +408,7 @@ const GalacticSlotsGame: React.FC = () => {
             marginBottom: '8px',
             fontWeight: 'bold'
           }}>
-            📊 {t.dailyStats}
+            📊 {t('games.slots.dailyStats')}
           </div>
           <div style={{ 
             display: 'grid',
@@ -418,22 +417,22 @@ const GalacticSlotsGame: React.FC = () => {
             fontSize: '0.8rem'
           }}>
             <div style={{ color: '#ccc' }}>
-              {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.slots.gamesPlayed')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.dailyGames}
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              {t.gamesRemaining}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.slots.gamesRemaining')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.gamesLeft}
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.slots.adsWatched')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.dailyAds}/10
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.balance')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.balance.toLocaleString()} CCC
               </span>
             </div>
@@ -446,7 +445,7 @@ const GalacticSlotsGame: React.FC = () => {
             fontSize: '0.7rem',
             color: '#aaa'
           }}>
-            {t.rtpInfo} | {t.autoSpinInfo} | {t.limitInfo}
+            {t('games.slots.rtpInfo')} | {t('games.slots.autoSpinInfo')} | {t('games.slots.limitInfo')}
           </div>
         </div>
 

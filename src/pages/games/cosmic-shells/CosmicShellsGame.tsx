@@ -1,5 +1,5 @@
 // cosmic-shells/CosmicShellsGame.tsx
-// ✅ ИСПРАВЛЕНО: Мультиязычность, лимиты, результаты в игровом поле
+// ✅ ИСПРАВЛЕНО: Мультиязычность через react-i18next
 
 import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -20,19 +20,13 @@ import { useGameHistory } from './hooks/useGameHistory';
 import { useCosmicShellsGame } from './hooks/useCosmicShellsGame';
 import { useToastNotifications } from './hooks/useToastNotifications';
 
-// Локализация
-import { getTranslation } from './locales';
-
 const CosmicShellsGame: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t } = useTranslation();
   const { player, currentSystem, setPlayer } = usePlayer();
   const navigate = useNavigate();
   
   const colorStyle = player?.color || '#00f0ff';
   const warningColor = '#ffa500';
-  
-  // Локализация
-  const t = getTranslation(i18n.language);
   
   // Хуки состояния
   const { 
@@ -127,7 +121,7 @@ const CosmicShellsGame: React.FC = () => {
           textAlign: 'center'
         }}>
           <div style={{ fontSize: '2rem', marginBottom: '20px' }}>🛸</div>
-          <p>{t.loading}</p>
+          <p>{t('loading')}</p>
         </div>
       </div>
     );
@@ -188,7 +182,7 @@ const CosmicShellsGame: React.FC = () => {
           marginBottom: '5px',
           textAlign: 'center'
         }}>
-          🛸 {t.title}
+          🛸 {t('games.shells.title')}
         </h1>
         
         <p style={{
@@ -197,7 +191,7 @@ const CosmicShellsGame: React.FC = () => {
           marginBottom: '15px',
           textAlign: 'center'
         }}>
-          {t.subtitle}
+          {t('games.shells.subtitle')}
         </p>
 
         {/* ПОРЯДОК 1: Игровое поле с результатами ВНУТРИ - ФИКСИРОВАННАЯ ширина 93% */}
@@ -240,22 +234,22 @@ const CosmicShellsGame: React.FC = () => {
                   marginBottom: '10px',
                   fontSize: '1.2rem'
                 }}>
-                  {gameResult.isWin ? `🎉 ${t.win.toUpperCase()}!` : `💀 ${t.loss.toUpperCase()}!`}
+                  {gameResult.isWin ? `🎉 ${t('games.win').toUpperCase()}!` : `💀 ${t('games.loss').toUpperCase()}!`}
                 </h3>
                 
                 <div style={{ color: '#ccc', lineHeight: '1.5', fontSize: '0.9rem' }}>
-                  <p>{t.bet}: {gameResult.betAmount.toLocaleString()} CCC</p>
+                  <p>{t('games.shells.bet')}: {gameResult.betAmount.toLocaleString()} CCC</p>
                   {gameResult.isWin ? (
                     <>
-                      <p>{t.win}: <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                      <p>{t('games.win')}: <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
                         {gameResult.winAmount.toLocaleString()} CCC
                       </span></p>
-                      <p>{t.profit}: <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
+                      <p>{t('games.shells.profit')}: <span style={{ color: '#00ff00', fontWeight: 'bold' }}>
                         +{gameResult.profit.toLocaleString()} CCC
                       </span></p>
                     </>
                   ) : (
-                    <p style={{ color: '#ff0000' }}>{t.lost}: {gameResult.betAmount.toLocaleString()} CCC</p>
+                    <p style={{ color: '#ff0000' }}>{t('games.shells.lost')}: {gameResult.betAmount.toLocaleString()} CCC</p>
                   )}
                 </div>
               </div>
@@ -320,8 +314,8 @@ const CosmicShellsGame: React.FC = () => {
               }}
             >
               {isWatchingAd 
-                ? `⏳ ${t.watching}...` 
-                : `📺 ${t.extraGame} (${gameStatus.dailyAds}/10)`
+                ? `⏳ ${t('games.shells.watching')}...` 
+                : `📺 ${t('games.shells.extraGame')} (${gameStatus.dailyAds}/10)`
               }
             </button>
           )}
@@ -347,7 +341,7 @@ const CosmicShellsGame: React.FC = () => {
               transition: 'all 0.3s ease'
             }}
           >
-            ← {t.backToGames}
+            ← {t('games.backToGames')}
           </button>
         </div>
 
@@ -368,7 +362,7 @@ const CosmicShellsGame: React.FC = () => {
             marginBottom: '8px',
             fontWeight: 'bold'
           }}>
-            📊 {t.dailyStats}
+            📊 {t('games.shells.dailyStats')}
           </div>
           <div style={{ 
             display: 'grid',
@@ -377,22 +371,22 @@ const CosmicShellsGame: React.FC = () => {
             fontSize: '0.8rem'
           }}>
             <div style={{ color: '#ccc' }}>
-              {t.gamesPlayed}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.shells.gamesPlayed')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.dailyGames}
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              {t.gamesLeft}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.shells.gamesLeft')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.gamesLeft}
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              {t.adsWatched}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.shells.adsWatched')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.dailyAds}/10
               </span>
             </div>
             <div style={{ color: '#ccc' }}>
-              {t.balance}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+              {t('games.shells.balance')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                 {gameStatus.balance.toLocaleString()} CCC
               </span>
             </div>
@@ -405,7 +399,7 @@ const CosmicShellsGame: React.FC = () => {
             fontSize: '0.7rem',
             color: '#aaa'
           }}>
-            {t.rtpInfo} | {t.limitInfo}
+            {t('games.shells.rtpInfo')} | {t('games.shells.limitInfo')}
           </div>
         </div>
 
@@ -422,14 +416,14 @@ const CosmicShellsGame: React.FC = () => {
           boxShadow: `0 0 20px ${colorStyle}`
         }}>
           <h3 style={{ color: colorStyle, marginBottom: '10px', fontSize: '1rem' }}>
-            📖 {t.howToPlay}
+            📖 {t('games.shells.howToPlay')}
           </h3>
           <div style={{ color: '#ccc', lineHeight: '1.4', textAlign: 'left', fontSize: '0.8rem' }}>
-            <p>🛸 <strong>{t.rule1}</strong></p>
-            <p>🌌 <strong>{t.rule2}</strong></p>
-            <p>🕳️ <strong>{t.rule3}</strong></p>
-            <p>💰 <strong>{t.rule4}</strong></p>
-            <p>📺 <strong>{t.rule5}</strong></p>
+            <p>🛸 <strong>{t('games.shells.rule1')}</strong></p>
+            <p>🌌 <strong>{t('games.shells.rule2')}</strong></p>
+            <p>🕳️ <strong>{t('games.shells.rule3')}</strong></p>
+            <p>💰 <strong>{t('games.shells.rule4')}</strong></p>
+            <p>📺 <strong>{t('games.shells.rule5')}</strong></p>
           </div>
         </div>
         */}

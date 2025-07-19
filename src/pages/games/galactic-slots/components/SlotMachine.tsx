@@ -1,14 +1,15 @@
 // galactic-slots/components/SlotMachine.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React, { useEffect, useState, useRef } from 'react';
-import { SlotGameState, SlotSymbol, SlotResult, WinningLine, PAYLINES, SlotTranslations } from '../types';
+import { SlotGameState, SlotSymbol, SlotResult, WinningLine, PAYLINES } from '../types';
 import { formatTranslation } from '../utils/formatters';
 
 interface SlotMachineProps {
   gameState: SlotGameState;
   lastResult: SlotResult | null;
   colorStyle: string;
-  t: any; // <-- вот так
+  t: (key: string) => string;
 }
 
 const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorStyle, t }) => {
@@ -269,27 +270,27 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
   const getGameStatusMessage = () => {
     switch (gameState) {
       case 'waiting':
-        return `🎲 ${t.gameStates.waiting}`;
+        return `🎲 ${t('games.slots.gameStates.waiting')}`;
       case 'spinning':
-        return `🎰 ${t.gameStates.spinning}`;
+        return `🎰 ${t('games.slots.gameStates.spinning')}`;
       case 'revealing':
-        return `✨ ${t.gameStates.revealing}`;
+        return `✨ ${t('games.slots.gameStates.revealing')}`;
       case 'finished':
         if (lastResult) {
           if (lastResult.isWin) {
             const multiplier = Math.round(lastResult.totalWin / lastResult.betAmount);
             if (multiplier >= 5) {
-              return formatTranslation(t.winMessages.excellentWin, { amount: lastResult.totalWin.toLocaleString() });
+              return formatTranslation(t('games.slots.winMessages.excellentWin'), { amount: lastResult.totalWin.toLocaleString() });
             } else if (multiplier >= 2) {
-              return formatTranslation(t.winMessages.goodWin, { amount: lastResult.totalWin.toLocaleString() });
+              return formatTranslation(t('games.slots.winMessages.goodWin'), { amount: lastResult.totalWin.toLocaleString() });
             } else {
-              return formatTranslation(t.winMessages.regularWin, { amount: lastResult.totalWin.toLocaleString() });
+              return formatTranslation(t('games.slots.winMessages.regularWin'), { amount: lastResult.totalWin.toLocaleString() });
             }
           } else {
-            return t.winMessages.loss;
+            return t('games.slots.winMessages.loss');
           }
         }
-        return t.gameStates.finished;
+        return t('games.slots.gameStates.finished');
       default:
         return '';
     }
@@ -336,7 +337,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         fontWeight: 'bold',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        🎰 {t.title}
+        🎰 {t('games.slots.title')}
       </div>
 
       {/* Игровое поле 3x5 */}
@@ -404,7 +405,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
             marginBottom: '8px',
             textAlign: 'center'
           }}>
-            🏆 {t.winningLines.title}
+            🏆 {t('games.slots.winningLines.title')}
           </div>
           {lastResult.winningLines.map((line, index) => (
             <div key={index} style={{ 
@@ -414,8 +415,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
               borderRadius: '4px',
               fontSize: '0.75rem'
             }}>
-              <strong>{t.winningLines.line} {line.line}:</strong> {line.symbol} x{line.count} = {line.winAmount.toLocaleString()} CCC
-              {line.hasWild && <span style={{ color: '#ffd700' }}> ⭐{t.winningLines.wild}</span>}
+              <strong>{t('games.slots.winningLines.line')} {line.line}:</strong> {line.symbol} x{line.count} = {line.winAmount.toLocaleString()} CCC
+              {line.hasWild && <span style={{ color: '#ffd700' }}> ⭐{t('games.slots.winningLines.wild')}</span>}
             </div>
           ))}
           <div style={{ 
@@ -426,7 +427,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
             borderTop: `1px solid ${colorStyle}40`,
             paddingTop: '8px'
           }}>
-            {t.winningLines.totalWin}: {lastResult.totalWin.toLocaleString()} CCC
+            {t('games.slots.winningLines.totalWin')}: {lastResult.totalWin.toLocaleString()} CCC
           </div>
         </div>
       )}
@@ -438,7 +439,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         fontSize: '0.8rem',
         color: '#999'
       }}>
-        20 {t.symbols.activePaylines} • {t.rtpInfo}
+        20 {t('games.slots.symbols.activePaylines')} • {t('games.slots.rtpInfo')}
       </div>
     </div>
   );

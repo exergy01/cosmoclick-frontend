@@ -167,7 +167,7 @@ const QuestsPage: React.FC = () => {
         <div style={{ textAlign: 'center', padding: '20px' }}>
 
           {loading ? (
-            <div style={{ color: colorStyle, fontSize: '1.2rem' }}>Загрузка заданий...</div>
+            <div style={{ color: colorStyle, fontSize: '1.2rem' }}>Wait...</div>
           ) : (
             <>
               {/* Основные задания */}

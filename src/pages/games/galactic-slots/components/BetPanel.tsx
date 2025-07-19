@@ -1,4 +1,5 @@
 // galactic-slots/components/BetPanel.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React, { useState, useEffect } from 'react';
 import { GalacticSlotsStatus } from '../types';
@@ -12,7 +13,7 @@ interface BetPanelProps {
   onMaxBet: () => void;
   isSpinning: boolean;
   colorStyle: string;
-  t: any;
+  t: (key: string) => string;
 }
 
 const BetPanel: React.FC<BetPanelProps> = ({
@@ -49,19 +50,19 @@ const BetPanel: React.FC<BetPanelProps> = ({
     if (betAmount < gameStatus.minBet) {
       return { 
         isValid: false, 
-        error: formatTranslation(t.errors.betTooLow, { min: gameStatus.minBet }) 
+        error: formatTranslation(t('games.slots.errors.betTooLow'), { min: gameStatus.minBet }) 
       };
     }
     if (betAmount > gameStatus.maxBet) {
       return { 
         isValid: false, 
-        error: formatTranslation(t.errors.betTooHigh, { max: gameStatus.maxBet }) 
+        error: formatTranslation(t('games.slots.errors.betTooHigh'), { max: gameStatus.maxBet }) 
       };
     }
     if (betAmount > gameStatus.balance) {
       return { 
         isValid: false, 
-        error: t.errors.insufficientFunds 
+        error: t('games.slots.errors.insufficientFunds')
       };
     }
     return { isValid: true, error: '' };
@@ -91,7 +92,7 @@ const BetPanel: React.FC<BetPanelProps> = ({
         fontSize: '1.1rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        💰 {t.placeBet}
+        💰 {t('games.slots.placeBet')}
       </h3>
 
       {/* Основной блок ввода ставки */}
@@ -180,16 +181,16 @@ const BetPanel: React.FC<BetPanelProps> = ({
         color: '#999'
       }}>
         <div style={{ marginBottom: '5px' }}>
-          {t.gamesLeft}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+          {t('games.slots.gamesLeft')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
             {gameStatus.gamesLeft}
           </span>
         </div>
         <div style={{ fontSize: '0.7rem' }}>
-          {t.dailyTotal}: {gameStatus.dailyGames} | {t.adsWatched}: {gameStatus.dailyAds}/10
+          {t('games.slots.dailyTotal')}: {gameStatus.dailyGames} | {t('games.slots.adsWatched')}: {gameStatus.dailyAds}/10
         </div>
         {!gameStatus.canPlayFree && gameStatus.canWatchAd && (
           <div style={{ color: '#ffa500', marginTop: '5px', fontSize: '0.7rem' }}>
-            📺 {t.watchAdForGames}
+            📺 {t('games.slots.watchAdForGames')}
           </div>
         )}
       </div>

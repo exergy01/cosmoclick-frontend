@@ -1,14 +1,15 @@
 // galactic-slots/components/SlotsGameHistory.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React from 'react';
-import { SlotGameHistory, SlotTranslations } from '../types';
+import { SlotGameHistory } from '../types';
 import { formatGameTime, formatProfit, getProfitColor } from '../utils/formatters';
 
 interface SlotsGameHistoryProps {
   recentHistory: SlotGameHistory[];
   onShowFullHistory: () => void;
   colorStyle: string;
-  t: SlotTranslations;
+  t: (key: string) => string;
 }
 
 const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
@@ -41,12 +42,12 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
         fontSize: '1.1rem',
         textShadow: `0 0 10px ${colorStyle}`
       }}>
-        🕒 {t.lastGames} (10)
+        🕒 {t('games.slots.lastGames')} (10)
       </h3>
       
       {lastTenGames.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#ccc', padding: '20px' }}>
-          История игр пуста
+          {t('games.slots.emptyHistory')}
         </div>
       ) : (
         <>
@@ -58,10 +59,10 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
             }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colorStyle}` }}>
-                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'left' }}>{t.time}</th>
-                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t.bet}</th>
-                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t.result}</th>
-                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t.outcome}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'left' }}>{t('games.slots.time')}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t('games.slots.bet')}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t('games.slots.result')}</th>
+                  <th style={{ color: colorStyle, padding: '8px', textAlign: 'center' }}>{t('games.slots.outcome')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -78,7 +79,7 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
                         color: game.result === 'win' ? '#00ff00' : '#ff0000',
                         fontWeight: 'bold'
                       }}>
-                        {game.result === 'win' ? '✅' : '❌'} {game.result === 'win' ? t.win : t.loss}
+                        {game.result === 'win' ? '✅' : '❌'} {game.result === 'win' ? t('games.win') : t('games.loss')}
                       </span>
                     </td>
                     <td style={{ 
@@ -109,7 +110,7 @@ const SlotsGameHistory: React.FC<SlotsGameHistoryProps> = ({
                 fontWeight: 'bold'
               }}
             >
-              📋 {t.fullHistory}
+              📋 {t('games.slots.fullHistory')}
             </button>
           </div>
         </>

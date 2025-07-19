@@ -48,7 +48,7 @@ const collectReferralRewards = async () => {
     const totalTON = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0);
     
     if (totalCS <= 0 && totalTON <= 0) {
-      showToastMessage('Нет наград для сбора');
+      showToastMessage(t('no_rewards_to_collect'));
       return;
     }
     
@@ -59,7 +59,7 @@ const collectReferralRewards = async () => {
     
     if (response.data.success) {
       const collected = response.data.collected;
-      showToastMessage(`Собрано: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
+      showToastMessage(`${t('collected')}: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
       
       // 🔥 ТОЛЬКО ОБНОВЛЯЕМ PLAYER - НИКАКИХ ЛИШНИХ ВЫЗОВОВ!
       if (response.data.player && (window as any).setPlayerGlobal) {
@@ -78,12 +78,12 @@ const collectReferralRewards = async () => {
         (window as any).setPlayerGlobal(updatedPlayer);
       }
     } else {
-      showToastMessage('Ошибка сбора наград');
+      showToastMessage(t('error_collecting_rewards'));
     }
     
   } catch (err: any) {
     console.error('Ошибка сбора наград:', err);
-    showToastMessage('Ошибка сбора наград');
+    showToastMessage(t('error_collecting_rewards'));
   } finally {
     setIsCollecting(false);
   }
@@ -106,19 +106,19 @@ const collectReferralRewards = async () => {
       document.body.removeChild(textArea);
       
       if (successful) {
-        showToastMessage('Ссылка скопирована');
+        showToastMessage(t('link_copied'));
       } else {
-        showToastMessage('Ошибка копирования');
+        showToastMessage(t('copy_error'));
       }
     } catch (err) {
-      showToastMessage('Ошибка копирования');
+      showToastMessage(t('copy_error'));
     }
   };
 
   // 🔥 ПРАВИЛЬНАЯ функция поделиться для Telegram
   const handleShare = () => {
     if (!player?.referral_link) {
-      showToastMessage('Ссылка недоступна');
+      showToastMessage(t('link_unavailable'));
       return;
     }
 
@@ -137,7 +137,7 @@ const collectReferralRewards = async () => {
         if (telegramWebApp.switchInlineQuery) {
           try {
             telegramWebApp.switchInlineQuery(`Присоединяйся к CosmoClick! ${player.referral_link}`, ['users', 'groups', 'channels']);
-            showToastMessage('Выберите чат для отправки');
+            showToastMessage(t('select_chat_to_share'));
             return;
           } catch (e) {
             console.log('switchInlineQuery failed:', e);
@@ -150,7 +150,7 @@ const collectReferralRewards = async () => {
             const shareText = encodeURIComponent('🚀 Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
             const shareUrl = encodeURIComponent(player.referral_link);
             telegramWebApp.openTelegramLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
-            showToastMessage('Открываем диалог поделиться');
+            showToastMessage(t('opening_share_dialog'));
             return;
           } catch (e) {
             console.log('openTelegramLink failed:', e);
@@ -165,7 +165,7 @@ const collectReferralRewards = async () => {
               link: player.referral_link,
               text: 'Присоединяйся к CosmoClick!'
             }));
-            showToastMessage('Данные отправлены боту');
+            showToastMessage(t('data_sent_to_bot'));
             return;
           } catch (e) {
             console.log('sendData failed:', e);
@@ -178,7 +178,7 @@ const collectReferralRewards = async () => {
             const shareText = encodeURIComponent('🚀 Присоединяйся к CosmoClick и зарабатывай космические кристаллы!');
             const shareUrl = encodeURIComponent(player.referral_link);
             telegramWebApp.openLink(`https://t.me/share/url?url=${shareUrl}&text=${shareText}`);
-            showToastMessage('Открываем в браузере');
+            showToastMessage(t('opening_in_browser'));
             return;
           } catch (e) {
             console.log('openLink failed:', e);
@@ -193,27 +193,27 @@ const collectReferralRewards = async () => {
           text: '🚀 Присоединяйся к CosmoClick и зарабатывай космические кристаллы!',
           url: player.referral_link,
         }).then(() => {
-          showToastMessage('Поделились успешно');
+          showToastMessage(t('share_success'));
         }).catch(() => {
           copyToClipboard(player.referral_link);
-          showToastMessage('Ссылка скопирована в буфер обмена');
+          showToastMessage(t('link_copied_to_clipboard'));
         });
       } else {
         // Последний fallback - копируем
         copyToClipboard(player.referral_link);
-        showToastMessage('Ссылка скопирована - вставьте в чат для отправки');
+        showToastMessage(t('link_copied_paste_to_chat'));
       }
       
     } catch (err) {
       console.error('Share error:', err);
       copyToClipboard(player.referral_link);
-      showToastMessage('Ссылка скопирована');
+      showToastMessage(t('link_copied'));
     }
   };
 
   const handleCopy = () => {
     if (!player?.referral_link) {
-      showToastMessage('Ссылка недоступна');
+      showToastMessage(t('link_unavailable'));
       return;
     }
     copyToClipboard(player.referral_link);
@@ -265,7 +265,7 @@ const collectReferralRewards = async () => {
           🚀
         </div>
         <div style={{ fontSize: '1.2rem' }}>
-          Загружаем рефералов...
+          {t('loading_referrals')}
         </div>
         <style>
           {`
@@ -290,8 +290,8 @@ const collectReferralRewards = async () => {
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e)'
       }}>
-        <h2>Ошибка загрузки данных</h2>
-        <p>Попробуйте обновить страницу</p>
+        <h2>{t('data_load_error')}</h2>
+        <p>{t('refresh_page')}</p>
       </div>
     );
   }
@@ -385,7 +385,7 @@ const collectReferralRewards = async () => {
               fontSize: '0.9rem',
               marginBottom: '15px'
             }}>
-              {player?.referral_link || 'Загружается...'}
+              {player?.referral_link || t('loading')}
             </p>
             
             {/* Кнопки поделиться и скопировать */}
@@ -467,7 +467,7 @@ const collectReferralRewards = async () => {
                         </td>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
                           {entry.username || `${t('player')} #${index + 1}`}
-                          {entry.telegram_id === player?.telegram_id && ' (Вы)'}
+                          {entry.telegram_id === player?.telegram_id && ' (あなた)'}
                         </td>
                         <td style={{ border: `1px solid ${colorStyle}`, padding: '10px' }}>
                           {entry.referrals_count || 0}
@@ -538,7 +538,7 @@ const collectReferralRewards = async () => {
               }}>
                 <p>{t('no_referrals')}</p>
                 <p style={{ fontSize: '1rem', color: '#aaa', marginTop: '10px' }}>
-                  Приглашайте друзей и получайте от их трат в магазине: 1% в CS + 0.1% в TON!
+                  {t('invite_friends_earn')}
                 </p>
               </div>
             )}
@@ -578,7 +578,7 @@ const collectReferralRewards = async () => {
                   width: '100%'
                 }}
               >
-                {isCollecting ? '⏳ Собираем...' : `💰 ${t('collect_rewards')}`}
+                {isCollecting ? '⏳ ' + t('collecting') : `💰 ${t('collect_rewards')}`}
               </button>
             </div>
           )}

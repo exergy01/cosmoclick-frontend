@@ -1,13 +1,14 @@
 // cosmic-shells/components/CosmicShellsStats.tsx
+// ✅ ИСПРАВЛЕНО: Переводы через react-i18next
 
 import React from 'react';
-import { CosmicShellsStatus, CosmicShellsTranslations } from '../types';
+import { CosmicShellsStatus } from '../types';
 import { formatProfit, getProfitColor } from '../utils/formatters';
 
 interface CosmicShellsStatsProps {
   gameStatus: CosmicShellsStatus;
   colorStyle: string;
-  t: CosmicShellsTranslations;
+  t: (key: string) => string;
 }
 
 const CosmicShellsStats: React.FC<CosmicShellsStatsProps> = ({
@@ -34,25 +35,22 @@ const CosmicShellsStats: React.FC<CosmicShellsStatsProps> = ({
         gap: '15px',
         textAlign: 'center'
       }}>
-        {/* Игры осталось */}
         <div>
           <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>🎮</div>
           <div style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.1rem' }}>
             {gameStatus.gamesLeft}
           </div>
-          <div style={{ color: '#ccc', fontSize: '0.75rem' }}>{t.gamesLeft}</div>
+          <div style={{ color: '#ccc', fontSize: '0.75rem' }}>{t('games.shells.gamesLeft')}</div>
         </div>
 
-        {/* Множитель */}
         <div>
           <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>⭐</div>
           <div style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.1rem' }}>
             x{gameStatus.winMultiplier}
           </div>
-          <div style={{ color: '#ccc', fontSize: '0.75rem' }}>{t.multiplier}</div>
+          <div style={{ color: '#ccc', fontSize: '0.75rem' }}>{t('games.shells.multiplier')}</div>
         </div>
 
-        {/* Прибыль */}
         <div>
           <div style={{ fontSize: '1.2rem', marginBottom: '5px' }}>💰</div>
           <div style={{ 
@@ -62,12 +60,11 @@ const CosmicShellsStats: React.FC<CosmicShellsStatsProps> = ({
           }}>
             {formatProfit(profit)}
           </div>
-          <div style={{ color: '#ccc', fontSize: '0.75rem' }}>{t.profit}</div>
+          <div style={{ color: '#ccc', fontSize: '0.75rem' }}>{t('games.shells.profit')}</div>
         </div>
       </div>
     </div>
   );
 };
 
-export default CosmicShellsStats; 
-export {}; 
+export default CosmicShellsStats;
