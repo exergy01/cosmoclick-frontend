@@ -493,13 +493,14 @@ const TapperGame: React.FC = () => {
           colorStyle={colorStyle}
         />
 
-        {/* ✅ БОЛЬШАЯ КНОПКА СБОРА CCC */}
+        {/* ✅ БОЛЬШАЯ КНОПКА СБОРА CCC с правильной шириной */}
         <div style={{
-          width: '100%',
-          maxWidth: '500px',
+          width: '93%',
+          maxWidth: '93%',
           marginTop: '25px',
           marginBottom: '25px',
-          padding: '0 15px'
+          marginLeft: 'auto',
+          marginRight: 'auto'
         }}>
           <button
             onClick={handleCollectEarned}
@@ -579,15 +580,16 @@ const TapperGame: React.FC = () => {
           </button>
         </div>
 
-        {/* Статистика с улучшенным дизайном */}
+        {/* Статистика с правильной шириной как в слотах */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
           gap: '15px',
-          width: '100%',
-          maxWidth: '600px',
+          width: '93%',
+          maxWidth: '93%',
           marginBottom: '25px',
-          padding: '0 15px'
+          marginLeft: 'auto',
+          marginRight: 'auto'
         }}>
           {/* Энергия с прогресс-баром */}
           <div style={{
@@ -669,18 +671,21 @@ const TapperGame: React.FC = () => {
           </div>
         </div>
 
-        {/* Блок рекламы с улучшенным дизайном */}
+        {/* Блок рекламы с правильной шириной и padding */}
         <div style={{
           background: 'linear-gradient(145deg, rgba(0,0,0,0.4), rgba(20,20,20,0.4))',
           border: `2px solid ${colorStyle}`,
           borderRadius: '20px',
-          padding: '25px',
+          padding: '20px',
           marginTop: '25px',
           textAlign: 'center',
           boxShadow: `0 8px 32px ${colorStyle}20`,
-          maxWidth: '450px',
-          width: '100%',
-          backdropFilter: 'blur(10px)'
+          width: '93%',
+          maxWidth: '93%',
+          backdropFilter: 'blur(10px)',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          boxSizing: 'border-box'
         }}>
           <div style={{ 
             display: 'flex', 
@@ -765,18 +770,18 @@ const TapperGame: React.FC = () => {
           )}
         </div>
 
-        {/* Сообщения с улучшенным дизайном */}
+        {/* Сообщения с правильной шириной как в слотах */}
         {tapperStatus.energy <= 0 && (
           <div style={{
             background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 165, 0, 0.25))',
             border: `2px solid ${warningColor}`,
             borderRadius: '18px',
             padding: '20px',
-            margin: '25px 15px',
+            margin: '25px auto',
             textAlign: 'center',
             color: warningColor,
-            maxWidth: '400px',
-            width: '100%',
+            width: '93%',
+            maxWidth: '93%',
             backdropFilter: 'blur(10px)',
             boxShadow: `0 8px 32px ${warningColor}20`
           }}>
@@ -796,11 +801,11 @@ const TapperGame: React.FC = () => {
             border: `2px solid ${errorColor}`,
             borderRadius: '18px',
             padding: '20px',
-            margin: '25px 15px',
+            margin: '25px auto',
             textAlign: 'center',
             color: errorColor,
-            maxWidth: '400px',
-            width: '100%',
+            width: '93%',
+            maxWidth: '93%',
             backdropFilter: 'blur(10px)',
             boxShadow: `0 8px 32px ${errorColor}20`
           }}>
@@ -830,18 +835,21 @@ const TapperGame: React.FC = () => {
           ← {t.games.backToGames}
         </button>
 
-        {/* Инструкция с улучшенным дизайном */}
+        {/* Инструкция с правильной шириной и padding */}
         <div style={{
           background: 'linear-gradient(145deg, rgba(0,0,0,0.4), rgba(20,20,20,0.4))',
           border: `1px solid ${colorStyle}50`,
           borderRadius: '20px',
-          padding: '25px',
+          padding: '20px',
           marginTop: '30px',
-          maxWidth: '500px',
-          width: '100%',
+          width: '93%',
+          maxWidth: '93%',
           textAlign: 'center',
           backdropFilter: 'blur(10px)',
-          boxShadow: `0 8px 32px ${colorStyle}10`
+          boxShadow: `0 8px 32px ${colorStyle}10`,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          boxSizing: 'border-box'
         }}>
           <h3 style={{ 
             color: colorStyle, 
