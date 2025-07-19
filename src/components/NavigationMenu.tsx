@@ -94,7 +94,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
       ? `0 0 20px ${colorStyle}, inset 0 0 15px ${colorStyle}, inset 0 0 25px rgba(0, 240, 255, 0.3)` 
       : `0 0 10px ${colorStyle}`,
     color: location.pathname === path ? colorStyle : '#fff',
-    fontSize: hasLabel ? '1rem' : '2rem',
+    fontSize: hasLabel ? '0.8rem' : '2rem',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
