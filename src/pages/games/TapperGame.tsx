@@ -15,103 +15,8 @@ interface ToastNotification {
   duration: number;
 }
 
-// Функция локализации из объединенного файла
-const getTranslation = (language: string) => {
-  // Здесь будет импорт из вашего файла переводов
-  // import translations from './locales/tapper-translations.json';
-  const translations: any = {
-    ru: {
-      games: {
-        tapper: {
-          title: "Астероидный Разрушитель",
-          description: "Разрушайте астероиды и получайте CCC!",
-          energy: "Энергия",
-          perTap: "За тап",
-          tapAsteroid: "Тапайте по астероиду для получения CCC",
-          energyEmpty: "Энергия закончилась!",
-          energyRestore: "Энергия восстанавливается автоматически (1 в 43 сек)",
-          restoreTime: "Восстановление через",
-          adsToday: "Реклам сегодня",
-          watchAd: "Смотреть рекламу",
-          adLimitReached: "Лимит рекламы достигнут",
-          collectEarnings: "Собрать заработок",
-          collectAccumulated: "Собирайте накопленные CCC кнопкой 'Собрать'",
-          nothingToCollect: "Нечего собирать",
-          collected: "Собрано",
-          howToPlay: "Как играть",
-          energyRestores: "Энергия восстанавливается со временем (1 за 43 сек)",
-          watchAdForEnergy: "Смотрите рекламу для получения +100 энергии",
-          limits: "Лимит: 20 реклам в день"
-        },
-        backToGames: "Назад к играм"
-      },
-      loading: "Загрузка...",
-      error: "Ошибка",
-      errors: {
-        connectionError: "Ошибка подключения к серверу",
-        adError: "Ошибка показа рекламы",
-        adServiceUnavailable: "Рекламный сервис недоступен"
-      },
-      notifications: {
-        energyReceived: "Получено энергии",
-        testMode: "[Тест]",
-        partnerMode: "[Партнер]",
-        adMode: "[Реклама]"
-      }
-    },
-    en: {
-      games: {
-        tapper: {
-          title: "Asteroid Destroyer",
-          description: "Destroy asteroids and earn CCC!",
-          energy: "Energy",
-          perTap: "Per tap",
-          tapAsteroid: "Tap the asteroid to earn CCC",
-          energyEmpty: "Energy depleted!",
-          energyRestore: "Energy restores automatically (1 per 43 sec)",
-          restoreTime: "Restore in",
-          adsToday: "Ads today",
-          watchAd: "Watch Ad",
-          adLimitReached: "Ad limit reached",
-          collectEarnings: "Collect Earnings",
-          collectAccumulated: "Collect accumulated CCC with 'Collect' button",
-          nothingToCollect: "Nothing to collect",
-          collected: "Collected",
-          howToPlay: "How to Play",
-          energyRestores: "Energy restores over time (1 per 43 sec)",
-          watchAdForEnergy: "Watch ads to get +100 energy",
-          limits: "Limit: 20 ads per day"
-        },
-        backToGames: "Back to Games"
-      },
-      loading: "Loading...",
-      error: "Error",
-      errors: {
-        connectionError: "Server connection error",
-        adError: "Ad display error",
-        adServiceUnavailable: "Ad service unavailable"
-      },
-      notifications: {
-        energyReceived: "Energy received",
-        testMode: "[Test]",
-        partnerMode: "[Partner]",
-        adMode: "[Ad]"
-      }
-    }
-  };
-
-  if (translations[language]) {
-    return translations[language];
-  }
-  const languageCode = language.split('-')[0];
-  if (translations[languageCode]) {
-    return translations[languageCode];
-  }
-  return translations.en;
-};
-
 const TapperGame: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t } = useTranslation(); // ✅ Используем общий useTranslation
   const { player, currentSystem, refreshPlayer } = usePlayer();
   const navigate = useNavigate();
   
@@ -137,9 +42,6 @@ const TapperGame: React.FC = () => {
   const warningColor = '#ffa500';
   const errorColor = '#ef4444';
 
-  // Локализация
-  const t = getTranslation(i18n.language);
-
   // Функция для показа уведомлений
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success', duration: number = 3000) => {
     const id = Date.now();
@@ -157,7 +59,7 @@ const TapperGame: React.FC = () => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
-  // Компонент уведомления с улучшенным дизайном
+  // Компонент уведомления
   const ToastContainer: React.FC = () => (
     <div style={{
       position: 'fixed',
@@ -247,11 +149,11 @@ const TapperGame: React.FC = () => {
         setError(null);
       }
     } catch (err) {
-      setError(t.errors.connectionError);
+      setError(t('errors.connectionError')); // ✅ Используем общий перевод
     } finally {
       setLoading(false);
     }
-  }, [player?.telegram_id, t.errors.connectionError]);
+  }, [player?.telegram_id, t]);
 
   // Загрузка при монтировании
   useEffect(() => {
@@ -278,14 +180,13 @@ const TapperGame: React.FC = () => {
           ...prev,
           energy: result.energy
         }));
-        // Обновляем pendingCcc из сервера
         await loadTapperStatus();
       } else if (result.error) {
         setError(result.error);
         showToast(result.error, 'error');
       }
     } catch (err) {
-      const errorMsg = t.errors.connectionError;
+      const errorMsg = t('errors.connectionError'); // ✅ Используем общий перевод
       setError(errorMsg);
       showToast(errorMsg, 'error');
     }
@@ -304,17 +205,17 @@ const TapperGame: React.FC = () => {
         await loadTapperStatus();
         
         showToast(
-          `💰 ${t.games.tapper.collected} ${result.collectedAmount.toFixed(2)} CCC!`,
+          `💰 ${t('games.tapper.collected')} ${result.collectedAmount.toFixed(2)} CCC!`,
           'success',
           4000
         );
       } else {
-        const errorMsg = result.error || t.errors.connectionError;
+        const errorMsg = result.error || t('errors.connectionError');
         setError(errorMsg);
         showToast(errorMsg, 'error');
       }
     } catch (err) {
-      const errorMsg = t.errors.connectionError;
+      const errorMsg = t('errors.connectionError');
       setError(errorMsg);
       showToast(errorMsg, 'error');
     } finally {
@@ -322,7 +223,7 @@ const TapperGame: React.FC = () => {
     }
   };
 
-  // ✅ ИСПРАВЛЕНО: Используем настоящий Adsgram сервис как в слотах
+  // Просмотр рекламы с общими переводами
   const handleWatchAd = async () => {
     if (!player?.telegram_id || !tapperStatus.canWatchAd || isWatchingAd) return;
     
@@ -331,23 +232,20 @@ const TapperGame: React.FC = () => {
     try {
       console.log('⚡ Starting ad watch for tapper...');
       
-      // Проверяем доступность сервиса
       if (!adService.isAvailable()) {
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
         await adService.initialize(ADSGRAM_BLOCK_ID);
         
         if (!adService.isAvailable()) {
-          showToast(t.errors.adServiceUnavailable, 'error');
+          showToast(t('errors.adServiceUnavailable'), 'error'); // ✅ Общий перевод
           return;
         }
       }
       
-      // Показываем рекламу
       const adResult = await adService.showRewardedAd();
       console.log('⚡ Ad result for tapper:', adResult);
       
       if (adResult.success) {
-        // Вызываем API для получения награды
         const result = await tapperApi.watchAd(player.telegram_id.toString());
         
         if (result.success) {
@@ -360,15 +258,15 @@ const TapperGame: React.FC = () => {
           setError(null);
           
           // Показываем уведомление с информацией о провайдере
-          let message = `⚡ ${t.notifications.energyReceived}: ${result.energyAdded}!`;
+          let message = `⚡ ${t('notifications.energyReceived')}: ${result.energyAdded}!`;
           
           const currentProvider = adService.getProviderInfo();
           if (currentProvider.name === 'mock') {
-            message += ` ${t.notifications.testMode}`;
+            message += ` ${t('notifications.testMode')}`;
           } else if (currentProvider.name === 'roboforex') {
-            message += ` ${t.notifications.partnerMode}`;
+            message += ` ${t('notifications.partnerMode')}`;
           } else {
-            message += ` ${t.notifications.adMode}`;
+            message += ` ${t('notifications.adMode')}`;
           }
           
           showToast(message, 'success', 4000);
@@ -377,10 +275,10 @@ const TapperGame: React.FC = () => {
           showToast(result.error, 'error');
         }
       } else {
-        showToast(adResult.error || t.errors.adError, 'error');
+        showToast(adResult.error || t('errors.adError'), 'error');
       }
     } catch (err) {
-      const errorMsg = t.errors.adError;
+      const errorMsg = t('errors.adError');
       setError(errorMsg);
       showToast(errorMsg, 'error');
     } finally {
@@ -433,7 +331,7 @@ const TapperGame: React.FC = () => {
             marginBottom: '20px',
             animation: 'pulse 2s infinite'
           }}>⚡</div>
-          <p style={{ fontSize: '1.1rem' }}>{t.loading}</p>
+          <p style={{ fontSize: '1.1rem' }}>{t('loading')}</p> {/* ✅ Общий перевод */}
         </div>
       </div>
     );
@@ -472,7 +370,7 @@ const TapperGame: React.FC = () => {
         maxWidth: '100%',
         width: '100%'
       }}>
-        {/* Заголовок с улучшенной типографикой */}
+        {/* Заголовок с переводом */}
         <h1 style={{
           color: colorStyle,
           textShadow: `0 0 20px ${colorStyle}, 0 0 40px ${colorStyle}50`,
@@ -482,7 +380,7 @@ const TapperGame: React.FC = () => {
           fontWeight: '700',
           letterSpacing: '1px'
         }}>
-          💥 {t.games.tapper.title}
+          💥 {t('games.tapper.title')} {/* ✅ Используем общий перевод */}
         </h1>
 
         {/* Астероид ПЕРВЫЙ */}
@@ -493,7 +391,7 @@ const TapperGame: React.FC = () => {
           colorStyle={colorStyle}
         />
 
-        {/* ✅ БОЛЬШАЯ КНОПКА СБОРА CCC с правильной шириной */}
+        {/* Большая кнопка сбора CCC */}
         <div style={{
           width: '93%',
           maxWidth: '93%',
@@ -526,20 +424,8 @@ const TapperGame: React.FC = () => {
               position: 'relative',
               overflow: 'hidden'
             }}
-            onMouseEnter={e => {
-              if (tapperStatus.pendingCcc > 0) {
-                e.currentTarget.style.transform = 'scale(1.02)';
-                e.currentTarget.style.boxShadow = `0 0 40px ${colorStyle}70, inset 0 0 30px ${colorStyle}30`;
-              }
-            }}
-            onMouseLeave={e => {
-              if (tapperStatus.pendingCcc > 0) {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = `0 0 30px ${colorStyle}50, inset 0 0 20px ${colorStyle}20`;
-              }
-            }}
           >
-            {/* Анимированный фон для активной кнопки */}
+            {/* Анимированный фон */}
             {tapperStatus.pendingCcc > 0 && (
               <div style={{
                 position: 'absolute',
@@ -566,7 +452,7 @@ const TapperGame: React.FC = () => {
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 'clamp(1.2rem, 4vw, 1.6rem)' }}>
-                  {isCollecting ? 'Собираем...' : t.games.tapper.collectEarnings}
+                  {isCollecting ? 'Собираем...' : t('games.tapper.collectEarnings')} {/* ✅ Перевод */}
                 </div>
                 <div style={{ 
                   fontSize: 'clamp(1rem, 3vw, 1.3rem)',
@@ -580,7 +466,7 @@ const TapperGame: React.FC = () => {
           </button>
         </div>
 
-        {/* Статистика с правильной шириной как в слотах */}
+        {/* Статистика с переводами */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
@@ -591,7 +477,7 @@ const TapperGame: React.FC = () => {
           marginLeft: 'auto',
           marginRight: 'auto'
         }}>
-          {/* Энергия с прогресс-баром */}
+          {/* Энергия */}
           <div style={{
             background: 'linear-gradient(145deg, rgba(0,0,0,0.4), rgba(20,20,20,0.4))',
             border: `2px solid ${colorStyle}`,
@@ -603,7 +489,7 @@ const TapperGame: React.FC = () => {
             position: 'relative',
             overflow: 'hidden'
           }}>
-            {/* Прогресс-бар фон */}
+            {/* Прогресс-бар */}
             <div style={{
               position: 'absolute',
               bottom: 0,
@@ -632,7 +518,7 @@ const TapperGame: React.FC = () => {
               {tapperStatus.energy} / {tapperStatus.maxEnergy}
             </div>
             <div style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '5px' }}>
-              {t.games.tapper.energy}
+              {t('games.tapper.energy')} {/* ✅ Перевод */}
             </div>
             {tapperStatus.energy < tapperStatus.maxEnergy && (
               <div style={{ 
@@ -641,7 +527,7 @@ const TapperGame: React.FC = () => {
                 marginTop: '8px',
                 fontWeight: '500'
               }}>
-                {t.games.tapper.restoreTime}: {getEnergyRestoreTime()}
+                {t('games.tapper.restoreTime')}: {getEnergyRestoreTime()} {/* ✅ Перевод */}
               </div>
             )}
           </div>
@@ -666,12 +552,12 @@ const TapperGame: React.FC = () => {
               +{tapperStatus.cccPerTap} CCC
             </div>
             <div style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '5px' }}>
-              {t.games.tapper.perTap}
+              {t('games.tapper.perTap')} {/* ✅ Перевод */}
             </div>
           </div>
         </div>
 
-        {/* Блок рекламы с правильной шириной и padding */}
+        {/* Блок рекламы */}
         <div style={{
           background: 'linear-gradient(145deg, rgba(0,0,0,0.4), rgba(20,20,20,0.4))',
           border: `2px solid ${colorStyle}`,
@@ -706,7 +592,7 @@ const TapperGame: React.FC = () => {
                 {tapperStatus.adsWatched} / 20
               </div>
               <div style={{ color: '#ccc', fontSize: '0.85rem' }}>
-                {t.games.tapper.adsToday}
+                {t('games.tapper.adsToday')} {/* ✅ Перевод */}
               </div>
             </div>
             <div style={{ 
@@ -725,7 +611,7 @@ const TapperGame: React.FC = () => {
                 +100
               </div>
               <div style={{ color: '#ccc', fontSize: '0.85rem' }}>
-                {t.games.tapper.energy}
+                {t('games.tapper.energy')} {/* ✅ Перевод */}
               </div>
             </div>
           </div>
@@ -752,7 +638,7 @@ const TapperGame: React.FC = () => {
                 backdropFilter: 'blur(5px)'
               }}
             >
-              {isWatchingAd ? '⏳ Просмотр...' : `📺 ${t.games.tapper.watchAd}`}
+              {isWatchingAd ? '⏳ Просмотр...' : `📺 ${t('games.tapper.watchAd')}`} {/* ✅ Перевод */}
             </button>
           ) : (
             <div style={{
@@ -765,12 +651,12 @@ const TapperGame: React.FC = () => {
               fontWeight: 'bold',
               backdropFilter: 'blur(5px)'
             }}>
-              🚫 {t.games.tapper.adLimitReached}
+              🚫 {t('games.tapper.adLimitReached')} {/* ✅ Перевод */}
             </div>
           )}
         </div>
 
-        {/* Сообщения с правильной шириной как в слотах */}
+        {/* Сообщения с переводами */}
         {tapperStatus.energy <= 0 && (
           <div style={{
             background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 165, 0, 0.25))',
@@ -787,10 +673,10 @@ const TapperGame: React.FC = () => {
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚡</div>
             <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-              {t.games.tapper.energyEmpty}
+              {t('games.tapper.energyEmpty')} {/* ✅ Перевод */}
             </div>
             <small style={{ opacity: 0.9 }}>
-              {t.games.tapper.energyRestore}
+              {t('games.tapper.energyRestore')} {/* ✅ Перевод */}
             </small>
           </div>
         )}
@@ -814,7 +700,7 @@ const TapperGame: React.FC = () => {
           </div>
         )}
 
-        {/* ✅ Кнопка назад КАК В СЛОТАХ */}
+        {/* Кнопка назад как в слотах */}
         <button
           onClick={() => navigate('/games')}
           style={{
@@ -832,10 +718,10 @@ const TapperGame: React.FC = () => {
             marginTop: '25px'
           }}
         >
-          ← {t.games.backToGames}
+          ← {t('games.backToGames')} {/* ✅ Общий перевод */}
         </button>
 
-        {/* Инструкция с правильной шириной и padding */}
+        {/* Инструкция */}
         <div style={{
           background: 'linear-gradient(145deg, rgba(0,0,0,0.4), rgba(20,20,20,0.4))',
           border: `1px solid ${colorStyle}50`,
@@ -857,7 +743,7 @@ const TapperGame: React.FC = () => {
             fontSize: '1.3rem',
             textShadow: `0 0 10px ${colorStyle}`
           }}>
-            📖 {t.games.tapper.howToPlay}
+            📖 {t('games.tapper.howToPlay')} {/* ✅ Перевод */}
           </h3>
           <div style={{ 
             color: '#ccc', 
@@ -872,7 +758,7 @@ const TapperGame: React.FC = () => {
               marginBottom: '15px' 
             }}>
               <span style={{ fontSize: '1.2rem' }}>🎯</span>
-              <span><strong>{t.games.tapper.tapAsteroid}</strong></span>
+              <span><strong>{t('games.tapper.tapAsteroid')}</strong></span> {/* ✅ Перевод */}
             </div>
             <div style={{ 
               display: 'flex', 
@@ -881,7 +767,7 @@ const TapperGame: React.FC = () => {
               marginBottom: '15px' 
             }}>
               <span style={{ fontSize: '1.2rem' }}>💰</span>
-              <span><strong>{t.games.tapper.collectAccumulated}</strong></span>
+              <span><strong>{t('games.tapper.collectAccumulated')}</strong></span> {/* ✅ Перевод */}
             </div>
             <div style={{ 
               display: 'flex', 
@@ -890,7 +776,7 @@ const TapperGame: React.FC = () => {
               marginBottom: '15px' 
             }}>
               <span style={{ fontSize: '1.2rem' }}>⚡</span>
-              <span><strong>{t.games.tapper.energyRestores}</strong></span>
+              <span><strong>{t('games.tapper.energyRestores')}</strong></span> {/* ✅ Перевод */}
             </div>
             <div style={{ 
               display: 'flex', 
@@ -899,7 +785,7 @@ const TapperGame: React.FC = () => {
               marginBottom: '15px' 
             }}>
               <span style={{ fontSize: '1.2rem' }}>📺</span>
-              <span><strong>{t.games.tapper.watchAdForEnergy}</strong></span>
+              <span><strong>{t('games.tapper.watchAdForEnergy')}</strong></span> {/* ✅ Перевод */}
             </div>
             <div style={{ 
               display: 'flex', 
@@ -907,7 +793,7 @@ const TapperGame: React.FC = () => {
               gap: '12px' 
             }}>
               <span style={{ fontSize: '1.2rem' }}>🎮</span>
-              <span><strong>{t.games.tapper.limits}</strong></span>
+              <span><strong>{t('games.tapper.limits')}</strong></span> {/* ✅ Перевод */}
             </div>
           </div>
         </div>
@@ -943,15 +829,6 @@ const TapperGame: React.FC = () => {
           }
           100% {
             left: 100%;
-          }
-        }
-        
-        @keyframes glow {
-          0%, 100% {
-            box-shadow: 0 0 5px currentColor;
-          }
-          50% {
-            box-shadow: 0 0 20px currentColor;
           }
         }
       `}</style>

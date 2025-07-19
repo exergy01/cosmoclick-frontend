@@ -50,22 +50,22 @@ const GamesPage: React.FC = () => {
     fetchGameStats();
   }, [player?.telegram_id]);
 
-  // Конфигурация игр - теперь включая слоты!
+  // Конфигурация игр с переводами
   const gameCards = [
     {
       id: 'tapper',
-      title: 'Астероидный Разрушитель',
-      description: 'Разрушайте астероиды и получайте CCC! Восстанавливайте энергию.',
+      title: t('gamesPage.games.tapper.title'),
+      description: t('gamesPage.games.tapper.description'),
       icon: '💥',
       status: 'available',
       color: colorStyle,
       route: '/games/tapper',
-      type: 'idle'
+      type: 'clicker'
     },
     {
       id: 'cosmic_shells',
-      title: 'Космические Напёрстки',
-      description: 'Найдите галактику под летающими тарелками. Шанс 33%!',
+      title: t('gamesPage.games.cosmicShells.title'),
+      description: t('gamesPage.games.cosmicShells.description'),
       icon: '🛸',
       status: 'available',
       color: colorStyle,
@@ -74,8 +74,8 @@ const GamesPage: React.FC = () => {
     },
     {
       id: 'galactic_slots',
-      title: 'Галактические Слоты',
-      description: 'Космические слоты 3x5 с выигрышными линиями. Множители до x5000!',
+      title: t('gamesPage.games.galacticSlots.title'),
+      description: t('gamesPage.games.galacticSlots.description'),
       icon: '🎰',
       status: 'available',
       color: colorStyle,
@@ -117,6 +117,20 @@ const GamesPage: React.FC = () => {
     */
   ];
 
+  // Функция для получения локализованного типа игры
+  const getGameTypeLabel = (type: string) => {
+    switch (type) {
+      case 'gambling':
+        return `🎲 ${t('gamesPage.gameTypes.gambling')}`;
+      case 'clicker':
+        return `🔄 ${t('gamesPage.gameTypes.clicker')}`;
+      case 'skill':
+        return `🎯 ${t('gamesPage.gameTypes.skill')}`;
+      default:
+        return `🎮 ${type.toUpperCase()}`;
+    }
+  };
+
   return (
     <div
       style={{
@@ -147,7 +161,7 @@ const GamesPage: React.FC = () => {
             fontSize: '2.5rem', 
             marginBottom: '20px'
           }}>
-            🎮 Космические Игры
+            🎮 {t('gamesPage.title')}
           </h2>
 
           {/* Джекпот */}
@@ -172,7 +186,7 @@ const GamesPage: React.FC = () => {
                 textShadow: `0 0 10px ${colorStyle}`,
                 fontSize: '1.5rem'
               }}>
-                🎰 ДЖЕКПОТ
+                🎰 {t('gamesPage.jackpot.title')}
               </h3>
               <div style={{ 
                 fontSize: '2rem', 
@@ -184,7 +198,7 @@ const GamesPage: React.FC = () => {
                 {gameStats.jackpotAmount.toLocaleString()} CCC
               </div>
               <p style={{ margin: '0', color: '#ccc', fontSize: '0.9rem' }}>
-                💫 Выигрывается в азартных играх!
+                💫 {t('gamesPage.jackpot.description')}
               </p>
             </div>
           </div>
@@ -258,15 +272,15 @@ const GamesPage: React.FC = () => {
                 <div style={{
                   display: 'inline-block',
                   padding: '4px 8px',
-                  background: game.type === 'gambling' ? '#ff660040' : '#00ff0040',
-                  border: `1px solid ${game.type === 'gambling' ? '#ff6600' : '#00ff00'}`,
+                  background: game.type === 'gambling' ? '#ff660040' : game.type === 'clicker' ? '#00ff0040' : '#0099ff40',
+                  border: `1px solid ${game.type === 'gambling' ? '#ff6600' : game.type === 'clicker' ? '#00ff00' : '#0099ff'}`,
                   borderRadius: '8px',
                   fontSize: '0.7rem',
-                  color: game.type === 'gambling' ? '#ff6600' : '#00ff00',
+                  color: game.type === 'gambling' ? '#ff6600' : game.type === 'clicker' ? '#00ff00' : '#0099ff',
                   marginBottom: '15px',
                   fontWeight: 'bold'
                 }}>
-                  {game.type === 'gambling' ? '🎲 АЗАРТНАЯ' : game.type === 'idle' ? '🔄 КЛИКЕР' : '🎯 СКИЛЛ'}
+                  {getGameTypeLabel(game.type)}
                 </div>
 
                 {/* Кнопка играть */}
@@ -295,7 +309,7 @@ const GamesPage: React.FC = () => {
                     e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
-                  🎮 Играть
+                  🎮 {t('gamesPage.playButton')}
                 </button>
               </div>
             ))}
@@ -323,20 +337,20 @@ const GamesPage: React.FC = () => {
                 textShadow: `0 0 10px ${colorStyle}`,
                 fontSize: '1.5rem'
               }}>
-                📊 Ваша статистика
+                📊 {t('gamesPage.stats.title')}
               </h3>
               <div style={{ textAlign: 'left', lineHeight: '1.4' }}>
                 <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  🎯 Игр сыграно: <span style={{ color: '#fff', fontWeight: 'bold' }}>{gameStats.totalGames}</span>
+                  🎯 {t('gamesPage.stats.gamesPlayed')}: <span style={{ color: '#fff', fontWeight: 'bold' }}>{gameStats.totalGames}</span>
                 </p>
                 <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  🏆 Побед: <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{gameStats.totalWins}</span>
+                  🏆 {t('gamesPage.stats.wins')}: <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{gameStats.totalWins}</span>
                 </p>
                 <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  💀 Поражений: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{gameStats.totalLosses}</span>
+                  💀 {t('gamesPage.stats.losses')}: <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{gameStats.totalLosses}</span>
                 </p>
                 <p style={{ margin: '5px 0', color: '#ccc' }}>
-                  📈 Винрейт: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                  📈 {t('gamesPage.stats.winRate')}: <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                     {gameStats.totalGames > 0 ? Math.round((gameStats.totalWins / gameStats.totalGames) * 100) : 0}%
                   </span>
                 </p>
@@ -359,8 +373,8 @@ const GamesPage: React.FC = () => {
             transform: 'translateX(-50%)'
           }}>
             <p style={{ color: colorStyle, fontSize: '1rem', margin: 0, lineHeight: '1.5' }}>
-              🎰 <strong>Джекпот разыгрывается автоматически</strong> при достижении 1M CCC!<br/>
-              💫 Участвуйте в азартных играх для шанса на крупный выигрыш.
+              🎰 <strong>{t('gamesPage.jackpot.info')}</strong><br/>
+              💫 {t('gamesPage.jackpot.participate')}
             </p>
           </div>
         </div>

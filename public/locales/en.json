@@ -14,5 +14,301 @@
   "cs_description": "advanced currency for system 4",
   "ton_description": "cryptocurrency for staking in system 5",
   "start_journey": "Start your space journey now!",
-  "start_game": "Start Game!"
+  "start_game": "Start Game!",
+  "honor_board": "Honor Board",
+  "referral_list": "Your Referral List",
+  "your_referral_link": "Your Referral Link",
+  "referral_stats": "Referral Statistics",
+  "total_referrals": "Total Referrals",
+  "place": "Your Place",
+  "player": "Player Name",
+  "referrals_count": "Number of Referrals",
+  "no_referrals": "You have no referrals yet",
+  "share": "Share",
+  "copy": "Copy",
+  "attack": "Attack",
+  "exchange": "Exchange",
+  "quests": "Quests",
+  "available_for_collection": "Available for Collection",
+  "collect_rewards": "Collect Rewards",
+  "per_hour": "per hour",
+  
+  "exchange_page": {
+    "commission": "Commission",
+    "available": "Available",
+    "commissions_title": "Commissions",
+    "minimum_amounts": "Minimum Amounts",
+    "verified_status": "You are verified",
+    "verification_hint": "Complete verification to cancel commissions",
+    "amount": "Amount",
+    "minimum": "Minimum",
+    "you_receive": "You Receive",
+    "cancel": "Cancel",
+    "exchange_button": "Exchange",
+    "processing": "Exchanging...",
+    "exchange_success": "Exchange completed successfully!",
+    "exchange_error": "Exchange error",
+    "enter_valid_amount": "Enter valid amount",
+    "minimum_amount": "Minimum amount: {{amount}} {{currency}}",
+    "insufficient_funds": "Insufficient funds. Available: {{available}} {{currency}}",
+    "not_enough_ccc": "Not enough CCC",
+    "not_enough_cs": "Not enough CS", 
+    "not_enough_ton": "Not enough TON",
+    "invalid_pair": "Invalid currency pair",
+    "player_not_found": "Player not found"
+  },
+
+  "gamesPage": {
+    "title": "Cosmic Games",
+    "jackpot": {
+      "title": "JACKPOT",
+      "description": "Won in gambling games!",
+      "info": "Jackpot is automatically drawn when reaching 1M CCC!",
+      "participate": "Participate in gambling games for a chance at big wins."
+    },
+    "stats": {
+      "title": "Your Statistics",
+      "gamesPlayed": "Games Played",
+      "wins": "Wins", 
+      "losses": "Losses",
+      "winRate": "Win Rate"
+    },
+    "gameTypes": {
+      "gambling": "GAMBLING",
+      "clicker": "CLICKER",
+      "skill": "SKILL"
+    },
+    "playButton": "Play",
+    "games": {
+      "tapper": {
+        "title": "Asteroid Destroyer",
+        "description": "Destroy asteroids and earn CCC! Restore energy."
+      },
+      "cosmicShells": {
+        "title": "Cosmic Shells", 
+        "description": "Find the galaxy under flying saucers. 33% chance!"
+      },
+      "galacticSlots": {
+        "title": "Galactic Slots",
+        "description": "Cosmic 3x5 slots with paylines. Multipliers up to x5000!"
+      }
+    }
+  },
+  
+  "games": {
+    "backToGames": "Back to Games",
+    "balance": "Balance",
+    "jackpot": "Jackpot", 
+    "bet": "Bet",
+    "win": "Win",
+    "loss": "Loss",
+    "playAgain": "Play Again",
+    "notEnoughBalance": "Insufficient funds",
+    "gameLimit": "Game limit reached",
+    "watchAd": "Watch Ad",
+    "bigBetWarning": "You are betting more than 10% of balance! Are you sure?",
+
+    "tapper": {
+      "title": "Asteroid Destroyer",
+      "description": "Destroy asteroids and earn CCC!",
+      "energy": "Energy",
+      "perTap": "Per tap",
+      "tapAsteroid": "Tap the asteroid to earn CCC",
+      "energyEmpty": "Energy depleted!",
+      "energyRestore": "Energy restores automatically (1 per 43 sec)",
+      "restoreTime": "Restore in",
+      "adsToday": "Ads today",
+      "watchAd": "Watch Ad",
+      "adLimitReached": "Ad limit reached",
+      "collectEarnings": "Collect Earnings",
+      "collectAccumulated": "Collect accumulated CCC with 'Collect' button",
+      "nothingToCollect": "Nothing to collect",
+      "collected": "Collected",
+      "howToPlay": "How to Play",
+      "energyRestores": "Energy restores over time (1 per 43 sec)",
+      "watchAdForEnergy": "Watch ads to get +100 energy",
+      "limits": "Limit: 20 ads per day",
+      "maxEnergy": "Maximum energy",
+      "tapToDestroy": "Tap the asteroid!"
+    },
+
+    "shells": {
+      "title": "Cosmic Shells",
+      "subtitle": "Find the galaxy among black holes",
+      "howToPlay": "How to Play",
+      "rule1": "Place your bet and choose a shell",
+      "rule2": "Find the galaxy among black holes",
+      "rule3": "Win chance 33% (1 out of 3)",
+      "rule4": "Win x2 of your bet",
+      "rule5": "Watch ads for extra games",
+      "placeBet": "Place Your Bet",
+      "betAmount": "Bet Amount (CCC):",
+      "possibleWin": "Possible Win:",
+      "startGame": "Start Game",
+      "newGame": "New Game",
+      "lastGames": "Recent Games",
+      "fullHistory": "Full History",
+      "time": "Time",
+      "result": "Result",
+      "outcome": "Outcome",
+      "profit": "Profit",
+      "multiplier": "Multiplier",
+      "gamesLeft": "Games Left",
+      "shuffling": "Shells shuffling...",
+      "chooseShell": "Choose the shell with galaxy!",
+      "revealing": "Revealing result...",
+      "extraGame": "+1 game",
+      "watching": "Watching...",
+      "min": "Minimum",
+      "max": "Maximum",
+      "lost": "Lost",
+      "emptyHistory": "Game history is empty",
+      "makeBetToStart": "Place bet to start game",
+      "choose": "Choose",
+      "dailyStats": "Daily Statistics",
+      "gamesPlayed": "Games Today",
+      "adsWatched": "Ads Watched",
+      "totalGames": "Total Games",
+      "close": "Close",
+      "autoHiding": "Auto-hiding in 3 seconds...",
+      "rtpInfo": "Win chance: 33%",
+      "limitInfo": "Limit: 250 games/day (25 + 10 ads × 20)",
+      "gameStates": {
+        "waiting": "Place bet to start game",
+        "shuffling": "Shells shuffling...",
+        "choosing": "Choose the shell with galaxy!",
+        "revealing": "Revealing result..."
+      },
+      "errors": {
+        "betRange": "Bet must be between {min} and {max} CCC",
+        "insufficientFunds": "Insufficient funds",
+        "dailyLimit": "Daily game limit exceeded",
+        "gameNotFound": "Game not found",
+        "gameCompleted": "Game already completed",
+        "adLimit": "Daily ad limit exceeded",
+        "createGame": "Game creation error",
+        "makeChoice": "Choice error",
+        "watchAd": "Ad watching error"
+      },
+      "notifications": {
+        "winMessage": "🎉 Win {amount} CCC! (+{profit})",
+        "lossMessage": "💀 Loss! Black hole consumed {amount} CCC",
+        "extraGameReceived": "Extra game received!",
+        "confirmBigBet": "You are betting more than 10% of balance! Are you sure?"
+      }
+    },
+
+    "slots": {
+      "title": "GALACTIC FORTUNE",
+      "subtitle": "Cosmic Slots",
+      "placeBet": "Place Bet",
+      "betAmount": "Bet Amount",
+      "spin": "SPIN",
+      "autoSpin": "AUTO SPIN",
+      "stopAutoSpin": "STOP",
+      "gamesLeft": "Games Left",
+      "extraGame": "Extra Game",
+      "watching": "Watching Ad",
+      "lastGames": "Recent Games",
+      "fullHistory": "Full History",
+      "time": "Time",
+      "result": "Result",
+      "outcome": "Outcome",
+      "profit": "Profit",
+      "min": "Minimum",
+      "max": "Maximum",
+      "possibleWin": "Maximum Win",
+      "dailyStats": "Game Statistics",
+      "gamesPlayed": "Games Today",
+      "gamesRemaining": "Games Left",
+      "adsWatched": "Ads Watched",
+      "rtpInfo": "RTP: ~75%",
+      "autoSpinInfo": "Auto Spin: up to 20 spins",
+      "limitInfo": "Limit: 250 games/day (50 + 10 ads × 20)",
+      "payoutTable": "Payout Table",
+      "spinningReels": "Spinning Reels...",
+      "nextSpin": "Next Spin",
+      "ready": "ready",
+      "waiting": "waiting...",
+      "autoSpinActive": "Auto Spin Active",
+      "spinsCount": "spins",
+      "dailyTotal": "Total Today",
+      "watchAdForGames": "Watch ads for extra games",
+      "wildComboInfo": "(with 5x 🌟 WILD x2 combo)",
+      "totalGames": "Total Games",
+      "emptyHistory": "Game history is empty",
+      "close": "Close",
+      "gameStates": {
+        "waiting": "Ready to Play",
+        "spinning": "Spinning Reels...",
+        "revealing": "Showing Result...",
+        "finished": "Game Completed"
+      },
+      "errors": {
+        "betTooLow": "Minimum bet {min} CCC",
+        "betTooHigh": "Maximum bet {max} CCC",
+        "insufficientFunds": "Insufficient funds",
+        "dailyLimit": "Daily limit exceeded",
+        "spinError": "Spin error",
+        "connectionError": "Server connection error",
+        "adError": "Ad display error",
+        "adServiceUnavailable": "Ad service unavailable"
+      },
+      "notifications": {
+        "winMessage": "Win!",
+        "bigWinMessage": "Big Win!",
+        "excellentWinMessage": "EXCELLENT WIN",
+        "goodWinMessage": "GOOD WIN",
+        "lossMessage": "Loss",
+        "extraGameReceived": "Extra game received!",
+        "autoSpinCompleted": "Auto spin completed! 20 spins done",
+        "autoSpinStopped": "Auto spin stopped! {count} spins completed",
+        "gamesEnded": "Games ended, auto spin stopped",
+        "insufficientBalance": "Insufficient funds ({balance} < {bet})",
+        "testMode": "[Test]",
+        "partnerMode": "[Partner]",
+        "adMode": "[Ad]"
+      },
+      "symbols": {
+        "wild": "Quasar (WILD)",
+        "ship": "Spaceship",
+        "galaxy": "Galaxy",
+        "star": "Star",
+        "planet": "Planet",
+        "asteroid": "Asteroid",
+        "blackhole": "Black Hole",
+        "wildDescription": "doubles win",
+        "blocksPaylines": "BLOCKS paylines",
+        "multipliers": "Multipliers for 3/4/5 symbols in a row",
+        "activePaylines": "active paylines",
+        "fixedRtp": "FIXED: 35% win chance, RTP ~75%",
+        "dailyLimit": "Limit: 50 games + 10 ads × 20 games = 250 games/day"
+      },
+      "winMessages": {
+        "excellentWin": "EXCELLENT WIN: {amount} CCC!",
+        "goodWin": "GOOD WIN: {amount} CCC!",
+        "regularWin": "Win: {amount} CCC!",
+        "loss": "Good luck next time!"
+      },
+      "winningLines": {
+        "title": "Winning Lines:",
+        "line": "Line",
+        "totalWin": "Total Win",
+        "wild": "WILD x2"
+      }
+    }
+  },
+
+  "errors": {
+    "connectionError": "Server connection error",
+    "adError": "Ad display error",
+    "adServiceUnavailable": "Ad service unavailable"
+  },
+
+  "notifications": {
+    "energyReceived": "Energy received",
+    "testMode": "[Test]",
+    "partnerMode": "[Partner]",
+    "adMode": "[Ad]"
+  }
 }

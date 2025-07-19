@@ -68,15 +68,15 @@ const CurrencyPanel: React.FC<CurrencyPanelProps> = ({ player, currentSystem, co
       zIndex: 100 
     }}>
       <div style={{ textAlign: 'left' }}>
-        <p style={{ fontSize: '1.1rem' }}>
+        <p style={{ fontSize: '1rem' }}>
           💠 CCC: {(typeof player.ccc === 'number' ? player.ccc : parseFloat(player.ccc || '0')).toFixed(5)}<br/>
           📈 {t('per_hour')}: {cccPerHour.toFixed(2)} CCC<br/>
           🌟 {t('per_hour')}: {csPerHour.toFixed(2)} CS
         </p>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <p style={{ fontSize: '1.1rem' }}>✨ CS: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}</p>
-        <p style={{ fontSize: '1.1rem' }}>💎 TON: {(typeof player.ton === 'number' ? player.ton : parseFloat(player.ton || '0')).toFixed(9)}</p>
+        <p style={{ fontSize: '1rem' }}>✨ CS: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}</p>
+        <p style={{ fontSize: '1rem' }}>💎 TON: {(typeof player.ton === 'number' ? player.ton : parseFloat(player.ton || '0')).toFixed(9)}</p>
       </div>
     </div>
   );
