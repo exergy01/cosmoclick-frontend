@@ -402,7 +402,7 @@ const MainPage: React.FC = () => {
             </div>
 
             {/* Сейф с новым счетчиком и индикатором загрузки */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '50px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '30px' }}>
               <div 
                 style={{ 
                   position: 'relative', 
