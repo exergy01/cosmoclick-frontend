@@ -30,6 +30,7 @@ const QuestsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [linkTimers, setLinkTimers] = useState<{[key: number]: number}>({});
   const [completingQuest, setCompletingQuest] = useState<number | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false); // Переключатель отображения выполненных
 
   // Загрузка заданий из базы
   const loadQuests = useCallback(async () => {
@@ -137,10 +138,19 @@ const QuestsPage: React.FC = () => {
     return <div>Loading...</div>;
   }
 
+  // Фильтруем задания
+  const filterQuests = (questList: QuestData[]) => {
+    return showCompleted ? questList : questList.filter(q => !q.completed);
+  };
+
   // Группируем задания по типам
-  const basicQuests = quests.filter(q => q.quest_type === 'referral');
-  const partnerQuests = quests.filter(q => q.quest_type === 'partner_link');
-  const manualQuests = quests.filter(q => q.quest_type === 'manual_check');
+  const basicQuests = filterQuests(quests.filter(q => q.quest_type === 'referral'));
+  const partnerQuests = filterQuests(quests.filter(q => q.quest_type === 'partner_link'));
+  const manualQuests = filterQuests(quests.filter(q => q.quest_type === 'manual_check'));
+
+  // Подсчет выполненных заданий
+  const completedCount = quests.filter(q => q.completed).length;
+  const totalCount = quests.length;
 
   return (
     <div
@@ -165,6 +175,64 @@ const QuestsPage: React.FC = () => {
 
       <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
+          
+          {/* Заголовок и прогресс */}
+          <h2 style={{ 
+            color: colorStyle, 
+            textShadow: `0 0 10px ${colorStyle}`, 
+            fontSize: '2rem', 
+            marginBottom: '20px'
+          }}>
+            📋 {t('quests') || 'Задания'}
+          </h2>
+          
+          {/* Прогресс выполнения */}
+          <div style={{
+            margin: '0 auto 20px',
+            padding: '15px',
+            maxWidth: '400px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: `1px solid ${colorStyle}`,
+            borderRadius: '15px'
+          }}>
+            <div style={{ marginBottom: '10px' }}>
+              <span style={{ color: colorStyle, fontWeight: 'bold' }}>
+                Выполнено: {completedCount} / {totalCount}
+              </span>
+            </div>
+            <div style={{
+              width: '100%',
+              height: '10px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '5px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                width: `${(completedCount / totalCount) * 100}%`,
+                height: '100%',
+                background: `linear-gradient(90deg, ${colorStyle}, ${colorStyle}80)`,
+                transition: 'width 0.3s ease'
+              }} />
+            </div>
+          </div>
+
+          {/* Переключатель отображения выполненных */}
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            style={{
+              margin: '0 auto 20px',
+              padding: '10px 20px',
+              background: showCompleted ? 'rgba(0, 255, 0, 0.2)' : 'rgba(128, 128, 128, 0.2)',
+              border: `1px solid ${showCompleted ? '#00ff00' : '#888'}`,
+              borderRadius: '10px',
+              color: showCompleted ? '#00ff00' : '#888',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {showCompleted ? '👁️ Скрыть выполненные' : '👁️ Показать выполненные'}
+          </button>
 
           {loading ? (
             <div style={{ color: colorStyle, fontSize: '1.2rem' }}>Wait...</div>
@@ -299,14 +367,6 @@ const QuestsPage: React.FC = () => {
                                       transition: 'all 0.3s ease',
                                       fontWeight: 'bold'
                                     }}
-                                    onMouseEnter={e => {
-                                      e.currentTarget.style.transform = 'scale(1.05)';
-                                      e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
-                                    }}
-                                    onMouseLeave={e => {
-                                      e.currentTarget.style.transform = 'scale(1)';
-                                      e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
-                                    }}
                                   >
                                     🔗 Перейти
                                   </button>
@@ -340,16 +400,6 @@ const QuestsPage: React.FC = () => {
                                       transition: 'all 0.3s ease',
                                       fontWeight: 'bold',
                                       opacity: completingQuest === quest.quest_id ? 0.7 : 1
-                                    }}
-                                    onMouseEnter={e => {
-                                      if (completingQuest !== quest.quest_id) {
-                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                        e.currentTarget.style.boxShadow = '0 0 25px #00ff00';
-                                      }
-                                    }}
-                                    onMouseLeave={e => {
-                                      e.currentTarget.style.transform = 'scale(1)';
-                                      e.currentTarget.style.boxShadow = '0 0 15px #00ff00';
                                     }}
                                   >
                                     {completingQuest === quest.quest_id ? '⏳ Получение...' : '🎁 Получить награду'}
@@ -427,6 +477,27 @@ const QuestsPage: React.FC = () => {
                 </div>
               )}
 
+              {/* Если все задания выполнены */}
+              {!showCompleted && basicQuests.length === 0 && partnerQuests.length === 0 && manualQuests.length === 0 && (
+                <div style={{
+                  margin: '30px auto',
+                  padding: '30px',
+                  maxWidth: '500px',
+                  background: 'rgba(0, 255, 0, 0.1)',
+                  border: '2px solid #00ff00',
+                  borderRadius: '15px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🎉</div>
+                  <h3 style={{ color: '#00ff00', marginBottom: '10px' }}>
+                    Все задания выполнены!
+                  </h3>
+                  <p style={{ color: '#ccc' }}>
+                    Отличная работа! Возвращайтесь позже за новыми заданиями.
+                  </p>
+                </div>
+              )}
+
               {/* Рекламные квесты (старая система) */}
               <div>
                 <h3 style={{ 
@@ -440,6 +511,9 @@ const QuestsPage: React.FC = () => {
                 {Array(5).fill(null).map((_, index) => {
                   const isCompleted = (player?.ad_views || 0) > index;
                   const isAvailable = (player?.ad_views || 0) === index;
+                  
+                  // Скрываем выполненные рекламные задания если showCompleted = false
+                  if (!showCompleted && isCompleted) return null;
                   
                   return (
                     <div
@@ -489,14 +563,6 @@ const QuestsPage: React.FC = () => {
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 fontWeight: 'bold'
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.transform = 'scale(1.05)';
-                                e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}`;
                               }}
                             >
                               📺 {t('watch') || 'Смотреть'}
