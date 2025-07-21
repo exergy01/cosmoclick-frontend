@@ -62,6 +62,7 @@ const WalletPage: React.FC = () => {
   // Синхронизация адреса кошелька с бэкендом
   useEffect(() => {
     if (userAddress && player?.telegram_id) {
+      alert(`🔄 Кошелек подключен! Адрес: ${userAddress.slice(0, 10)}... Начинаем синхронизацию`);
       syncWalletWithBackend();
     }
   }, [userAddress, player?.telegram_id]);
@@ -76,6 +77,7 @@ const WalletPage: React.FC = () => {
       
       if (!userAddress || !player?.telegram_id) {
         console.log('❌ Отсутствуют данные для синхронизации');
+        alert('❌ Отсутствуют данные для синхронизации');
         return;
       }
 
@@ -83,9 +85,11 @@ const WalletPage: React.FC = () => {
       if (player.telegram_wallet === userAddress) {
         console.log('✅ Кошелек уже подключен, пропускаем синхронизацию');
         setSuccess('Кошелек уже подключен');
+        alert('✅ Кошелек уже подключен');
         return;
       }
 
+      alert(`📡 Отправляем запрос на сервер: ${API_URL}/api/wallet/connect`);
       console.log('📡 Отправляем запрос на сервер:', `${API_URL}/api/wallet/connect`);
       
       const requestData = {
@@ -99,12 +103,14 @@ const WalletPage: React.FC = () => {
       const response = await axios.post(`${API_URL}/api/wallet/connect`, requestData);
       
       console.log('📨 Ответ сервера:', response.data);
+      alert(`📨 Ответ сервера: ${JSON.stringify(response.data)}`);
 
       if (response.data.success) {
         console.log('✅ Синхронизация успешна');
         await refreshPlayer();
         setSuccess('Кошелек успешно подключен');
         setError(null);
+        alert('✅ Синхронизация успешна!');
       } else {
         console.log('❌ Сервер вернул ошибку:', response.data.error);
         throw new Error(response.data.error || 'Unknown error');
@@ -119,7 +125,9 @@ const WalletPage: React.FC = () => {
         url: err.config?.url
       });
       
-      setError(`Ошибка подключения: ${err.response?.data?.error || err.message}`);
+      const errorMsg = `Ошибка подключения: ${err.response?.data?.error || err.message}`;
+      setError(errorMsg);
+      alert(`❌ ${errorMsg}`);
     }
   };
 
