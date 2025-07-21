@@ -11,6 +11,7 @@ interface PlayerContextType {
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   updatePlayer: () => Promise<void>;
+  updatePlayerData: () => Promise<void>; // Добавляем для совместимости
   refreshPlayer: () => Promise<void>;
   fetchInitialData: () => Promise<void>;
 }
@@ -25,7 +26,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     loading,
     error,
     setError,
-    updatePlayer: updatePlayerData,
+    updatePlayer: updatePlayerDataHook,
     refreshPlayer: refreshPlayerData,
     fetchInitialData,
   } = usePlayerData();
@@ -40,8 +41,13 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Обертки для совместимости с существующим кодом
   const updatePlayer = async (): Promise<void> => {
     if (player?.telegram_id) {
-      await updatePlayerData(player.telegram_id);
+      await updatePlayerDataHook(player.telegram_id);
     }
+  };
+
+  // Добавляем updatePlayerData как алиас для updatePlayer
+  const updatePlayerData = async (): Promise<void> => {
+    await updatePlayer();
   };
 
   const refreshPlayer = async (): Promise<void> => {
@@ -55,6 +61,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     error,
     setError,
     updatePlayer,
+    updatePlayerData, // Добавляем для совместимости
     refreshPlayer,
     fetchInitialData,
   };

@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { TonConnectUIProvider, THEME } from '@tonconnect/ui-react';
 import { AppProvider } from './context/AppProvider';
 import { useNewPlayer } from './context/NewPlayerContext';
 import MainPage from './pages/MainPage';
@@ -17,6 +18,14 @@ import AlphabetPage from './pages/AlphabetPage';
 import TapperGame from './pages/games/TapperGame';
 import CosmicShellsGame from './pages/games/cosmic-shells';
 import GalacticSlotsGame from './pages/games/galactic-slots';
+
+// URL для manifest.json TON Connect
+const MANIFEST_URL = process.env.NODE_ENV === 'production'
+  ? 'https://cosmoclick-backend.onrender.com/tonconnect-manifest.json'
+  : 'http://localhost:5000/tonconnect-manifest.json';
+
+// Конфигурация возврата в приложение
+const TWA_RETURN_URL = 'https://t.me/CosmoClickBot/cosmoclick';
 
 // Компонент для логики приложения (внутри провайдеров)
 const AppContent: React.FC = () => {
@@ -60,12 +69,39 @@ const AppContent: React.FC = () => {
   );
 };
 
-// Главный компонент приложения
+// Главный компонент приложения с TON Connect
 const App: React.FC = () => {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <TonConnectUIProvider
+      manifestUrl={MANIFEST_URL}
+      uiPreferences={{ 
+        theme: THEME.DARK,
+        borderRadius: 'm'
+      }}
+      walletsListConfiguration={{
+        includeWallets: [
+          {
+            appName: "tonkeeper",
+            name: "Tonkeeper",
+            imageUrl: "https://tonkeeper.com/assets/tonconnect-icon.png",
+            aboutUrl: "https://tonkeeper.com",
+            universalLink: "https://app.tonkeeper.com/ton-connect",
+            bridgeUrl: "https://bridge.tonapi.io/bridge",
+            platforms: ["ios", "android"]
+          }
+        ]
+      }}
+      actionsConfiguration={{
+        twaReturnUrl: TWA_RETURN_URL,
+        modals: ['before', 'success', 'error'],
+        notifications: ['before', 'success', 'error'],
+        returnStrategy: 'back'
+      }}
+    >
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </TonConnectUIProvider>
   );
 };
 
