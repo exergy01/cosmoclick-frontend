@@ -69,32 +69,56 @@ const WalletPage: React.FC = () => {
   // Синхронизация кошелька с бэкендом
   const syncWalletWithBackend = async () => {
     try {
-      if (!userAddress || !player?.telegram_id) return;
+      console.log('🔄 Начинаем синхронизацию кошелька...');
+      console.log('📱 Player ID:', player?.telegram_id);
+      console.log('💳 Wallet Address:', userAddress);
+      console.log('💳 Current Player Wallet:', player?.telegram_wallet);
+      
+      if (!userAddress || !player?.telegram_id) {
+        console.log('❌ Отсутствуют данные для синхронизации');
+        return;
+      }
 
       // Проверяем, изменился ли адрес
       if (player.telegram_wallet === userAddress) {
+        console.log('✅ Кошелек уже подключен, пропускаем синхронизацию');
         setSuccess('Кошелек уже подключен');
         return;
       }
 
-      console.log('Синхронизация кошелька с бэкендом:', userAddress);
+      console.log('📡 Отправляем запрос на сервер:', `${API_URL}/api/wallet/connect`);
       
-      const response = await axios.post(`${API_URL}/api/wallet/connect`, {
+      const requestData = {
         telegram_id: player.telegram_id,
         wallet_address: userAddress,
-        signature: 'ton-connect-verified' // TON Connect уже верифицирует подключение
-      });
+        signature: 'ton-connect-verified'
+      };
+      
+      console.log('📦 Данные запроса:', requestData);
+      
+      const response = await axios.post(`${API_URL}/api/wallet/connect`, requestData);
+      
+      console.log('📨 Ответ сервера:', response.data);
 
       if (response.data.success) {
+        console.log('✅ Синхронизация успешна');
         await refreshPlayer();
         setSuccess('Кошелек успешно подключен');
         setError(null);
       } else {
+        console.log('❌ Сервер вернул ошибку:', response.data.error);
         throw new Error(response.data.error || 'Unknown error');
       }
       
     } catch (err: any) {
-      console.error('Ошибка синхронизации кошелька:', err);
+      console.error('❌ Ошибка синхронизации кошелька:', err);
+      console.error('📊 Детали ошибки:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        url: err.config?.url
+      });
+      
       setError(`Ошибка подключения: ${err.response?.data?.error || err.message}`);
     }
   };
