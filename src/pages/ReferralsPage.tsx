@@ -11,7 +11,7 @@ const apiUrl = process.env.NODE_ENV === 'production'
 
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { player, currentSystem, loading, updatePlayer } = usePlayer();
+  const { player, currentSystem, loading, refreshPlayer } = usePlayer();
   
   // Состояние для всплывающего сообщения
   const [toastMessage, setToastMessage] = useState<string>('');
@@ -35,46 +35,59 @@ const ReferralsPage: React.FC = () => {
     }, 1500);
   };
 
-  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД
-  const collectReferralRewards = async () => {
-    if (!player?.telegram_id || isCollecting) return;
+// 🔥 ФУНКЦИЯ СБОРА РЕФЕРАЛЬНЫХ НАГРАД - ОКОНЧАТЕЛЬНАЯ ВЕРСИЯ
+const collectReferralRewards = async () => {
+  if (!player?.telegram_id || isCollecting) return;
+  
+  try {
+    setIsCollecting(true);
     
-    try {
-      setIsCollecting(true);
-      
-      // Подсчитываем сколько можно собрать
-      const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
-      const totalCS = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.cs_earned || 0), 0);
-      const totalTON = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0);
-      
-      if (totalCS <= 0 && totalTON <= 0) {
-        showToastMessage(t('no_rewards_to_collect'));
-        return;
-      }
-      
-      // Отправляем запрос на сбор
-      const response = await axios.post(`${apiUrl}/api/referrals/collect-rewards`, {
-        telegramId: player.telegram_id
-      });
-      
-      if (response.data.success) {
-        const collected = response.data.collected;
-        showToastMessage(`${t('collected')}: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
-        
-        // 🔥 ВАЖНО: Используем updatePlayer из контекста для обновления данных
-        await updatePlayer();
-        
-      } else {
-        showToastMessage(t('error_collecting_rewards'));
-      }
-      
-    } catch (err: any) {
-      console.error('Ошибка сбора наград:', err);
-      showToastMessage(t('error_collecting_rewards'));
-    } finally {
-      setIsCollecting(false);
+    // Подсчитываем сколько можно собрать
+    const safeReferrals = Array.isArray(player?.referrals) ? player.referrals : [];
+    const totalCS = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.cs_earned || 0), 0);
+    const totalTON = safeReferrals.reduce((sum: number, ref: any) => sum + parseFloat(ref.ton_earned || 0), 0);
+    
+    if (totalCS <= 0 && totalTON <= 0) {
+      showToastMessage(t('no_rewards_to_collect'));
+      return;
     }
-  };
+    
+    // Отправляем запрос на сбор
+    const response = await axios.post(`${apiUrl}/api/referrals/collect-rewards`, {
+      telegramId: player.telegram_id
+    });
+    
+    if (response.data.success) {
+      const collected = response.data.collected;
+      showToastMessage(`${t('collected')}: ${collected.cs.toFixed(2)} CS + ${collected.ton.toFixed(8)} TON`);
+      
+      // 🔥 ТОЛЬКО ОБНОВЛЯЕМ PLAYER - НИКАКИХ ЛИШНИХ ВЫЗОВОВ!
+      if (response.data.player && (window as any).setPlayerGlobal) {
+        // Обнуляем награды в рефералах вручную
+        const updatedReferrals = (player?.referrals || []).map((ref: any) => ({
+          ...ref,
+          cs_earned: 0,
+          ton_earned: 0
+        }));
+        
+        const updatedPlayer = {
+          ...response.data.player,  // новый баланс
+          referrals: updatedReferrals,  // рефералы с обнуленными наградами
+          honor_board: player?.honor_board || []  // старая доска почета
+        };
+        (window as any).setPlayerGlobal(updatedPlayer);
+      }
+    } else {
+      showToastMessage(t('error_collecting_rewards'));
+    }
+    
+  } catch (err: any) {
+    console.error('Ошибка сбора наград:', err);
+    showToastMessage(t('error_collecting_rewards'));
+  } finally {
+    setIsCollecting(false);
+  }
+};
   
   // Простая функция копирования
   const copyToClipboard = (text: string) => {
