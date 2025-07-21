@@ -1,6 +1,8 @@
-// src/pages/WalletPage.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// src/pages/WalletPage.tsx - В СТИЛЕ ALPHABETPAGE
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNewPlayer } from '../context/NewPlayerContext';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { usePlayer } from '../context/PlayerContext';
+import { useTranslation } from 'react-i18next';
 import { 
   TonConnectButton, 
   useTonAddress, 
@@ -9,13 +11,18 @@ import {
   useIsConnectionRestored 
 } from '@tonconnect/ui-react';
 import axios from 'axios';
+import CurrencyPanel from '../components/CurrencyPanel';
+import NavigationMenu from '../components/NavigationMenu';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
 const WalletPage: React.FC = () => {
-  const { player, updatePlayerData } = useNewPlayer();
+  const { t } = useTranslation();
+  const { player, currentSystem, setPlayer, refreshPlayer } = usePlayer();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   // TON Connect хуки
   const userAddress = useTonAddress();
@@ -28,6 +35,8 @@ const WalletPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const colorStyle = player?.color || '#00f0ff';
 
   // Безопасное получение имени кошелька
   const getWalletName = () => {
@@ -63,25 +72,30 @@ const WalletPage: React.FC = () => {
       if (!userAddress || !player?.telegram_id) return;
 
       // Проверяем, изменился ли адрес
-      if (player.telegram_wallet === userAddress) return;
+      if (player.telegram_wallet === userAddress) {
+        setSuccess('Кошелек уже подключен');
+        return;
+      }
 
       console.log('Синхронизация кошелька с бэкендом:', userAddress);
       
-      await axios.post(`${API_URL}/api/wallet/connect`, {
+      const response = await axios.post(`${API_URL}/api/wallet/connect`, {
         telegram_id: player.telegram_id,
         wallet_address: userAddress,
         signature: 'ton-connect-verified' // TON Connect уже верифицирует подключение
       });
 
-      // Обновляем данные игрока
-      if (updatePlayerData) {
-        await updatePlayerData();
+      if (response.data.success) {
+        await refreshPlayer();
+        setSuccess('Кошелек успешно подключен');
+        setError(null);
+      } else {
+        throw new Error(response.data.error || 'Unknown error');
       }
-      setSuccess('Кошелек успешно подключен');
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('Ошибка синхронизации кошелька:', err);
-      setError('Ошибка подключения кошелька');
+      setError(`Ошибка подключения: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -95,11 +109,10 @@ const WalletPage: React.FC = () => {
         telegram_id: player?.telegram_id
       });
       
-      if (updatePlayerData) {
-        await updatePlayerData();
-      }
+      await refreshPlayer();
       setSuccess('Кошелек отключен');
-    } catch (err) {
+      setError(null);
+    } catch (err: any) {
       console.error('Ошибка отключения кошелька:', err);
       setError('Ошибка отключения кошелька');
     }
@@ -170,10 +183,7 @@ const WalletPage: React.FC = () => {
       setSuccess('Вывод средств выполнен успешно!');
       setWithdrawAmount('');
       setShowWithdrawModal(false);
-      
-      if (updatePlayerData) {
-        await updatePlayerData();
-      }
+      await refreshPlayer();
 
     } catch (err: any) {
       console.error('Ошибка вывода:', err);
@@ -202,173 +212,261 @@ const WalletPage: React.FC = () => {
     return Math.max(0, balance - 0.01); // Оставляем запас на комиссию
   }, [player?.ton]);
 
+  // Устанавливаем цвет по умолчанию
+  useEffect(() => {
+    if (player && !player.color) {
+      setPlayer({ ...player, color: '#00f0ff' });
+    }
+  }, [player, setPlayer]);
+
   if (!connectionRestored) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        color: '#fff', 
-        padding: '20px',
+      <div style={{
+        backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
+        backgroundSize: 'cover',
+        backgroundAttachment: 'fixed',
+        minHeight: '100vh',
+        color: '#fff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1a1a2e, #16213e)'
+        padding: '20px'
       }}>
-        <div style={{ textAlign: 'center' }}>
-          🔄 Загрузка кошелька...
+        <div style={{ 
+          textAlign: 'center',
+          color: colorStyle,
+          fontSize: '1.2rem'
+        }}>
+          🔄 Загрузка TON Connect...
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      color: '#fff', 
-      padding: '20px',
-      background: 'linear-gradient(135deg, #1a1a2e, #16213e)'
-    }}>
-      {/* Заголовок */}
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>
-          💳 TON Кошелек
-        </h1>
-        <p style={{ color: '#888', fontSize: '1.1rem' }}>
-          Управление криптовалютой TON
-        </p>
-      </div>
+    <div
+      style={{
+        backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
+        backgroundSize: 'cover',
+        backgroundAttachment: 'fixed',
+        minHeight: '100vh',
+        color: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '10px',
+        position: 'relative'
+      }}
+    >
+      {/* Верхняя панель с валютами */}
+      <CurrencyPanel 
+        player={player}
+        currentSystem={currentSystem}
+        colorStyle={colorStyle}
+      />
 
-      {/* Сообщения */}
-      {error && (
-        <div style={{ 
-          background: 'rgba(239, 68, 68, 0.15)', 
-          color: '#ef4444', 
-          padding: '15px', 
-          margin: '20px auto', 
-          maxWidth: '500px',
-          borderRadius: '10px',
-          textAlign: 'center'
-        }}>
-          ⚠️ {error}
-        </div>
-      )}
-      
-      {success && (
-        <div style={{ 
-          background: 'rgba(34, 197, 94, 0.15)', 
-          color: '#22c55e', 
-          padding: '15px', 
-          margin: '20px auto', 
-          maxWidth: '500px',
-          borderRadius: '10px',
-          textAlign: 'center'
-        }}>
-          ✅ {success}
-        </div>
-      )}
-      
-      {/* Основной блок кошелька */}
-      <div style={{ 
-        background: 'rgba(0, 0, 0, 0.7)', 
-        padding: '40px', 
-        margin: '20px auto', 
-        maxWidth: '500px', 
-        borderRadius: '25px',
-        border: '1px solid #00f0ff40',
-        textAlign: 'center'
-      }}>
-        {/* Баланс TON */}
-        <div style={{ marginBottom: '30px' }}>
-          <p style={{ color: '#888', marginBottom: '10px' }}>Ваш баланс:</p>
-          <div style={{ fontSize: '3rem', color: '#00f0ff', marginBottom: '10px' }}>
-            {parseFloat(player?.ton || '0').toFixed(8)} TON
-          </div>
-          <p style={{ color: '#666', fontSize: '0.9rem' }}>
-            ≈ ${(parseFloat(player?.ton || '0') * 2.5).toFixed(2)} USD
-          </p>
-        </div>
-        
-        {/* Информация о подключенном кошельке */}
-        {wallet && userAddress && (
-          <div style={{ marginBottom: '30px', padding: '20px', background: 'rgba(0, 240, 255, 0.1)', borderRadius: '15px' }}>
-            <p style={{ color: '#888', marginBottom: '10px' }}>
-              🔗 Подключенный кошелек:
-            </p>
-            <p style={{ color: '#00f0ff', fontSize: '1.1rem', marginBottom: '5px' }}>
-              {formatAddress(userAddress)}
-            </p>
-            <p style={{ color: '#666', fontSize: '0.9rem' }}>
-              {getWalletName()} • {wallet.device?.platform || 'Unknown'}
-            </p>
-          </div>
-        )}
-        
-        {/* Кнопка подключения TON Connect */}
-        <div style={{ marginBottom: '20px' }}>
-          <TonConnectButton />
-        </div>
+      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
+        <div style={{ flex: 1, padding: '10px', textAlign: 'center' }}>
+          <h2 style={{ 
+            color: colorStyle, 
+            textShadow: `0 0 10px ${colorStyle}`, 
+            fontSize: '2rem', 
+            marginBottom: '30px' 
+          }}>
+            💳 TON Кошелек
+          </h2>
 
-        {/* Кнопки действий */}
-        {wallet && userAddress && (
-          <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => {
-                setShowWithdrawModal(true);
-                setError(null);
-                setSuccess(null);
-              }}
-              disabled={parseFloat(player?.ton || '0') <= 0.1}
-              style={{
-                padding: '15px 30px',
-                background: parseFloat(player?.ton || '0') > 0.1 
-                  ? 'linear-gradient(135deg, #00f0ff80, #00f0ff40)'
-                  : 'rgba(128, 128, 128, 0.3)',
-                border: `2px solid ${parseFloat(player?.ton || '0') > 0.1 ? '#00f0ff' : '#666'}`,
-                borderRadius: '15px',
-                color: '#fff',
-                fontSize: '1.1rem',
-                cursor: parseFloat(player?.ton || '0') > 0.1 ? 'pointer' : 'not-allowed',
-                transition: 'all 0.3s'
-              }}
-            >
-              💸 Вывести TON
-            </button>
+          {/* Сообщения об ошибках и успехе */}
+          {error && (
+            <div style={{ 
+              margin: '20px 0', 
+              padding: '15px', 
+              background: 'rgba(239, 68, 68, 0.15)', 
+              border: '1px solid #ef4444', 
+              borderRadius: '15px',
+              boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
+              color: '#ef4444',
+              textAlign: 'center'
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+          
+          {success && (
+            <div style={{ 
+              margin: '20px 0', 
+              padding: '15px', 
+              background: 'rgba(34, 197, 94, 0.15)', 
+              border: '1px solid #22c55e', 
+              borderRadius: '15px',
+              boxShadow: '0 0 20px rgba(34, 197, 94, 0.3)',
+              color: '#22c55e',
+              textAlign: 'center'
+            }}>
+              ✅ {success}
+            </div>
+          )}
+          
+          {/* Основной блок кошелька */}
+          <div style={{ 
+            margin: '20px 0', 
+            padding: '30px', 
+            background: 'rgba(0, 0, 0, 0.3)', 
+            border: `1px solid ${colorStyle}`, 
+            borderRadius: '15px',
+            boxShadow: `0 0 20px ${colorStyle}30`
+          }}>
+            <h3 style={{ 
+              color: colorStyle, 
+              marginBottom: '20px', 
+              fontSize: '1.5rem',
+              textShadow: `0 0 10px ${colorStyle}`
+            }}>
+              💰 Ваш баланс TON
+            </h3>
             
-            <button
-              onClick={handleDisconnect}
-              style={{
-                padding: '15px 30px',
-                background: 'rgba(239, 68, 68, 0.2)',
-                border: '2px solid #ef4444',
-                borderRadius: '15px',
-                color: '#ef4444',
-                fontSize: '1.1rem',
-                cursor: 'pointer',
-                transition: 'all 0.3s'
-              }}
-            >
-              🔌 Отключить
-            </button>
-          </div>
-        )}
-      </div>
+            {/* Баланс TON */}
+            <div style={{ marginBottom: '25px' }}>
+              <div style={{ 
+                fontSize: '2.5rem', 
+                color: colorStyle, 
+                marginBottom: '10px',
+                textShadow: `0 0 10px ${colorStyle}`
+              }}>
+                {parseFloat(player?.ton || '0').toFixed(8)} TON
+              </div>
+              <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                ≈ ${(parseFloat(player?.ton || '0') * 2.5).toFixed(2)} USD
+              </p>
+            </div>
+            
+            {/* Информация о подключенном кошельке */}
+            {wallet && userAddress && (
+              <div style={{ 
+                marginBottom: '25px', 
+                padding: '20px', 
+                background: `rgba(0, 0, 0, 0.4)`, 
+                borderRadius: '12px',
+                border: `1px solid ${colorStyle}40`
+              }}>
+                <p style={{ color: '#888', marginBottom: '10px' }}>
+                  🔗 Подключенный кошелек:
+                </p>
+                <p style={{ 
+                  color: colorStyle, 
+                  fontSize: '1.1rem', 
+                  marginBottom: '5px',
+                  textShadow: `0 0 5px ${colorStyle}`
+                }}>
+                  {formatAddress(userAddress)}
+                </p>
+                <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                  {getWalletName()} • {wallet.device?.platform || 'Unknown'}
+                </p>
+              </div>
+            )}
+            
+            {/* Кнопка подключения TON Connect */}
+            <div style={{ marginBottom: '20px' }}>
+              <TonConnectButton />
+            </div>
 
-      {/* Информационный блок */}
-      <div style={{ 
-        background: 'rgba(0, 0, 0, 0.5)', 
-        padding: '20px', 
-        margin: '20px auto', 
-        maxWidth: '500px', 
-        borderRadius: '15px'
-      }}>
-        <h3 style={{ color: '#00f0ff', marginBottom: '15px', textAlign: 'center' }}>
-          ℹ️ Информация о выводе
-        </h3>
-        <ul style={{ color: '#ccc', fontSize: '0.9rem', paddingLeft: '20px' }}>
-          <li>Минимальная сумма вывода: 0.1 TON</li>
-          <li>Комиссия сети: ~0.01 TON</li>
-          <li>Время обработки: 1-3 минуты</li>
-          <li>Поддерживаемые кошельки: TON Wallet, Tonkeeper, MyTonWallet</li>
-        </ul>
+            {/* Кнопки действий */}
+            {wallet && userAddress && (
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    setShowWithdrawModal(true);
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  disabled={parseFloat(player?.ton || '0') <= 0.1}
+                  style={{
+                    padding: '15px 25px',
+                    background: parseFloat(player?.ton || '0') > 0.1 
+                      ? `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`
+                      : 'rgba(128, 128, 128, 0.3)',
+                    border: `2px solid ${parseFloat(player?.ton || '0') > 0.1 ? colorStyle : '#666'}`,
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontSize: '1rem',
+                    cursor: parseFloat(player?.ton || '0') > 0.1 ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.3s ease',
+                    boxShadow: parseFloat(player?.ton || '0') > 0.1 
+                      ? `0 0 15px ${colorStyle}30` 
+                      : 'none',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseEnter={e => {
+                    if (parseFloat(player?.ton || '0') > 0.1) {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}`;
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = parseFloat(player?.ton || '0') > 0.1 
+                      ? `0 0 15px ${colorStyle}30` 
+                      : 'none';
+                  }}
+                >
+                  💸 Вывести TON
+                </button>
+                
+                <button
+                  onClick={handleDisconnect}
+                  style={{
+                    padding: '15px 25px',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    border: '2px solid #ef4444',
+                    borderRadius: '12px',
+                    color: '#ef4444',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 0 15px rgba(239, 68, 68, 0.3)',
+                    fontWeight: 'bold'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 0 25px #ef4444';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.3)';
+                  }}
+                >
+                  🔌 Отключить
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Информационный блок */}
+          <div style={{ 
+            margin: '20px 0', 
+            padding: '20px', 
+            background: 'rgba(0, 0, 0, 0.3)', 
+            border: `1px solid ${colorStyle}`, 
+            borderRadius: '15px',
+            boxShadow: `0 0 20px ${colorStyle}30`
+          }}>
+            <h3 style={{ 
+              color: colorStyle, 
+              marginBottom: '15px', 
+              fontSize: '1.5rem',
+              textShadow: `0 0 10px ${colorStyle}`
+            }}>
+              ℹ️ Информация о выводе
+            </h3>
+            <div style={{ textAlign: 'left', lineHeight: '1.6', color: '#ccc' }}>
+              <p><strong style={{ color: colorStyle }}>Минимальная сумма:</strong> 0.1 TON</p>
+              <p><strong style={{ color: colorStyle }}>Комиссия сети:</strong> ~0.01 TON</p>
+              <p><strong style={{ color: colorStyle }}>Время обработки:</strong> 1-3 минуты</p>
+              <p><strong style={{ color: colorStyle }}>Поддерживаемые кошельки:</strong> Tonkeeper, TON Wallet</p>
+              <p><strong style={{ color: colorStyle }}>Безопасность:</strong> Все транзакции проходят через официальную сеть TON</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Модальное окно вывода */}
@@ -390,11 +488,18 @@ const WalletPage: React.FC = () => {
             background: 'rgba(0, 0, 0, 0.95)',
             padding: '30px',
             borderRadius: '20px',
-            border: '2px solid #00f0ff',
+            border: `2px solid ${colorStyle}`,
             maxWidth: '400px',
-            width: '100%'
+            width: '100%',
+            boxShadow: `0 0 30px ${colorStyle}30`
           }}>
-            <h2 style={{ color: '#00f0ff', marginBottom: '20px', textAlign: 'center' }}>
+            <h2 style={{ 
+              color: colorStyle, 
+              marginBottom: '20px', 
+              textAlign: 'center',
+              textShadow: `0 0 10px ${colorStyle}`,
+              fontSize: '1.5rem'
+            }}>
               💸 Вывод TON
             </h2>
             
@@ -414,7 +519,7 @@ const WalletPage: React.FC = () => {
                   width: '100%',
                   padding: '12px',
                   background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid #00f0ff',
+                  border: `1px solid ${colorStyle}`,
                   borderRadius: '10px',
                   color: '#fff',
                   fontSize: '1.1rem'
@@ -430,7 +535,7 @@ const WalletPage: React.FC = () => {
                 Адрес получателя:
               </label>
               <p style={{ 
-                color: '#00f0ff', 
+                color: colorStyle, 
                 background: 'rgba(255, 255, 255, 0.05)',
                 padding: '12px',
                 borderRadius: '10px',
@@ -448,8 +553,8 @@ const WalletPage: React.FC = () => {
                 style={{
                   flex: 1,
                   padding: '15px',
-                  background: 'linear-gradient(135deg, #00f0ff80, #00f0ff40)',
-                  border: '2px solid #00f0ff',
+                  background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
+                  border: `2px solid ${colorStyle}`,
                   borderRadius: '10px',
                   color: '#fff',
                   fontSize: '1.1rem',
@@ -484,6 +589,9 @@ const WalletPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Нижняя навигация */}
+      <NavigationMenu colorStyle={colorStyle} />
     </div>
   );
 };
