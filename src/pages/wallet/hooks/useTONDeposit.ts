@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// src/pages/wallet/hooks/useTONDeposit.ts - БЕЗ BUFFER
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
@@ -7,6 +7,16 @@ interface UseTONDepositProps {
   onSuccess?: (message: string) => void;
   onError?: (error: string) => void;
 }
+
+// 🔧 Функция для конвертации строки в base64 БЕЗ Buffer
+const stringToBase64 = (str: string): string => {
+  try {
+    return btoa(unescape(encodeURIComponent(str)));
+  } catch (err) {
+    console.error('Ошибка base64 кодирования:', err);
+    return btoa(str); // fallback
+  }
+};
 
 export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositProps = {}) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -40,7 +50,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
     try {
       console.log('💰 Начинаем пополнение TON:', amount);
       
-      // 🔥 ИСПРАВЛЕНО: Хардкод адреса + fallback
+      // Хардкод адреса + fallback (переменная не настроена в окружении)
       const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
       
       console.log('🏪 Game wallet address:', gameWalletAddress);
@@ -53,10 +63,13 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       // Создаем данные для транзакции
       const nanoAmount = Math.floor(amount * 1e9);
       const payloadText = `deposit:${playerId}:${amount}:${Date.now()}`;
-      const payload = Buffer.from(payloadText).toString('base64');
+      
+      // 🔥 ИСПРАВЛЕНО: Используем btoa вместо Buffer
+      const payload = stringToBase64(payloadText);
       
       console.log('💎 Сумма в nanoton:', nanoAmount);
-      console.log('📝 Payload:', payloadText);
+      console.log('📝 Payload text:', payloadText);
+      console.log('📝 Payload base64:', payload);
 
       // Создаем транзакцию
       const transaction = {
@@ -71,13 +84,18 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       };
 
       console.log('🔗 Отправляем транзакцию через TON Connect...');
-      console.log('📋 Transaction:', JSON.stringify(transaction, null, 2));
+      console.log('📋 Transaction details:', {
+        address: gameWalletAddress,
+        amount: nanoAmount.toString(),
+        payloadLength: payload.length
+      });
       
       // Отправляем транзакцию
       const result = await tonConnectUI.sendTransaction(transaction);
       
       console.log('✅ Транзакция отправлена успешно!');
-      console.log('📄 BOC:', result.boc.slice(0, 20) + '...');
+      console.log('📄 BOC length:', result.boc.length);
+      console.log('📄 BOC preview:', result.boc.slice(0, 20) + '...');
       
       const shortHash = result.boc.slice(0, 10);
       onSuccess?.(`Транзакция отправлена! Hash: ${shortHash}...`);
@@ -103,6 +121,8 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       } else if (err.message?.includes('Invalid') || 
                  err.message?.includes('address')) {
         errorMessage = 'Неверный адрес кошелька';
+      } else if (err.message?.includes('Buffer')) {
+        errorMessage = 'Ошибка кодирования данных';
       } else if (err.message) {
         errorMessage = err.message;
       }

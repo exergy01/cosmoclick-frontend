@@ -214,12 +214,17 @@ const WalletPage: React.FC = () => {
     
     // Пробуем простую транзакцию
     try {
+      const gameWallet = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
+      
+      // 🔥 ИСПРАВЛЕНО: используем btoa вместо Buffer
+      const testPayload = btoa('test-transaction');
+      
       const testTransaction = {
         validUntil: Math.floor(Date.now() / 1000) + 60,
         messages: [{
-          address: process.env.REACT_APP_GAME_WALLET_ADDRESS || '',
+          address: gameWallet,
           amount: '10000000', // 0.01 TON
-          payload: Buffer.from('test').toString('base64')
+          payload: testPayload
         }]
       };
       
