@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - БЕЗ BUFFER
+// src/pages/wallet/hooks/useTONDeposit.ts - УПРОЩЕННАЯ ВЕРСИЯ
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
@@ -7,16 +7,6 @@ interface UseTONDepositProps {
   onSuccess?: (message: string) => void;
   onError?: (error: string) => void;
 }
-
-// 🔧 Функция для конвертации строки в base64 БЕЗ Buffer
-const stringToBase64 = (str: string): string => {
-  try {
-    return btoa(unescape(encodeURIComponent(str)));
-  } catch (err) {
-    console.error('Ошибка base64 кодирования:', err);
-    return btoa(str); // fallback
-  }
-};
 
 export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositProps = {}) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,81 +38,79 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
     setIsProcessing(true);
 
     try {
-      console.log('💰 Начинаем пополнение TON:', amount);
+      console.log('💰 Начинаем упрощенное пополнение TON:', amount);
       
-      // Хардкод адреса + fallback (переменная не настроена в окружении)
-      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
+      // Адрес игрового кошелька
+      const gameWalletAddress = 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
       
       console.log('🏪 Game wallet address:', gameWalletAddress);
 
-      // Проверяем формат адреса
-      if (!gameWalletAddress.startsWith('UQ') && !gameWalletAddress.startsWith('EQ')) {
-        throw new Error(`Неверный формат адреса кошелька: ${gameWalletAddress}`);
-      }
-
-      // Создаем данные для транзакции
-      const nanoAmount = Math.floor(amount * 1e9);
-      const payloadText = `deposit:${playerId}:${amount}:${Date.now()}`;
-      
-      // 🔥 ИСПРАВЛЕНО: Используем btoa вместо Buffer
-      const payload = stringToBase64(payloadText);
+      // Сумма в нанотонах
+      const nanoAmount = Math.floor(amount * 1_000_000_000);
       
       console.log('💎 Сумма в nanoton:', nanoAmount);
-      console.log('📝 Payload text:', payloadText);
-      console.log('📝 Payload base64:', payload);
 
-      // Создаем транзакцию
+      // 🔥 УПРОЩЕННАЯ ТРАНЗАКЦИЯ БЕЗ PAYLOAD
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 120, // 2 минуты
+        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
         messages: [
           {
             address: gameWalletAddress,
-            amount: nanoAmount.toString(),
-            payload: payload
+            amount: nanoAmount.toString()
+            // БЕЗ payload - самая простая транзакция
           }
         ]
       };
 
-      console.log('🔗 Отправляем транзакцию через TON Connect...');
-      console.log('📋 Transaction details:', {
-        address: gameWalletAddress,
-        amount: nanoAmount.toString(),
-        payloadLength: payload.length
-      });
+      console.log('🔗 Отправляем упрощенную транзакцию...');
+      console.log('📋 Transaction:', JSON.stringify(transaction, null, 2));
       
       // Отправляем транзакцию
       const result = await tonConnectUI.sendTransaction(transaction);
       
       console.log('✅ Транзакция отправлена успешно!');
-      console.log('📄 BOC length:', result.boc.length);
-      console.log('📄 BOC preview:', result.boc.slice(0, 20) + '...');
+      console.log('📄 Result:', result);
       
-      const shortHash = result.boc.slice(0, 10);
+      const shortHash = result.boc?.slice(0, 10) || 'unknown';
       onSuccess?.(`Транзакция отправлена! Hash: ${shortHash}...`);
       
       return true;
 
     } catch (err: any) {
       console.error('❌ Ошибка пополнения TON:', err);
+      console.error('📊 Error details:', {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
       
-      // Определяем тип ошибки и показываем понятное сообщение
+      // Детальная диагностика ошибок
       let errorMessage = 'Ошибка отправки транзакции';
       
       if (err.message?.includes('User declined') || 
           err.message?.includes('rejected') ||
-          err.message?.includes('cancelled')) {
-        errorMessage = 'Транзакция отклонена пользователем';
+          err.message?.includes('cancelled') ||
+          err.message?.includes('user rejected')) {
+        errorMessage = 'Вы отклонили транзакцию';
       } else if (err.message?.includes('Insufficient') || 
-                 err.message?.includes('balance')) {
-        errorMessage = 'Недостаточно TON в вашем кошельке';
+                 err.message?.includes('balance') ||
+                 err.message?.includes('not enough')) {
+        errorMessage = 'Недостаточно TON в кошельке';
       } else if (err.message?.includes('Network') || 
-                 err.message?.includes('timeout')) {
-        errorMessage = 'Ошибка сети. Попробуйте еще раз';
+                 err.message?.includes('timeout') ||
+                 err.message?.includes('connection')) {
+        errorMessage = 'Ошибка сети, попробуйте еще раз';
       } else if (err.message?.includes('Invalid') || 
-                 err.message?.includes('address')) {
+                 err.message?.includes('address') ||
+                 err.message?.includes('format')) {
         errorMessage = 'Неверный адрес кошелька';
-      } else if (err.message?.includes('Buffer')) {
-        errorMessage = 'Ошибка кодирования данных';
+      } else if (err.message?.includes('подключиться') ||
+                 err.message?.includes('connect') ||
+                 err.message?.includes('wallet')) {
+        errorMessage = 'Ошибка подключения к кошельку';
+      } else if (err.code) {
+        errorMessage = `Ошибка ${err.code}: ${err.message}`;
       } else if (err.message) {
         errorMessage = err.message;
       }
