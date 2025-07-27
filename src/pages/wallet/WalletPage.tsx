@@ -1,4 +1,4 @@
-// src/pages/wallet/WalletPage.tsx - ЧАСТЬ 1: ИМПОРТЫ И STATE
+// src/pages/wallet/WalletPage.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
 import { 
@@ -12,9 +12,11 @@ import axios from 'axios';
 import CurrencyPanel from '../../components/CurrencyPanel';
 import NavigationMenu from '../../components/NavigationMenu';
 
-// 🔥 НОВЫЕ ИМПОРТЫ: Компоненты кошелька
+// 🔥 РЕФАКТОРЕННЫЕ КОМПОНЕНТЫ
 import { StarsModal } from './components/StarsModal';
+import { TONDepositModal } from './components/TONDepositModal';
 import { useStarsPayment } from './hooks/useStarsPayment';
+import { useTONDeposit } from './hooks/useTONDeposit';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
@@ -41,13 +43,28 @@ const WalletPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const colorStyle = player?.color || '#00f0ff';
-  // 🔥 НОВЫЙ ХУК: Stars Payment
+
+  // 🔥 РЕФАКТОРЕННЫЕ ХУКИ
   const { createStarsInvoice, isProcessing: isStarsProcessing } = useStarsPayment({
     playerId: player?.telegram_id,
     onSuccess: (message: string) => {
       setSuccess(message);
       setStarsAmount('');
       setShowStarsModal(false);
+      setError(null);
+      setTimeout(() => refreshPlayer(), 3000);
+    },
+    onError: (errorMessage: string) => {
+      setError(errorMessage);
+    }
+  });
+
+  const { sendDepositTransaction, isProcessing: isTONProcessing } = useTONDeposit({
+    playerId: player?.telegram_id,
+    onSuccess: (message: string) => {
+      setSuccess(message);
+      setDepositAmount('');
+      setShowDepositModal(false);
       setError(null);
       setTimeout(() => refreshPlayer(), 3000);
     },
@@ -87,6 +104,7 @@ const WalletPage: React.FC = () => {
       setPlayer({ ...player, color: '#00f0ff' });
     }
   }, [player, setPlayer]);
+
   // Синхронизация кошелька с бэкендом
   const syncWalletWithBackend = async () => {
     try {
@@ -127,52 +145,18 @@ const WalletPage: React.FC = () => {
     }
   };
 
-  // 🔥 НОВОЕ: Обработчик Stars через хук
+  // 🔥 РЕФАКТОРЕННЫЕ ОБРАБОТЧИКИ
   const handleStarsDeposit = async () => {
     const amount = parseInt(starsAmount);
     await createStarsInvoice(amount);
   };
-  // Пополнение TON
-  const handleDeposit = async () => {
-    if (!tonConnectUI || !userAddress) {
-      setError('Сначала подключите кошелек');
-      return;
-    }
 
+  const handleTONDeposit = async () => {
     const amount = parseFloat(depositAmount);
-    if (isNaN(amount) || amount < 0.01) {
-      setError('Минимальная сумма: 0.01 TON');
-      return;
-    }
-
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS;
-      if (!gameWalletAddress) throw new Error('Game wallet not configured');
-      
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 60,
-        messages: [{
-          address: gameWalletAddress,
-          amount: Math.floor(amount * 1e9).toString(),
-          payload: Buffer.from(`deposit:${player?.telegram_id}:${amount}`).toString('base64')
-        }]
-      };
-
-      const result = await tonConnectUI.sendTransaction(transaction);
-      setSuccess(`Транзакция отправлена! Hash: ${result.boc.slice(0, 10)}...`);
-      setDepositAmount('');
-      setShowDepositModal(false);
-    } catch (err: any) {
-      setError(err.message?.includes('declined') ? 'Транзакция отклонена' : 'Ошибка транзакции');
-    } finally {
-      setIsProcessing(false);
-    }
+    await sendDepositTransaction(amount);
   };
 
-  // Вывод TON
+  // Вывод TON (пока оставляем старую логику)
   const handleWithdraw = async () => {
     if (!tonConnectUI || !userAddress) {
       setError('Сначала подключите кошелек');
@@ -228,6 +212,7 @@ const WalletPage: React.FC = () => {
       setIsProcessing(false);
     }
   };
+
   // Загрузка TON Connect
   if (!connectionRestored) {
     return (
@@ -295,6 +280,7 @@ const WalletPage: React.FC = () => {
               textAlign: 'center'
             }}>✅ {success}</div>
           )}
+
           {/* Основной блок кошелька */}
           <div style={{ 
             margin: '20px 0', 
@@ -352,6 +338,7 @@ const WalletPage: React.FC = () => {
             <div style={{ marginBottom: '20px' }}>
               <TonConnectButton />
             </div>
+
             {/* Кнопки действий */}
             {wallet && userAddress && (
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -426,7 +413,8 @@ const WalletPage: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* Модалка вывода TON */}
+
+      {/* Модалка вывода TON (оставляем пока встроенную) */}
       {showWithdrawModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -482,60 +470,8 @@ const WalletPage: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Модалка пополнения TON */}
-      {showDepositModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
-        }}>
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.95)', padding: '30px', borderRadius: '20px',
-            border: '2px solid #22c55e', maxWidth: '400px', width: '100%'
-          }}>
-            <h2 style={{ color: '#22c55e', marginBottom: '20px', textAlign: 'center' }}>
-              💰 Пополнение TON
-            </h2>
-            
-            <div style={{ marginBottom: '20px' }}>
-              <input
-                type="number"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="0.01"
-                style={{
-                  width: '100%', padding: '12px', background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid #22c55e', borderRadius: '10px', color: '#fff'
-                }}
-              />
-            </div>
 
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <button
-                onClick={handleDeposit}
-                disabled={isProcessing || !depositAmount || parseFloat(depositAmount) < 0.01}
-                style={{
-                  flex: 1, padding: '15px', background: 'linear-gradient(135deg, #22c55e30, #22c55e60, #22c55e30)',
-                  border: '2px solid #22c55e', borderRadius: '10px', color: '#fff',
-                  cursor: (isProcessing || !depositAmount || parseFloat(depositAmount) < 0.01) ? 'not-allowed' : 'pointer',
-                  opacity: (isProcessing || !depositAmount || parseFloat(depositAmount) < 0.01) ? 0.5 : 1
-                }}
-              >
-                {isProcessing ? '🔄 Отправка...' : '✅ Пополнить'}
-              </button>
-              
-              <button
-                onClick={() => { setShowDepositModal(false); setDepositAmount(''); setError(null); }}
-                style={{
-                  flex: 1, padding: '15px', background: 'rgba(239, 68, 68, 0.2)',
-                  border: '2px solid #ef4444', borderRadius: '10px', color: '#ef4444', cursor: 'pointer'
-                }}
-              >❌ Отмена</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* 🔥 НОВОЕ: Используем компонент StarsModal */}
+      {/* 🔥 РЕФАКТОРЕННЫЕ МОДАЛКИ */}
       <StarsModal
         isOpen={showStarsModal}
         onClose={() => {
@@ -547,6 +483,19 @@ const WalletPage: React.FC = () => {
         setStarsAmount={setStarsAmount}
         onSubmit={handleStarsDeposit}
         isProcessing={isStarsProcessing}
+      />
+
+      <TONDepositModal
+        isOpen={showDepositModal}
+        onClose={() => {
+          setShowDepositModal(false);
+          setDepositAmount('');
+          setError(null);
+        }}
+        depositAmount={depositAmount}
+        setDepositAmount={setDepositAmount}
+        onSubmit={handleTONDeposit}
+        isProcessing={isTONProcessing}
       />
 
       <NavigationMenu colorStyle={colorStyle} />
