@@ -1,4 +1,4 @@
-// src/pages/wallet/WalletPage.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// src/pages/wallet/WalletPage.tsx - С ДИАГНОСТИКОЙ
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
 import { 
@@ -12,7 +12,7 @@ import axios from 'axios';
 import CurrencyPanel from '../../components/CurrencyPanel';
 import NavigationMenu from '../../components/NavigationMenu';
 
-// 🔥 РЕФАКТОРЕННЫЕ КОМПОНЕНТЫ
+// Рефакторенные компоненты
 import { StarsModal } from './components/StarsModal';
 import { TONDepositModal } from './components/TONDepositModal';
 import { useStarsPayment } from './hooks/useStarsPayment';
@@ -42,9 +42,19 @@ const WalletPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // 🔍 ДИАГНОСТИЧЕСКИЙ STATE
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+
   const colorStyle = player?.color || '#00f0ff';
 
-  // 🔥 РЕФАКТОРЕННЫЕ ХУКИ
+  // 🔍 Функция для добавления диагностической информации
+  const addDebugInfo = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugInfo(prev => [...prev.slice(-4), `[${timestamp}] ${message}`]);
+  };
+
+  // Рефакторенные хуки
   const { createStarsInvoice, isProcessing: isStarsProcessing } = useStarsPayment({
     playerId: player?.telegram_id,
     onSuccess: (message: string) => {
@@ -52,10 +62,12 @@ const WalletPage: React.FC = () => {
       setStarsAmount('');
       setShowStarsModal(false);
       setError(null);
+      addDebugInfo('✅ Stars payment успешен');
       setTimeout(() => refreshPlayer(), 3000);
     },
     onError: (errorMessage: string) => {
       setError(errorMessage);
+      addDebugInfo(`❌ Stars error: ${errorMessage}`);
     }
   });
 
@@ -66,10 +78,12 @@ const WalletPage: React.FC = () => {
       setDepositAmount('');
       setShowDepositModal(false);
       setError(null);
+      addDebugInfo('✅ TON deposit успешен');
       setTimeout(() => refreshPlayer(), 3000);
     },
     onError: (errorMessage: string) => {
       setError(errorMessage);
+      addDebugInfo(`❌ TON error: ${errorMessage}`);
     }
   });
 
@@ -95,6 +109,7 @@ const WalletPage: React.FC = () => {
   // useEffect хуки
   useEffect(() => {
     if (userAddress && player?.telegram_id) {
+      addDebugInfo(`🔗 Синхронизация кошелька: ${formatAddress(userAddress)}`);
       syncWalletWithBackend();
     }
   }, [userAddress, player?.telegram_id]);
@@ -104,6 +119,16 @@ const WalletPage: React.FC = () => {
       setPlayer({ ...player, color: '#00f0ff' });
     }
   }, [player, setPlayer]);
+
+  // 🔍 Диагностика TON Connect при загрузке
+  useEffect(() => {
+    addDebugInfo(`🔄 TON Connect статус: ${connectionRestored ? 'готов' : 'загружается'}`);
+    addDebugInfo(`📱 Wallet: ${wallet ? getWalletName() : 'не подключен'}`);
+    addDebugInfo(`📍 Address: ${userAddress ? formatAddress(userAddress) : 'нет'}`);
+    addDebugInfo(`🎮 Player ID: ${player?.telegram_id || 'нет'}`);
+    addDebugInfo(`💎 Game wallet: ${process.env.REACT_APP_GAME_WALLET_ADDRESS || 'НЕ НАСТРОЕН'}`);
+    addDebugInfo(`🔧 Fallback wallet: UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60`);
+  }, [connectionRestored, wallet, userAddress, player?.telegram_id]);
 
   // Синхронизация кошелька с бэкендом
   const syncWalletWithBackend = async () => {
@@ -124,9 +149,12 @@ const WalletPage: React.FC = () => {
         await refreshPlayer();
         setSuccess('Кошелек успешно подключен');
         setError(null);
+        addDebugInfo('✅ Кошелек подключен к бэкенду');
       }
     } catch (err: any) {
-      setError(`Ошибка подключения: ${err.response?.data?.error || err.message}`);
+      const errorMsg = `Ошибка подключения: ${err.response?.data?.error || err.message}`;
+      setError(errorMsg);
+      addDebugInfo(`❌ Sync error: ${errorMsg}`);
     }
   };
 
@@ -140,20 +168,68 @@ const WalletPage: React.FC = () => {
       await refreshPlayer();
       setSuccess('Кошелек отключен');
       setError(null);
+      addDebugInfo('🔌 Кошелек отключен');
     } catch (err: any) {
       setError('Ошибка отключения кошелька');
+      addDebugInfo('❌ Ошибка отключения');
     }
   };
 
-  // 🔥 РЕФАКТОРЕННЫЕ ОБРАБОТЧИКИ
+  // Обработчики
   const handleStarsDeposit = async () => {
     const amount = parseInt(starsAmount);
+    addDebugInfo(`⭐ Начинаем Stars покупку: ${amount}`);
     await createStarsInvoice(amount);
   };
 
   const handleTONDeposit = async () => {
     const amount = parseFloat(depositAmount);
-    await sendDepositTransaction(amount);
+    addDebugInfo(`💰 Начинаем TON пополнение: ${amount}`);
+    addDebugInfo(`🔗 TON Connect UI: ${tonConnectUI ? 'есть' : 'НЕТ'}`);
+    addDebugInfo(`📍 User address: ${userAddress ? 'есть' : 'НЕТ'}`);
+    addDebugInfo(`🎮 Player ID: ${player?.telegram_id ? 'есть' : 'НЕТ'}`);
+    
+    try {
+      await sendDepositTransaction(amount);
+    } catch (err: any) {
+      addDebugInfo(`❌ Критическая ошибка TON: ${err.message}`);
+    }
+  };
+
+  // Простая проверка TON Connect
+  const testTONConnect = async () => {
+    addDebugInfo('🧪 Тестируем TON Connect...');
+    
+    if (!tonConnectUI) {
+      addDebugInfo('❌ tonConnectUI отсутствует');
+      return;
+    }
+    
+    if (!userAddress) {
+      addDebugInfo('❌ userAddress отсутствует');
+      return;
+    }
+    
+    addDebugInfo('✅ TON Connect готов к работе');
+    
+    // Пробуем простую транзакцию
+    try {
+      const testTransaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60,
+        messages: [{
+          address: process.env.REACT_APP_GAME_WALLET_ADDRESS || '',
+          amount: '10000000', // 0.01 TON
+          payload: Buffer.from('test').toString('base64')
+        }]
+      };
+      
+      addDebugInfo('🚀 Отправляем тестовую транзакцию...');
+      const result = await tonConnectUI.sendTransaction(testTransaction);
+      addDebugInfo(`✅ Тест успешен! BOC: ${result.boc.slice(0, 10)}...`);
+      
+    } catch (err: any) {
+      addDebugInfo(`❌ Тест неудачен: ${err.message}`);
+    }
   };
 
   // Вывод TON (пока оставляем старую логику)
@@ -256,6 +332,85 @@ const WalletPage: React.FC = () => {
             💳 TON Кошелек
           </h2>
 
+          {/* 🔍 ДИАГНОСТИЧЕСКАЯ ПАНЕЛЬ */}
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              style={{
+                padding: '8px 15px',
+                background: 'rgba(255, 165, 0, 0.2)',
+                border: '1px solid #ffa500',
+                borderRadius: '8px',
+                color: '#ffa500',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              🔍 {showDebug ? 'Скрыть' : 'Показать'} диагностику
+            </button>
+            
+            {showDebug && (
+              <div style={{
+                marginTop: '10px',
+                padding: '15px',
+                background: 'rgba(0, 0, 0, 0.8)',
+                border: '1px solid #ffa500',
+                borderRadius: '10px',
+                textAlign: 'left',
+                fontSize: '0.8rem',
+                maxHeight: '200px',
+                overflowY: 'auto'
+              }}>
+                <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={testTONConnect}
+                    style={{
+                      padding: '5px 10px',
+                      background: 'rgba(34, 197, 94, 0.2)',
+                      border: '1px solid #22c55e',
+                      borderRadius: '5px',
+                      color: '#22c55e',
+                      cursor: 'pointer',
+                      fontSize: '0.7rem'
+                    }}
+                  >
+                    🧪 Тест TON Connect
+                  </button>
+                  
+                  <button
+                    onClick={() => setDebugInfo([])}
+                    style={{
+                      padding: '5px 10px',
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      border: '1px solid #ef4444',
+                      borderRadius: '5px',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      fontSize: '0.7rem'
+                    }}
+                  >
+                    🗑️ Очистить
+                  </button>
+                </div>
+                
+                {debugInfo.length === 0 ? (
+                  <p style={{ color: '#888' }}>Диагностическая информация появится здесь...</p>
+                ) : (
+                  debugInfo.map((info, index) => (
+                    <div key={index} style={{ 
+                      color: info.includes('❌') ? '#ef4444' : 
+                             info.includes('✅') ? '#22c55e' : 
+                             info.includes('🔄') ? '#ffa500' : '#ccc',
+                      marginBottom: '3px'
+                    }}>
+                      {info}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Сообщения об ошибках и успехе */}
           {error && (
             <div style={{ 
@@ -344,6 +499,7 @@ const WalletPage: React.FC = () => {
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
+                    addDebugInfo('🎯 Нажата кнопка "Пополнить TON"');
                     setShowDepositModal(true);
                     setError(null);
                     setSuccess(null);
@@ -361,6 +517,7 @@ const WalletPage: React.FC = () => {
 
                 <button
                   onClick={() => {
+                    addDebugInfo('⭐ Нажата кнопка "Купить Stars"');
                     setShowStarsModal(true);
                     setError(null);
                     setSuccess(null);
@@ -414,7 +571,7 @@ const WalletPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Модалка вывода TON (оставляем пока встроенную) */}
+      {/* Модалка вывода TON */}
       {showWithdrawModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -471,10 +628,11 @@ const WalletPage: React.FC = () => {
         </div>
       )}
 
-      {/* 🔥 РЕФАКТОРЕННЫЕ МОДАЛКИ */}
+      {/* Рефакторенные модалки */}
       <StarsModal
         isOpen={showStarsModal}
         onClose={() => {
+          addDebugInfo('❌ Stars модалка закрыта');
           setShowStarsModal(false);
           setStarsAmount('');
           setError(null);
@@ -488,6 +646,7 @@ const WalletPage: React.FC = () => {
       <TONDepositModal
         isOpen={showDepositModal}
         onClose={() => {
+          addDebugInfo('❌ TON модалка закрыта');
           setShowDepositModal(false);
           setDepositAmount('');
           setError(null);

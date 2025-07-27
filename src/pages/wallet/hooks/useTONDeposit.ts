@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts
+// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
@@ -40,11 +40,10 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
     try {
       console.log('💰 Начинаем пополнение TON:', amount);
       
-      // Получаем адрес игрового кошелька
-      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS;
-      if (!gameWalletAddress) {
-        throw new Error('REACT_APP_GAME_WALLET_ADDRESS не настроен в переменных окружения');
-      }
+      // 🔥 ИСПРАВЛЕНО: Хардкод адреса + fallback
+      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
+      
+      console.log('🏪 Game wallet address:', gameWalletAddress);
 
       // Проверяем формат адреса
       if (!gameWalletAddress.startsWith('UQ') && !gameWalletAddress.startsWith('EQ')) {
@@ -72,6 +71,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       };
 
       console.log('🔗 Отправляем транзакцию через TON Connect...');
+      console.log('📋 Transaction:', JSON.stringify(transaction, null, 2));
       
       // Отправляем транзакцию
       const result = await tonConnectUI.sendTransaction(transaction);
@@ -100,8 +100,9 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       } else if (err.message?.includes('Network') || 
                  err.message?.includes('timeout')) {
         errorMessage = 'Ошибка сети. Попробуйте еще раз';
-      } else if (err.message?.includes('REACT_APP_GAME_WALLET_ADDRESS')) {
-        errorMessage = 'Ошибка конфигурации игрового кошелька';
+      } else if (err.message?.includes('Invalid') || 
+                 err.message?.includes('address')) {
+        errorMessage = 'Неверный адрес кошелька';
       } else if (err.message) {
         errorMessage = err.message;
       }
