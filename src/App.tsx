@@ -10,7 +10,7 @@ import AttackPage from './pages/AttackPage';
 import ExchangePage from './pages/ExchangePage';
 import QuestsPage from './pages/QuestsPage';
 import GamesPage from './pages/GamesPage';
-import WalletPage from './pages/WalletPage';
+import WalletPage from './pages/wallet/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
 
