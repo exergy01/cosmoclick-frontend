@@ -6,9 +6,7 @@ import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 interface GameStats {
   totalGames: number;

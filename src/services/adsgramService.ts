@@ -30,81 +30,46 @@ interface AdProvider {
   getProviderInfo(): any;
 }
 
-// Функция автоопределения языка
-function detectLanguage(): string {
-  // Поддерживаемые языки
+// Функция определения текущего языка из i18next
+function getCurrentLanguageFromI18n(): string {
   const supportedLangs = ['ru', 'en', 'es', 'fr', 'de', 'zh', 'ja'];
   
-  // Пытаемся получить язык из разных источников по приоритету
-  const sources = [
-    // 1. URL параметр
-    () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('lang');
-    },
+  try {
+    // Пытаемся получить язык из i18next разными способами
+    const i18next = (window as any).i18next;
     
-    // 2. i18next глобальный объект
-    () => {
-      try {
-        const i18next = (window as any).i18next;
-        return i18next?.language || i18next?.lng;
-      } catch (e) {
-        return null;
-      }
-    },
-    
-    // 3. localStorage i18next
-    () => {
-      try {
-        return localStorage.getItem('i18nextLng');
-      } catch (e) {
-        return null;
-      }
-    },
-    
-    // 4. localStorage общий
-    () => {
-      try {
-        return localStorage.getItem('language') || localStorage.getItem('lang');
-      } catch (e) {
-        return null;
-      }
-    },
-    
-    // 5. HTML lang атрибут
-    () => {
-      try {
-        return document.documentElement.lang;
-      } catch (e) {
-        return null;
-      }
-    },
-    
-    // 6. Navigator language
-    () => {
-      try {
-        return navigator.language?.split('-')[0];
-      } catch (e) {
-        return null;
-      }
-    }
-  ];
-  
-  // Проверяем источники по порядку
-  for (const getSource of sources) {
-    try {
-      const lang = getSource();
+    if (i18next) {
+      // Проверяем разные свойства i18next
+      const lang = i18next.language || i18next.lng || i18next.resolvedLanguage;
       if (lang && supportedLangs.includes(lang)) {
-        console.log('🌍 Language detected from source:', lang);
+        console.log('🌍 Language from i18next:', lang);
         return lang;
       }
-    } catch (e) {
-      // Игнорируем ошибки отдельных источников
     }
+    
+    // Пробуем получить из localStorage i18next
+    const storedLang = localStorage.getItem('i18nextLng');
+    if (storedLang && supportedLangs.includes(storedLang)) {
+      console.log('🌍 Language from localStorage i18next:', storedLang);
+      return storedLang;
+    }
+    
+    // Пробуем найти React i18next в DOM
+    const reactI18next = document.querySelector('[data-i18next-lng]');
+    if (reactI18next) {
+      const lang = reactI18next.getAttribute('data-i18next-lng');
+      if (lang && supportedLangs.includes(lang)) {
+        console.log('🌍 Language from React i18next DOM:', lang);
+        return lang;
+      }
+    }
+    
+  } catch (e) {
+    console.log('🌍 Error getting language from i18next:', e);
   }
   
   console.log('🌍 Language fallback to: ru');
-  return 'ru'; // Fallback
+  return 'ru';
 }
 
 // 1. ADSGRAM ПРОВАЙДЕР
@@ -479,9 +444,9 @@ class CustomBlockProvider implements AdProvider {
         return;
       }
 
-      // Автоопределение языка
-      const currentLanguage = detectLanguage();
-      console.log('🌍 Detected language:', currentLanguage);
+      // Получаем текущий язык из i18next автоматически
+      const currentLanguage = getCurrentLanguageFromI18n();
+      console.log('🌍 Using language for ads:', currentLanguage);
 
       const modal = document.createElement('div');
       modal.style.cssText = `
@@ -830,7 +795,7 @@ class CustomBlockProvider implements AdProvider {
       name: 'custom_block',
       available: this.isAvailable(),
       adsCount: this.ads.length,
-      language: detectLanguage(),
+      language: getCurrentLanguageFromI18n(),
       debug: 'Internal ad carousel with auto language detection'
     };
   }
@@ -905,7 +870,7 @@ class AdService {
   async initialize(blockId?: string): Promise<void> {
     await this.priorityManager.initialize(blockId);
     console.log('🎯 AdService initialized with priority system');
-    console.log('🌍 Auto-detected language:', detectLanguage());
+    console.log('🌍 Current language from i18next:', getCurrentLanguageFromI18n());
   }
 
   async showRewardedAd(): Promise<AdsgramResult> {
@@ -941,9 +906,9 @@ class AdService {
     return this.priorityManager.getProvidersStatus();
   }
 
-  // Метод для получения текущего языка
+  // Метод для получения текущего языка из i18next
   getCurrentLanguage() {
-    return detectLanguage();
+    return getCurrentLanguageFromI18n();
   }
 }
 

@@ -9,6 +9,9 @@ import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 import StakingView from '../components/StakingView';
 
+// Импортируем рекламный сервис
+import { adService } from '../services/adsgramService';
+
 // Импортируем новый чистый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
 
@@ -39,12 +42,10 @@ interface ShopButton {
   amount?: string;
 }
 
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const MainPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { player, refreshPlayer } = useNewPlayer();
   const {
     currentSystem,
@@ -66,6 +67,16 @@ const MainPage: React.FC = () => {
   const location = useLocation();
   const [showSystemDropdown, setShowSystemDropdown] = useState(false);
   const [isCollecting, setIsCollecting] = useState(false);
+  const [isWatchingAd, setIsWatchingAd] = useState(false);
+
+  // Проверяем нужна ли реклама для сбора
+  const needsAdForCollection = useCallback(() => {
+    // Системы 1-4 требуют рекламу, если игрок не верифицирован
+    if (currentSystem >= 1 && currentSystem <= 4) {
+      return !player?.verified; // Если не верифицирован - нужна реклама
+    }
+    return false; // Система 5 (TON) - реклама не нужна
+  }, [currentSystem, player?.verified]);
 
   const handleCreateNewStake = () => {
     if (currentSystem === 5) {
@@ -75,11 +86,63 @@ const MainPage: React.FC = () => {
   };
 
   const handleSafeClick = async () => {
-    if (!player?.telegram_id || isCollecting) {
-      console.log('🚫 Сбор заблокирован:', { hasPlayer: !!player?.telegram_id, isCollecting });
+    if (!player?.telegram_id || isCollecting || isWatchingAd) {
+      console.log('🚫 Сбор заблокирован:', { 
+        hasPlayer: !!player?.telegram_id, 
+        isCollecting, 
+        isWatchingAd 
+      });
       return;
     }
+
+    const currentValue = getCurrentValue(currentSystem);
     
+    if (currentValue <= 0) {
+      alert(t('no_resources_to_collect'));
+      return;
+    }
+
+    // Проверяем нужна ли реклама
+    if (needsAdForCollection()) {
+      console.log('🎯 Требуется просмотр рекламы для сбора в системе', currentSystem);
+      await handleAdBeforeCollection();
+    } else {
+      console.log('🎯 Сбор без рекламы - игрок верифицирован или система TON');
+      await performCollection();
+    }
+  };
+
+  const handleAdBeforeCollection = async () => {
+    setIsWatchingAd(true);
+    
+    try {
+      console.log('⚡ Показываем рекламу перед сбором...');
+      
+      // Инициализируем рекламный сервис если нужно
+      if (!adService.isAvailable()) {
+        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
+        await adService.initialize(ADSGRAM_BLOCK_ID);
+      }
+      
+      const adResult = await adService.showRewardedAd();
+      console.log('⚡ Результат рекламы:', adResult);
+      
+      if (adResult.success) {
+        console.log('✅ Реклама просмотрена успешно, выполняем сбор');
+        await performCollection();
+      } else {
+        console.log('❌ Реклама не была просмотрена:', adResult.error);
+        alert('Для сбора ресурсов необходимо просмотреть рекламу до конца');
+      }
+    } catch (err) {
+      console.error('❌ Ошибка показа рекламы:', err);
+      alert('Ошибка при показе рекламы. Попробуйте еще раз.');
+    } finally {
+      setIsWatchingAd(false);
+    }
+  };
+
+  const performCollection = async () => {
     setIsCollecting(true);
     
     try {
@@ -87,7 +150,6 @@ const MainPage: React.FC = () => {
       
       if (currentValue <= 0) {
         alert(t('no_resources_to_collect'));
-        setIsCollecting(false); // Разблокируем кнопку если собирать нечего
         return;
       }
       
@@ -113,8 +175,10 @@ const MainPage: React.FC = () => {
 
       if (result) {
         resetCleanCounter(currentSystem);
+        console.log(`✅ Сбор выполнен успешно: ${currentValue.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`);
       }
     } catch (err) {
+      console.error('❌ Ошибка при сборе:', err);
       alert(t('collection_error', { error: err }));
     } finally {
       setIsCollecting(false);
@@ -330,8 +394,8 @@ const MainPage: React.FC = () => {
                   position: 'relative',
                   width: '150px',
                   height: '150px',
-                  cursor: isCollecting ? 'wait' : 'pointer',
-                  opacity: isCollecting ? 0.7 : 1
+                  cursor: (isCollecting || isWatchingAd) ? 'wait' : 'pointer',
+                  opacity: (isCollecting || isWatchingAd) ? 0.7 : 1
                 }}
                 onClick={handleSafeClick}
               >
@@ -344,12 +408,12 @@ const MainPage: React.FC = () => {
                     objectFit: 'contain',
                     filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`,
                     transition: 'transform 0.3s ease',
-                    transform: isCollecting ? 'scale(0.95)' : 'scale(1)'
+                    transform: (isCollecting || isWatchingAd) ? 'scale(0.95)' : 'scale(1)'
                   }}
-                  onMouseEnter={e => !isCollecting && (e.currentTarget.style.transform = 'scale(1.1)')}
-                  onMouseLeave={e => !isCollecting && (e.currentTarget.style.transform = 'scale(1)')}
+                  onMouseEnter={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1.1)')}
+                  onMouseLeave={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1)')}
                 />
-                {isCollecting && (
+                {(isCollecting || isWatchingAd) && (
                   <div style={{
                     position: 'absolute',
                     top: '50%',
@@ -359,7 +423,7 @@ const MainPage: React.FC = () => {
                     fontSize: '2rem',
                     animation: 'spin 1s linear infinite'
                   }}>
-                    ⏳
+                    {isWatchingAd ? '📺' : '⏳'}
                   </div>
                 )}
               </div>

@@ -24,10 +24,8 @@ export const playerApi = {
   // 🔥 ИСПРАВЛЕНО: Регистрация нового игрока через правильный endpoint
   // Создание нового игрока
   registerNewPlayer: async (telegramId: string, referralData?: any) => {
-    const API_URL = process.env.NODE_ENV === 'production'
-      ? 'https://cosmoclick-backend.onrender.com'
-      : 'http://localhost:5000';
-      
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+          
     return await axios.post(`${API_URL}/api/player/create`, {
       telegramId,
       referralData

@@ -18,9 +18,7 @@ import { TONDepositModal } from './components/TONDepositModal';
 import { useStarsPayment } from './hooks/useStarsPayment';
 import { useTONDeposit } from './hooks/useTONDeposit';
 
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const WalletPage: React.FC = () => {
   const { player, currentSystem, setPlayer, refreshPlayer } = usePlayer();
