@@ -1,4 +1,4 @@
-// services/adsgramService.ts
+// services/adsgramService.ts - ENHANCED VERSION
 
 interface AdsgramController {
   show(): Promise<void>;
@@ -21,8 +21,93 @@ interface AdsgramResult {
   timestamp: number;
 }
 
-// ЗАКОММЕНТИРОВАННЫЙ Adsgram сервис (для будущего)
-/*
+// Интерфейс для всех провайдеров
+interface AdProvider {
+  name: string;
+  initialize(): Promise<boolean>;
+  showRewardedAd(): Promise<AdsgramResult>;
+  isAvailable(): boolean;
+  getProviderInfo(): any;
+}
+
+// Функция автоопределения языка
+function detectLanguage(): string {
+  // Поддерживаемые языки
+  const supportedLangs = ['ru', 'en', 'es', 'fr', 'de', 'zh', 'ja'];
+  
+  // Пытаемся получить язык из разных источников по приоритету
+  const sources = [
+    // 1. URL параметр
+    () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('lang');
+    },
+    
+    // 2. i18next глобальный объект
+    () => {
+      try {
+        const i18next = (window as any).i18next;
+        return i18next?.language || i18next?.lng;
+      } catch (e) {
+        return null;
+      }
+    },
+    
+    // 3. localStorage i18next
+    () => {
+      try {
+        return localStorage.getItem('i18nextLng');
+      } catch (e) {
+        return null;
+      }
+    },
+    
+    // 4. localStorage общий
+    () => {
+      try {
+        return localStorage.getItem('language') || localStorage.getItem('lang');
+      } catch (e) {
+        return null;
+      }
+    },
+    
+    // 5. HTML lang атрибут
+    () => {
+      try {
+        return document.documentElement.lang;
+      } catch (e) {
+        return null;
+      }
+    },
+    
+    // 6. Navigator language
+    () => {
+      try {
+        return navigator.language?.split('-')[0];
+      } catch (e) {
+        return null;
+      }
+    }
+  ];
+  
+  // Проверяем источники по порядку
+  for (const getSource of sources) {
+    try {
+      const lang = getSource();
+      if (lang && supportedLangs.includes(lang)) {
+        console.log('🌍 Language detected from source:', lang);
+        return lang;
+      }
+    } catch (e) {
+      // Игнорируем ошибки отдельных источников
+    }
+  }
+  
+  console.log('🌍 Language fallback to: ru');
+  return 'ru'; // Fallback
+}
+
+// 1. ADSGRAM ПРОВАЙДЕР
 declare global {
   interface Window {
     Adsgram?: {
@@ -31,52 +116,372 @@ declare global {
   }
 }
 
-class AdsgramService {
+class AdsgramProvider implements AdProvider {
+  name = 'adsgram';
   private blockId: string;
   private controller: AdsgramController | null = null;
   private isInitialized = false;
-  private isLoading = false;
 
   constructor(blockId: string) {
     this.blockId = String(blockId).replace(/^bot-/, '').trim();
   }
 
   async initialize(): Promise<boolean> {
-    // ... весь код Adsgram закомментирован
+    if (this.isInitialized) return this.isAvailable();
+
+    try {
+      // Попытка загрузить Adsgram SDK
+      if (!window.Adsgram) {
+        const script = document.createElement('script');
+        script.src = 'https://sad.adsgram.ai/js/sad.min.js';
+        script.async = true;
+        
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        
+        // Ждем инициализацию
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      if (window.Adsgram && this.blockId) {
+        this.controller = window.Adsgram.init({
+          blockId: this.blockId,
+          debug: false
+        });
+        this.isInitialized = true;
+        console.log('✅ Adsgram initialized successfully');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.log('❌ Adsgram initialization failed:', error);
+      return false;
+    }
+  }
+
+  async showRewardedAd(): Promise<AdsgramResult> {
+    if (!this.controller) {
+      return {
+        success: false,
+        provider: 'adsgram',
+        error: 'Adsgram not initialized',
+        timestamp: Date.now()
+      };
+    }
+
+    try {
+      await this.controller.show();
+      return {
+        success: true,
+        provider: 'adsgram',
+        reward: 'extra_game',
+        debug: 'Adsgram ad completed',
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        provider: 'adsgram',
+        error: 'Adsgram ad failed',
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  isAvailable(): boolean {
+    return this.isInitialized && this.controller !== null;
+  }
+
+  getProviderInfo() {
+    return {
+      name: 'adsgram',
+      available: this.isAvailable(),
+      debug: 'Official Telegram ad network'
+    };
+  }
+}
+
+// 2. YANDEX ПРОВАЙДЕР (заглушка)
+class YandexProvider implements AdProvider {
+  name = 'yandex';
+
+  async initialize(): Promise<boolean> {
+    console.log('📍 Yandex provider - заглушка готова к подключению');
+    return false; // Пока не реализован
+  }
+
+  async showRewardedAd(): Promise<AdsgramResult> {
+    return {
+      success: false,
+      provider: 'yandex',
+      error: 'Yandex provider not implemented yet',
+      timestamp: Date.now()
+    };
+  }
+
+  isAvailable(): boolean {
+    return false; // Заглушка
+  }
+
+  getProviderInfo() {
+    return { name: 'yandex', available: false, status: 'stub' };
+  }
+}
+
+// 3. TELEGA.IN ПРОВАЙДЕР (заглушка)
+class TelegaProvider implements AdProvider {
+  name = 'telega';
+
+  async initialize(): Promise<boolean> {
+    console.log('📍 Telega.in provider - заглушка готова к подключению');
     return false;
   }
 
-  // ... остальные методы закомментированы
-}
-*/
+  async showRewardedAd(): Promise<AdsgramResult> {
+    return {
+      success: false,
+      provider: 'telega',
+      error: 'Telega provider not implemented yet',
+      timestamp: Date.now()
+    };
+  }
 
-// RoboForex рекламный провайдер
-class RoboForexAdProvider {
-  private name = 'roboforex';
+  isAvailable(): boolean {
+    return false;
+  }
+
+  getProviderInfo() {
+    return { name: 'telega', available: false, status: 'stub' };
+  }
+}
+
+// 4. BITMEDIA ПРОВАЙДЕР (заглушка)
+class BitmediaProvider implements AdProvider {
+  name = 'bitmedia';
 
   async initialize(): Promise<boolean> {
-    console.log('🎯✅ RoboForex Ad Provider initialized');
+    console.log('📍 Bitmedia provider - заглушка готова к подключению');
+    return false;
+  }
+
+  async showRewardedAd(): Promise<AdsgramResult> {
+    return {
+      success: false,
+      provider: 'bitmedia',
+      error: 'Bitmedia provider not implemented yet',
+      timestamp: Date.now()
+    };
+  }
+
+  isAvailable(): boolean {
+    return false;
+  }
+
+  getProviderInfo() {
+    return { name: 'bitmedia', available: false, status: 'stub' };
+  }
+}
+
+// 5. PROPELLERADS ПРОВАЙДЕР (заглушка)
+class PropellerAdsProvider implements AdProvider {
+  name = 'propellerads';
+
+  async initialize(): Promise<boolean> {
+    console.log('📍 PropellerAds provider - заглушка готова к подключению');
+    return false;
+  }
+
+  async showRewardedAd(): Promise<AdsgramResult> {
+    return {
+      success: false,
+      provider: 'propellerads',
+      error: 'PropellerAds provider not implemented yet',
+      timestamp: Date.now()
+    };
+  }
+
+  isAvailable(): boolean {
+    return false;
+  }
+
+  getProviderInfo() {
+    return { name: 'propellerads', available: false, status: 'stub' };
+  }
+}
+
+// 6. TELEGRAM ADS API ПРОВАЙДЕР (заглушка)
+class TelegramAdsProvider implements AdProvider {
+  name = 'telegram_ads';
+
+  async initialize(): Promise<boolean> {
+    console.log('📍 Telegram Ads API provider - заглушка готова к подключению');
+    return false;
+  }
+
+  async showRewardedAd(): Promise<AdsgramResult> {
+    return {
+      success: false,
+      provider: 'telegram_ads',
+      error: 'Telegram Ads API provider not implemented yet',
+      timestamp: Date.now()
+    };
+  }
+
+  isAvailable(): boolean {
+    return false;
+  }
+
+  getProviderInfo() {
+    return { name: 'telegram_ads', available: false, status: 'stub' };
+  }
+}
+
+// 7. CUSTOM BLOCK ПРОВАЙДЕР (наша реклама)
+interface CustomAd {
+  name: string;
+  title: { [key: string]: string };
+  description: { [key: string]: string };
+  buttonText: { [key: string]: string };
+  targetUrl: string;
+  imageUrl: string;
+  duration: number; // в секундах
+  isHorizontal?: boolean; // для особых эффектов
+}
+
+class CustomBlockProvider implements AdProvider {
+  name = 'custom_block';
+  private ads: CustomAd[] = [
+    {
+      name: 'roboforex',
+      title: {
+        ru: 'RoboForex - Твой путь к успеху!',
+        en: 'RoboForex - Your Path to Success!',
+        es: 'RoboForex - ¡Tu Camino al Éxito!',
+        fr: 'RoboForex - Votre Chemin vers le Succès!',
+        de: 'RoboForex - Ihr Weg zum Erfolg!',
+        zh: 'RoboForex - 您成功之路！',
+        ja: 'RoboForex - 成功への道！'
+      },
+      description: {
+        ru: 'Торгуй на Форекс, акциями, криптой и сырьем. Бонусы до $120! Лицензированный брокер.',
+        en: 'Trade Forex, stocks, crypto and commodities. Bonuses up to $120! Licensed broker.',
+        es: 'Opera en Forex, acciones, cripto y materias primas. ¡Bonos hasta $120! Bróker con licencia.',
+        fr: 'Tradez le Forex, les actions, la crypto et les matières premières. Bonus jusqu\'à 120$! Courtier agréé.',
+        de: 'Handeln Sie Forex, Aktien, Krypto und Rohstoffe. Boni bis zu 120$! Lizenzierter Broker.',
+        zh: '交易外汇、股票、加密货币和大宗商品。高达120美元奖金！持牌经纪商。',
+        ja: 'フォレックス、株式、暗号通貨、商品を取引。最大120ドルのボーナス！ライセンス取得ブローカー。'
+      },
+      buttonText: {
+        ru: 'Открыть счет',
+        en: 'Open Account',
+        es: 'Abrir Cuenta',
+        fr: 'Ouvrir un Compte',
+        de: 'Konto Eröffnen',
+        zh: '开设账户',
+        ja: 'アカウント開設'
+      },
+      targetUrl: 'https://my.roboforex.com/en/?a=hgtd',
+      imageUrl: '/assets/ads/robo.png',
+      duration: 8
+    },
+    {
+      name: 'bybit',
+      title: {
+        ru: 'Bybit - Криптотрейдинг №1',
+        en: 'Bybit - #1 Crypto Trading',
+        es: 'Bybit - Trading de Cripto #1',
+        fr: 'Bybit - Trading Crypto #1',
+        de: 'Bybit - #1 Krypto-Trading',
+        zh: 'Bybit - 第一加密货币交易',
+        ja: 'Bybit - ナンバー1暗号通貨取引'
+      },
+      description: {
+        ru: 'Торгуй криптовалютами с плечом до 100x. Бонусы новичкам до $1000!',
+        en: 'Trade cryptocurrencies with up to 100x leverage. Newbie bonuses up to $1000!',
+        es: 'Opera criptomonedas con apalancamiento hasta 100x. ¡Bonos para principiantes hasta $1000!',
+        fr: 'Tradez les cryptomonnaies avec un effet de levier jusqu\'à 100x. Bonus débutants jusqu\'à 1000$!',
+        de: 'Handeln Sie Kryptowährungen mit bis zu 100x Hebel. Neuling-Boni bis zu 1000$!',
+        zh: '使用高达100倍杠杆交易加密货币。新手奖金高达1000美元！',
+        ja: '最大100倍のレバレッジで暗号通貨を取引。新規ボーナス最大1000ドル！'
+      },
+      buttonText: {
+        ru: 'Начать торговлю',
+        en: 'Start Trading',
+        es: 'Comenzar Trading',
+        fr: 'Commencer le Trading',
+        de: 'Trading Beginnen',
+        zh: '开始交易',
+        ja: '取引開始'
+      },
+      targetUrl: 'https://t.me/Bybitglobal_Official_Bot/referral?startapp=3ABPWRK',
+      imageUrl: '/assets/ads/bybit.png',
+      duration: 8
+    },
+    {
+      name: 'alfabank',
+      title: {
+        ru: 'Альфа-Банк - Лучший банк!',
+        en: 'Alfa-Bank - Best Bank!',
+        es: 'Alfa-Bank - ¡El Mejor Banco!',
+        fr: 'Alfa-Bank - Meilleure Banque!',
+        de: 'Alfa-Bank - Beste Bank!',
+        zh: 'Alfa银行 - 最佳银行！',
+        ja: 'アルファ銀行 - ベストバンク！'
+      },
+      description: {
+        ru: 'Откройте карту Альфа-Банка и получите кэшбэк до 33% и бесплатное обслуживание!',
+        en: 'Open an Alfa-Bank card and get up to 33% cashback and free service!',
+        es: '¡Abra una tarjeta Alfa-Bank y obtenga hasta 33% de cashback y servicio gratuito!',
+        fr: 'Ouvrez une carte Alfa-Bank et obtenez jusqu\'à 33% de cashback et un service gratuit!',
+        de: 'Eröffnen Sie eine Alfa-Bank-Karte und erhalten Sie bis zu 33% Cashback und kostenlosen Service!',
+        zh: '开设Alfa银行卡，获得高达33%的现金返还和免费服务！',
+        ja: 'アルファ銀行カードを開設し、最大33%のキャッシュバックと無料サービスを受けましょう！'
+      },
+      buttonText: {
+        ru: 'Оформить карту',
+        en: 'Apply for Card',
+        es: 'Solicitar Tarjeta',
+        fr: 'Demander une Carte',
+        de: 'Karte Beantragen',
+        zh: '申请卡片',
+        ja: 'カード申込'
+      },
+      targetUrl: 'https://alfa.me/7zCY9A',
+      imageUrl: '/assets/ads/alfa.png',
+      duration: 8,
+      isHorizontal: true // Помечаем как горизонтальную для эффекта
+    }
+  ];
+
+  async initialize(): Promise<boolean> {
+    console.log('✅ Custom Block Provider initialized with', this.ads.length, 'ads');
     return true;
   }
 
   async showRewardedAd(): Promise<AdsgramResult> {
-    console.log('🎯 Showing RoboForex ad');
-    
+    console.log('🎯 Showing Custom Block carousel');
+
     return new Promise(resolve => {
-      // Проверяем ориентацию экрана
       const isPortrait = window.innerHeight > window.innerWidth;
       
       if (!isPortrait) {
-        // В горизонтальной ориентации не показываем рекламу
         resolve({
           success: false,
-          provider: 'roboforex',
+          provider: 'custom_block',
           error: 'Please rotate your screen to portrait mode to view ads',
           debug: 'Landscape orientation detected',
           timestamp: Date.now()
         });
         return;
       }
+
+      // Автоопределение языка
+      const currentLanguage = detectLanguage();
+      console.log('🌍 Detected language:', currentLanguage);
 
       const modal = document.createElement('div');
       modal.style.cssText = `
@@ -87,124 +492,266 @@ class RoboForexAdProvider {
         text-align: center; backdrop-filter: blur(10px);
         padding: 20px; box-sizing: border-box;
       `;
-      
-      let countdown = 10; // 10 секунд
-      const adImagePath = '/assets/ads/5451981655788092083.jpg';
-      const partnerLink = 'https://my.roboforex.com/en/?a=hgtd';
-      
-      modal.innerHTML = `
-        <div style="
-          background: linear-gradient(135deg, #1a1a2e, #16213e); 
-          padding: 30px; 
-          border-radius: 25px; 
-          border: 3px solid #00f0ff;
-          box-shadow: 0 0 30px rgba(0,240,255,0.5);
-          max-width: 400px;
-          width: 100%;
-          animation: slideIn 0.3s ease-out;
-          position: relative;
-        ">
-          <!-- Кнопка закрытия (появится через 3 секунды) -->
-          <button id="closeBtn" style="
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            font-size: 20px;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: none;
-          ">×</button>
-          
-          <!-- Заголовок -->
-          <div style="margin-bottom: 20px;">
-            <h2 style="color: #00f0ff; margin-bottom: 10px; font-size: 1.5rem;">
-              📈 Partner Advertisement
-            </h2>
-            <p style="color: #ccc; font-size: 0.9rem; margin: 0;">
-              Earn with RoboForex
-            </p>
-          </div>
-          
-          <!-- Рекламное изображение -->
-          <div style="margin-bottom: 20px;">
-            <img 
-              src="${adImagePath}" 
-              alt="RoboForex" 
-              style="
-                width: 100%; 
-                height: auto; 
-                border-radius: 15px;
-                cursor: pointer;
-                transition: transform 0.3s ease;
-              "
-              onclick="window.open('${partnerLink}', '_blank')"
-              onmouseover="this.style.transform='scale(1.05)'"
-              onmouseout="this.style.transform='scale(1)'"
-            />
-          </div>
-          
-          <!-- Счетчик времени -->
-          <div style="
-            background: rgba(0,0,0,0.3); 
-            padding: 15px; 
-            border-radius: 15px; 
-            border: 1px solid #00f0ff50;
-            margin-bottom: 20px;
-          ">
-            <div id="robo-countdown" style="
-              font-size: 2rem; 
-              color: #00f0ff; 
-              font-weight: bold;
-              text-shadow: 0 0 10px #00f0ff;
-            ">${countdown}</div>
-            <div style="color: #888; font-size: 0.9rem; margin-top: 5px;">
-              seconds to get reward
-            </div>
-          </div>
-          
-          <!-- Прогресс бар -->
-          <div style="
-            width: 100%; 
-            height: 6px; 
-            background: rgba(255,255,255,0.1); 
-            border-radius: 3px; 
-            overflow: hidden;
-            margin-bottom: 15px;
-          ">
-            <div id="robo-progress" style="
-              height: 100%; 
-              background: linear-gradient(90deg, #00f0ff, #0080ff); 
-              width: 0%; 
-              transition: width 1s linear;
-              box-shadow: 0 0 10px #00f0ff;
-            "></div>
-          </div>
-          
-          <!-- Кнопка перехода -->
-          <button onclick="window.open('${partnerLink}', '_blank')" style="
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
-          " onmouseover="this.style.transform='scale(1.05)'" 
-             onmouseout="this.style.transform='scale(1)'">
-            🚀 Open RoboForex
-          </button>
-        </div>
+
+      const container = document.createElement('div');
+      container.style.cssText = `
+        background: linear-gradient(135deg, #1a1a2e, #16213e); 
+        padding: 30px; 
+        border-radius: 25px; 
+        border: 3px solid #00f0ff;
+        box-shadow: 0 0 30px rgba(0,240,255,0.5);
+        max-width: 400px;
+        width: 100%;
+        animation: slideIn 0.3s ease-out;
+        position: relative;
       `;
-      
+
+      let currentAdIndex = 0;
+      let adTimer: NodeJS.Timeout;
+      let mainTimer: NodeJS.Timeout;
+      const totalDuration = this.ads.reduce((sum, ad) => sum + ad.duration, 0) * 1000;
+      const startTime = Date.now();
+
+      // Контейнер для рекламы
+      const adContent = document.createElement('div');
+      adContent.style.cssText = `
+        transition: all 0.5s ease;
+        min-height: 350px;
+      `;
+
+      // Прогресс бар
+      const progressContainer = document.createElement('div');
+      progressContainer.style.cssText = `
+        width: 100%; 
+        height: 6px; 
+        background: rgba(255,255,255,0.1); 
+        border-radius: 3px; 
+        overflow: hidden;
+        margin-bottom: 15px;
+      `;
+
+      const progressBar = document.createElement('div');
+      progressBar.style.cssText = `
+        height: 100%; 
+        background: linear-gradient(90deg, #00f0ff, #0080ff); 
+        width: 0%; 
+        transition: width 0.1s linear;
+        box-shadow: 0 0 10px #00f0ff;
+      `;
+      progressContainer.appendChild(progressBar);
+
+      // Функция обновления рекламы
+      const updateAd = () => {
+        const ad = this.ads[currentAdIndex];
+        const title = ad.title[currentLanguage] || ad.title['ru'];
+        const description = ad.description[currentLanguage] || ad.description['ru'];
+        const buttonText = ad.buttonText[currentLanguage] || ad.buttonText['ru'];
+        
+        // Особая логика для Альфа-банка (горизонтальная картинка)
+        if (ad.isHorizontal) {
+          adContent.innerHTML = `
+            <!-- Заголовок -->
+            <div style="margin-bottom: 20px;">
+              <h2 style="color: #00f0ff; margin-bottom: 10px; font-size: 1.5rem;">
+                📈 ${title}
+              </h2>
+              <p style="color: #ccc; font-size: 0.9rem; margin: 0;">
+                ${description}
+              </p>
+            </div>
+            
+            <!-- Горизонтальное рекламное изображение с эффектом движения -->
+            <div style="
+              margin-bottom: 20px; 
+              overflow: hidden; 
+              border-radius: 15px; 
+              height: 360px; 
+              position: relative;
+              cursor: pointer;
+            " onclick="window.open('${ad.targetUrl}', '_blank')">
+              <img 
+                id="alfa-image-${currentAdIndex}"
+                src="${ad.imageUrl}" 
+                alt="${ad.name}" 
+                style="
+                  height: 360px; 
+                  width: auto; 
+                  position: absolute;
+                  right: -50%;
+                  transition: none;
+                  cursor: pointer;
+                "
+              />
+            </div>
+            
+            <!-- Кнопка перехода -->
+            <button onclick="window.open('${ad.targetUrl}', '_blank')" style="
+              width: 100%;
+              padding: 12px;
+              background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+              border: none;
+              border-radius: 10px;
+              color: white;
+              font-size: 1rem;
+              font-weight: bold;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+            " onmouseover="this.style.transform='scale(1.05)'" 
+               onmouseout="this.style.transform='scale(1)'">
+              🚀 ${buttonText}
+            </button>
+          `;
+          
+          // Анимация для Альфы: 1сек стоим → 6сек движение → 1сек стоим на краю
+          setTimeout(() => {
+            const img = document.getElementById(`alfa-image-${currentAdIndex}`);
+            if (img) {
+              // Через 1 секунду начинаем движение (6 секунд до края)
+              img.style.transition = 'right 6s linear';
+              img.style.right = '0%'; // Останавливаемся на краю, не уходим за границу
+            }
+          }, 1000);
+        } else {
+          // Обычная реклама (RoboForex, Bybit) с движением
+          const imageHeight = ad.name === 'roboforex' ? '95vh' : 'auto';
+          const imageMaxHeight = ad.name === 'roboforex' ? '500px' : 'none';
+          
+          // Проверяем если это Bybit - тоже делаем горизонтальное движение
+          if (ad.name === 'bybit') {
+            adContent.innerHTML = `
+              <!-- Заголовок -->
+              <div style="margin-bottom: 20px;">
+                <h2 style="color: #00f0ff; margin-bottom: 10px; font-size: 1.5rem;">
+                  📈 ${title}
+                </h2>
+                <p style="color: #ccc; font-size: 0.9rem; margin: 0;">
+                  ${description}
+                </p>
+              </div>
+              
+              <!-- Bybit горизонтальное рекламное изображение с эффектом движения -->
+              <div style="
+                margin-bottom: 20px; 
+                overflow: hidden; 
+                border-radius: 15px; 
+                height: 360px; 
+                position: relative;
+                cursor: pointer;
+              " onclick="window.open('${ad.targetUrl}', '_blank')">
+                <img 
+                  id="bybit-image-${currentAdIndex}"
+                  src="${ad.imageUrl}" 
+                  alt="${ad.name}" 
+                  style="
+                    height: 360px; 
+                    width: auto; 
+                    position: absolute;
+                    right: -50%;
+                    transition: none;
+                    cursor: pointer;
+                  "
+                />
+              </div>
+              
+              <!-- Кнопка перехода -->
+              <button onclick="window.open('${ad.targetUrl}', '_blank')" style="
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+                border: none;
+                border-radius: 10px;
+                color: white;
+                font-size: 1rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+              " onmouseover="this.style.transform='scale(1.05)'" 
+                 onmouseout="this.style.transform='scale(1)'">
+                🚀 ${buttonText}
+              </button>
+            `;
+            
+            // Анимация для Bybit: 1сек стоим → 6сек движение справа налево → 1сек стоим на краю
+            setTimeout(() => {
+              const img = document.getElementById(`bybit-image-${currentAdIndex}`);
+              if (img) {
+                // Через 1 секунду начинаем движение (6 секунд до края)
+                img.style.transition = 'right 6s linear';
+                img.style.right = '0%'; // Останавливаемся на краю
+              }
+            }, 1000);
+          } else {
+            // RoboForex - статичное изображение
+            adContent.innerHTML = `
+              <!-- Заголовок -->
+              <div style="margin-bottom: 20px;">
+                <h2 style="color: #00f0ff; margin-bottom: 10px; font-size: 1.5rem;">
+                  📈 ${title}
+                </h2>
+                <p style="color: #ccc; font-size: 0.9rem; margin: 0;">
+                  ${description}
+                </p>
+              </div>
+              
+              <!-- Рекламное изображение -->
+              <div style="margin-bottom: 20px;">
+                <img 
+                  src="${ad.imageUrl}" 
+                  alt="${ad.name}" 
+                  style="
+                    width: 100%; 
+                    height: ${imageHeight};
+                    max-height: ${imageMaxHeight};
+                    object-fit: ${ad.name === 'roboforex' ? 'contain' : 'cover'};
+                    border-radius: 15px;
+                    cursor: pointer;
+                    transition: transform 0.3s ease;
+                  "
+                  onclick="window.open('${ad.targetUrl}', '_blank')"
+                  onmouseover="this.style.transform='scale(1.05)'"
+                  onmouseout="this.style.transform='scale(1)'"
+                />
+              </div>
+              
+              <!-- Кнопка перехода -->
+              <button onclick="window.open('${ad.targetUrl}', '_blank')" style="
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+                border: none;
+                border-radius: 10px;
+                color: white;
+                font-size: 1rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+              " onmouseover="this.style.transform='scale(1.05)'" 
+                 onmouseout="this.style.transform='scale(1)'">
+                🚀 ${buttonText}
+              </button>
+            `;
+          }
+        }
+      };
+
+      // Функция переключения на следующую рекламу
+      const nextAd = () => {
+        currentAdIndex = (currentAdIndex + 1) % this.ads.length;
+        updateAd();
+        
+        if (currentAdIndex < this.ads.length - 1 || this.ads.length === 1) {
+          adTimer = setTimeout(nextAd, this.ads[currentAdIndex].duration * 1000);
+        }
+      };
+
+      // Сборка модального окна (БЕЗ КНОПКИ ЗАКРЫТИЯ)
+      container.appendChild(adContent);
+      container.appendChild(progressContainer);
+      modal.appendChild(container);
+
       // CSS анимации
       const style = document.createElement('style');
       style.textContent = `
@@ -215,70 +762,46 @@ class RoboForexAdProvider {
       `;
       document.head.appendChild(style);
       document.body.appendChild(modal);
+
+      // Инициализация
+      updateAd();
       
       // Запуск прогресса
-      const progressBar = document.getElementById('robo-progress');
-      if (progressBar) {
-        setTimeout(() => {
-          progressBar.style.width = '100%';
-        }, 100);
-      }
-      
-      // Показать кнопку закрытия через 3 секунды
       setTimeout(() => {
-        const closeBtn = document.getElementById('closeBtn');
-        if (closeBtn) {
-          closeBtn.style.display = 'block';
-          closeBtn.onclick = () => {
-            document.body.removeChild(modal);
-            document.head.removeChild(style);
-            resolve({ 
-              success: true, 
-              provider: 'roboforex',
-              reward: 'extra_game',
-              debug: 'Ad closed early but reward given',
-              timestamp: Date.now()
-            });
-          };
-        }
-      }, 3000);
-      
-      // Основной таймер
-      const timer = setInterval(() => {
-        countdown--;
-        const countdownEl = document.getElementById('robo-countdown');
-        if (countdownEl) {
-          countdownEl.textContent = countdown.toString();
-          if (countdown <= 3) {
-            countdownEl.style.color = countdown <= 1 ? '#4CAF50' : '#ffd93d';
-          }
-        }
-        
-        if (countdown <= 0) {
-          clearInterval(timer);
-          document.body.removeChild(modal);
-          document.head.removeChild(style);
-          resolve({ 
-            success: true, 
-            provider: 'roboforex',
-            reward: 'extra_game',
-            debug: 'RoboForex ad completed successfully',
-            timestamp: Date.now()
-          });
-        }
-      }, 1000);
+        progressBar.style.width = '100%';
+        progressBar.style.transition = `width ${totalDuration}ms linear`;
+      }, 100);
+
+      // Запуск карусели
+      if (this.ads.length > 1) {
+        adTimer = setTimeout(nextAd, this.ads[0].duration * 1000);
+      }
+
+      // Основной таймер завершения (НАГРАДА ВСЕГДА ЗАСЧИТЫВАЕТСЯ)
+      mainTimer = setTimeout(() => {
+        clearTimeout(adTimer);
+        document.body.removeChild(modal);
+        document.head.removeChild(style);
+        resolve({ 
+          success: true, 
+          provider: 'custom_block',
+          reward: 'extra_game',
+          debug: `Custom block completed - showed ${this.ads.length} ads in ${currentLanguage}`,
+          timestamp: Date.now()
+        });
+      }, totalDuration);
 
       // Обработчик изменения ориентации
       const handleOrientationChange = () => {
         const isStillPortrait = window.innerHeight > window.innerWidth;
         if (!isStillPortrait) {
-          // Пользователь повернул экран в горизонтальное положение
-          clearInterval(timer);
+          clearTimeout(adTimer);
+          clearTimeout(mainTimer);
           document.body.removeChild(modal);
           document.head.removeChild(style);
           resolve({
             success: false,
-            provider: 'roboforex',
+            provider: 'custom_block',
             error: 'Реклама прервана из-за поворота экрана',
             debug: 'Screen rotated to landscape',
             timestamp: Date.now()
@@ -289,141 +812,141 @@ class RoboForexAdProvider {
       window.addEventListener('orientationchange', handleOrientationChange);
       window.addEventListener('resize', handleOrientationChange);
 
-      // Очистка обработчиков через 11 секунд
+      // Очистка обработчиков
       setTimeout(() => {
         window.removeEventListener('orientationchange', handleOrientationChange);
         window.removeEventListener('resize', handleOrientationChange);
-      }, 11000);
+      }, totalDuration + 1000);
     });
   }
 
   isAvailable(): boolean {
-    // Проверяем ориентацию экрана
     const isPortrait = window.innerHeight > window.innerWidth;
-    return isPortrait;
+    return isPortrait && this.ads.length > 0;
   }
 
   getProviderInfo() {
     return {
-      name: 'roboforex',
+      name: 'custom_block',
       available: this.isAvailable(),
-      debug: 'Partner ad provider'
+      adsCount: this.ads.length,
+      language: detectLanguage(),
+      debug: 'Internal ad carousel with auto language detection'
     };
   }
 }
 
-// Mock провайдер (fallback)
-class MockAdProvider {
-  async initialize(): Promise<boolean> {
-    console.log('🎯✅ Mock Ad Provider initialized as fallback');
-    return true;
+// МЕНЕДЖЕР ПРИОРИТЕТОВ
+class AdPriorityManager {
+  private providers: AdProvider[] = [];
+
+  constructor() {
+    // Порядок приоритетов (сверху вниз)
+    this.providers = [
+      new AdsgramProvider(''), // Инициализируется позже
+      new YandexProvider(),
+      new TelegaProvider(),
+      new BitmediaProvider(),
+      new PropellerAdsProvider(),
+      new TelegramAdsProvider(),
+      new CustomBlockProvider() // Всегда последний
+    ];
   }
 
-  async showRewardedAd(): Promise<AdsgramResult> {
-    console.log('🎯 Showing Mock ad (fallback)');
-    
-    return new Promise(resolve => {
-      const modal = document.createElement('div');
-      modal.style.cssText = `
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.9); display: flex; align-items: center;
-        justify-content: center; z-index: 10000; color: white;
-        font-family: Arial, sans-serif; text-align: center;
-      `;
-      
-      modal.innerHTML = `
-        <div style="
-          background: #222; padding: 40px; border-radius: 20px; 
-          border: 2px solid #00f0ff; max-width: 350px;
-        ">
-          <div style="font-size: 3rem; margin-bottom: 20px;">📺</div>
-          <h2 style="color: #00f0ff; margin-bottom: 15px;">Test Advertisement</h2>
-          <p style="color: #ccc; margin-bottom: 20px;">Ad service unavailable</p>
-          <p style="color: #888; font-size: 0.9rem;">(future ads will be here)</p>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      
-      setTimeout(() => {
-        document.body.removeChild(modal);
-        resolve({ 
-          success: true, 
-          provider: 'mock',
-          reward: 'extra_game',
-          debug: 'Mock ad completed',
-          timestamp: Date.now()
-        });
-      }, 3000);
-    });
+  async initialize(adsgramBlockId?: string): Promise<void> {
+    // Инициализация Adsgram с реальным ID
+    if (adsgramBlockId) {
+      this.providers[0] = new AdsgramProvider(adsgramBlockId);
+    }
+
+    // Инициализируем все провайдеры
+    for (const provider of this.providers) {
+      try {
+        await provider.initialize();
+        console.log(`📍 Provider ${provider.name} initialized`);
+      } catch (error) {
+        console.log(`❌ Provider ${provider.name} failed to initialize:`, error);
+      }
+    }
   }
 
-  isAvailable(): boolean {
-    return true;
+  async getAvailableProvider(): Promise<AdProvider> {
+    // Ищем первый доступный провайдер по приоритету
+    for (const provider of this.providers) {
+      if (provider.isAvailable()) {
+        console.log(`✅ Using provider: ${provider.name}`);
+        return provider;
+      }
+    }
+
+    // Fallback - всегда возвращаем Custom Block (он всегда доступен в портретной ориентации)
+    const customProvider = this.providers[this.providers.length - 1];
+    console.log(`🔄 Fallback to: ${customProvider.name}`);
+    return customProvider;
   }
 
-  getProviderInfo() {
-    return { name: 'mock', available: true };
+  getProvidersStatus() {
+    return this.providers.map(provider => ({
+      name: provider.name,
+      available: provider.isAvailable(),
+      info: provider.getProviderInfo()
+    }));
   }
 }
 
-// Главный сервис
+// ГЛАВНЫЙ СЕРВИС (совместимый с существующим API)
 class AdService {
-  // private adsgramService: AdsgramService | null = null; // ЗАКОММЕНТИРОВАНО
-  private roboforexService: RoboForexAdProvider;
-  private mockService: MockAdProvider;
-  private currentProvider: 'roboforex' | 'mock' = 'roboforex';
+  private priorityManager: AdPriorityManager;
 
   constructor() {
-    this.roboforexService = new RoboForexAdProvider();
-    this.mockService = new MockAdProvider();
+    this.priorityManager = new AdPriorityManager();
   }
 
   async initialize(blockId?: string): Promise<void> {
-    await this.roboforexService.initialize();
-    await this.mockService.initialize();
-
-    // Определяем провайдера по ориентации экрана
-    this.currentProvider = this.roboforexService.isAvailable() ? 'roboforex' : 'mock';
-
-    // ЗАКОММЕНТИРОВАННЫЙ код Adsgram
-    /*
-    if (blockId && blockId.trim()) {
-      this.adsgramService = new AdsgramService(blockId.trim());
-      const ready = await this.adsgramService.initialize();
-      this.currentProvider = ready ? 'adsgram' : 'roboforex';
-    }
-    */
+    await this.priorityManager.initialize(blockId);
+    console.log('🎯 AdService initialized with priority system');
+    console.log('🌍 Auto-detected language:', detectLanguage());
   }
 
   async showRewardedAd(): Promise<AdsgramResult> {
-    // Проверяем ориентацию перед показом
-    const isPortrait = window.innerHeight > window.innerWidth;
-    
-    if (isPortrait && this.roboforexService.isAvailable()) {
-      const result = await this.roboforexService.showRewardedAd();
+    try {
+      const provider = await this.priorityManager.getAvailableProvider();
+      const result = await provider.showRewardedAd();
+      
+      console.log(`📺 Ad shown via ${provider.name}:`, result);
       return result;
+    } catch (error) {
+      console.error('❌ Error showing ad:', error);
+      return {
+        success: false,
+        provider: 'error',
+        error: 'Failed to show ad',
+        timestamp: Date.now()
+      };
     }
-
-    // Fallback на Mock
-    return await this.mockService.showRewardedAd();
   }
 
   isAvailable(): boolean {
-    if (this.currentProvider === 'roboforex') {
-      return this.roboforexService.isAvailable();
-    }
-    return this.mockService.isAvailable();
+    // Проверяем, есть ли хотя бы один доступный провайдер
+    return this.priorityManager.getProvidersStatus().some(p => p.available);
   }
 
   getProviderInfo() {
-    if (this.currentProvider === 'roboforex' && this.roboforexService.isAvailable()) {
-      return this.roboforexService.getProviderInfo();
-    }
-    return this.mockService.getProviderInfo();
+    const availableProvider = this.priorityManager.getProvidersStatus().find(p => p.available);
+    return availableProvider?.info || { name: 'none', available: false };
+  }
+
+  // Дополнительный метод для отладки
+  getProvidersStatus() {
+    return this.priorityManager.getProvidersStatus();
+  }
+
+  // Метод для получения текущего языка
+  getCurrentLanguage() {
+    return detectLanguage();
   }
 }
 
+// Экспорт (тот же API что и раньше)
 export const adService = new AdService();
 export type { AdsgramResult, AdsgramConfig };
-export {};

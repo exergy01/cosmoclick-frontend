@@ -164,7 +164,9 @@
       "watchAdForEnergy": "Смотрите рекламу, чтобы получить +100 энергии",
       "limits": "Лимит: 20 реклам в день",
       "maxEnergy": "Максимум энергии",
-      "tapToDestroy": "Кликните, чтобы уничтожить астероид!"
+      "tapToDestroy": "Кликните, чтобы уничтожить астероид!",
+      "watchFullAdForReward": "Смотрите рекламу полностью для получения награды",
+      "adClosedEarly": "Реклама была закрыта слишком рано"
     },
     "shells": {
       "title": "Космические наперстки",
@@ -290,7 +292,7 @@
         "adServiceUnavailable": "Служба рекламы недоступна"
       },
       "notifications": {
-        "winMessage": "Выиграш!",
+        "winMessage": "Выигрыш!",
         "bigWinMessage": "Большой выигрыш!",
         "excellentWinMessage": "Отличный выигрыш",
         "goodWinMessage": "Хороший выигрыш",
@@ -343,6 +345,11 @@
     "testMode": "[Тест]",
     "partnerMode": "[Партнер]",
     "adMode": "[Реклама]"
+  },
+  "ads": {
+    "watchTimeRequired": "Требуется минимум {{percent}}% времени просмотра",
+    "rewardNotEarned": "Награда не получена - досмотрите рекламу до конца",
+    "minimumWatchTime": "Минимальное время просмотра не достигнуто"
   },
   "no_rewards_to_collect": "Нет наград для сбора",
   "error_collecting_rewards": "Ошибка сбора наград",
