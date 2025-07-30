@@ -18,6 +18,9 @@ interface ExchangePair {
   rateText: string;
   hasCommission: boolean;
   minAmount: number;
+  isDynamic?: boolean;
+  isBlocked?: boolean;
+  blockReason?: string;
 }
 
 const EXCHANGE_PAIRS: ExchangePair[] = [
@@ -64,14 +67,26 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     rateText: '1 TON = 100 CS',
     hasCommission: true,
     minAmount: 0.01
+  },
+  // 🌟 НОВАЯ ПАРА: STARS → CS
+  {
+    id: 'stars-cs',
+    fromCurrency: 'STARS',
+    toCurrency: 'CS',
+    fromIcon: '⭐',
+    toIcon: '✨',
+    rate: 0.4,
+    rateText: '10 Stars = 4 CS',
+    hasCommission: false,
+    minAmount: 10,
+    isDynamic: true
   }
 ];
-
 const ExchangePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const playerContext = usePlayer(); // Получаем весь контекст
-  const { player, currentSystem, convertCurrency } = playerContext;
+  const playerContext = usePlayer();
+  const { player, currentSystem } = playerContext;
   const [selectedPair, setSelectedPair] = useState<ExchangePair | null>(null);
   const [amount, setAmount] = useState('');
   const [result, setResult] = useState('');
@@ -79,7 +94,40 @@ const ExchangePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // 🌟 Новые состояния для Stars
+  const [starsRates, setStarsRates] = useState<any>(null);
+  const [starsExchangeBlocked, setStarsExchangeBlocked] = useState(false);
+  const [blockInfo, setBlockInfo] = useState<any>(null);
+
   const colorStyle = player?.color || '#00f0ff';
+
+  // 🌟 Функция получения курсов Stars
+  const fetchStarsRates = async () => {
+    try {
+      console.log('📊 Получаем курсы Stars...');
+      const response = await axios.get(`${API_URL}/api/stars/rates`);
+      
+      if (response.data) {
+        setStarsRates(response.data.rates);
+        setStarsExchangeBlocked(!response.data.exchange_available);
+        setBlockInfo(response.data.block_info);
+        
+        console.log('📊 Курсы Stars получены:', {
+          rates: response.data.rates,
+          blocked: !response.data.exchange_available
+        });
+      }
+    } catch (error) {
+      console.error('❌ Ошибка получения курсов Stars:', error);
+    }
+  };
+
+  // 🌟 Загрузка курсов при открытии страницы
+  useEffect(() => {
+    fetchStarsRates();
+    const interval = setInterval(fetchStarsRates, 5 * 60 * 1000); // каждые 5 минут
+    return () => clearInterval(interval);
+  }, []);
 
   // Получение баланса валюты
   const getBalance = (currency: string) => {
@@ -88,11 +136,12 @@ const ExchangePage: React.FC = () => {
       case 'CCC': return player.ccc || 0;
       case 'CS': return player.cs || 0;
       case 'TON': return player.ton || 0;
+      case 'STARS': return player.telegram_stars || 0; // 🌟 НОВОЕ
       default: return 0;
     }
   };
 
-  // Расчет результата обмена (правильные курсы)
+  // Расчет результата обмена
   const calculateResult = (pair: ExchangePair, inputAmount: string) => {
     const num = parseFloat(inputAmount);
     if (isNaN(num) || num <= 0) return '';
@@ -100,19 +149,23 @@ const ExchangePage: React.FC = () => {
     let result = 0;
     
     if (pair.fromCurrency === 'CCC' && pair.toCurrency === 'CS') {
-      result = num / 200; // 200 CCC = 1 CS
+      result = num / 200;
     } else if (pair.fromCurrency === 'CS' && pair.toCurrency === 'CCC') {
-      result = num * 200; // 1 CS = 200 CCC
+      result = num * 200;
     } else if (pair.fromCurrency === 'CS' && pair.toCurrency === 'TON') {
-      result = num / 100; // 100 CS = 1 TON
+      result = num / 100;
       if (!player?.verified) {
-        result = result * 0.98; // 2% комиссия
+        result = result * 0.98;
       }
     } else if (pair.fromCurrency === 'TON' && pair.toCurrency === 'CS') {
-      result = num * 100; // 1 TON = 100 CS
+      result = num * 100;
       if (!player?.verified) {
-        result = result * 0.98; // 2% комиссия
+        result = result * 0.98;
       }
+    } else if (pair.fromCurrency === 'STARS' && pair.toCurrency === 'CS') {
+      // 🌟 НОВЫЙ РАСЧЕТ STARS → CS
+      const starsRate = starsRates?.STARS_CS?.rate || 0.4;
+      result = num * starsRate;
     }
 
     return result.toFixed(8);
@@ -126,7 +179,7 @@ const ExchangePage: React.FC = () => {
     } else {
       setResult('');
     }
-  }, [selectedPair, amount, player?.verified]);
+  }, [selectedPair, amount, player?.verified, starsRates]);
 
   // Проверка возможности обмена
   const canExchange = () => {
@@ -139,6 +192,9 @@ const ExchangePage: React.FC = () => {
     if (inputAmount > balance) return false;
     if (inputAmount < selectedPair.minAmount) return false;
     
+    // Проверяем блокировку для Stars
+    if (selectedPair.fromCurrency === 'STARS' && starsExchangeBlocked) return false;
+    
     return true;
   };
 
@@ -150,18 +206,17 @@ const ExchangePage: React.FC = () => {
     const balance = getBalance(selectedPair.fromCurrency);
     
     if (isNaN(inputAmount) || inputAmount <= 0) {
-      return t('exchange_page.enter_valid_amount');
+      return 'Введите корректную сумму';
     }
     if (inputAmount < selectedPair.minAmount) {
-      return t('exchange_page.minimum_amount', { amount: selectedPair.minAmount, currency: selectedPair.fromCurrency });
+      return `Минимум ${selectedPair.minAmount} ${selectedPair.fromCurrency}`;
     }
     if (inputAmount > balance) {
-      return t('exchange_page.insufficient_funds', { available: balance.toLocaleString(), currency: selectedPair.fromCurrency });
+      return `Недостаточно средств (доступно: ${balance.toLocaleString()})`;
     }
     
     return null;
   };
-
   // Выполнение обмена
   const handleExchange = async () => {
     if (!canExchange() || !selectedPair) return;
@@ -173,117 +228,88 @@ const ExchangePage: React.FC = () => {
     try {
       const inputAmount = parseFloat(amount);
       
-      console.log('Отправка запроса на обмен:', {
-        telegramId: player?.telegram_id,
-        fromCurrency: selectedPair.fromCurrency.toLowerCase(),
-        toCurrency: selectedPair.toCurrency.toLowerCase(),
-        amount: inputAmount
-      });
+      let response;
       
-      // Используем API endpoint /api/exchange/convert
-      const response = await axios.post(`${API_URL}/api/exchange/convert`, {
-        telegramId: player?.telegram_id,
-        fromCurrency: selectedPair.fromCurrency.toLowerCase(),
-        toCurrency: selectedPair.toCurrency.toLowerCase(),
-        amount: inputAmount
-      });
+      if (selectedPair.fromCurrency === 'STARS') {
+        // 🌟 СПЕЦИАЛЬНЫЙ ЗАПРОС ДЛЯ STARS
+        console.log('Отправка запроса на обмен Stars:', {
+          telegramId: player?.telegram_id,
+          starsAmount: inputAmount
+        });
+        
+        response = await axios.post(`${API_URL}/api/stars/exchange`, {
+          telegramId: player?.telegram_id,
+          starsAmount: inputAmount
+        });
+      } else {
+        // Обычный обмен валют
+        console.log('Отправка запроса на обмен:', {
+          telegramId: player?.telegram_id,
+          fromCurrency: selectedPair.fromCurrency.toLowerCase(),
+          toCurrency: selectedPair.toCurrency.toLowerCase(),
+          amount: inputAmount
+        });
+        
+        response = await axios.post(`${API_URL}/api/exchange/convert`, {
+          telegramId: player?.telegram_id,
+          fromCurrency: selectedPair.fromCurrency.toLowerCase(),
+          toCurrency: selectedPair.toCurrency.toLowerCase(),
+          amount: inputAmount
+        });
+      }
       
       console.log('Ответ от сервера:', response.data);
       
       if (response.data && response.data.success) {
-        // Успешный обмен
-        setSuccess(t('exchange_page.exchange_success'));
+        setSuccess('Обмен выполнен успешно!');
         setAmount('');
         setResult('');
         setSelectedPair(null);
         
-        console.log('Обмен успешен! Новые данные игрока:', response.data.player);
-        
-        // 🔥 ОБНОВЛЯЕМ ДАННЫЕ ИГРОКА МГНОВЕННО
-        if (response.data.player) {
-          console.log('Доступные функции в контексте:', Object.keys(playerContext));
-          
-          // Пробуем разные методы обновления контекста
-          if (typeof playerContext.setPlayer === 'function') {
-            console.log('Обновляем через setPlayer');
-            playerContext.setPlayer(response.data.player);
-          } else if (typeof playerContext.updatePlayer === 'function') {
-            console.log('Обновляем через updatePlayer');
-            playerContext.updatePlayer();
-          } else if (typeof playerContext.refreshPlayer === 'function') {
-            console.log('Обновляем через refreshPlayer');
-            playerContext.refreshPlayer();
-  //        } else if (typeof playerContext.refreshPlayer === 'function') {
-  //          console.log('Обновляем через refreshPlayer');
-  //          playerContext.refreshPlayer();
-          } else {
-            console.warn('Не найдена функция для обновления игрока. Доступные функции:', Object.keys(playerContext));
-            
-            // В крайнем случае обновляем балансы напрямую
-            const newPlayer = response.data.player;
-            console.log('Пытаемся обновить балансы напрямую:', {
-              старый_ccc: player?.ccc,
-              новый_ccc: newPlayer.ccc,
-              старый_cs: player?.cs,
-              новый_cs: newPlayer.cs,
-              старый_ton: player?.ton,
-              новый_ton: newPlayer.ton
-            });
-          }
+        // Обновляем курсы Stars после успешного обмена
+        if (selectedPair.fromCurrency === 'STARS') {
+          await fetchStarsRates();
         }
         
-        // Убираем уведомление через 3 секунды
+        // Обновляем данные игрока
+        if (response.data.player && typeof playerContext.setPlayer === 'function') {
+          playerContext.setPlayer(response.data.player);
+        }
+        
         setTimeout(() => setSuccess(null), 3000);
       } else {
-        setError(t('exchange_page.exchange_error'));
+        setError('Ошибка при выполнении обмена');
       }
       
     } catch (err: any) {
       console.error('Exchange error:', err);
       
-      if (err.response?.status === 400 && err.response?.data?.error) {
-        // Переводим ошибки с сервера
+      if (err.response?.status === 423) {
+        setError(`Обмен временно заблокирован: ${err.response.data.reason || 'Защита курса'}`);
+      } else if (err.response?.status === 400 && err.response?.data?.error) {
         const errorMessage = err.response.data.error;
         switch (errorMessage) {
           case 'Not enough CCC':
-            setError(t('exchange_page.not_enough_ccc'));
+            setError('Недостаточно CCC');
             break;
           case 'Not enough CS':
-            setError(t('exchange_page.not_enough_cs'));
+            setError('Недостаточно CS');
             break;
           case 'Not enough TON':
-            setError(t('exchange_page.not_enough_ton'));
+            setError('Недостаточно TON');
             break;
-          case 'Invalid conversion pair':
-            setError(t('exchange_page.invalid_pair'));
-            break;
-          case 'Player not found':
-            setError(t('exchange_page.player_not_found'));
-            break;
-          case 'Missing required fields or invalid amount':
-            setError(t('exchange_page.enter_valid_amount'));
+          case 'Not enough Stars':
+            setError('Недостаточно Stars');
             break;
           default:
             setError(errorMessage);
         }
-      } else if (err.response?.status === 500) {
-        setError('Ошибка сервера. Попробуйте позже.');
-      } else if (err.code === 'ECONNABORTED' || err.code === 'NETWORK_ERROR') {
-        setError('Ошибка сети. Проверьте подключение.');
       } else {
-        setError(t('exchange_page.exchange_error'));
+        setError('Ошибка при выполнении обмена');
       }
     } finally {
       setIsExchanging(false);
     }
-  };
-
-  // Закрытие модального окна обмена
-  const closeExchangeModal = () => {
-    setSelectedPair(null);
-    setAmount('');
-    setResult('');
-    setError(null);
   };
 
   return (
@@ -317,7 +343,7 @@ const ExchangePage: React.FC = () => {
             marginBottom: '30px',
             fontWeight: 'bold'
           }}>
-            💱 {t('exchange')}
+            💱 Обмен валют
           </h3>
 
           {/* Уведомления */}
@@ -335,51 +361,101 @@ const ExchangePage: React.FC = () => {
               ✅ {success}
             </div>
           )}
-
           {/* Валютные пары */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '20px',
             margin: '30px auto',
-            maxWidth: '800px'
+            maxWidth: '1000px'
           }}>
             {EXCHANGE_PAIRS.map((pair) => {
               const balance = getBalance(pair.fromCurrency);
               const hasCommission = pair.hasCommission && !player?.verified;
               
+              // 🌟 Для Stars получаем динамический курс
+              let currentRate = pair.rate;
+              let currentRateText = pair.rateText;
+              let isPairBlocked = false;
+              
+              if (pair.fromCurrency === 'STARS') {
+                const starsRate = starsRates?.STARS_CS?.rate || 0.4;
+                currentRate = starsRate;
+                
+                // Показываем актуальный курс
+                const starsFor1CS = (1 / starsRate).toFixed(1);
+                currentRateText = `${starsFor1CS} Stars = 1 CS`;
+                
+                isPairBlocked = starsExchangeBlocked;
+              }
+              
               return (
                 <div
                   key={pair.id}
-                  onClick={() => setSelectedPair(pair)}
+                  onClick={() => !isPairBlocked && setSelectedPair(pair)}
                   style={{
-                    background: 'rgba(0, 0, 0, 0.6)',
+                    background: isPairBlocked 
+                      ? 'rgba(128, 128, 128, 0.3)' 
+                      : 'rgba(0, 0, 0, 0.6)',
                     backdropFilter: 'blur(10px)',
                     borderRadius: '15px',
                     padding: '20px',
-                    border: `2px solid ${colorStyle}30`,
-                    boxShadow: `0 0 20px ${colorStyle}15`,
-                    cursor: 'pointer',
+                    border: `2px solid ${isPairBlocked ? '#666' : colorStyle}30`,
+                    boxShadow: `0 0 20px ${isPairBlocked ? '#66666615' : colorStyle}15`,
+                    cursor: isPairBlocked ? 'not-allowed' : 'pointer',
                     transition: 'all 0.3s ease',
-                    position: 'relative'
+                    position: 'relative',
+                    opacity: isPairBlocked ? 0.6 : 1
                   }}
-                  onMouseEnter={e => {
+                  onMouseEnter={!isPairBlocked ? e => {
                     e.currentTarget.style.transform = 'scale(1.02)';
                     e.currentTarget.style.boxShadow = `0 0 35px ${colorStyle}25`;
-                    e.currentTarget.style.borderColor = `${colorStyle}60`;
-                  }}
-                  onMouseLeave={e => {
+                  } : undefined}
+                  onMouseLeave={!isPairBlocked ? e => {
                     e.currentTarget.style.transform = 'scale(1)';
                     e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}15`;
-                    e.currentTarget.style.borderColor = `${colorStyle}30`;
-                  }}
+                  } : undefined}
                 >
+                  {/* Иконка блокировки */}
+                  {isPairBlocked && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#ef4444',
+                      color: '#fff',
+                      padding: '3px 6px',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 'bold'
+                    }}>
+                      🚫 БЛОК
+                    </div>
+                  )}
+                  
+                  {/* Иконка динамического курса */}
+                  {pair.isDynamic && !isPairBlocked && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10b981',
+                      color: '#fff',
+                      padding: '3px 6px',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      fontWeight: 'bold'
+                    }}>
+                      📈 LIVE
+                    </div>
+                  )}
+                  
                   {/* Иконка комиссии */}
                   {hasCommission && (
                     <div style={{
                       position: 'absolute',
                       top: '10px',
-                      right: '10px',
+                      right: pair.isDynamic ? '70px' : '10px',
                       background: '#f59e0b',
                       color: '#000',
                       padding: '3px 6px',
@@ -391,7 +467,7 @@ const ExchangePage: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* Валютная пара - горизонтальный стиль */}
+                  {/* Валютная пара */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -419,16 +495,25 @@ const ExchangePage: React.FC = () => {
                       color: colorStyle,
                       fontWeight: 'bold',
                       fontSize: '1rem',
-                      marginBottom: hasCommission ? '4px' : '0'
+                      marginBottom: hasCommission || isPairBlocked ? '4px' : '0'
                     }}>
-                      {pair.rateText}
+                      {currentRateText}
                     </div>
                     {hasCommission && (
                       <div style={{
                         color: '#f59e0b',
                         fontSize: '0.8rem'
                       }}>
-                        {t('exchange_page.commission')}: 2%
+                        Комиссия: 2%
+                      </div>
+                    )}
+                    {isPairBlocked && blockInfo && (
+                      <div style={{
+                        color: '#ef4444',
+                        fontSize: '0.8rem',
+                        marginTop: '4px'
+                      }}>
+                        🚫 {blockInfo.reason || 'Обмен заблокирован'}
                       </div>
                     )}
                   </div>
@@ -441,7 +526,7 @@ const ExchangePage: React.FC = () => {
                     color: '#aaa',
                     fontSize: '0.85rem'
                   }}>
-                    <span>{t('exchange_page.available')}:</span>
+                    <span>Доступно:</span>
                     <span style={{ color: '#fff', fontWeight: '500' }}>
                       {balance.toLocaleString()} {pair.fromCurrency}
                     </span>
@@ -450,90 +535,175 @@ const ExchangePage: React.FC = () => {
               );
             })}
           </div>
-
-          {/* Информационные карточки */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px',
-            margin: '40px auto',
-            maxWidth: '800px'
-          }}>
-            {/* Комиссии */}
+          {/* 🌟 Информация о курсах Stars */}
+          {starsRates && (
             <div style={{
               background: 'rgba(0, 0, 0, 0.6)',
               backdropFilter: 'blur(10px)',
               borderRadius: '20px',
               padding: '25px',
               border: `1px solid ${colorStyle}30`,
-              boxShadow: `0 0 25px ${colorStyle}15`
+              boxShadow: `0 0 25px ${colorStyle}15`,
+              margin: '30px auto',
+              maxWidth: '600px'
             }}>
-              <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.3rem', textAlign: 'center' }}>
-                💰 {t('exchange_page.commissions_title')}
-              </h3>
-              <div style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>CCC ⇄ CS</span>
-                  <span style={{ color: '#4ade80', fontWeight: 'bold' }}>0%</span>
+              <h3 style={{ 
+                color: colorStyle, 
+                marginBottom: '20px', 
+                fontSize: '1.3rem', 
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px'
+              }}>
+                ⭐ Live курсы Stars
+                <div style={{
+                  background: '#10b981',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold'
+                }}>
+                  LIVE
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                  <span>CS ⇄ TON</span>
-                  <span style={{ color: player?.verified ? '#4ade80' : '#f59e0b', fontWeight: 'bold' }}>
-                    {player?.verified ? '0%' : '2%'}
+              </h3>
+              
+              {/* Текущий курс TON */}
+              {starsRates.TON_USD && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  marginBottom: '15px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ color: '#ccc', fontSize: '0.9rem' }}>
+                      💎 TON/USD:
+                    </span>
+                    <span style={{ 
+                      color: colorStyle, 
+                      fontWeight: 'bold', 
+                      fontSize: '1.1rem' 
+                    }}>
+                      ${parseFloat(starsRates.TON_USD.rate).toFixed(4)}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.8rem',
+                    color: '#aaa'
+                  }}>
+                    <span>Источник: {starsRates.TON_USD.source}</span>
+                    <span>
+                      {new Date(starsRates.TON_USD.last_updated).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Текущий курс Stars → CS */}
+              {starsRates.STARS_CS && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  padding: '15px',
+                  marginBottom: '15px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ color: '#ccc', fontSize: '0.9rem' }}>
+                      ⭐ Stars → CS:
+                    </span>
+                    <span style={{ 
+                      color: colorStyle, 
+                      fontWeight: 'bold', 
+                      fontSize: '1.1rem' 
+                    }}>
+                      {parseFloat(starsRates.STARS_CS.rate).toFixed(6)} CS за Star
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.8rem',
+                    color: '#aaa'
+                  }}>
+                    <span>
+                      {(1 / parseFloat(starsRates.STARS_CS.rate)).toFixed(1)} Stars = 1 CS
+                    </span>
+                    <span>
+                      Курс привязан к TON
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Статус обмена */}
+              <div style={{
+                background: starsExchangeBlocked 
+                  ? 'rgba(239, 68, 68, 0.1)' 
+                  : 'rgba(34, 197, 94, 0.1)',
+                border: `1px solid ${starsExchangeBlocked ? '#ef4444' : '#22c55e'}`,
+                borderRadius: '12px',
+                padding: '15px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '8px'
+                }}>
+                  <span style={{ fontSize: '1.2rem' }}>
+                    {starsExchangeBlocked ? '🚫' : '✅'}
+                  </span>
+                  <span style={{
+                    color: starsExchangeBlocked ? '#ef4444' : '#22c55e',
+                    fontWeight: 'bold'
+                  }}>
+                    {starsExchangeBlocked ? 'Обмен заблокирован' : 'Обмен доступен'}
                   </span>
                 </div>
-                <div style={{ 
-                  fontSize: '0.8rem', 
-                  color: '#aaa', 
-                  textAlign: 'center',
-                  padding: '8px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '8px'
-                }}>
-                  {player?.verified ? (
-                    <span style={{ color: '#4ade80' }}>✅ {t('exchange_page.verified_status')}</span>
-                  ) : (
-                    <span>🔒 {t('exchange_page.verification_hint')}</span>
-                  )}
-                </div>
+                {starsExchangeBlocked && blockInfo && (
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#ef4444',
+                    lineHeight: '1.4'
+                  }}>
+                    <div><strong>Причина:</strong> {blockInfo.reason}</div>
+                    {blockInfo.blocked_until && (
+                      <div>
+                        <strong>До:</strong> {new Date(blockInfo.blocked_until).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!starsExchangeBlocked && (
+                  <div style={{
+                    fontSize: '0.85rem',
+                    color: '#22c55e'
+                  }}>
+                    Курс обновляется автоматически каждый час
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Лимиты */}
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: '20px',
-              padding: '25px',
-              border: `1px solid ${colorStyle}30`,
-              boxShadow: `0 0 25px ${colorStyle}15`
-            }}>
-              <h3 style={{ color: colorStyle, marginBottom: '20px', fontSize: '1.3rem', textAlign: 'center' }}>
-                📊 {t('exchange_page.minimum_amounts')}
-              </h3>
-              <div style={{ lineHeight: '1.6', color: '#ccc', fontSize: '0.9rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>CCC → CS</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>100 CCC</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>CS → CCC</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>1 CS</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span>CS → TON</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>1 CS</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>TON → CS</span>
-                  <span style={{ color: colorStyle, fontWeight: 'bold' }}>0.01 TON</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
-
       {/* Модальное окно обмена */}
       {selectedPair && (
         <div style={{
@@ -562,7 +732,7 @@ const ExchangePage: React.FC = () => {
           }}>
             {/* Кнопка закрытия */}
             <button
-              onClick={closeExchangeModal}
+              onClick={() => setSelectedPair(null)}
               style={{
                 position: 'absolute',
                 top: '15px',
@@ -587,34 +757,16 @@ const ExchangePage: React.FC = () => {
               {selectedPair.fromIcon} {selectedPair.fromCurrency} → {selectedPair.toIcon} {selectedPair.toCurrency}
             </h3>
 
-            {/* Курс */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: '12px',
-              padding: '15px',
-              marginBottom: '20px',
-              textAlign: 'center'
-            }}>
-              <div style={{ color: colorStyle, fontWeight: 'bold', marginBottom: '5px' }}>
-                {selectedPair.rateText}
-              </div>
-              {selectedPair.hasCommission && !player?.verified && (
-                <div style={{ color: '#f59e0b', fontSize: '0.9rem' }}>
-                  {t('exchange_page.commission')}: 2%
-                </div>
-              )}
-            </div>
-
             {/* Ввод суммы */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#ccc', marginBottom: '10px', display: 'block' }}>
-                {t('exchange_page.amount')} ({selectedPair.fromCurrency}):
+                Сумма ({selectedPair.fromCurrency}):
               </label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={`${t('exchange_page.minimum')} ${selectedPair.minAmount}`}
+                placeholder={`Минимум ${selectedPair.minAmount}`}
                 style={{
                   padding: '15px',
                   width: '100%',
@@ -623,12 +775,9 @@ const ExchangePage: React.FC = () => {
                   borderRadius: '12px',
                   color: '#fff',
                   fontSize: '1.1rem',
-                  boxSizing: 'border-box',
-                  // Убираем стрелочки
-                  MozAppearance: 'textfield'
+                  boxSizing: 'border-box'
                 }}
               />
-              {/* Показываем доступную сумму */}
               <div style={{
                 marginTop: '8px',
                 fontSize: '0.9rem',
@@ -636,13 +785,12 @@ const ExchangePage: React.FC = () => {
                 display: 'flex',
                 justifyContent: 'space-between'
               }}>
-                <span>{t('exchange_page.available')}:</span>
+                <span>Доступно:</span>
                 <span style={{ color: colorStyle, fontWeight: 'bold' }}>
                   {getBalance(selectedPair.fromCurrency).toLocaleString()} {selectedPair.fromCurrency}
                 </span>
               </div>
               
-              {/* Ошибка валидации */}
               {getInputError() && (
                 <div style={{
                   marginTop: '8px',
@@ -657,7 +805,6 @@ const ExchangePage: React.FC = () => {
                 </div>
               )}
             </div>
-
             {/* Результат */}
             {result && (
               <div style={{
@@ -667,7 +814,7 @@ const ExchangePage: React.FC = () => {
                 marginBottom: '20px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#ccc' }}>{t('exchange_page.you_receive')}:</span>
+                  <span style={{ color: '#ccc' }}>Получите:</span>
                   <span style={{ color: colorStyle, fontWeight: 'bold', fontSize: '1.2rem' }}>
                     {result} {selectedPair.toCurrency}
                   </span>
@@ -693,7 +840,7 @@ const ExchangePage: React.FC = () => {
             {/* Кнопки */}
             <div style={{ display: 'flex', gap: '15px' }}>
               <button
-                onClick={closeExchangeModal}
+                onClick={() => setSelectedPair(null)}
                 style={{
                   padding: '15px 25px',
                   flex: 1,
@@ -706,7 +853,7 @@ const ExchangePage: React.FC = () => {
                   cursor: 'pointer'
                 }}
               >
-                {t('exchange_page.cancel')}
+                Отмена
               </button>
               
               <button
@@ -736,10 +883,10 @@ const ExchangePage: React.FC = () => {
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
                     }} />
-                    {t('exchange_page.processing')}
+                    Обмен...
                   </span>
                 ) : (
-                  t('exchange_page.exchange_button')
+                  'Обменять'
                 )}
               </button>
             </div>
@@ -758,7 +905,6 @@ const ExchangePage: React.FC = () => {
             100% { transform: rotate(360deg); }
           }
           
-          /* Убираем стрелочки в input type="number" для всех браузеров */
           input[type="number"]::-webkit-outer-spin-button,
           input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
