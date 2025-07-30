@@ -68,7 +68,7 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     hasCommission: true,
     minAmount: 0.01
   },
-  // 🌟 НОВАЯ ПАРА: STARS → CS
+  // 🌟 НОВАЯ ПАРА: STARS → CS (ИСПРАВЛЕНО)
   {
     id: 'stars-cs',
     fromCurrency: 'STARS',
@@ -76,7 +76,7 @@ const EXCHANGE_PAIRS: ExchangePair[] = [
     fromIcon: '⭐',
     toIcon: '✨',
     rate: 0.4,
-    rateText: '10 Stars = 4 CS',
+    rateText: '10 Stars = 4 CS', // 🔧 ИСПРАВЛЕНО: базовый курс для 10 Stars
     hasCommission: false,
     minAmount: 10,
     isDynamic: true
@@ -373,7 +373,7 @@ const ExchangePage: React.FC = () => {
               const balance = getBalance(pair.fromCurrency);
               const hasCommission = pair.hasCommission && !player?.verified;
               
-              // 🌟 Для Stars получаем динамический курс
+              // 🌟 Для Stars получаем динамический курс (ИСПРАВЛЕНО)
               let currentRate = pair.rate;
               let currentRateText = pair.rateText;
               let isPairBlocked = false;
@@ -382,9 +382,9 @@ const ExchangePage: React.FC = () => {
                 const starsRate = starsRates?.STARS_CS?.rate || 0.4;
                 currentRate = starsRate;
                 
-                // Показываем актуальный курс
-                const starsFor1CS = (1 / starsRate).toFixed(1);
-                currentRateText = `${starsFor1CS} Stars = 1 CS`;
+                // 🔧 ИСПРАВЛЕНО: показываем курс для минимального обмена 10 Stars
+                const csFor10Stars = (10 * starsRate).toFixed(2);
+                currentRateText = `10 Stars = ${csFor10Stars} CS`;
                 
                 isPairBlocked = starsExchangeBlocked;
               }
@@ -535,7 +535,7 @@ const ExchangePage: React.FC = () => {
               );
             })}
           </div>
-          {/* 🌟 Информация о курсах Stars */}
+          {/* 🌟 Информация о курсах Stars (ИСПРАВЛЕНО) */}
           {starsRates && (
             <div style={{
               background: 'rgba(0, 0, 0, 0.6)',
@@ -610,7 +610,7 @@ const ExchangePage: React.FC = () => {
                 </div>
               )}
               
-              {/* Текущий курс Stars → CS */}
+              {/* Текущий курс Stars → CS (ИСПРАВЛЕНО) */}
               {starsRates.STARS_CS && (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -625,14 +625,15 @@ const ExchangePage: React.FC = () => {
                     marginBottom: '8px'
                   }}>
                     <span style={{ color: '#ccc', fontSize: '0.9rem' }}>
-                      ⭐ Stars → CS:
+                      ⭐ 10 Stars → CS:
                     </span>
                     <span style={{ 
                       color: colorStyle, 
                       fontWeight: 'bold', 
                       fontSize: '1.1rem' 
                     }}>
-                      {parseFloat(starsRates.STARS_CS.rate).toFixed(6)} CS за Star
+                      {/* 🔧 ИСПРАВЛЕНО: показываем курс для 10 Stars */}
+                      {(10 * parseFloat(starsRates.STARS_CS.rate)).toFixed(2)} CS
                     </span>
                   </div>
                   <div style={{
@@ -643,7 +644,8 @@ const ExchangePage: React.FC = () => {
                     color: '#aaa'
                   }}>
                     <span>
-                      {(1 / parseFloat(starsRates.STARS_CS.rate)).toFixed(1)} Stars = 1 CS
+                      {/* 🔧 ИСПРАВЛЕНО: показываем точный курс за 1 Star */}
+                      1 Star = {parseFloat(starsRates.STARS_CS.rate).toFixed(4)} CS
                     </span>
                     <span>
                       Курс привязан к TON
@@ -659,7 +661,8 @@ const ExchangePage: React.FC = () => {
                   : 'rgba(34, 197, 94, 0.1)',
                 border: `1px solid ${starsExchangeBlocked ? '#ef4444' : '#22c55e'}`,
                 borderRadius: '12px',
-                padding: '15px'
+                padding: '15px',
+                marginBottom: '15px'
               }}>
                 <div style={{
                   display: 'flex',
@@ -699,6 +702,44 @@ const ExchangePage: React.FC = () => {
                     Курс обновляется автоматически каждый час
                   </div>
                 )}
+              </div>
+
+              {/* 🔧 НОВОЕ: Примеры обмена */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '12px',
+                padding: '15px',
+                fontSize: '0.85rem',
+                color: '#ccc'
+              }}>
+                <div style={{ 
+                  color: colorStyle, 
+                  fontWeight: 'bold', 
+                  marginBottom: '10px',
+                  textAlign: 'center'
+                }}>
+                  📝 Примеры обмена:
+                </div>
+                <div style={{ display: 'grid', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>10 Stars (минимум)</span>
+                    <span style={{ color: colorStyle }}>
+                      {(10 * parseFloat(starsRates.STARS_CS.rate)).toFixed(2)} CS
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>50 Stars</span>
+                    <span style={{ color: colorStyle }}>
+                      {(50 * parseFloat(starsRates.STARS_CS.rate)).toFixed(2)} CS
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>100 Stars</span>
+                    <span style={{ color: colorStyle }}>
+                      {(100 * parseFloat(starsRates.STARS_CS.rate)).toFixed(2)} CS
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
