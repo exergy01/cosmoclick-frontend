@@ -892,8 +892,22 @@ class AdService {
   }
 
   isAvailable(): boolean {
-    // Проверяем, есть ли хотя бы один доступный провайдер
-    return this.priorityManager.getProvidersStatus().some(p => p.available);
+    // Проверяем, была ли инициализация (есть ли хотя бы один инициализированный провайдер)
+    const providersStatus = this.priorityManager.getProvidersStatus();
+    console.log('🔍 isAvailable() - статус провайдеров:', providersStatus);
+    
+    const hasInitializedProviders = providersStatus.some(p => p.info.debug && p.info.debug !== 'stub');
+    console.log('🔍 isAvailable() - есть инициализированные провайдеры:', hasInitializedProviders);
+    
+    if (!hasInitializedProviders) {
+      console.log('🔍 Провайдеры не инициализированы, нужна инициализация');
+      return false;
+    }
+    
+    // Если провайдеры инициализированы, проверяем доступность
+    const result = providersStatus.some(p => p.available);
+    console.log('🔍 isAvailable() - итоговый результат:', result);
+    return result;
   }
 
   getProviderInfo() {

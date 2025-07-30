@@ -117,12 +117,12 @@ const MainPage: React.FC = () => {
     
     try {
       console.log('⚡ Показываем рекламу перед сбором...');
+      console.log('🔍 ADSGRAM_BLOCK_ID из env:', process.env.REACT_APP_ADSGRAM_BLOCK_ID);
       
-      // Инициализируем рекламный сервис если нужно
-      if (!adService.isAvailable()) {
-        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
-        await adService.initialize(ADSGRAM_BLOCK_ID);
-      }
+      // 🔥 ПРИНУДИТЕЛЬНАЯ ПЕРЕИНИЦИАЛИЗАЦИЯ
+      const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
+      console.log('🔍 Принудительно переинициализируем adService с ID:', ADSGRAM_BLOCK_ID);
+      await adService.initialize(ADSGRAM_BLOCK_ID);
       
       const adResult = await adService.showRewardedAd();
       console.log('⚡ Результат рекламы:', adResult);
@@ -141,7 +141,7 @@ const MainPage: React.FC = () => {
       setIsWatchingAd(false);
     }
   };
-
+    
   const performCollection = async () => {
     setIsCollecting(true);
     
