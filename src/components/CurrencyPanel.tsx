@@ -70,13 +70,17 @@ const CurrencyPanel: React.FC<CurrencyPanelProps> = ({ player, currentSystem, co
       <div style={{ textAlign: 'left' }}>
         <p style={{ fontSize: '1rem' }}>
           💠 CCC: {(typeof player.ccc === 'number' ? player.ccc : parseFloat(player.ccc || '0')).toFixed(5)}<br/>
-          📈 {t('per_hour')}: {cccPerHour.toFixed(2)} CCC<br/>
-          🌟 {t('per_hour')}: {csPerHour.toFixed(2)} CS
+          📈 CCC {t('per_hour')}: {cccPerHour.toFixed(2)} <br/>
+          📈 <strong>CS {t('per_hour')}: {csPerHour.toFixed(2)} </strong>
         </p>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <p style={{ fontSize: '1rem' }}>✨ CS: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}</p>
-        <p style={{ fontSize: '1rem' }}>💎 TON: {(typeof player.ton === 'number' ? player.ton : parseFloat(player.ton || '0')).toFixed(9)}</p>
+        {/* 🎨 СИММЕТРИЧНО: один <p> с <br/> как слева */}
+        <p style={{ fontSize: '1rem' }}>
+          ✨ CS: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}<br/>
+          💎 TON: {(typeof player.ton === 'number' ? player.ton : parseFloat(player.ton || '0')).toFixed(9)}<br/>
+          ⭐ Stars: {(player.telegram_stars || 0).toLocaleString()}
+        </p>
       </div>
     </div>
   );

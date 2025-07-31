@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../context/NewPlayerContext';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import AdminLayout from './components/AdminLayout';
+import AdminStatsTab from './components/AdminStatsTab';
 import type { AdminTabType } from './types';
 
 const AdminPage: React.FC = () => {
@@ -93,177 +94,141 @@ const AdminPage: React.FC = () => {
 
   const colorStyle = player?.color || '#00f0ff';
 
+  const handlePlayerClick = (playerId: string) => {
+    console.log('🔍 Клик по игроку:', playerId);
+    // TODO: Здесь будет переход на вкладку игроков с автоматическим поиском
+    setActiveTab('players');
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'stats':
         return (
-          <div>
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📊</div>
-              <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Статистика системы</h2>
-              <p style={{ color: '#aaa', marginBottom: '30px' }}>
-                Здесь будет отображаться общая статистика игроков, валют и обменов
-              </p>
-              
-              {/* Макет будущих карточек статистики */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-                gap: '20px',
-                maxWidth: '800px',
-                margin: '0 auto'
-              }}>
-                {[
-                  { icon: '👥', title: 'Игроки', desc: 'Общая статистика пользователей' },
-                  { icon: '💰', title: 'Валюты', desc: 'Суммы всех валют в системе' },
-                  { icon: '🌟', title: 'Обмены Stars', desc: 'Статистика обмена Stars' },
-                  { icon: '📈', title: 'Курсы', desc: 'Текущие курсы валют' }
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${colorStyle}20`,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                    <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                    <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <AdminStatsTab
+            colorStyle={colorStyle}
+            onPlayerClick={handlePlayerClick}
+          />
         );
         
       case 'players':
         return (
-          <div>
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
-              <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Управление игроками</h2>
-              <p style={{ color: '#aaa', marginBottom: '30px' }}>
-                Поиск игроков, просмотр подробной информации и управление аккаунтами
-              </p>
-              
-              {/* Макет функций управления игроками */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                gap: '20px',
-                maxWidth: '900px',
-                margin: '0 auto'
-              }}>
-                {[
-                  { icon: '🔍', title: 'Поиск игроков', desc: 'Найти игрока по ID, username или имени' },
-                  { icon: '📋', title: 'Детали игрока', desc: 'Просмотр балансов, истории и статистики' },
-                  { icon: '✅', title: 'Верификация', desc: 'Управление статусом верификации игроков' }
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${colorStyle}20`,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                    <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                    <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
+            <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Управление игроками</h2>
+            <p style={{ color: '#aaa', marginBottom: '30px' }}>
+              Поиск игроков, просмотр подробной информации и управление аккаунтами
+            </p>
+            
+            {/* Макет функций управления игроками */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: '20px',
+              maxWidth: '900px',
+              margin: '0 auto'
+            }}>
+              {[
+                { icon: '🔍', title: 'Поиск игроков', desc: 'Найти игрока по ID, username или имени' },
+                { icon: '📋', title: 'Детали игрока', desc: 'Просмотр балансов, истории и статистики' },
+                { icon: '✅', title: 'Верификация', desc: 'Управление статусом верификации игроков' }
+              ].map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: `1px solid ${colorStyle}20`,
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
+                  <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
+                  <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
         
       case 'exchange':
         return (
-          <div>
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💱</div>
-              <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Система обменов</h2>
-              <p style={{ color: '#aaa', marginBottom: '30px' }}>
-                Мониторинг курсов валют и управление системой обменов
-              </p>
-              
-              {/* Макет функций обменов */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-                gap: '20px',
-                maxWidth: '800px',
-                margin: '0 auto'
-              }}>
-                {[
-                  { icon: '📊', title: 'Курсы валют', desc: 'Текущие курсы TON/USD и Stars/CS' },
-                  { icon: '📈', title: 'Статистика', desc: 'История и статистика обменов' },
-                  { icon: '🔓', title: 'Блокировки', desc: 'Управление блокировками обменов' }
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${colorStyle}20`,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                    <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                    <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💱</div>
+            <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Система обменов</h2>
+            <p style={{ color: '#aaa', marginBottom: '30px' }}>
+              Мониторинг курсов валют и управление системой обменов
+            </p>
+            
+            {/* Макет функций обменов */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+              gap: '20px',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}>
+              {[
+                { icon: '📊', title: 'Курсы валют', desc: 'Текущие курсы TON/USD и Stars/CS' },
+                { icon: '📈', title: 'Статистика', desc: 'История и статистика обменов' },
+                { icon: '🔓', title: 'Блокировки', desc: 'Управление блокировками обменов' }
+              ].map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: `1px solid ${colorStyle}20`,
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
+                  <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
+                  <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
         
       case 'management':
         return (
-          <div>
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚙️</div>
-              <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Управление системой</h2>
-              <p style={{ color: '#aaa', marginBottom: '30px' }}>
-                Инструменты для управления балансами игроков и настройками системы
-              </p>
-              
-              {/* Макет функций управления */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                gap: '20px',
-                maxWidth: '900px',
-                margin: '0 auto'
-              }}>
-                {[
-                  { icon: '💰', title: 'Управление балансами', desc: 'Изменение балансов игроков (CCC, CS, TON, Stars)' },
-                  { icon: '📈', title: 'Курс TON', desc: 'Ручное обновление курса TON/USD' },
-                  { icon: '🛡️', title: 'Безопасность', desc: 'Все действия логируются и проверяются' }
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: `1px solid ${colorStyle}20`,
-                      borderRadius: '12px',
-                      padding: '20px',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                    <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                    <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚙️</div>
+            <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Управление системой</h2>
+            <p style={{ color: '#aaa', marginBottom: '30px' }}>
+              Инструменты для управления балансами игроков и настройками системы
+            </p>
+            
+            {/* Макет функций управления */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: '20px',
+              maxWidth: '900px',
+              margin: '0 auto'
+            }}>
+              {[
+                { icon: '💰', title: 'Управление балансами', desc: 'Изменение балансов игроков (CCC, CS, TON, Stars)' },
+                { icon: '📈', title: 'Курс TON', desc: 'Ручное обновление курса TON/USD' },
+                { icon: '🛡️', title: 'Безопасность', desc: 'Все действия логируются и проверяются' }
+              ].map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: `1px solid ${colorStyle}20`,
+                    borderRadius: '12px',
+                    padding: '20px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
+                  <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
+                  <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -284,30 +249,54 @@ const AdminPage: React.FC = () => {
     >
       {renderTabContent()}
       
-      {/* Информация о разработке */}
-      <div style={{
-        marginTop: '40px',
-        padding: '20px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: `1px solid ${colorStyle}20`,
-        borderRadius: '12px',
-        textAlign: 'center'
-      }}>
-        <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>🚧</div>
-        <h3 style={{ color: colorStyle, margin: '0 0 10px 0' }}>Модульная архитектура</h3>
-        <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>
-          Админ панель переделана с модульной архитектурой. 
-          Каждый компонент независим и может быть легко расширен или изменен.
-        </p>
-        <div style={{ 
-          marginTop: '15px', 
-          fontSize: '0.8rem', 
-          color: '#666',
-          fontFamily: 'monospace'
+      {/* Информация о текущем статусе разработки */}
+      {activeTab !== 'stats' && (
+        <div style={{
+          marginTop: '40px',
+          padding: '20px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: `1px solid ${colorStyle}20`,
+          borderRadius: '12px',
+          textAlign: 'center'
         }}>
-          📁 /admin/components/ • /hooks/ • /services/ • /types/ • /utils/
+          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>🚧</div>
+          <h3 style={{ color: colorStyle, margin: '0 0 10px 0' }}>Модуль в разработке</h3>
+          <p style={{ color: '#aaa', fontSize: '0.9rem', margin: '0 0 15px 0' }}>
+            Вкладка "{activeTab}" будет реализована в следующих обновлениях. 
+            Пока что работает только статистика.
+          </p>
+          <div style={{ 
+            fontSize: '0.8rem', 
+            color: '#666',
+            fontFamily: 'monospace',
+            background: 'rgba(255, 255, 255, 0.05)',
+            padding: '10px',
+            borderRadius: '6px',
+            marginTop: '10px'
+          }}>
+            📁 Модульная архитектура: /hooks/ /components/ /services/ /types/
+          </div>
         </div>
-      </div>
+      )}
+      
+      {/* Информация о статистике (только для вкладки статистики) */}
+      {activeTab === 'stats' && (
+        <div style={{
+          marginTop: '40px',
+          padding: '20px',
+          background: 'rgba(0, 255, 0, 0.05)',
+          border: `1px solid #4CAF5040`,
+          borderRadius: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>✅</div>
+          <h3 style={{ color: '#4CAF50', margin: '0 0 10px 0' }}>Статистика работает!</h3>
+          <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>
+            Этот модуль полностью реализован с реальными данными из API. 
+            Проверьте работу кнопки "Обновить" и клики по игрокам в таблице.
+          </p>
+        </div>
+      )}
     </AdminLayout>
   );
 };
