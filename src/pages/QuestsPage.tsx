@@ -8,6 +8,8 @@ import NavigationMenu from '../components/NavigationMenu';
 
 // Импортируем рекламный сервис
 import { adService } from '../services/adsgramService';
+// Импортируем компонент для всплывающих уведомлений
+import ToastNotification from '../components/ToastNotification';
 
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
@@ -26,9 +28,34 @@ interface QuestData {
   completed: boolean;
 }
 
+// Интерфейс для всплывающих уведомлений
+interface ToastNotificationData {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'warning';
+  duration?: number;
+}
+
+// Добавим интерфейс для Player, если его нет в PlayerContext
+// Это очень важно для корректной работы TypeScript
+interface Player {
+  telegram_id: number;
+  cs: number;
+  ccc: number;
+  color: string;
+  ad_views: number;
+  last_ad_reset: string;
+  drones: any[]; // Уточните тип, если известен
+  // ... другие поля игрока
+  verified: boolean; // Добавил verified, т.к. используется в MainPage для проверки рекламы
+  unlocked_systems: number[]; // Добавил unlocked_systems для корректного типа
+}
+
+
 const QuestsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { player, setPlayer, currentSystem } = usePlayer();
+  // Добавляем refreshPlayer из контекста
+  const { player, setPlayer, currentSystem, refreshPlayer } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -36,7 +63,17 @@ const QuestsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [linkTimers, setLinkTimers] = useState<{[key: number]: number}>({});
   const [completingQuest, setCompletingQuest] = useState<number | null>(null);
-  // const [showCompleted, setShowCompleted] = useState(false); // Удалено по запросу
+  // Состояние для уведомлений
+  const [notifications, setNotifications] = useState<ToastNotificationData[]>([]);
+
+  // Функция для добавления уведомлений
+  const addNotification = useCallback((message: string, type: 'success' | 'error' | 'warning', duration = 3000) => {
+    const id = Date.now() + Math.random();
+    setNotifications(prev => [...prev, { id, message, type, duration }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, duration);
+  }, []);
 
   const loadQuests = useCallback(async () => {
     if (!player?.telegram_id) return;
@@ -50,10 +87,11 @@ const QuestsPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Ошибка загрузки заданий:', error);
+      addNotification('Ошибка загрузки заданий.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [player?.telegram_id]);
+  }, [player?.telegram_id, addNotification]);
 
   useEffect(() => {
     loadQuests();
@@ -88,10 +126,10 @@ const QuestsPage: React.FC = () => {
       });
       
       if (response.data.success) {
-        setPlayer({
-          ...player,
-          cs: Number(player.cs) + Number(response.data.reward_cs)
-        });
+        setPlayer((prevPlayer: Player | null) => ({ // Исправлено: добавлено явное типизирование
+            ...prevPlayer!,
+            cs: Number(prevPlayer!.cs) + Number(response.data.reward_cs)
+        }));
         
         setQuests(prev => prev.map(quest => 
           quest.quest_id === questId 
@@ -101,33 +139,44 @@ const QuestsPage: React.FC = () => {
         
         setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
         
-        alert(`🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`);
+        addNotification(`🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`, 'success');
+      } else {
+        addNotification(response.data.error || 'Неизвестная ошибка при выполнении задания.', 'error');
       }
     } catch (error: any) {
       console.error('Ошибка выполнения задания:', error);
-      alert(error.response?.data?.error || 'Ошибка выполнения задания');
+      addNotification(error.response?.data?.error || 'Ошибка выполнения задания', 'error');
     } finally {
       setCompletingQuest(null);
     }
   };
 
-  const watchAd = async () => {
-    if ((player?.ad_views || 0) >= 5) return;
-    try {
-      const updatedPlayer = {
-        ...player,
-        ccc: Number(player?.ccc || 0) + 10,
-        ad_views: (player?.ad_views || 0) + 1,
-        last_ad_reset: player?.last_ad_reset || new Date().toISOString(),
-        drones: player?.drones || [],
-      };
-      const res = await axios.put(`${apiUrl}/api/player/${player?.telegram_id}`, updatedPlayer);
-      setPlayer(res.data);
-      alert(t('ad_watched') || 'Реклама просмотрена!');
-    } catch (err: any) {
-      alert(t('ad_error', { error: err.response?.data?.error || err.message }) || 'Ошибка рекламы');
+  // Исправленная функция просмотра рекламы, использующая adService и refreshPlayer
+  const watchAd = useCallback(async () => {
+    if ((player?.ad_views || 0) >= 5) {
+      addNotification(t('ad_limit_reached') || 'Лимит просмотров рекламы достигнут.', 'warning');
+      return;
     }
-  };
+    try {
+      // Инициализируем adService перед показом рекламы, как в MainPage.tsx
+      await adService.initialize(ADSGRAM_BLOCK_ID); 
+      
+      // Используем showRewardedAd, как в MainPage.tsx
+      const result = await adService.showRewardedAd(); 
+      
+      if (result.success) {
+        refreshPlayer(); 
+        addNotification(t('ad_watched') || 'Реклама просмотрена!', 'success');
+      } else {
+        // Обрабатываем конкретные сообщения об ошибках от adResult, если доступны
+        addNotification(result.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
+      }
+    } catch (err: any) {
+      console.error('Ad watch error:', err);
+      addNotification(t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
+    }
+  }, [player, refreshPlayer, addNotification, t]);
+
 
   const colorStyle = player?.color || '#00f0ff';
 
@@ -135,7 +184,6 @@ const QuestsPage: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  // Удалена функция filterQuests и переменные completedCount, totalCount
   const combinedBasicAndPartnerQuests = quests.filter(q => 
     !q.completed && (q.quest_type === 'referral' || q.quest_type === 'partner_link')
   ).sort((a, b) => {
@@ -169,6 +217,22 @@ const QuestsPage: React.FC = () => {
         currentSystem={currentSystem}
         colorStyle={colorStyle}
       />
+
+      {/* Отрисовка всплывающих уведомлений */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        alignItems: 'flex-end'
+      }}>
+        {notifications.map(n => (
+          <ToastNotification key={n.id} message={n.message} type={n.type} />
+        ))}
+      </div>
 
       <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -396,13 +460,11 @@ const QuestsPage: React.FC = () => {
                   marginBottom: '20px',
                   textShadow: `0 0 10px ${colorStyle}`
                 }}>
-                  📺 Просмотр рекламы (Ежедневно) {/* Изменено: (ежедневно) -> (Ежедневно) */}
+                  📺 Просмотр рекламы (Ежедневно)
                 </h3>
                 {Array(5).fill(null).map((_, index) => {
                   const isCompleted = (player?.ad_views || 0) > index;
                   const isAvailable = (player?.ad_views || 0) === index;
-                  
-                  // Удалено условие !showCompleted && isCompleted
                   
                   return (
                     <div
