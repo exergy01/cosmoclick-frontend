@@ -23,34 +23,90 @@ const adminApi = axios.create({
   },
 });
 
+// Безопасная функция для получения Telegram WebApp
+const getTelegramWebApp = (): any => {
+  try {
+    return (window as any).Telegram?.WebApp;
+  } catch (error) {
+    console.error('❌ Ошибка доступа к Telegram WebApp:', error);
+    return null;
+  }
+};
+
 // Функция для безопасного получения Telegram ID
 const getTelegramId = (): string | null => {
   try {
-    // Безопасный доступ к Telegram WebApp через any
-    const telegramWebApp = (window as any)?.Telegram?.WebApp;
+    // Безопасный доступ к Telegram WebApp
+    const telegramWebApp = getTelegramWebApp();
     
     if (telegramWebApp?.initDataUnsafe?.user?.id) {
-      return String(telegramWebApp.initDataUnsafe.user.id);
+      const telegramId = String(telegramWebApp.initDataUnsafe.user.id);
+      console.log('📱 Найден ID в Telegram WebApp:', telegramId);
+      return telegramId;
     }
     
     // Проверяем в URL параметрах
-    const urlParams = new URLSearchParams(window.location.search);
-    const startParam = urlParams.get('tgWebAppStartParam');
-    if (startParam) {
-      console.log('🔍 Found startParam:', startParam);
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const startParam = urlParams.get('tgWebAppStartParam');
+      if (startParam) {
+        console.log('🔍 Found startParam:', startParam);
+        // startParam обычно содержит referral info, но не telegram_id
+      }
+    } catch (urlError) {
+      console.warn('⚠️ Ошибка парсинга URL параметров:', urlError);
     }
     
     // Проверяем localStorage (может быть сохранен ранее)
-    const savedId = localStorage.getItem('telegramId');
-    if (savedId) {
-      console.log('💾 Found saved Telegram ID:', savedId);
-      return savedId;
+    try {
+      const savedId = localStorage.getItem('telegramId');
+      if (savedId) {
+        console.log('💾 Found saved Telegram ID:', savedId);
+        return savedId;
+      }
+    } catch (storageError) {
+      console.warn('⚠️ Ошибка доступа к localStorage:', storageError);
     }
     
+    console.warn('⚠️ Telegram ID не найден во всех источниках');
     return null;
   } catch (error) {
-    console.error('❌ Ошибка получения Telegram ID:', error);
+    console.error('❌ Критическая ошибка получения Telegram ID:', error);
     return null;
+  }
+};
+
+// Функция для отладочной информации
+const getDebugInfo = () => {
+  try {
+    const telegramWebApp = getTelegramWebApp();
+    
+    return {
+      userAgent: navigator.userAgent,
+      isMobile: /Mobi|Android/i.test(navigator.userAgent),
+      platform: navigator.platform,
+      telegramExists: !!(window as any)?.Telegram,
+      webAppExists: !!telegramWebApp,
+      hasInitDataUnsafe: !!telegramWebApp?.initDataUnsafe,
+      hasUser: !!telegramWebApp?.initDataUnsafe?.user,
+      userId: telegramWebApp?.initDataUnsafe?.user?.id,
+      userName: telegramWebApp?.initDataUnsafe?.user?.first_name,
+      userUsername: telegramWebApp?.initDataUnsafe?.user?.username,
+      location: window.location.href,
+      webAppKeys: telegramWebApp ? Object.keys(telegramWebApp) : [],
+      locationSearch: window.location.search,
+      savedId: (() => {
+        try {
+          return localStorage.getItem('telegramId');
+        } catch {
+          return 'localStorage недоступен';
+        }
+      })()
+    };
+  } catch (error) {
+    return {
+      error: `Ошибка получения отладочной информации: ${error}`
+    };
   }
 };
 
@@ -60,20 +116,8 @@ adminApi.interceptors.request.use(
     console.log(`🔧 Admin API запрос: ${config.method?.toUpperCase()} ${config.url}`, config.data);
     
     // Отладочная информация для мобильных устройств
-    const telegramWebApp = (window as any)?.Telegram?.WebApp;
-    
-    console.log('📱 Debug info:', {
-      userAgent: navigator.userAgent,
-      isMobile: /Mobi|Android/i.test(navigator.userAgent),
-      telegramWebApp: !!telegramWebApp,
-      hasInitDataUnsafe: !!telegramWebApp?.initDataUnsafe,
-      hasUser: !!telegramWebApp?.initDataUnsafe?.user,
-      userId: telegramWebApp?.initDataUnsafe?.user?.id,
-      userName: telegramWebApp?.initDataUnsafe?.user?.first_name,
-      userUsername: telegramWebApp?.initDataUnsafe?.user?.username,
-      location: window.location.href,
-      webAppKeys: telegramWebApp ? Object.keys(telegramWebApp) : []
-    });
+    const debugInfo = getDebugInfo();
+    console.log('📱 Debug info:', debugInfo);
     
     return config;
   },
@@ -114,16 +158,8 @@ export const adminApiService = {
       if (!id) {
         console.error('❌ Telegram ID не найден в checkAdminStatus');
         
-        const telegramWebApp = (window as any)?.Telegram?.WebApp;
-        console.log('🔍 Доступные данные Telegram:', {
-          telegramExists: !!(window as any)?.Telegram,
-          webAppExists: !!telegramWebApp,
-          initDataUnsafe: telegramWebApp?.initDataUnsafe,
-          user: telegramWebApp?.initDataUnsafe?.user,
-          webAppProps: telegramWebApp ? Object.keys(telegramWebApp) : [],
-          locationSearch: window.location.search,
-          savedId: localStorage.getItem('telegramId')
-        });
+        const debugInfo = getDebugInfo();
+        console.log('🔍 Полная отладочная информация:', debugInfo);
         
         throw new Error('Не удалось получить Telegram ID. Убедитесь, что приложение запущено из Telegram.');
       }
@@ -145,13 +181,8 @@ export const adminApiService = {
       if (!id) {
         console.error('❌ Telegram ID не найден в getStats');
         
-        const telegramWebApp = (window as any)?.Telegram?.WebApp;
-        console.log('🔍 Telegram WebApp данные:', {
-          exists: !!telegramWebApp,
-          initDataUnsafe: telegramWebApp?.initDataUnsafe,
-          user: telegramWebApp?.initDataUnsafe?.user,
-          allTelegramProps: (window as any)?.Telegram ? Object.keys((window as any).Telegram) : []
-        });
+        const debugInfo = getDebugInfo();
+        console.log('🔍 Telegram WebApp данные:', debugInfo);
         
         throw new Error('Не удалось получить Telegram ID для загрузки статистики');
       }
@@ -315,6 +346,26 @@ export const checkApiHealth = async (): Promise<boolean> => {
   } catch (error) {
     console.error('❌ API недоступен:', error);
     return false;
+  }
+};
+
+// Функция для сохранения Telegram ID (может пригодиться)
+export const saveTelegramId = (id: string): void => {
+  try {
+    localStorage.setItem('telegramId', id);
+    console.log('💾 Telegram ID сохранен:', id);
+  } catch (error) {
+    console.warn('⚠️ Не удалось сохранить Telegram ID:', error);
+  }
+};
+
+// Функция для очистки сохраненного ID
+export const clearSavedTelegramId = (): void => {
+  try {
+    localStorage.removeItem('telegramId');
+    console.log('🗑️ Сохраненный Telegram ID удален');
+  } catch (error) {
+    console.warn('⚠️ Не удалось удалить сохраненный Telegram ID:', error);
   }
 };
 
