@@ -387,7 +387,7 @@ export const useGalacticSlotsGame = (
       console.log('🎰 Starting ad watch for slots...');
       
       if (!adService.isAvailable()) {
-        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
+        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
         await adService.initialize(ADSGRAM_BLOCK_ID);
         
         if (!adService.isAvailable()) {

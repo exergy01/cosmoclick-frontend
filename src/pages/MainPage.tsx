@@ -151,7 +151,7 @@ const MainPage: React.FC = () => {
       console.log('🔍 ADSGRAM_BLOCK_ID из env:', process.env.REACT_APP_ADSGRAM_BLOCK_ID);
       
       // 🔥 ПРИНУДИТЕЛЬНАЯ ПЕРЕИНИЦИАЛИЗАЦИЯ
-      const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
+      const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
       console.log('🔍 Принудительно переинициализируем adService с ID:', ADSGRAM_BLOCK_ID);
       await adService.initialize(ADSGRAM_BLOCK_ID);
       

@@ -27,7 +27,7 @@ export const useCosmicShellsGame = (
   useEffect(() => {
     const initAds = async () => {
       try {
-        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '10674';
+        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
         await adService.initialize(ADSGRAM_BLOCK_ID);
         console.log('🛸 Ad Service initialized');
       } catch (error) {
