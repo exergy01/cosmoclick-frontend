@@ -9,7 +9,7 @@ import NavigationMenu from '../components/NavigationMenu';
 // Импортируем рекламный сервис
 import { adService } from '../services/adsgramService';
 // Импортируем компонент для всплывающих уведомлений
-import ToastNotification from '../components/ToastNotification';
+import ToastNotification from '../components/ToastNotification'; 
 
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
@@ -126,7 +126,7 @@ const QuestsPage: React.FC = () => {
       });
       
       if (response.data.success) {
-        setPlayer((prevPlayer: Player | null) => ({ // Исправлено: добавлено явное типизирование
+        setPlayer((prevPlayer: Player | null) => ({ 
             ...prevPlayer!,
             cs: Number(prevPlayer!.cs) + Number(response.data.reward_cs)
         }));
@@ -151,29 +151,37 @@ const QuestsPage: React.FC = () => {
     }
   };
 
-  // Исправленная функция просмотра рекламы, использующая adService и refreshPlayer
   const watchAd = useCallback(async () => {
     if ((player?.ad_views || 0) >= 5) {
       addNotification(t('ad_limit_reached') || 'Лимит просмотров рекламы достигнут.', 'warning');
       return;
     }
     try {
-      // Инициализируем adService перед показом рекламы, как в MainPage.tsx
       await adService.initialize(ADSGRAM_BLOCK_ID); 
-      
-      // Используем showRewardedAd, как в MainPage.tsx
       const result = await adService.showRewardedAd(); 
       
       if (result.success) {
-        refreshPlayer(); 
-        addNotification(t('ad_watched') || 'Реклама просмотрена!', 'success');
+        // НОВОЕ: Отправляем запрос на бэкенд для регистрации просмотра рекламы и начисления награды
+        const backendResponse = await axios.post(`${apiUrl}/api/player/watch_ad`, { 
+          telegramId: player.telegram_id,
+          // Можно добавить другие данные, если нужно для бэкенда (например, blockId, provider)
+        });
+
+        if (backendResponse.data.success) {
+          refreshPlayer(); // Обновляем состояние игрока после успешного ответа от бэкенда
+          addNotification(t('ad_watched') || 'Реклама просмотрена!', 'success');
+        } else {
+          // Обрабатываем ошибку, если бэкенд не смог обновить данные
+          addNotification(backendResponse.data.error || t('ad_update_error') || 'Ошибка при обновлении данных после рекламы.', 'error');
+        }
+
       } else {
-        // Обрабатываем конкретные сообщения об ошибках от adResult, если доступны
         addNotification(result.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
       }
     } catch (err: any) {
       console.error('Ad watch error:', err);
-      addNotification(t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
+      // Более конкретное сообщение об ошибке, если это ошибка API
+      addNotification(err.response?.data?.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
     }
   }, [player, refreshPlayer, addNotification, t]);
 
