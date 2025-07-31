@@ -58,7 +58,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   // Автоматическая проверка при монтировании компонента или изменении игрока
   useEffect(() => {
     checkAdminStatus();
-  }, [player?.telegram_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [player?.telegram_id]); // Убираем комментарий с eslint-disable-line
 
   return {
     isAdmin,
