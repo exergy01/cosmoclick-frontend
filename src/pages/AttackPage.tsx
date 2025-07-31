@@ -50,8 +50,9 @@ const AttackPage: React.FC = () => {
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
-        padding: '10px',
-        position: 'relative'
+        padding: '10px', // Базовый отступ
+        position: 'relative',
+        boxSizing: 'border-box', // Убедимся, что padding не добавляет ширину
       }}
     >
       {/* Верхняя панель с валютами */}
@@ -62,40 +63,57 @@ const AttackPage: React.FC = () => {
       />
 
       {/* Основной контент */}
-      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+      <div style={{ 
+        marginTop: '80px', 
+        paddingBottom: '130px',
+        flexGrow: 1, // Позволяет контенту занимать доступное пространство
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center', // Центрирование по вертикали
+        paddingLeft: '20px', // Дополнительные горизонтальные отступы
+        paddingRight: '20px',
+        boxSizing: 'border-box',
+      }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', width: '100%' }}>
           <h2 style={{ 
             color: colorStyle, 
             textShadow: `0 0 10px ${colorStyle}`, 
             fontSize: '2rem', 
             marginBottom: '30px',
-            textAlign: 'center'
+            textAlign: 'center',
+            fontWeight: 'bold', // Стилизация как в ExchangePage
           }}>
             ⚔️ {t('attack')}
           </h2>
           
           <div style={{
             background: 'rgba(0, 0, 0, 0.7)',
-            border: `2px solid ${colorStyle}`,
+            backdropFilter: 'blur(10px)', // Добавлено как в ExchangePage
+            border: `2px solid ${colorStyle}30`, // Менее яркая рамка по умолчанию
             borderRadius: '20px',
-            padding: '40px',
+            padding: '40px 20px', // Адаптивный padding
             textAlign: 'center',
             boxShadow: `0 0 30px ${colorStyle}30`,
             maxWidth: '400px',
-            width: '100%'
+            width: '100%',
+            boxSizing: 'border-box', // Важно для адаптивности
           }}>
             <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🚧</div>
             <h3 style={{ 
               color: colorStyle, 
               marginBottom: '15px', 
-              fontSize: '1.5rem' 
+              fontSize: '1.5rem',
+              fontWeight: 'bold', // Стилизация как в ExchangePage
             }}>
               {t('under_construction')}
             </h3>
             <p style={{ 
               color: '#ccc', 
               lineHeight: '1.6',
-              fontSize: '1rem'
+              fontSize: '1rem',
+              maxWidth: '300px', // Ограничение ширины текста для читаемости
+              margin: '0 auto 20px auto', // Центрирование и отступ
             }}>
               Режим атак находится в разработке.<br/>
               Скоро здесь появятся эпические космические сражения!
@@ -106,9 +124,15 @@ const AttackPage: React.FC = () => {
               padding: '20px',
               background: 'rgba(255, 255, 255, 0.05)',
               borderRadius: '10px',
-              border: `1px solid ${colorStyle}50`
+              border: `1px solid ${colorStyle}50`,
+              textAlign: 'left', // Выравнивание списка влево
             }}>
-              <p style={{ color: colorStyle, fontWeight: 'bold', marginBottom: '10px' }}>
+              <p style={{ 
+                color: colorStyle, 
+                fontWeight: 'bold', 
+                marginBottom: '10px',
+                textAlign: 'center', // Заголовок по центру
+              }}>
                 🌟 Ожидайте в будущих обновлениях:
               </p>
               <ul style={{ 
@@ -116,7 +140,8 @@ const AttackPage: React.FC = () => {
                 color: '#ccc',
                 lineHeight: '1.8',
                 listStyle: 'none',
-                padding: 0
+                padding: 0,
+                margin: 0,
               }}>
                 <li>🚀 PvP сражения между игроками</li>
                 <li>🛡️ Защита своих ресурсов</li>

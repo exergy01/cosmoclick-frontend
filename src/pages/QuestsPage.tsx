@@ -103,7 +103,7 @@ const QuestsPage: React.FC = () => {
         // Убираем таймер
         setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
         
-        alert(`🎉 Получено ${response.data.reward_cs} CS!`);
+        alert(`🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`);
       }
     } catch (error: any) {
       console.error('Ошибка выполнения задания:', error);
@@ -176,7 +176,7 @@ const QuestsPage: React.FC = () => {
       <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
           
-          {/* Заголовок и прогресс */}
+          {/* Заголовок */}
           <h2 style={{ 
             color: colorStyle, 
             textShadow: `0 0 10px ${colorStyle}`, 
@@ -186,53 +186,7 @@ const QuestsPage: React.FC = () => {
             📋 {t('quests') || 'Задания'}
           </h2>
           
-          {/* Прогресс выполнения */}
-          <div style={{
-            margin: '0 auto 20px',
-            padding: '15px',
-            maxWidth: '400px',
-            background: 'rgba(0, 0, 0, 0.3)',
-            border: `1px solid ${colorStyle}`,
-            borderRadius: '15px'
-          }}>
-            <div style={{ marginBottom: '10px' }}>
-              <span style={{ color: colorStyle, fontWeight: 'bold' }}>
-                Выполнено: {completedCount} / {totalCount}
-              </span>
-            </div>
-            <div style={{
-              width: '100%',
-              height: '10px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '5px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                width: `${(completedCount / totalCount) * 100}%`,
-                height: '100%',
-                background: `linear-gradient(90deg, ${colorStyle}, ${colorStyle}80)`,
-                transition: 'width 0.3s ease'
-              }} />
-            </div>
-          </div>
-
-          {/* Переключатель отображения выполненных */}
-          <button
-            onClick={() => setShowCompleted(!showCompleted)}
-            style={{
-              margin: '0 auto 20px',
-              padding: '10px 20px',
-              background: showCompleted ? 'rgba(0, 255, 0, 0.2)' : 'rgba(128, 128, 128, 0.2)',
-              border: `1px solid ${showCompleted ? '#00ff00' : '#888'}`,
-              borderRadius: '10px',
-              color: showCompleted ? '#00ff00' : '#888',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            {showCompleted ? '👁️ Скрыть выполненные' : '👁️ Показать выполненные'}
-          </button>
+          {/* Убран блок прогресса и кнопка "Показать выполненные" */}
 
           {loading ? (
             <div style={{ color: colorStyle, fontSize: '1.2rem' }}>Wait...</div>
@@ -272,7 +226,7 @@ const QuestsPage: React.FC = () => {
                             {quest.description}
                           </p>
                           <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
-                            🎁 Награда: {quest.reward_cs} CS
+                            🎁 Награда: {Number(quest.reward_cs).toLocaleString()} CS
                           </p>
                         </div>
                         <div style={{
@@ -336,7 +290,7 @@ const QuestsPage: React.FC = () => {
                               {quest.description}
                             </p>
                             <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
-                              🎁 Награда: {quest.reward_cs} CS
+                              🎁 Награда: {Number(quest.reward_cs).toLocaleString()} CS
                             </p>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -451,7 +405,7 @@ const QuestsPage: React.FC = () => {
                             {quest.description}
                           </p>
                           <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
-                            🎁 Награда: {quest.reward_cs} CS
+                            🎁 Награда: {Number(quest.reward_cs).toLocaleString()} CS
                           </p>
                         </div>
                         <div style={{
