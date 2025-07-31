@@ -1,3 +1,4 @@
+// src/pages/QuestsPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
@@ -43,14 +44,16 @@ interface Player {
   cs: number;
   ccc: number;
   color: string;
+  energy: number; // Добавил energy
+  max_energy: number; // Добавил max_energy
   ad_views: number;
   last_ad_reset: string;
   drones: any[]; // Уточните тип, если известен
   // ... другие поля игрока
   verified: boolean; // Добавил verified, т.к. используется в MainPage для проверки рекламы
   unlocked_systems: number[]; // Добавил unlocked_systems для корректного типа
+  telegram_wallet: string | null; // Добавил telegram_wallet
 }
-
 
 const QuestsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -157,34 +160,32 @@ const QuestsPage: React.FC = () => {
       return;
     }
     try {
-      await adService.initialize(ADSGRAM_BLOCK_ID); 
-      const result = await adService.showRewardedAd(); 
+      await adService.initialize(ADSGRAM_BLOCK_ID);
+      const result = await adService.showRewardedAd();
       
       if (result.success) {
-        // НОВОЕ: Отправляем запрос на бэкенд для регистрации просмотра рекламы и начисления награды
-        const backendResponse = await axios.post(`${apiUrl}/api/player/watch_ad`, { 
+        const backendResponse = await axios.post(`${apiUrl}/api/player/watch_ad`, {
           telegramId: player.telegram_id,
-          // Можно добавить другие данные, если нужно для бэкенда (например, blockId, provider)
         });
 
         if (backendResponse.data.success) {
-          refreshPlayer(); // Обновляем состояние игрока после успешного ответа от бэкенда
+          setPlayer((prevPlayer: Player | null) => ({
+            ...prevPlayer!,
+            ad_views: (prevPlayer!.ad_views || 0) + 1,
+            ccc: Number(prevPlayer!.ccc) + 10 // Добавляем 10 CCC
+          }));
           addNotification(t('ad_watched') || 'Реклама просмотрена!', 'success');
         } else {
-          // Обрабатываем ошибку, если бэкенд не смог обновить данные
           addNotification(backendResponse.data.error || t('ad_update_error') || 'Ошибка при обновлении данных после рекламы.', 'error');
         }
-
       } else {
         addNotification(result.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
       }
     } catch (err: any) {
       console.error('Ad watch error:', err);
-      // Более конкретное сообщение об ошибке, если это ошибка API
       addNotification(err.response?.data?.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
     }
-  }, [player, refreshPlayer, addNotification, t]);
-
+  }, [player, setPlayer, addNotification, t]);
 
   const colorStyle = player?.color || '#00f0ff';
 
