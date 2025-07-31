@@ -23,10 +23,58 @@ const adminApi = axios.create({
   },
 });
 
+// Функция для безопасного получения Telegram ID
+const getTelegramId = (): string | null => {
+  try {
+    // Безопасный доступ к Telegram WebApp через any
+    const telegramWebApp = (window as any)?.Telegram?.WebApp;
+    
+    if (telegramWebApp?.initDataUnsafe?.user?.id) {
+      return String(telegramWebApp.initDataUnsafe.user.id);
+    }
+    
+    // Проверяем в URL параметрах
+    const urlParams = new URLSearchParams(window.location.search);
+    const startParam = urlParams.get('tgWebAppStartParam');
+    if (startParam) {
+      console.log('🔍 Found startParam:', startParam);
+    }
+    
+    // Проверяем localStorage (может быть сохранен ранее)
+    const savedId = localStorage.getItem('telegramId');
+    if (savedId) {
+      console.log('💾 Found saved Telegram ID:', savedId);
+      return savedId;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Ошибка получения Telegram ID:', error);
+    return null;
+  }
+};
+
 // Интерцептор для логирования запросов
 adminApi.interceptors.request.use(
   (config) => {
     console.log(`🔧 Admin API запрос: ${config.method?.toUpperCase()} ${config.url}`, config.data);
+    
+    // Отладочная информация для мобильных устройств
+    const telegramWebApp = (window as any)?.Telegram?.WebApp;
+    
+    console.log('📱 Debug info:', {
+      userAgent: navigator.userAgent,
+      isMobile: /Mobi|Android/i.test(navigator.userAgent),
+      telegramWebApp: !!telegramWebApp,
+      hasInitDataUnsafe: !!telegramWebApp?.initDataUnsafe,
+      hasUser: !!telegramWebApp?.initDataUnsafe?.user,
+      userId: telegramWebApp?.initDataUnsafe?.user?.id,
+      userName: telegramWebApp?.initDataUnsafe?.user?.first_name,
+      userUsername: telegramWebApp?.initDataUnsafe?.user?.username,
+      location: window.location.href,
+      webAppKeys: telegramWebApp ? Object.keys(telegramWebApp) : []
+    });
+    
     return config;
   },
   (error) => {
@@ -59,9 +107,29 @@ adminApi.interceptors.response.use(
 export const adminApiService = {
   
   // Проверка статуса админа
-  async checkAdminStatus(telegramId: string): Promise<AdminAuthStatus> {
+  async checkAdminStatus(telegramId?: string): Promise<AdminAuthStatus> {
     try {
-      const response = await adminApi.get(`/check/${telegramId}`);
+      const id = telegramId || getTelegramId();
+      
+      if (!id) {
+        console.error('❌ Telegram ID не найден в checkAdminStatus');
+        
+        const telegramWebApp = (window as any)?.Telegram?.WebApp;
+        console.log('🔍 Доступные данные Telegram:', {
+          telegramExists: !!(window as any)?.Telegram,
+          webAppExists: !!telegramWebApp,
+          initDataUnsafe: telegramWebApp?.initDataUnsafe,
+          user: telegramWebApp?.initDataUnsafe?.user,
+          webAppProps: telegramWebApp ? Object.keys(telegramWebApp) : [],
+          locationSearch: window.location.search,
+          savedId: localStorage.getItem('telegramId')
+        });
+        
+        throw new Error('Не удалось получить Telegram ID. Убедитесь, что приложение запущено из Telegram.');
+      }
+      
+      console.log('🔍 Проверяем админский статус для ID:', id);
+      const response = await adminApi.get(`/check/${id}`);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка проверки админского статуса:', error);
@@ -70,9 +138,26 @@ export const adminApiService = {
   },
 
   // Загрузка общей статистики
-  async getStats(telegramId: string): Promise<AdminStats> {
+  async getStats(telegramId?: string): Promise<AdminStats> {
     try {
-      const response = await adminApi.get(`/stats/${telegramId}`);
+      const id = telegramId || getTelegramId();
+      
+      if (!id) {
+        console.error('❌ Telegram ID не найден в getStats');
+        
+        const telegramWebApp = (window as any)?.Telegram?.WebApp;
+        console.log('🔍 Telegram WebApp данные:', {
+          exists: !!telegramWebApp,
+          initDataUnsafe: telegramWebApp?.initDataUnsafe,
+          user: telegramWebApp?.initDataUnsafe?.user,
+          allTelegramProps: (window as any)?.Telegram ? Object.keys((window as any).Telegram) : []
+        });
+        
+        throw new Error('Не удалось получить Telegram ID для загрузки статистики');
+      }
+      
+      console.log('📊 Загружаем статистику для ID:', id);
+      const response = await adminApi.get(`/stats/${id}`);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка загрузки статистики:', error);
@@ -81,13 +166,19 @@ export const adminApiService = {
   },
 
   // Поиск игроков
-  async searchPlayers(telegramId: string, query: string): Promise<SearchResult[]> {
+  async searchPlayers(telegramId?: string, query?: string): Promise<SearchResult[]> {
     try {
-      if (!query.trim()) {
+      const id = telegramId || getTelegramId();
+      
+      if (!id) {
+        throw new Error('Не удалось получить Telegram ID для поиска');
+      }
+      
+      if (!query?.trim()) {
         return [];
       }
       
-      const response = await adminApi.get(`/search/${telegramId}`, {
+      const response = await adminApi.get(`/search/${id}`, {
         params: { q: query }
       });
       return response.data.results || [];
@@ -98,9 +189,15 @@ export const adminApiService = {
   },
 
   // Получение подробных данных игрока
-  async getPlayerData(telegramId: string, playerId: string): Promise<PlayerData> {
+  async getPlayerData(telegramId?: string, playerId?: string): Promise<PlayerData> {
     try {
-      const response = await adminApi.get(`/player/${telegramId}/${playerId}`);
+      const id = telegramId || getTelegramId();
+      
+      if (!id || !playerId) {
+        throw new Error('Не хватает данных для загрузки информации об игроке');
+      }
+      
+      const response = await adminApi.get(`/player/${id}/${playerId}`);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка загрузки данных игрока:', error);
@@ -109,13 +206,19 @@ export const adminApiService = {
   },
 
   // Изменение баланса игрока
-  async updatePlayerBalance(telegramId: string, form: BalanceManageForm): Promise<BalanceUpdateResult> {
+  async updatePlayerBalance(telegramId?: string, form?: BalanceManageForm): Promise<BalanceUpdateResult> {
     try {
+      const id = telegramId || getTelegramId();
+      
+      if (!id || !form) {
+        throw new Error('Не хватает данных для обновления баланса');
+      }
+
       if (!form.playerId || !form.amount) {
         throw new Error('Заполните все поля');
       }
 
-      const response = await adminApi.post(`/update-balance/${telegramId}`, {
+      const response = await adminApi.post(`/update-balance/${id}`, {
         playerId: form.playerId,
         currency: form.currency,
         operation: form.operation,
@@ -130,9 +233,15 @@ export const adminApiService = {
   },
 
   // Верификация игрока
-  async verifyPlayer(telegramId: string, playerId: string, verified: boolean): Promise<void> {
+  async verifyPlayer(telegramId?: string, playerId?: string, verified?: boolean): Promise<void> {
     try {
-      await adminApi.post(`/verify-player/${telegramId}`, {
+      const id = telegramId || getTelegramId();
+      
+      if (!id || !playerId || verified === undefined) {
+        throw new Error('Не хватает данных для верификации игрока');
+      }
+      
+      await adminApi.post(`/verify-player/${id}`, {
         playerId,
         verified
       });
@@ -143,13 +252,19 @@ export const adminApiService = {
   },
 
   // Обновление курса TON
-  async updateTonRate(telegramId: string, form: TonRateForm): Promise<TonRateUpdateResult> {
+  async updateTonRate(telegramId?: string, form?: TonRateForm): Promise<TonRateUpdateResult> {
     try {
+      const id = telegramId || getTelegramId();
+      
+      if (!id || !form) {
+        throw new Error('Не хватает данных для обновления курса TON');
+      }
+
       if (!form.newRate || parseFloat(form.newRate) <= 0) {
         throw new Error('Введите корректный курс TON');
       }
 
-      const response = await adminApi.post(`/update-ton-rate/${telegramId}`, {
+      const response = await adminApi.post(`/update-ton-rate/${id}`, {
         newRate: parseFloat(form.newRate)
       });
       
@@ -161,9 +276,15 @@ export const adminApiService = {
   },
 
   // Снятие блокировки обмена
-  async unblockExchange(telegramId: string, exchangeType: string = 'stars_to_cs'): Promise<void> {
+  async unblockExchange(telegramId?: string, exchangeType: string = 'stars_to_cs'): Promise<void> {
     try {
-      await adminApi.post(`/unblock-exchange/${telegramId}`, {
+      const id = telegramId || getTelegramId();
+      
+      if (!id) {
+        throw new Error('Не удалось получить Telegram ID для снятия блокировки');
+      }
+      
+      await adminApi.post(`/unblock-exchange/${id}`, {
         exchangeType
       });
     } catch (error) {
