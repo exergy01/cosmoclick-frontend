@@ -1,5 +1,5 @@
-// pages/admin/components/AdminStatsTab.tsx
-import React, { useEffect } from 'react';
+// Замените AdminStatsTab.tsx на эту версию с визуальной отладкой
+import React, { useEffect, useState } from 'react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import AdminStatsCard from './AdminStatsCard';
 import AdminTopPlayersTable from './AdminTopPlayersTable';
@@ -14,6 +14,8 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
   onPlayerClick
 }) => {
   const { stats, loading, error, loadStats, refresh } = useAdminStats();
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Загружаем статистику при монтировании компонента
   useEffect(() => {
@@ -24,84 +26,244 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
     await refresh();
   };
 
+  const handleDebug = () => {
+    // Собираем всю отладочную информацию
+    const telegram = (window as any)?.Telegram;
+    const webApp = telegram?.WebApp;
+    
+    const info = {
+      // Telegram данные
+      telegramExists: !!telegram,
+      webAppExists: !!webApp,
+      initDataUnsafe: webApp?.initDataUnsafe,
+      userId: webApp?.initDataUnsafe?.user?.id,
+      userName: webApp?.initDataUnsafe?.user?.first_name,
+      userUsername: webApp?.initDataUnsafe?.user?.username,
+      
+      // Другие источники
+      savedId: localStorage.getItem('telegramId'),
+      currentUrl: window.location.href,
+      urlParams: window.location.search,
+      
+      // Устройство
+      userAgent: navigator.userAgent,
+      isMobile: /Mobi|Android/i.test(navigator.userAgent),
+      platform: navigator.platform,
+      
+      // Админский ID
+      expectedAdminId: '1222791281',
+      
+      // Что мы получили
+      finalId: webApp?.initDataUnsafe?.user?.id || localStorage.getItem('telegramId'),
+      isAdmin: (webApp?.initDataUnsafe?.user?.id || localStorage.getItem('telegramId')) === '1222791281'
+    };
+    
+    setDebugInfo(info);
+    setShowDebug(true);
+  };
+
+  const handleForceTest = () => {
+    // Принудительно устанавливаем админский ID
+    localStorage.setItem('telegramId', '1222791281');
+    alert('Установлен тестовый админский ID. Обновите страницу и попробуйте загрузить статистику.');
+    window.location.reload();
+  };
+
+  const handleTelegramTest = () => {
+    const webApp = (window as any)?.Telegram?.WebApp;
+    if (webApp?.initDataUnsafe?.user?.id) {
+      const id = String(webApp.initDataUnsafe.user.id);
+      localStorage.setItem('telegramId', id);
+      alert(`Найден Telegram ID: ${id}. Сохранен и перезагружаем...`);
+      window.location.reload();
+    } else {
+      alert('Telegram WebApp данные не найдены. Убедитесь, что запускаете из Telegram.');
+    }
+  };
+
   return (
     <div>
-      {/* Заголовок с кнопкой обновления */}
+      {/* Заголовок с кнопками */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: '30px',
+        marginBottom: '20px',
         flexWrap: 'wrap',
-        gap: '15px'
+        gap: '10px'
       }}>
         <h2 style={{ 
           color: colorStyle, 
           margin: 0,
-          fontSize: '1.8rem',
-          textShadow: `0 0 10px ${colorStyle}40`
+          fontSize: '1.5rem'
         }}>
-          📊 Общая статистика системы
+          📊 Статистика
         </h2>
-        <button
-          onClick={handleRefresh}
-          disabled={loading}
-          style={{
-            padding: '10px 20px',
-            background: loading 
-              ? 'rgba(255, 255, 255, 0.1)' 
-              : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
-            border: 'none',
-            borderRadius: '10px',
-            color: '#fff',
-            cursor: loading ? 'wait' : 'pointer',
-            fontSize: '0.9rem',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-          onMouseEnter={(e) => {
-            if (!loading) {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = `0 0 15px ${colorStyle}40`;
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          {loading ? (
-            <>
-              <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
-              Загрузка...
-            </>
-          ) : (
-            <>
-              🔄 Обновить
-            </>
-          )}
-        </button>
+        
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            style={{
+              padding: '10px 15px',
+              background: loading 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: loading ? 'wait' : 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            {loading ? '⏳' : '🔄'} Загрузить
+          </button>
+          
+          <button
+            onClick={handleDebug}
+            style={{
+              padding: '10px 15px',
+              background: 'linear-gradient(135deg, #ff6b35, #ff6b3588)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            🔍 Диагностика
+          </button>
+        </div>
       </div>
+
+      {/* Блок диагностики */}
+      {showDebug && debugInfo && (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: `2px solid ${colorStyle}`,
+          borderRadius: '12px',
+          padding: '20px',
+          marginBottom: '20px',
+          fontSize: '0.9rem'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '15px'
+          }}>
+            <h3 style={{ color: colorStyle, margin: 0 }}>🔍 Диагностика</h3>
+            <button 
+              onClick={() => setShowDebug(false)}
+              style={{
+                background: 'rgba(255,255,255,0.2)',
+                border: 'none',
+                color: '#fff',
+                borderRadius: '4px',
+                padding: '5px 10px',
+                cursor: 'pointer'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#aaa', marginBottom: '10px' }}>📱 Telegram данные:</div>
+            <div>• Telegram объект: {debugInfo.telegramExists ? '✅' : '❌'}</div>
+            <div>• WebApp объект: {debugInfo.webAppExists ? '✅' : '❌'}</div>
+            <div>• User ID: {debugInfo.userId || '❌ не найден'}</div>
+            <div>• Имя: {debugInfo.userName || '❌ не найдено'}</div>
+            <div>• Username: {debugInfo.userUsername || '❌ не найден'}</div>
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#aaa', marginBottom: '10px' }}>💾 Другие источники:</div>
+            <div>• Сохраненный ID: {debugInfo.savedId || '❌ нет'}</div>
+            <div>• URL параметры: {debugInfo.urlParams || '❌ нет'}</div>
+          </div>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ color: '#aaa', marginBottom: '10px' }}>🎯 Результат:</div>
+            <div>• Итоговый ID: <strong>{debugInfo.finalId || '❌ НЕ НАЙДЕН'}</strong></div>
+            <div>• Админский ID должен быть: <strong>1222791281</strong></div>
+            <div>• Является админом: {debugInfo.isAdmin ? '✅ ДА' : '❌ НЕТ'}</div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleTelegramTest}
+              style={{
+                padding: '8px 12px',
+                background: 'linear-gradient(135deg, #4CAF50, #4CAF5088)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              📱 Использовать Telegram ID
+            </button>
+            
+            <button
+              onClick={handleForceTest}
+              style={{
+                padding: '8px 12px',
+                background: 'linear-gradient(135deg, #FF9800, #FF980088)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              🧪 Тестовый админский ID
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Ошибка */}
       {error && !loading && (
         <div style={{
           background: 'rgba(255, 0, 0, 0.1)',
-          border: '1px solid #ff4444',
-          borderRadius: '10px',
-          padding: '15px',
+          border: '2px solid #ff4444',
+          borderRadius: '12px',
+          padding: '20px',
           marginBottom: '20px',
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>⚠️</div>
-          <div style={{ color: '#ff6666', fontWeight: 'bold', marginBottom: '5px' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
+          <div style={{ color: '#ff6666', fontWeight: 'bold', marginBottom: '10px' }}>
             Ошибка загрузки статистики
           </div>
-          <div style={{ color: '#aaa', fontSize: '0.9rem' }}>
+          <div style={{ color: '#aaa', fontSize: '0.9rem', marginBottom: '15px' }}>
             {error}
           </div>
+          
+          <div style={{ fontSize: '0.9rem', color: '#ccc', marginBottom: '15px' }}>
+            🔧 <strong>Возможные причины:</strong><br/>
+            • Telegram ID не найден<br/>
+            • Приложение запущено не из Telegram<br/>
+            • Проблемы с сервером<br/>
+            • Вы не являетесь администратором
+          </div>
+          
+          <button
+            onClick={handleDebug}
+            style={{
+              padding: '10px 20px',
+              background: 'linear-gradient(135deg, #ff6b35, #ff6b3588)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            🔍 Показать диагностику
+          </button>
         </div>
       )}
 
@@ -109,8 +271,8 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
       {(stats || loading) && (
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-          gap: '25px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+          gap: '20px',
           marginBottom: '30px'
         }}>
           
@@ -121,28 +283,28 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'Всего игроков', value: stats.players.total_players },
+              { label: 'Всего', value: stats.players.total_players },
               { label: 'Верифицированных', value: stats.players.verified_players, color: '#4CAF50' },
-              { label: 'Активны за 24ч', value: stats.players.active_24h, color: '#FF9800' },
-              { label: 'Активны за 7 дней', value: stats.players.active_7d, color: '#2196F3' }
+              { label: 'Активны 24ч', value: stats.players.active_24h, color: '#FF9800' },
+              { label: 'Активны 7д', value: stats.players.active_7d, color: '#2196F3' }
             ] : []}
           />
 
           {/* Статистика валют */}
           <AdminStatsCard
-            title="Валюты в системе"
+            title="Валюты"
             icon="💰"
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'Всего CCC', value: (stats.currencies.total_ccc || 0).toFixed(2) },
-              { label: 'Всего CS', value: (stats.currencies.total_cs || 0).toFixed(2), color: '#FFD700' },
-              { label: 'Всего TON', value: (stats.currencies.total_ton || 0).toFixed(4), color: '#0088cc' },
-              { label: 'Всего Stars', value: stats.currencies.total_stars || 0, color: '#FFA500' }
+              { label: 'CCC', value: (stats.currencies.total_ccc || 0).toFixed(2) },
+              { label: 'CS', value: (stats.currencies.total_cs || 0).toFixed(2), color: '#FFD700' },
+              { label: 'TON', value: (stats.currencies.total_ton || 0).toFixed(4), color: '#0088cc' },
+              { label: 'Stars', value: stats.currencies.total_stars || 0, color: '#FFA500' }
             ] : []}
           />
 
-          {/* Статистика обменов Stars */}
+          {/* Статистика обменов */}
           <AdminStatsCard
             title="Обмены Stars"
             icon="🌟"
@@ -152,13 +314,13 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
               { label: 'Всего обменов', value: stats.stars_exchange.total_exchanges || 0 },
               { label: 'Stars обменено', value: stats.stars_exchange.total_stars_exchanged || 0, color: '#FFA500' },
               { label: 'CS получено', value: (stats.stars_exchange.total_cs_received || 0).toFixed(2), color: '#FFD700' },
-              { label: 'Обменов за 24ч', value: stats.stars_exchange.exchanges_24h || 0, color: '#FF9800' }
+              { label: 'За 24ч', value: stats.stars_exchange.exchanges_24h || 0, color: '#FF9800' }
             ] : []}
           />
 
-          {/* Текущие курсы */}
+          {/* Курсы */}
           <AdminStatsCard
-            title="Текущие курсы"
+            title="Курсы"
             icon="📈"
             colorStyle={colorStyle}
             loading={loading}
@@ -192,14 +354,32 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
       {!stats && !loading && !error && (
         <div style={{ 
           textAlign: 'center', 
-          padding: '60px 20px',
+          padding: '40px 20px',
           background: 'rgba(255, 255, 255, 0.05)',
-          borderRadius: '15px',
+          borderRadius: '12px',
           border: `1px solid ${colorStyle}20`
         }}>
-          <div style={{ fontSize: '3rem', marginBottom: '15px', opacity: 0.7 }}>📊</div>
-          <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>Нажмите "Обновить" для загрузки статистики</div>
-          <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Получите полную информацию о состоянии системы</div>
+          <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📊</div>
+          <div style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Нажмите "Загрузить" для получения статистики</div>
+          <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Информация о состоянии системы CosmoClick</div>
+        </div>
+      )}
+      
+      {/* Информация о статистике */}
+      {stats && (
+        <div style={{
+          marginTop: '30px',
+          padding: '15px',
+          background: 'rgba(0, 255, 0, 0.05)',
+          border: `1px solid #4CAF5040`,
+          borderRadius: '10px',
+          textAlign: 'center',
+          fontSize: '0.9rem'
+        }}>
+          <div style={{ color: '#4CAF50', marginBottom: '5px' }}>✅ Статистика загружена успешно!</div>
+          <div style={{ color: '#aaa' }}>
+            Данные обновлены: {new Date().toLocaleString('ru-RU')}
+          </div>
         </div>
       )}
     </div>
