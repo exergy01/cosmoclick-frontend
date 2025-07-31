@@ -1,6 +1,7 @@
-// Замените AdminStatsTab.tsx на эту версию с визуальной отладкой
+// pages/admin/components/AdminStatsTab.tsx
 import React, { useEffect, useState } from 'react';
 import { useAdminStats } from '../hooks/useAdminStats';
+import { forceSaveTelegramId, setTestAdminId } from '../services/adminApi';
 import AdminStatsCard from './AdminStatsCard';
 import AdminTopPlayersTable from './AdminTopPlayersTable';
 
@@ -31,17 +32,26 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
     const telegram = (window as any)?.Telegram;
     const webApp = telegram?.WebApp;
     
+    // Получаем все возможные ID
+    const webAppId = webApp?.initDataUnsafe?.user?.id;
+    const savedId = localStorage.getItem('telegramId');
+    
+    // Приводим к строкам для правильного сравнения
+    const webAppIdStr = webAppId ? String(webAppId) : null;
+    const adminIdStr = '1222791281';
+    
     const info = {
       // Telegram данные
       telegramExists: !!telegram,
       webAppExists: !!webApp,
       initDataUnsafe: webApp?.initDataUnsafe,
-      userId: webApp?.initDataUnsafe?.user?.id,
+      userId: webAppId,
+      userIdString: webAppIdStr,
       userName: webApp?.initDataUnsafe?.user?.first_name,
       userUsername: webApp?.initDataUnsafe?.user?.username,
       
       // Другие источники
-      savedId: localStorage.getItem('telegramId'),
+      savedId: savedId,
       currentUrl: window.location.href,
       urlParams: window.location.search,
       
@@ -50,35 +60,39 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
       isMobile: /Mobi|Android/i.test(navigator.userAgent),
       platform: navigator.platform,
       
-      // Админский ID
-      expectedAdminId: '1222791281',
+      // Сравнение ID
+      expectedAdminId: adminIdStr,
+      webAppIdMatches: webAppIdStr === adminIdStr,
+      savedIdMatches: savedId === adminIdStr,
       
-      // Что мы получили
-      finalId: webApp?.initDataUnsafe?.user?.id || localStorage.getItem('telegramId'),
-      isAdmin: (webApp?.initDataUnsafe?.user?.id || localStorage.getItem('telegramId')) === '1222791281'
+      // Что мы получили итого
+      finalId: savedId || webAppIdStr,
+      finalIdMatches: (savedId || webAppIdStr) === adminIdStr,
+      
+      // Отладка типов
+      webAppIdType: typeof webAppId,
+      savedIdType: typeof savedId,
+      adminIdType: typeof adminIdStr
     };
     
     setDebugInfo(info);
     setShowDebug(true);
   };
 
-  const handleForceTest = () => {
-    // Принудительно устанавливаем админский ID
-    localStorage.setItem('telegramId', '1222791281');
-    alert('Установлен тестовый админский ID. Обновите страницу и попробуйте загрузить статистику.');
-    window.location.reload();
-  };
-
   const handleTelegramTest = () => {
-    const webApp = (window as any)?.Telegram?.WebApp;
-    if (webApp?.initDataUnsafe?.user?.id) {
-      const id = String(webApp.initDataUnsafe.user.id);
-      localStorage.setItem('telegramId', id);
-      alert(`Найден Telegram ID: ${id}. Сохранен и перезагружаем...`);
+    const savedId = forceSaveTelegramId();
+    if (savedId) {
+      alert(`✅ Telegram ID сохранен: ${savedId}\nПерезагружаем страницу...`);
       window.location.reload();
     } else {
-      alert('Telegram WebApp данные не найдены. Убедитесь, что запускаете из Telegram.');
+      alert('❌ Не удалось получить Telegram ID из WebApp');
     }
+  };
+
+  const handleForceTest = () => {
+    setTestAdminId();
+    alert('🧪 Тестовый админский ID установлен!\nПерезагружаем страницу...');
+    window.location.reload();
   };
 
   return (
@@ -100,20 +114,20 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           📊 Статистика
         </h2>
         
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             onClick={handleRefresh}
             disabled={loading}
             style={{
-              padding: '10px 15px',
+              padding: '8px 12px',
               background: loading 
                 ? 'rgba(255, 255, 255, 0.1)' 
                 : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               color: '#fff',
               cursor: loading ? 'wait' : 'pointer',
-              fontSize: '0.9rem'
+              fontSize: '0.8rem'
             }}
           >
             {loading ? '⏳' : '🔄'} Загрузить
@@ -122,13 +136,13 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           <button
             onClick={handleDebug}
             style={{
-              padding: '10px 15px',
+              padding: '8px 12px',
               background: 'linear-gradient(135deg, #ff6b35, #ff6b3588)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '6px',
               color: '#fff',
               cursor: 'pointer',
-              fontSize: '0.9rem'
+              fontSize: '0.8rem'
             }}
           >
             🔍 Диагностика
@@ -142,9 +156,9 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           background: 'rgba(255, 255, 255, 0.1)',
           border: `2px solid ${colorStyle}`,
           borderRadius: '12px',
-          padding: '20px',
+          padding: '15px',
           marginBottom: '20px',
-          fontSize: '0.9rem'
+          fontSize: '0.85rem'
         }}>
           <div style={{ 
             display: 'flex', 
@@ -152,7 +166,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             alignItems: 'center',
             marginBottom: '15px'
           }}>
-            <h3 style={{ color: colorStyle, margin: 0 }}>🔍 Диагностика</h3>
+            <h3 style={{ color: colorStyle, margin: 0, fontSize: '1rem' }}>🔍 Подробная диагностика</h3>
             <button 
               onClick={() => setShowDebug(false)}
               style={{
@@ -160,66 +174,111 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
                 border: 'none',
                 color: '#fff',
                 borderRadius: '4px',
-                padding: '5px 10px',
-                cursor: 'pointer'
+                padding: '4px 8px',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
               }}
             >
               ✕
             </button>
           </div>
           
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ color: '#aaa', marginBottom: '10px' }}>📱 Telegram данные:</div>
-            <div>• Telegram объект: {debugInfo.telegramExists ? '✅' : '❌'}</div>
-            <div>• WebApp объект: {debugInfo.webAppExists ? '✅' : '❌'}</div>
-            <div>• User ID: {debugInfo.userId || '❌ не найден'}</div>
-            <div>• Имя: {debugInfo.userName || '❌ не найдено'}</div>
-            <div>• Username: {debugInfo.userUsername || '❌ не найден'}</div>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.9rem' }}>📱 Telegram WebApp:</div>
+            <div>• Telegram: {debugInfo.telegramExists ? '✅' : '❌'}</div>
+            <div>• WebApp: {debugInfo.webAppExists ? '✅' : '❌'}</div>
+            <div>• User ID: <strong>{debugInfo.userId || '❌'}</strong> (тип: {debugInfo.webAppIdType})</div>
+            <div>• User ID как строка: <strong>{debugInfo.userIdString || '❌'}</strong></div>
+            <div>• Имя: {debugInfo.userName || '❌'}</div>
+            <div>• Username: {debugInfo.userUsername || '❌'}</div>
           </div>
           
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ color: '#aaa', marginBottom: '10px' }}>💾 Другие источники:</div>
-            <div>• Сохраненный ID: {debugInfo.savedId || '❌ нет'}</div>
-            <div>• URL параметры: {debugInfo.urlParams || '❌ нет'}</div>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.9rem' }}>💾 localStorage:</div>
+            <div>• Сохраненный ID: <strong>{debugInfo.savedId || '❌'}</strong> (тип: {debugInfo.savedIdType})</div>
           </div>
           
-          <div style={{ marginBottom: '15px' }}>
-            <div style={{ color: '#aaa', marginBottom: '10px' }}>🎯 Результат:</div>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.9rem' }}>🔍 Сравнение ID:</div>
+            <div>• Админский ID: <strong>{debugInfo.expectedAdminId}</strong> (тип: {debugInfo.adminIdType})</div>
+            <div>• WebApp ID совпадает: {debugInfo.webAppIdMatches ? '✅ ДА' : '❌ НЕТ'}</div>
+            <div>• Сохраненный ID совпадает: {debugInfo.savedIdMatches ? '✅ ДА' : '❌ НЕТ'}</div>
+          </div>
+          
+          <div style={{ 
+            marginBottom: '15px',
+            padding: '10px',
+            background: debugInfo.finalIdMatches ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 87, 34, 0.2)',
+            borderRadius: '8px'
+          }}>
+            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.9rem' }}>🎯 ФИНАЛЬНЫЙ РЕЗУЛЬТАТ:</div>
             <div>• Итоговый ID: <strong>{debugInfo.finalId || '❌ НЕ НАЙДЕН'}</strong></div>
-            <div>• Админский ID должен быть: <strong>1222791281</strong></div>
-            <div>• Является админом: {debugInfo.isAdmin ? '✅ ДА' : '❌ НЕТ'}</div>
+            <div>• Является админом: <strong>{debugInfo.finalIdMatches ? '✅ ДА' : '❌ НЕТ'}</strong></div>
+            {!debugInfo.finalIdMatches && (
+              <div style={{ color: '#ff6666', fontSize: '0.8rem', marginTop: '5px' }}>
+                ⚠️ ID не совпадает с админским! Попробуйте кнопки ниже.
+              </div>
+            )}
           </div>
           
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
               onClick={handleTelegramTest}
               style={{
-                padding: '8px 12px',
+                padding: '6px 10px',
                 background: 'linear-gradient(135deg, #4CAF50, #4CAF5088)',
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: '5px',
                 color: '#fff',
                 cursor: 'pointer',
-                fontSize: '0.8rem'
+                fontSize: '0.75rem'
               }}
             >
-              📱 Использовать Telegram ID
+              📱 Сохранить из Telegram
             </button>
             
             <button
               onClick={handleForceTest}
               style={{
-                padding: '8px 12px',
+                padding: '6px 10px',
                 background: 'linear-gradient(135deg, #FF9800, #FF980088)',
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: '5px',
                 color: '#fff',
                 cursor: 'pointer',
-                fontSize: '0.8rem'
+                fontSize: '0.75rem'
               }}
             >
-              🧪 Тестовый админский ID
+              🧪 Принудительно админ
             </button>
+            
+            <button
+              onClick={() => {
+                localStorage.clear();
+                alert('🗑️ localStorage очищен. Перезагружаем...');
+                window.location.reload();
+              }}
+              style={{
+                padding: '6px 10px',
+                background: 'linear-gradient(135deg, #f44336, #f4433688)',
+                border: 'none',
+                borderRadius: '5px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '0.75rem'
+              }}
+            >
+              🗑️ Очистить localStorage
+            </button>
+          </div>
+          
+          <div style={{ 
+            marginTop: '10px',
+            fontSize: '0.7rem',
+            color: '#888',
+            fontStyle: 'italic'
+          }}>
+            💡 Если ничего не помогает - проблема может быть в backend проверке админского ID
           </div>
         </div>
       )}
@@ -242,27 +301,68 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             {error}
           </div>
           
-          <div style={{ fontSize: '0.9rem', color: '#ccc', marginBottom: '15px' }}>
+          <div style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '15px' }}>
             🔧 <strong>Возможные причины:</strong><br/>
-            • Telegram ID не найден<br/>
-            • Приложение запущено не из Telegram<br/>
-            • Проблемы с сервером<br/>
-            • Вы не являетесь администратором
+            • Telegram ID найден, но не сохранен правильно<br/>
+            • Backend не распознает ваш ID как админский<br/>
+            • Проблемы с сервером или базой данных<br/>
+            • Неправильное сравнение строк в коде
           </div>
           
           <button
             onClick={handleDebug}
             style={{
-              padding: '10px 20px',
+              padding: '10px 15px',
               background: 'linear-gradient(135deg, #ff6b35, #ff6b3588)',
               border: 'none',
               borderRadius: '8px',
               color: '#fff',
               cursor: 'pointer',
-              fontSize: '0.9rem'
+              fontSize: '0.8rem'
             }}
           >
-            🔍 Показать диагностику
+            🔍 Показать подробную диагностику
+          </button>
+        </div>
+      )}
+
+      {/* Быстрые действия при ошибке */}
+      {error && !showDebug && (
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          justifyContent: 'center',
+          marginBottom: '20px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={handleTelegramTest}
+            style={{
+              padding: '8px 12px',
+              background: 'linear-gradient(135deg, #4CAF50, #4CAF5088)',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.8rem'
+            }}
+          >
+            📱 Попробовать Telegram ID
+          </button>
+          
+          <button
+            onClick={handleForceTest}
+            style={{
+              padding: '8px 12px',
+              background: 'linear-gradient(135deg, #FF9800, #FF980088)',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.8rem'
+            }}
+          >
+            🧪 Форсировать админ доступ
           </button>
         </div>
       )}
@@ -327,7 +427,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             data={stats ? [
               ...(stats.current_rates?.TON_USD ? [{
                 label: 'TON/USD',
-                value: `$${stats.current_rates.TON_USD.rate}`,
+                value: `${stats.current_rates.TON_USD.rate}`,
                 color: '#0088cc'
               }] : [{ label: 'TON/USD', value: 'Не загружен', color: '#666' }]),
               ...(stats.current_rates?.STARS_CS ? [{

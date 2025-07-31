@@ -27,7 +27,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       });
       
       // Пытаемся получить Telegram ID разными способами
-      let telegramId = player?.telegram_id;
+      let telegramId: string | null = null;
       
       console.log('📱 Player данные:', {
         telegram_id: player?.telegram_id,
@@ -36,41 +36,56 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         hasPlayer: !!player
       });
       
+      // 1. Сначала проверяем localStorage (приоритет для сохраненных значений)
+      const savedId = localStorage.getItem('telegramId');
+      if (savedId && savedId.trim()) {
+        telegramId = savedId.trim();
+        console.log('💾 Используем сохраненный ID:', telegramId);
+      }
+      
+      // 2. Если нет сохраненного, пробуем получить из player
+      if (!telegramId && player?.telegram_id) {
+        telegramId = String(player.telegram_id);
+        console.log('👤 Используем ID из player:', telegramId);
+      }
+      
+      // 3. Если нет в player, пробуем Telegram WebApp
       if (!telegramId) {
-        console.log('⚠️ Telegram ID не найден в player, пробуем Telegram WebApp...');
+        console.log('⚠️ Telegram ID не найден в сохраненных, пробуем Telegram WebApp...');
         
-        // Проверяем Telegram WebApp
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-          telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
+        const webApp = (window as any)?.Telegram?.WebApp;
+        if (webApp?.initDataUnsafe?.user?.id) {
+          telegramId = String(webApp.initDataUnsafe.user.id);
           console.log('📱 Найден ID в Telegram WebApp:', telegramId);
           
           // Сохраняем для будущего использования
-          localStorage.setItem('telegramId', telegramId);
-        }
-        
-        // Проверяем localStorage
-        if (!telegramId) {
-          const savedId = localStorage.getItem('telegramId');
-          if (savedId) {
-            telegramId = savedId;
-            console.log('💾 Найден сохраненный ID:', telegramId);
-          }
-        }
-        
-        // Проверяем URL параметры
-        if (!telegramId) {
-          const urlParams = new URLSearchParams(window.location.search);
-          const startParam = urlParams.get('tgWebAppStartParam');
-          if (startParam) {
-            console.log('🔗 Найден startParam:', startParam);
-            // startParam может содержать referral info, но не telegram_id
+          try {
+            localStorage.setItem('telegramId', telegramId);
+            console.log('💾 ID сохранен в localStorage для будущего использования');
+          } catch (storageError) {
+            console.warn('⚠️ Не удалось сохранить ID:', storageError);
           }
         }
       }
       
       if (!telegramId) {
-        setError('Не удалось получить Telegram ID. Убедитесь, что приложение запущено из Telegram.');
+        const errorMsg = 'Не удалось получить Telegram ID. Убедитесь, что приложение запущено из Telegram.';
+        setError(errorMsg);
         setIsAdmin(false);
+        
+        console.error('❌ Telegram ID не найден во всех источниках');
+        
+        // Показываем подробную диагностику
+        const webApp = (window as any)?.Telegram?.WebApp;
+        console.log('🔍 Полная диагностика:', {
+          telegram: !!(window as any)?.Telegram,
+          webApp: !!webApp,
+          initDataUnsafe: webApp?.initDataUnsafe,
+          user: webApp?.initDataUnsafe?.user,
+          userId: webApp?.initDataUnsafe?.user?.id,
+          savedId: localStorage.getItem('telegramId'),
+          playerTelegramId: player?.telegram_id
+        });
         
         // На мобильных устройствах даем больше времени
         setTimeout(() => {
@@ -80,6 +95,8 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       }
       
       console.log('🔍 Проверяем админский статус для ID:', telegramId);
+      console.log('🔍 Ожидаемый админский ID: 1222791281');
+      console.log('🔍 ID совпадает локально:', telegramId === '1222791281');
       
       const result = await adminApiService.checkAdminStatus(telegramId);
       
@@ -88,10 +105,14 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       
       if (!result.isAdmin) {
         setError('Доступ запрещен! Только для администратора.');
+        console.log('❌ Доступ запрещен - не админ. Telegram ID:', telegramId);
+        
         // Показываем предупреждение и перенаправляем через 3 секунды
         setTimeout(() => {
           navigate('/', { replace: true });
         }, 3000);
+      } else {
+        console.log('✅ Админские права подтверждены для ID:', telegramId);
       }
     } catch (err) {
       const errorMessage = handleAdminApiError(err);

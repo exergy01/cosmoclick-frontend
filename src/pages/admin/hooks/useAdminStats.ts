@@ -23,24 +23,37 @@ export const useAdminStats = (): UseAdminStatsReturn => {
         first_name: player?.first_name
       });
       
-      // Пытаемся получить Telegram ID разными способами
-      let telegramId = player?.telegram_id;
+      // Пытаемся получить Telegram ID разными способами с приоритетом localStorage
+      let telegramId: string | null = null;
       
+      // 1. Сначала проверяем localStorage (приоритет)
+      const savedId = localStorage.getItem('telegramId');
+      if (savedId && savedId.trim()) {
+        telegramId = savedId.trim();
+        console.log('💾 Используем сохраненный ID для статистики:', telegramId);
+      }
+      
+      // 2. Если нет сохраненного, пробуем получить из player
+      if (!telegramId && player?.telegram_id) {
+        telegramId = String(player.telegram_id);
+        console.log('👤 Используем ID из player для статистики:', telegramId);
+      }
+      
+      // 3. Если нет в player, пробуем Telegram WebApp
       if (!telegramId) {
-        console.log('⚠️ Telegram ID не найден в player, пробуем другие источники...');
+        console.log('⚠️ Telegram ID не найден в сохраненных, пробуем другие источники...');
         
-        // Проверяем Telegram WebApp
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-          telegramId = String(window.Telegram.WebApp.initDataUnsafe.user.id);
-          console.log('📱 Найден ID в Telegram WebApp:', telegramId);
-        }
-        
-        // Проверяем localStorage
-        if (!telegramId) {
-          const savedId = localStorage.getItem('telegramId');
-          if (savedId) {
-            telegramId = savedId;
-            console.log('💾 Найден сохраненный ID:', telegramId);
+        const webApp = (window as any)?.Telegram?.WebApp;
+        if (webApp?.initDataUnsafe?.user?.id) {
+          telegramId = String(webApp.initDataUnsafe.user.id);
+          console.log('📱 Найден ID в Telegram WebApp для статистики:', telegramId);
+          
+          // Сохраняем для будущего использования
+          try {
+            localStorage.setItem('telegramId', telegramId);
+            console.log('💾 ID сохранен в localStorage');
+          } catch (storageError) {
+            console.warn('⚠️ Не удалось сохранить ID:', storageError);
           }
         }
       }
@@ -49,18 +62,42 @@ export const useAdminStats = (): UseAdminStatsReturn => {
         throw new Error('Не удалось получить Telegram ID. Попробуйте перезапустить приложение из Telegram.');
       }
       
-      console.log('🔍 Используем Telegram ID для запроса:', telegramId);
+      console.log('🔍 Используем Telegram ID для запроса статистики:', telegramId);
+      console.log('🔍 Ожидаемый админский ID: 1222791281');
+      console.log('🔍 ID совпадает:', telegramId === '1222791281');
       
       const result = await adminApiService.getStats(telegramId);
       
       setStats(result);
       console.log('✅ Статистика загружена успешно:', result);
+      
+      // Показываем краткую сводку загруженных данных
+      if (result) {
+        console.log('📊 Краткая сводка статистики:', {
+          totalPlayers: result.players?.total_players || 0,
+          totalCS: result.currencies?.total_cs?.toFixed(2) || '0',
+          totalExchanges: result.stars_exchange?.total_exchanges || 0,
+          topPlayersCount: result.top_players?.length || 0,
+          hasRates: !!(result.current_rates && Object.keys(result.current_rates).length > 0)
+        });
+      }
     } catch (err) {
       const errorMessage = handleAdminApiError(err);
       console.error('❌ Ошибка загрузки статистики:', errorMessage);
       
       setError(errorMessage);
       setStats(null);
+      
+      // Дополнительная диагностика при ошибке
+      const webApp = (window as any)?.Telegram?.WebApp;
+      console.log('🔍 Диагностика при ошибке загрузки статистики:', {
+        savedId: localStorage.getItem('telegramId'),
+        playerTelegramId: player?.telegram_id,
+        webAppExists: !!webApp,
+        webAppUserId: webApp?.initDataUnsafe?.user?.id,
+        errorType: typeof err,
+        errorMessage: errorMessage
+      });
     } finally {
       setLoading(false);
     }
