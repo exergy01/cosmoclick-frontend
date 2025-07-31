@@ -14,6 +14,9 @@ import WalletPage from './pages/wallet/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
 
+// 🔧 АДМИНСКАЯ СТРАНИЦА
+import AdminPage from './pages/AdminPage';
+
 // Импортируем все доступные игры
 import TapperGame from './pages/games/TapperGame';
 import CosmicShellsGame from './pages/games/cosmic-shells';
@@ -59,6 +62,9 @@ const AppContent: React.FC = () => {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/ref" element={<ReferralsPage />} />
         <Route path="/alphabet" element={<AlphabetPage />} />
+        
+        {/* 🔧 АДМИНСКАЯ ПАНЕЛЬ - ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА */}
+        <Route path="/admin" element={<AdminPage />} />
         
         {/* Роуты игр - все доступные игры */}
         <Route path="/games/tapper" element={<TapperGame />} />

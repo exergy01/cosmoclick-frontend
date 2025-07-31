@@ -69,6 +69,37 @@ const MainPage: React.FC = () => {
   const [isCollecting, setIsCollecting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
 
+  // 🔐 БЕЗОПАСНАЯ ПРОВЕРКА АДМИНА ЧЕРЕЗ API
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+
+  // Проверяем админский статус через API
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!player?.telegram_id) {
+        setIsAdmin(false);
+        setAdminCheckLoading(false);
+        return;
+      }
+      
+      try {
+        console.log('🔍 Проверяем админский статус для:', player.telegram_id);
+        const response = await axios.get(`${API_URL}/api/admin/check/${player.telegram_id}`);
+        const adminStatus = response.data.isAdmin;
+        
+        setIsAdmin(adminStatus);
+        console.log('🔐 Результат проверки админа:', adminStatus);
+      } catch (error) {
+        console.log('❌ Ошибка проверки админа:', error);
+        setIsAdmin(false);
+      } finally {
+        setAdminCheckLoading(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [player?.telegram_id]);
+
   // Проверяем нужна ли реклама для сбора
   const needsAdForCollection = useCallback(() => {
     // Системы 1-4 требуют рекламу, если игрок не верифицирован
@@ -434,6 +465,45 @@ const MainPage: React.FC = () => {
               
             </div>
           </>
+        )}
+
+        {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА - ПРОВЕРКА ЧЕРЕЗ API */}
+        {!adminCheckLoading && isAdmin && (
+          <div style={{
+            margin: '30px auto 20px',
+            textAlign: 'center'
+          }}>
+            <button
+              onClick={() => navigate('/admin')}
+              style={{
+                background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                margin: '0 auto'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
+              }}
+            >
+              🔧 Админ панель
+            </button>
+          </div>
         )}
       </div>
 
