@@ -1,5 +1,5 @@
 // pages/admin/hooks/useAdminAuth.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../../context/NewPlayerContext';
 import { adminApiService, handleAdminApiError } from '../services/adminApi';
@@ -13,7 +13,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkAdminStatus = async (): Promise<void> => {
+  const checkAdminStatus = useCallback(async (): Promise<void> => {
     if (!player?.telegram_id) {
       setIsAdmin(false);
       setLoading(false);
@@ -53,12 +53,12 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [player?.telegram_id, navigate]);
 
   // Автоматическая проверка при монтировании компонента или изменении игрока
   useEffect(() => {
     checkAdminStatus();
-  }, [player?.telegram_id]); // Убираем комментарий с eslint-disable-line
+  }, [checkAdminStatus]);
 
   return {
     isAdmin,
