@@ -14,8 +14,8 @@ import WalletPage from './pages/wallet/WalletPage';
 import ReferralsPage from './pages/ReferralsPage';
 import AlphabetPage from './pages/AlphabetPage';
 
-// 🔧 АДМИНСКАЯ СТРАНИЦА
-import AdminPage from './pages/AdminPage';
+// 🔧 МОДУЛЬНАЯ АДМИНСКАЯ ПАНЕЛЬ - импортируем из новой структуры
+import AdminPage from './pages/admin';
 
 // Импортируем все доступные игры
 import TapperGame from './pages/games/TapperGame';
@@ -49,7 +49,21 @@ const AppContent: React.FC = () => {
   }, [player, loading, error, fetchInitialData, navigate, location.pathname]);
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: '#fff'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px', animation: 'pulse 2s infinite' }}>🔧</div>
+          <div style={{ fontSize: '1.2rem' }}>Загрузка CosmoClick...</div>
+        </div>
+      </div>
+    }>
       <Routes>
         <Route path="/" element={<MainPage />} />
         <Route path="/main" element={<MainPage />} />
@@ -63,7 +77,7 @@ const AppContent: React.FC = () => {
         <Route path="/ref" element={<ReferralsPage />} />
         <Route path="/alphabet" element={<AlphabetPage />} />
         
-        {/* 🔧 АДМИНСКАЯ ПАНЕЛЬ - ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА */}
+        {/* 🔧 МОДУЛЬНАЯ АДМИНСКАЯ ПАНЕЛЬ - теперь импорт из pages/admin */}
         <Route path="/admin" element={<AdminPage />} />
         
         {/* Роуты игр - все доступные игры */}
