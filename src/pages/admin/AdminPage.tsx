@@ -8,6 +8,17 @@ const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
+// Типы для навигации
+type AdminSection = 'dashboard' | 'stats' | 'players' | 'exchange' | 'management';
+
+// Конфигурация разделов
+const ADMIN_SECTIONS = [
+  { key: 'stats' as const, label: 'Полная статистика', icon: '📊', description: 'Детальная аналитика системы' },
+  { key: 'players' as const, label: 'Управление игроками', icon: '👥', description: 'Поиск, редактирование, верификация' },
+  { key: 'exchange' as const, label: 'Обмены и курсы', icon: '💱', description: 'Курсы валют, разблокировки' },
+  { key: 'management' as const, label: 'Системные настройки', icon: '⚙️', description: 'Конфигурация системы' }
+];
+
 const AdminPage: React.FC = () => {
   const { player } = useNewPlayer();
   const navigate = useNavigate();
@@ -15,9 +26,11 @@ const AdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [stats, setStats] = useState<any>(null);
+  const [currentSection, setCurrentSection] = useState<AdminSection>('dashboard');
+  
+  // Краткая статистика для дашборда
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
 
   // Простая проверка админа
   useEffect(() => {
@@ -61,23 +74,44 @@ const AdminPage: React.FC = () => {
     checkAdmin();
   }, [player, navigate]);
 
-  // Простая загрузка статистики
-  const loadStats = async () => {
+  // Загрузка краткой статистики для дашборда
+  const loadDashboardStats = async () => {
     if (!player?.telegram_id) return;
     
     setStatsLoading(true);
-    setStatsError(null);
     
     try {
-      console.log('📊 Загружаем статистику...');
+      console.log('📊 Загружаем краткую статистику...');
       const response = await axios.get(`${apiUrl}/api/admin/stats/${player.telegram_id}`);
-      console.log('✅ Статистика загружена:', response.data);
-      setStats(response.data);
+      console.log('✅ Статистика загружена');
+      setDashboardStats(response.data);
     } catch (err: any) {
       console.error('❌ Ошибка статистики:', err);
-      setStatsError(err.response?.data?.error || err.message || 'Ошибка загрузки');
+      // Не показываем ошибку на дашборде, просто логируем
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  // Автозагрузка краткой статистики
+  useEffect(() => {
+    if (isAdmin && currentSection === 'dashboard') {
+      loadDashboardStats();
+    }
+  }, [isAdmin, currentSection, player]);
+
+  // Безопасное форматирование чисел
+  const safeNumber = (value: any, defaultValue: number = 0): number => {
+    try {
+      if (value === null || value === undefined) return defaultValue;
+      if (typeof value === 'number') return isNaN(value) ? defaultValue : value;
+      if (typeof value === 'string') {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+      }
+      return defaultValue;
+    } catch {
+      return defaultValue;
     }
   };
 
@@ -137,6 +171,360 @@ const AdminPage: React.FC = () => {
 
   const colorStyle = player?.color || '#00f0ff';
 
+  // Рендер разделов
+  const renderSection = () => {
+    switch (currentSection) {
+      case 'stats':
+        return renderFullStats();
+      case 'players':
+        return renderPlayersSection();
+      case 'exchange':
+        return renderExchangeSection();
+      case 'management':
+        return renderManagementSection();
+      default:
+        return renderDashboard();
+    }
+  };
+
+  // Дашборд с краткой статистикой
+  const renderDashboard = () => (
+    <div>
+      {/* Навигационные кнопки */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '20px',
+        marginBottom: '40px'
+      }}>
+        {ADMIN_SECTIONS.map(section => (
+          <button
+            key={section.key}
+            onClick={() => setCurrentSection(section.key)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: `2px solid ${colorStyle}40`,
+              borderRadius: '15px',
+              padding: '25px',
+              color: '#fff',
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'all 0.3s ease',
+              backdropFilter: 'blur(10px)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.boxShadow = `0 0 25px ${colorStyle}30`;
+              e.currentTarget.style.borderColor = colorStyle;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.borderColor = `${colorStyle}40`;
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+              <span style={{ fontSize: '2rem' }}>{section.icon}</span>
+              <h3 style={{ margin: 0, color: colorStyle, fontSize: '1.2rem' }}>
+                {section.label}
+              </h3>
+            </div>
+            <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', lineHeight: 1.4 }}>
+              {section.description}
+            </p>
+            <div style={{ 
+              marginTop: '15px', 
+              fontSize: '0.8rem', 
+              color: colorStyle,
+              opacity: 0.8,
+              fontStyle: 'italic'
+            }}>
+              Нажмите для перехода →
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Краткая статистика */}
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: `1px solid ${colorStyle}40`,
+        borderRadius: '15px',
+        padding: '25px',
+        marginBottom: '20px'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '20px' 
+        }}>
+          <h3 style={{ color: colorStyle, margin: 0 }}>📈 Краткая сводка</h3>
+          <button
+            onClick={loadDashboardStats}
+            disabled={statsLoading}
+            style={{
+              padding: '8px 16px',
+              background: statsLoading 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: statsLoading ? 'wait' : 'pointer',
+              fontSize: '0.8rem'
+            }}
+          >
+            {statsLoading ? '⏳ Загрузка...' : '🔄 Обновить'}
+          </button>
+        </div>
+
+        {statsLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⏳</div>
+            <div>Загрузка сводки...</div>
+          </div>
+        ) : dashboardStats ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px'
+          }}>
+            {/* Игроки */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '10px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '10px' }}>👥</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: colorStyle, marginBottom: '5px' }}>
+                {safeNumber(dashboardStats.players?.total_players)}
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Всего игроков</div>
+              <div style={{ fontSize: '0.8rem', color: '#4CAF50', marginTop: '8px' }}>
+                ✅ {safeNumber(dashboardStats.players?.verified_players)} верифицированы
+              </div>
+            </div>
+
+            {/* CS */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '10px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '10px' }}>💰</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '5px' }}>
+                {safeNumber(dashboardStats.currencies?.total_cs).toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Всего CS</div>
+              <div style={{ fontSize: '0.8rem', color: '#FFA500', marginTop: '8px' }}>
+                🌟 {safeNumber(dashboardStats.currencies?.total_stars)} Stars
+              </div>
+            </div>
+
+            {/* Активность */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '10px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📊</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FF9800', marginBottom: '5px' }}>
+                {safeNumber(dashboardStats.players?.active_24h)}
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Активны за 24ч</div>
+              <div style={{ fontSize: '0.8rem', color: '#2196F3', marginTop: '8px' }}>
+                📅 {safeNumber(dashboardStats.players?.active_7d)} за неделю
+              </div>
+            </div>
+
+            {/* Обмены */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '10px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '10px' }}>💱</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50', marginBottom: '5px' }}>
+                {safeNumber(dashboardStats.stars_exchange?.total_exchanges)}
+              </div>
+              <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Обменов Stars</div>
+              <div style={{ fontSize: '0.8rem', color: '#FF9800', marginTop: '8px' }}>
+                🔄 {safeNumber(dashboardStats.stars_exchange?.exchanges_24h)} за 24ч
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📊</div>
+            <div>Нажмите "Обновить" для загрузки сводки</div>
+          </div>
+        )}
+      </div>
+
+      {/* Быстрые действия */}
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: `1px solid ${colorStyle}40`,
+        borderRadius: '15px',
+        padding: '25px'
+      }}>
+        <h3 style={{ color: colorStyle, marginTop: 0, marginBottom: '20px' }}>⚡ Быстрые действия</h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '15px'
+        }}>
+          <button
+            onClick={() => setCurrentSection('players')}
+            style={{
+              padding: '15px',
+              background: 'linear-gradient(135deg, #4CAF50, #4CAF5088)',
+              border: 'none',
+              borderRadius: '10px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            👥 Найти игрока
+          </button>
+          <button
+            onClick={() => setCurrentSection('exchange')}
+            style={{
+              padding: '15px',
+              background: 'linear-gradient(135deg, #FF9800, #FF980088)',
+              border: 'none',
+              borderRadius: '10px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            📈 Обновить курс
+          </button>
+          <button
+            onClick={() => setCurrentSection('stats')}
+            style={{
+              padding: '15px',
+              background: 'linear-gradient(135deg, #2196F3, #2196F388)',
+              border: 'none',
+              borderRadius: '10px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            📊 Полная статистика
+          </button>
+          <button
+            onClick={() => setCurrentSection('management')}
+            style={{
+              padding: '15px',
+              background: 'linear-gradient(135deg, #9C27B0, #9C27B088)',
+              border: 'none',
+              borderRadius: '10px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            ⚙️ Настройки
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Заглушки для других разделов
+  const renderFullStats = () => (
+    <div style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📊</div>
+      <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Полная статистика</h2>
+      <p style={{ color: '#aaa', marginBottom: '20px' }}>Здесь будет детальная аналитика системы</p>
+      <button
+        onClick={() => setCurrentSection('dashboard')}
+        style={{
+          padding: '10px 20px',
+          background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+          border: 'none',
+          borderRadius: '8px',
+          color: '#fff',
+          cursor: 'pointer'
+        }}
+      >
+        ← Назад к дашборду
+      </button>
+    </div>
+  );
+
+  const renderPlayersSection = () => (
+    <div style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
+      <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Управление игроками</h2>
+      <p style={{ color: '#aaa', marginBottom: '20px' }}>Поиск, редактирование, верификация игроков</p>
+      <button
+        onClick={() => setCurrentSection('dashboard')}
+        style={{
+          padding: '10px 20px',
+          background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+          border: 'none',
+          borderRadius: '8px',
+          color: '#fff',
+          cursor: 'pointer'
+        }}
+      >
+        ← Назад к дашборду
+      </button>
+    </div>
+  );
+
+  const renderExchangeSection = () => (
+    <div style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💱</div>
+      <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Обмены и курсы</h2>
+      <p style={{ color: '#aaa', marginBottom: '20px' }}>Управление курсами валют и разблокировками</p>
+      <button
+        onClick={() => setCurrentSection('dashboard')}
+        style={{
+          padding: '10px 20px',
+          background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+          border: 'none',
+          borderRadius: '8px',
+          color: '#fff',
+          cursor: 'pointer'
+        }}
+      >
+        ← Назад к дашборду
+      </button>
+    </div>
+  );
+
+  const renderManagementSection = () => (
+    <div style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚙️</div>
+      <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Системные настройки</h2>
+      <p style={{ color: '#aaa', marginBottom: '20px' }}>Конфигурация и управление системой</p>
+      <button
+        onClick={() => setCurrentSection('dashboard')}
+        style={{
+          padding: '10px 20px',
+          background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+          border: 'none',
+          borderRadius: '8px',
+          color: '#fff',
+          cursor: 'pointer'
+        }}
+      >
+        ← Назад к дашборду
+      </button>
+    </div>
+  );
+
   // Основной интерфейс админки
   return (
     <div style={{
@@ -162,267 +550,54 @@ const AdminPage: React.FC = () => {
           </p>
         )}
         
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            padding: '10px 20px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: `2px solid ${colorStyle}`,
-            borderRadius: '10px',
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: '0.9rem'
-          }}
-        >
-          ← Вернуться в игру
-        </button>
-      </div>
-
-      {/* Статистика */}
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px'
-        }}>
-          <h2 style={{ color: colorStyle, margin: 0 }}>📊 Статистика системы</h2>
+        {/* Навигация верхнего уровня */}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '15px' }}>
+          {currentSection !== 'dashboard' && (
+            <button
+              onClick={() => setCurrentSection('dashboard')}
+              style={{
+                padding: '8px 16px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: `2px solid ${colorStyle}`,
+                borderRadius: '8px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              🏠 Главная
+            </button>
+          )}
+          
           <button
-            onClick={loadStats}
-            disabled={statsLoading}
+            onClick={() => navigate('/')}
             style={{
-              padding: '10px 20px',
-              background: statsLoading 
-                ? 'rgba(255, 255, 255, 0.1)' 
-                : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
-              border: 'none',
-              borderRadius: '10px',
+              padding: '8px 16px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: `2px solid ${colorStyle}`,
+              borderRadius: '8px',
               color: '#fff',
-              cursor: statsLoading ? 'wait' : 'pointer',
+              cursor: 'pointer',
               fontSize: '0.9rem'
             }}
           >
-            {statsLoading ? '⏳ Загрузка...' : '🔄 Загрузить статистику'}
+            ← Вернуться в игру
           </button>
         </div>
 
-        {/* Ошибка статистики */}
-        {statsError && (
-          <div style={{
-            background: 'rgba(255, 0, 0, 0.1)',
-            border: '2px solid #ff4444',
-            borderRadius: '10px',
-            padding: '20px',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
-            <div style={{ color: '#ff6666', fontWeight: 'bold', marginBottom: '10px' }}>
-              Ошибка загрузки статистики
-            </div>
-            <div style={{ color: '#aaa', fontSize: '0.9rem' }}>
-              {statsError}
-            </div>
+        {/* Индикатор текущего раздела */}
+        {currentSection !== 'dashboard' && (
+          <div style={{ fontSize: '0.9rem', color: '#aaa' }}>
+            Текущий раздел: <span style={{ color: colorStyle }}>
+              {ADMIN_SECTIONS.find(s => s.key === currentSection)?.label || 'Дашборд'}
+            </span>
           </div>
         )}
+      </div>
 
-        {/* Данные статистики */}
-        {stats && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '20px',
-            marginBottom: '30px'
-          }}>
-            {/* Игроки */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${colorStyle}40`,
-              borderRadius: '12px',
-              padding: '20px'
-            }}>
-              <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                👥 Игроки
-              </h3>
-              <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
-                <div>Всего: <strong>{stats.players?.total_players || 0}</strong></div>
-                <div>Верифицированных: <strong style={{ color: '#4CAF50' }}>{stats.players?.verified_players || 0}</strong></div>
-                <div>Активны 24ч: <strong style={{ color: '#FF9800' }}>{stats.players?.active_24h || 0}</strong></div>
-                <div>Активны 7д: <strong style={{ color: '#2196F3' }}>{stats.players?.active_7d || 0}</strong></div>
-              </div>
-            </div>
-
-            {/* Валюты */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${colorStyle}40`,
-              borderRadius: '12px',
-              padding: '20px'
-            }}>
-              <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                💰 Валюты
-              </h3>
-              <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
-                <div>CCC: <strong>{Number(stats.currencies?.total_ccc || 0).toFixed(2)}</strong></div>
-                <div>CS: <strong style={{ color: '#FFD700' }}>{Number(stats.currencies?.total_cs || 0).toFixed(2)}</strong></div>
-                <div>TON: <strong style={{ color: '#0088cc' }}>{Number(stats.currencies?.total_ton || 0).toFixed(4)}</strong></div>
-                <div>Stars: <strong style={{ color: '#FFA500' }}>{Number(stats.currencies?.total_stars || 0)}</strong></div>
-              </div>
-            </div>
-
-            {/* Обмены */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${colorStyle}40`,
-              borderRadius: '12px',
-              padding: '20px'
-            }}>
-              <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🌟 Обмены Stars
-              </h3>
-              <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
-                <div>Всего обменов: <strong>{Number(stats.stars_exchange?.total_exchanges || 0)}</strong></div>
-                <div>Stars обменено: <strong style={{ color: '#FFA500' }}>{Number(stats.stars_exchange?.total_stars_exchanged || 0)}</strong></div>
-                <div>CS получено: <strong style={{ color: '#FFD700' }}>{Number(stats.stars_exchange?.total_cs_received || 0).toFixed(2)}</strong></div>
-                <div>За 24ч: <strong style={{ color: '#FF9800' }}>{Number(stats.stars_exchange?.exchanges_24h || 0)}</strong></div>
-              </div>
-            </div>
-
-            {/* Курсы */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${colorStyle}40`,
-              borderRadius: '12px',
-              padding: '20px'
-            }}>
-              <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                📈 Курсы
-              </h3>
-              <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
-                <div>TON/USD: <strong style={{ color: '#0088cc' }}>
-                  {stats.current_rates?.TON_USD 
-                    ? `$${Number(stats.current_rates.TON_USD.rate || 0).toFixed(2)}`
-                    : 'Не загружен'
-                  }
-                </strong></div>
-                <div>1 Star: <strong style={{ color: '#FFA500' }}>
-                  {stats.current_rates?.STARS_CS 
-                    ? `${Number(stats.current_rates.STARS_CS.rate || 0).toFixed(2)} CS`
-                    : 'Не загружен'
-                  }
-                </strong></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ТОП игроков */}
-        {stats?.top_players && stats.top_players.length > 0 && (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: `1px solid ${colorStyle}40`,
-            borderRadius: '15px',
-            padding: '25px'
-          }}>
-            <h3 style={{ 
-              color: colorStyle, 
-              marginTop: 0, 
-              marginBottom: '20px',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '10px'
-            }}>
-              🏆 ТОП-10 игроков по CS
-            </h3>
-            
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ 
-                width: '100%', 
-                borderCollapse: 'collapse', 
-                fontSize: '0.9rem',
-                minWidth: '600px'
-              }}>
-                <thead>
-                  <tr style={{ borderBottom: `2px solid ${colorStyle}40` }}>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', color: colorStyle }}>#</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'left', color: colorStyle }}>Игрок</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle }}>CS</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle }}>CCC</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle }}>TON</th>
-                    <th style={{ padding: '12px 8px', textAlign: 'center', color: colorStyle }}>Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.top_players.map((topPlayer: any, index: number) => (
-                    <tr key={topPlayer.telegram_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                      <td style={{ padding: '12px 8px' }}>
-                        <div style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          background: index < 3 
-                            ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] 
-                            : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.8rem',
-                          fontWeight: 'bold',
-                          color: index < 3 ? '#000' : '#fff'
-                        }}>
-                          {index + 1}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 8px' }}>
-                        <div>
-                          <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-                            {topPlayer.first_name || topPlayer.username || 'Аноним'}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                            ID: {topPlayer.telegram_id}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                        <strong style={{ color: '#FFD700' }}>{Number(topPlayer.cs || 0).toFixed(2)}</strong>
-                      </td>
-                      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                        <strong>{Number(topPlayer.ccc || 0).toFixed(2)}</strong>
-                      </td>
-                      <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                        <strong style={{ color: '#0088cc' }}>{Number(topPlayer.ton || 0).toFixed(4)}</strong>
-                      </td>
-                      <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                        {topPlayer.verified ? (
-                          <span style={{ color: '#4CAF50', fontSize: '1.2rem' }}>✅</span>
-                        ) : (
-                          <span style={{ color: '#FF5722', fontSize: '1.2rem' }}>❌</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Успешная загрузка */}
-        {stats && (
-          <div style={{
-            marginTop: '30px',
-            padding: '15px',
-            background: 'rgba(0, 255, 0, 0.05)',
-            border: `1px solid #4CAF5040`,
-            borderRadius: '10px',
-            textAlign: 'center'
-          }}>
-            <div style={{ color: '#4CAF50', marginBottom: '5px' }}>✅ Статистика загружена успешно!</div>
-            <div style={{ color: '#aaa', fontSize: '0.9rem' }}>
-              Данные обновлены: {new Date().toLocaleString('ru-RU')}
-            </div>
-          </div>
-        )}
+      {/* Контент */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {renderSection()}
       </div>
     </div>
   );
