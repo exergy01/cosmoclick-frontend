@@ -1,20 +1,109 @@
 // pages/admin/AdminPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../context/NewPlayerContext';
-import { useAdminAuth } from './hooks/useAdminAuth';
-import AdminLayout from './components/AdminLayout';
-import AdminStatsTab from './components/AdminStatsTab';
-import type { AdminTabType } from './types';
+
+// Безопасные импорты с fallback
+let AdminLayout: React.FC<any> | null = null;
+let AdminStatsTab: React.FC<any> | null = null;
+let useAdminAuth: any = null;
+
+try {
+  AdminLayout = require('./components/AdminLayout').default;
+} catch (e) {
+  console.error('Ошибка импорта AdminLayout:', e);
+}
+
+try {
+  AdminStatsTab = require('./components/AdminStatsTab').default;
+} catch (e) {
+  console.error('Ошибка импорта AdminStatsTab:', e);
+}
+
+try {
+  useAdminAuth = require('./hooks/useAdminAuth').useAdminAuth;
+} catch (e) {
+  console.error('Ошибка импорта useAdminAuth:', e);
+}
+
+type AdminTabType = 'stats' | 'players' | 'exchange' | 'management';
 
 const AdminPage: React.FC = () => {
   const { player } = useNewPlayer();
   const navigate = useNavigate();
-  const { isAdmin, loading, error } = useAdminAuth();
   
   const [activeTab, setActiveTab] = useState<AdminTabType>('stats');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Экран загрузки проверки админа
+  // Проверка админских прав без хука (если хук не загрузился)
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        console.log('🔍 Проверяем админские права...');
+        console.log('📱 Player:', player);
+        
+        if (!player?.telegram_id) {
+          console.log('⚠️ Нет telegram_id в player');
+          
+          // Пробуем получить из Telegram WebApp
+          const webApp = (window as any)?.Telegram?.WebApp;
+          if (webApp?.initDataUnsafe?.user?.id) {
+            const telegramId = String(webApp.initDataUnsafe.user.id);
+            console.log('📱 Найден ID в WebApp:', telegramId);
+            
+            if (telegramId === '1222791281') {
+              setIsAdmin(true);
+              setLoading(false);
+              return;
+            }
+          }
+          
+          setError('Не удалось получить Telegram ID');
+          setLoading(false);
+          return;
+        }
+        
+        // Проверяем админский ID
+        const isAdminUser = String(player.telegram_id) === '1222791281';
+        console.log('🔐 Проверка админа:', {
+          telegramId: player.telegram_id,
+          isAdmin: isAdminUser
+        });
+        
+        if (isAdminUser) {
+          setIsAdmin(true);
+        } else {
+          setError('Доступ запрещен! Только для администратора.');
+          setTimeout(() => navigate('/', { replace: true }), 3000);
+        }
+        
+      } catch (err) {
+        console.error('❌ Ошибка проверки админа:', err);
+        setError('Ошибка проверки прав доступа');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Используем хук если доступен, иначе свою проверку
+    if (useAdminAuth) {
+      try {
+        const { isAdmin: hookIsAdmin, loading: hookLoading, error: hookError } = useAdminAuth();
+        setIsAdmin(hookIsAdmin);
+        setLoading(hookLoading);
+        setError(hookError);
+      } catch (e) {
+        console.error('Ошибка использования useAdminAuth:', e);
+        checkAdmin();
+      }
+    } else {
+      checkAdmin();
+    }
+  }, [player, navigate]);
+
+  // Экран загрузки
   if (loading) {
     return (
       <div style={{
@@ -23,16 +112,23 @@ const AdminPage: React.FC = () => {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        color: '#fff'
+        color: '#fff',
+        flexDirection: 'column'
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: '4rem', 
-            marginBottom: '20px',
-            animation: 'pulse 2s infinite'
-          }}>🔐</div>
-          <div style={{ fontSize: '1.2rem', color: '#aaa' }}>Проверка прав доступа...</div>
-        </div>
+        <div style={{ 
+          fontSize: '4rem', 
+          marginBottom: '20px',
+          animation: 'pulse 2s infinite'
+        }}>🔐</div>
+        <div style={{ fontSize: '1.2rem', color: '#aaa' }}>Проверка прав доступа...</div>
+        <style>
+          {`
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
+            }
+          `}
+        </style>
       </div>
     );
   }
@@ -58,15 +154,13 @@ const AdminPage: React.FC = () => {
           <div style={{ fontSize: '1rem', color: '#aaa', marginBottom: '20px' }}>
             {error || 'Только для администратора'}
           </div>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>
+          <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '20px' }}>
             Автоматическое перенаправление через 3 секунды...
           </div>
           
-          {/* Кнопка для ручного возврата */}
           <button
             onClick={() => navigate('/')}
             style={{
-              marginTop: '20px',
               padding: '10px 20px',
               background: 'rgba(255, 255, 255, 0.1)',
               border: '2px solid #00f0ff',
@@ -96,9 +190,73 @@ const AdminPage: React.FC = () => {
 
   const handlePlayerClick = (playerId: string) => {
     console.log('🔍 Клик по игроку:', playerId);
-    // TODO: Здесь будет переход на вкладку игроков с автоматическим поиском
     setActiveTab('players');
   };
+
+  // Простой рендер без сложных компонентов если они не загрузились
+  if (!AdminLayout || !AdminStatsTab) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
+        color: '#fff',
+        padding: '20px'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h1 style={{
+            fontSize: '2.5rem',
+            color: colorStyle,
+            textShadow: `0 0 20px ${colorStyle}`,
+            margin: '0 0 20px 0'
+          }}>
+            🔧 Админ панель CosmoClick
+          </h1>
+          
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              padding: '10px 20px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: `2px solid ${colorStyle}`,
+              borderRadius: '10px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            ← Вернуться в игру
+          </button>
+        </div>
+
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚠️</div>
+          <h2 style={{ color: '#ff6666', marginBottom: '15px' }}>
+            Ошибка загрузки компонентов
+          </h2>
+          <p style={{ color: '#aaa', marginBottom: '20px' }}>
+            Не удалось загрузить AdminLayout или AdminStatsTab компоненты
+          </p>
+          
+          <div style={{ 
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${colorStyle}20`,
+            borderRadius: '10px',
+            padding: '20px',
+            marginTop: '20px'
+          }}>
+            <h3 style={{ color: colorStyle }}>Отладочная информация:</h3>
+            <div style={{ textAlign: 'left', fontSize: '0.9rem', color: '#ccc' }}>
+              <div>AdminLayout загружен: {AdminLayout ? '✅' : '❌'}</div>
+              <div>AdminStatsTab загружен: {AdminStatsTab ? '✅' : '❌'}</div>
+              <div>useAdminAuth загружен: {useAdminAuth ? '✅' : '❌'}</div>
+              <div>Player ID: {player?.telegram_id || 'не найден'}</div>
+              <div>Админский статус: {isAdmin ? '✅' : '❌'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -115,39 +273,7 @@ const AdminPage: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
             <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Управление игроками</h2>
-            <p style={{ color: '#aaa', marginBottom: '30px' }}>
-              Поиск игроков, просмотр подробной информации и управление аккаунтами
-            </p>
-            
-            {/* Макет функций управления игроками */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-              gap: '20px',
-              maxWidth: '900px',
-              margin: '0 auto'
-            }}>
-              {[
-                { icon: '🔍', title: 'Поиск игроков', desc: 'Найти игрока по ID, username или имени' },
-                { icon: '📋', title: 'Детали игрока', desc: 'Просмотр балансов, истории и статистики' },
-                { icon: '✅', title: 'Верификация', desc: 'Управление статусом верификации игроков' }
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: `1px solid ${colorStyle}20`,
-                    borderRadius: '12px',
-                    padding: '20px',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                  <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                  <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                </div>
-              ))}
-            </div>
+            <p style={{ color: '#aaa' }}>Модуль в разработке</p>
           </div>
         );
         
@@ -156,39 +282,7 @@ const AdminPage: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💱</div>
             <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Система обменов</h2>
-            <p style={{ color: '#aaa', marginBottom: '30px' }}>
-              Мониторинг курсов валют и управление системой обменов
-            </p>
-            
-            {/* Макет функций обменов */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-              gap: '20px',
-              maxWidth: '800px',
-              margin: '0 auto'
-            }}>
-              {[
-                { icon: '📊', title: 'Курсы валют', desc: 'Текущие курсы TON/USD и Stars/CS' },
-                { icon: '📈', title: 'Статистика', desc: 'История и статистика обменов' },
-                { icon: '🔓', title: 'Блокировки', desc: 'Управление блокировками обменов' }
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: `1px solid ${colorStyle}20`,
-                    borderRadius: '12px',
-                    padding: '20px',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                  <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                  <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                </div>
-              ))}
-            </div>
+            <p style={{ color: '#aaa' }}>Модуль в разработке</p>
           </div>
         );
         
@@ -197,39 +291,7 @@ const AdminPage: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚙️</div>
             <h2 style={{ color: colorStyle, marginBottom: '15px' }}>Управление системой</h2>
-            <p style={{ color: '#aaa', marginBottom: '30px' }}>
-              Инструменты для управления балансами игроков и настройками системы
-            </p>
-            
-            {/* Макет функций управления */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-              gap: '20px',
-              maxWidth: '900px',
-              margin: '0 auto'
-            }}>
-              {[
-                { icon: '💰', title: 'Управление балансами', desc: 'Изменение балансов игроков (CCC, CS, TON, Stars)' },
-                { icon: '📈', title: 'Курс TON', desc: 'Ручное обновление курса TON/USD' },
-                { icon: '🛡️', title: 'Безопасность', desc: 'Все действия логируются и проверяются' }
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: `1px solid ${colorStyle}20`,
-                    borderRadius: '12px',
-                    padding: '20px',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{item.icon}</div>
-                  <h4 style={{ color: colorStyle, margin: '0 0 8px 0' }}>{item.title}</h4>
-                  <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>{item.desc}</p>
-                </div>
-              ))}
-            </div>
+            <p style={{ color: '#aaa' }}>Модуль в разработке</p>
           </div>
         );
         
@@ -248,55 +310,6 @@ const AdminPage: React.FC = () => {
       onBackClick={() => navigate('/')}
     >
       {renderTabContent()}
-      
-      {/* Информация о текущем статусе разработки */}
-      {activeTab !== 'stats' && (
-        <div style={{
-          marginTop: '40px',
-          padding: '20px',
-          background: 'rgba(255, 255, 255, 0.05)',
-          border: `1px solid ${colorStyle}20`,
-          borderRadius: '12px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>🚧</div>
-          <h3 style={{ color: colorStyle, margin: '0 0 10px 0' }}>Модуль в разработке</h3>
-          <p style={{ color: '#aaa', fontSize: '0.9rem', margin: '0 0 15px 0' }}>
-            Вкладка "{activeTab}" будет реализована в следующих обновлениях. 
-            Пока что работает только статистика.
-          </p>
-          <div style={{ 
-            fontSize: '0.8rem', 
-            color: '#666',
-            fontFamily: 'monospace',
-            background: 'rgba(255, 255, 255, 0.05)',
-            padding: '10px',
-            borderRadius: '6px',
-            marginTop: '10px'
-          }}>
-            📁 Модульная архитектура: /hooks/ /components/ /services/ /types/
-          </div>
-        </div>
-      )}
-      
-      {/* Информация о статистике (только для вкладки статистики) */}
-      {activeTab === 'stats' && (
-        <div style={{
-          marginTop: '40px',
-          padding: '20px',
-          background: 'rgba(0, 255, 0, 0.05)',
-          border: `1px solid #4CAF5040`,
-          borderRadius: '12px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>✅</div>
-          <h3 style={{ color: '#4CAF50', margin: '0 0 10px 0' }}>Статистика работает!</h3>
-          <p style={{ color: '#aaa', fontSize: '0.9rem', margin: 0 }}>
-            Этот модуль полностью реализован с реальными данными из API. 
-            Проверьте работу кнопки "Обновить" и клики по игрокам в таблице.
-          </p>
-        </div>
-      )}
     </AdminLayout>
   );
 };
