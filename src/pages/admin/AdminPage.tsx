@@ -372,19 +372,19 @@ const AdminPage: React.FC = () => {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '10px' }}>💱</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>Обмены</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>Все обмены</div>
               <div style={{ display: 'grid', gap: '4px', fontSize: '0.8rem' }}>
-                <div style={{ color: '#4CAF50' }}>
+                <div style={{ color: '#FFA500' }}>
                   Stars→CS: <strong>{safeNumber(dashboardStats.stars_exchange?.total_exchanges)}</strong>
                 </div>
-                <div style={{ color: '#FF9800' }}>
+                <div style={{ color: '#fff' }}>
+                  CCC→CS: <strong>0</strong> {/* TODO: добавить API */}
+                </div>
+                <div style={{ color: '#0088cc' }}>
+                  CS↔TON: <strong>0</strong> {/* TODO: добавить API */}
+                </div>
+                <div style={{ color: '#4CAF50' }}>
                   За 24ч: <strong>{safeNumber(dashboardStats.stars_exchange?.exchanges_24h)}</strong>
-                </div>
-                <div style={{ color: '#2196F3' }}>
-                  Другие: <strong>0</strong> {/* TODO: добавить когда появятся */}
-                </div>
-                <div style={{ color: '#9C27B0' }}>
-                  Всего: <strong>{safeNumber(dashboardStats.stars_exchange?.total_exchanges)}</strong>
                 </div>
               </div>
             </div>
@@ -704,7 +704,7 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Детальная статистика обменов Stars */}
+            {/* Детальная статистика всех обменов */}
             <div style={{
               background: 'rgba(255, 255, 255, 0.05)',
               border: `1px solid ${colorStyle}40`,
@@ -712,20 +712,61 @@ const AdminPage: React.FC = () => {
               padding: '20px'
             }}>
               <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🌟 Детальная статистика обменов Stars
+                💱 Детальная статистика всех обменов
               </h3>
               <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
-                <div>Всего обменов: <strong>{safeNumber(fullStats.stars_exchange?.total_exchanges)}</strong></div>
-                <div>Stars потрачено: <strong style={{ color: '#FFA500' }}>{safeNumber(fullStats.stars_exchange?.total_stars_exchanged)}</strong></div>
-                <div>CS получено: <strong style={{ color: '#FFD700' }}>{safeNumber(fullStats.stars_exchange?.total_cs_received).toFixed(2)}</strong></div>
-                <div>Обменов за 24ч: <strong style={{ color: '#FF9800' }}>{safeNumber(fullStats.stars_exchange?.exchanges_24h)}</strong></div>
-                <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#aaa' }}>
-                  Средний обмен: <strong style={{ color: colorStyle }}>
-                    {fullStats.stars_exchange?.total_exchanges > 0 
-                      ? (safeNumber(fullStats.stars_exchange?.total_stars_exchanged) / safeNumber(fullStats.stars_exchange?.total_exchanges)).toFixed(1)
-                      : 0
-                    } Stars
+                {/* Stars → CS */}
+                <div style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ color: '#FFA500', fontWeight: 'bold', marginBottom: '4px' }}>🌟 Stars → CS</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem' }}>
+                    <div>Обменов: <strong>{safeNumber(fullStats.stars_exchange?.total_exchanges)}</strong></div>
+                    <div>За 24ч: <strong>{safeNumber(fullStats.stars_exchange?.exchanges_24h)}</strong></div>
+                    <div>Stars потрачено: <strong>{safeNumber(fullStats.stars_exchange?.total_stars_exchanged)}</strong></div>
+                    <div>CS получено: <strong>{safeNumber(fullStats.stars_exchange?.total_cs_received).toFixed(2)}</strong></div>
+                  </div>
+                </div>
+
+                {/* CCC → CS (TODO: добавить когда появится API) */}
+                <div style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '4px' }}>🔄 CCC → CS</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem' }}>
+                    <div>Обменов: <strong>0</strong> {/* TODO: добавить API */}</div>
+                    <div>За 24ч: <strong>0</strong></div>
+                    <div>CCC потрачено: <strong>0.00</strong></div>
+                    <div>CS получено: <strong>0.00</strong></div>
+                  </div>
+                </div>
+
+                {/* CS → TON (TODO: добавить когда появится API) */}
+                <div style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ color: '#0088cc', fontWeight: 'bold', marginBottom: '4px' }}>💎 CS → TON</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem' }}>
+                    <div>Обменов: <strong>0</strong> {/* TODO: добавить API */}</div>
+                    <div>За 24ч: <strong>0</strong></div>
+                    <div>CS потрачено: <strong>0.00</strong></div>
+                    <div>TON получено: <strong>0.0000</strong></div>
+                  </div>
+                </div>
+
+                {/* TON → CS (обратный обмен) */}
+                <div style={{ padding: '8px 0' }}>
+                  <div style={{ color: '#0088cc', fontWeight: 'bold', marginBottom: '4px' }}>🔄 TON → CS</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem' }}>
+                    <div>Обменов: <strong>0</strong> {/* TODO: добавить API */}</div>
+                    <div>За 24ч: <strong>0</strong></div>
+                    <div>TON потрачено: <strong>0.0000</strong></div>
+                    <div>CS получено: <strong>0.00</strong></div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '10px', fontSize: '0.8rem', color: '#aaa', textAlign: 'center' }}>
+                  Всего обменов всех типов: <strong style={{ color: colorStyle }}>
+                    {safeNumber(fullStats.stars_exchange?.total_exchanges)}
                   </strong>
+                  <br/>
+                  <span style={{ fontSize: '0.7rem', fontStyle: 'italic' }}>
+                    * CCC↔CS и CS↔TON обмены будут добавлены при появлении API
+                  </span>
                 </div>
               </div>
             </div>
