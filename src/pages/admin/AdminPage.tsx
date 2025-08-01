@@ -287,8 +287,8 @@ const AdminPage: React.FC = () => {
         ) : dashboardStats ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '15px'
           }}>
             {/* Игроки */}
             <div style={{
@@ -307,7 +307,7 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
 
-            {/* CS */}
+            {/* Балансы всех валют */}
             <div style={{
               background: 'rgba(255, 255, 255, 0.05)',
               borderRadius: '10px',
@@ -315,12 +315,20 @@ const AdminPage: React.FC = () => {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '10px' }}>💰</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFD700', marginBottom: '5px' }}>
-                {safeNumber(dashboardStats.currencies?.total_cs).toFixed(2)}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Всего CS</div>
-              <div style={{ fontSize: '0.8rem', color: '#FFA500', marginTop: '8px' }}>
-                🌟 {safeNumber(dashboardStats.currencies?.total_stars)} Stars
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>Балансы в игре</div>
+              <div style={{ display: 'grid', gap: '4px', fontSize: '0.8rem' }}>
+                <div style={{ color: '#fff' }}>
+                  CCC: <strong>{safeNumber(dashboardStats.currencies?.total_ccc).toFixed(2)}</strong>
+                </div>
+                <div style={{ color: '#FFD700' }}>
+                  CS: <strong>{safeNumber(dashboardStats.currencies?.total_cs).toFixed(2)}</strong>
+                </div>
+                <div style={{ color: '#0088cc' }}>
+                  TON: <strong>{safeNumber(dashboardStats.currencies?.total_ton).toFixed(4)}</strong>
+                </div>
+                <div style={{ color: '#FFA500' }}>
+                  Stars: <strong>{safeNumber(dashboardStats.currencies?.total_stars)}</strong>
+                </div>
               </div>
             </div>
 
@@ -341,7 +349,7 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Обмены */}
+            {/* Обмены всех направлений */}
             <div style={{
               background: 'rgba(255, 255, 255, 0.05)',
               borderRadius: '10px',
@@ -349,12 +357,45 @@ const AdminPage: React.FC = () => {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '10px' }}>💱</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50', marginBottom: '5px' }}>
-                {safeNumber(dashboardStats.stars_exchange?.total_exchanges)}
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>Обмены</div>
+              <div style={{ display: 'grid', gap: '4px', fontSize: '0.8rem' }}>
+                <div style={{ color: '#4CAF50' }}>
+                  Stars→CS: <strong>{safeNumber(dashboardStats.stars_exchange?.total_exchanges)}</strong>
+                </div>
+                <div style={{ color: '#FF9800' }}>
+                  За 24ч: <strong>{safeNumber(dashboardStats.stars_exchange?.exchanges_24h)}</strong>
+                </div>
+                <div style={{ color: '#2196F3' }}>
+                  Другие: <strong>0</strong> {/* TODO: добавить когда появятся */}
+                </div>
+                <div style={{ color: '#9C27B0' }}>
+                  Всего: <strong>{safeNumber(dashboardStats.stars_exchange?.total_exchanges)}</strong>
+                </div>
               </div>
-              <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Обменов Stars</div>
-              <div style={{ fontSize: '0.8rem', color: '#FF9800', marginTop: '8px' }}>
-                🔄 {safeNumber(dashboardStats.stars_exchange?.exchanges_24h)} за 24ч
+            </div>
+
+            {/* Мини-игры */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '10px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🎮</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '8px' }}>Мини-игры</div>
+              <div style={{ display: 'grid', gap: '4px', fontSize: '0.8rem' }}>
+                <div style={{ color: '#FF6B35' }}>
+                  Игр сыграно: <strong>0</strong> {/* TODO: добавить API */}
+                </div>
+                <div style={{ color: '#4ECDC4' }}>
+                  Активных игроков: <strong>0</strong>
+                </div>
+                <div style={{ color: '#45B7D1' }}>
+                  Награды выданы: <strong>0</strong>
+                </div>
+                <div style={{ color: '#96CEB4' }}>
+                  Рекорды: <strong>0</strong>
+                </div>
               </div>
             </div>
           </div>
