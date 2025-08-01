@@ -455,6 +455,26 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             ] : []}
           />
 
+          {/* Курсы */}
+          <AdminStatsCard
+            title="Курсы"
+            icon="📈"
+            colorStyle={colorStyle}
+            loading={loading}
+            data={stats ? [
+              ...(stats.current_rates?.TON_USD ? [{
+                label: 'TON/USD',
+                value: `${Number(stats.current_rates.TON_USD.rate || 0).toFixed(2)}`,
+                color: '#0088cc'
+              }] : [{ label: 'TON/USD', value: 'Не загружен', color: '#666' }]),
+              ...(stats.current_rates?.STARS_CS ? [{
+                label: '1 Star',
+                value: `${Number(stats.current_rates.STARS_CS.rate || 0).toFixed(2)} CS`,
+                color: '#FFA500'
+              }] : [{ label: 'Stars/CS', value: 'Не загружен', color: '#666' }])
+            ] : []}
+          />
+
           {/* Статистика валют */}
           <AdminStatsCard
             title="Валюты"
@@ -462,10 +482,10 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'CCC', value: (stats.currencies.total_ccc || 0).toFixed(2) },
-              { label: 'CS', value: (stats.currencies.total_cs || 0).toFixed(2), color: '#FFD700' },
-              { label: 'TON', value: (stats.currencies.total_ton || 0).toFixed(4), color: '#0088cc' },
-              { label: 'Stars', value: stats.currencies.total_stars || 0, color: '#FFA500' }
+              { label: 'CCC', value: Number(stats.currencies.total_ccc || 0).toFixed(2) },
+              { label: 'CS', value: Number(stats.currencies.total_cs || 0).toFixed(2), color: '#FFD700' },
+              { label: 'TON', value: Number(stats.currencies.total_ton || 0).toFixed(4), color: '#0088cc' },
+              { label: 'Stars', value: Number(stats.currencies.total_stars || 0), color: '#FFA500' }
             ] : []}
           />
 
@@ -563,9 +583,9 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             Данные обновлены: {new Date().toLocaleString('ru-RU')}
           </div>
           <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '8px' }}>
-            Всего игроков: {stats.players?.total_players || 0} | 
-            Всего CS: {(stats.currencies?.total_cs || 0).toFixed(2)} | 
-            Обменов: {stats.stars_exchange?.total_exchanges || 0}
+            Всего игроков: {Number(stats.players?.total_players || 0)} | 
+            Всего CS: {Number(stats.currencies?.total_cs || 0).toFixed(2)} | 
+            Обменов: {Number(stats.stars_exchange?.total_exchanges || 0)}
           </div>
         </div>
       )}

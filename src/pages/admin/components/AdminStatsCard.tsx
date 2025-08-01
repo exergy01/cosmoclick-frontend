@@ -2,6 +2,36 @@
 import React from 'react';
 import type { AdminStatsCardProps } from '../types';
 
+// Вспомогательная функция для безопасного форматирования чисел
+const formatValue = (value: string | number, suffix?: string): string => {
+  try {
+    if (typeof value === 'string') {
+      // Если это уже отформатированная строка (например, "$3.45"), возвращаем как есть
+      if (value.includes('$') || value.includes('CS') || value === 'Не загружен') {
+        return value;
+      }
+      // Иначе пытаемся преобразовать в число
+      const num = parseFloat(value);
+      if (isNaN(num)) {
+        return value; // Возвращаем исходную строку если не число
+      }
+      return num.toLocaleString() + (suffix || '');
+    }
+    
+    if (typeof value === 'number') {
+      if (isNaN(value)) {
+        return '0' + (suffix || '');
+      }
+      return value.toLocaleString() + (suffix || '');
+    }
+    
+    return String(value) + (suffix || '');
+  } catch (error) {
+    console.warn('Ошибка форматирования значения:', value, error);
+    return '0' + (suffix || '');
+  }
+};
+
 const AdminStatsCard: React.FC<AdminStatsCardProps> = ({
   title,
   icon,
@@ -126,10 +156,7 @@ const AdminStatsCard: React.FC<AdminStatsCardProps> = ({
                 fontSize: '1rem',
                 textShadow: item.color ? `0 0 8px ${item.color}40` : 'none'
               }}>
-                {typeof item.value === 'number' 
-                  ? item.value.toLocaleString() 
-                  : item.value
-                }{item.suffix || ''}
+                {formatValue(item.value, item.suffix)}
               </div>
             </React.Fragment>
           ))}
