@@ -1,4 +1,4 @@
-// pages/admin/services/adminApi.ts
+// pages/admin/services/adminApi.ts - ОБНОВЛЕННАЯ ВЕРСИЯ с новыми типами
 import axios from 'axios';
 import type {
   AdminStats,
@@ -87,7 +87,6 @@ const forceGetTelegramId = (): string => {
   } else if (webAppId) {
     finalId = String(webAppId);
     console.log('✅ Используем WebApp ID:', finalId);
-    // Сохраняем на будущее
     try {
       localStorage.setItem('telegramId', finalId);
     } catch (e) {
@@ -130,7 +129,51 @@ adminApi.interceptors.request.use(
 adminApi.interceptors.response.use(
   (response) => {
     console.log(`✅ Admin API ответ: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url || ''}`);
-    console.log('📦 Данные ответа:', response.data);
+    console.log('📦 Данные ответа (первые 500 символов):', JSON.stringify(response.data).slice(0, 500) + '...');
+    
+    // 🆕 Дополнительная проверка структуры ответа для статистики
+    if (response.config.url?.includes('/stats/')) {
+      const data = response.data as AdminStats;
+      console.log('📊 Анализ структуры статистики:', {
+        hasPlayers: !!data.players,
+        hasCurrencies: !!data.currencies,
+        hasStarsExchange: !!data.stars_exchange,
+        hasAllExchanges: !!data.all_exchanges, // НОВОЕ
+        hasMinigames: !!data.minigames, // НОВОЕ  
+        hasDebug: !!data.debug, // НОВОЕ
+        topPlayersCount: data.top_players?.length || 0,
+        timestamp: data.timestamp
+      });
+      
+      // Проверяем новые поля
+      if (data.all_exchanges) {
+        console.log('🔄 Детали all_exchanges:', {
+          starsToCs: data.all_exchanges.stars_to_cs?.total_exchanges || 0,
+          cccCs: (data.all_exchanges.ccc_cs?.ccc_to_cs_exchanges || 0) + (data.all_exchanges.ccc_cs?.cs_to_ccc_exchanges || 0),
+          csTon: (data.all_exchanges.cs_ton?.cs_to_ton_exchanges || 0) + (data.all_exchanges.cs_ton?.ton_to_cs_exchanges || 0),
+          totalExchanges: data.all_exchanges.totals?.all_exchanges || 0
+        });
+      }
+      
+      if (data.minigames) {
+        console.log('🎮 Детали minigames:', {
+          totalGames: data.minigames.total_games || 0,
+          activePlayers: data.minigames.active_players || 0,
+          totalBet: data.minigames.total_bet || 0,
+          totalWon: data.minigames.total_won || 0
+        });
+      }
+      
+      if (data.debug) {
+        console.log('🔧 Детали debug:', {
+          activityField: data.debug.activity_field_used,
+          reasonValuesFound: data.debug.reason_values_found,
+          topReasons: data.debug.top_reasons?.slice(0, 3),
+          tablesChecked: data.debug.tables_checked
+        });
+      }
+    }
+    
     return response;
   },
   (error) => {
@@ -172,18 +215,31 @@ export const adminApiService = {
     }
   },
 
-  // Загрузка общей статистики
+  // 🆕 ОБНОВЛЕННАЯ загрузка статистики с поддержкой новых полей
   async getStats(telegramId?: string): Promise<AdminStats> {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('📊 Загружаем статистику. ID:', id);
+      console.log('📊 Загружаем статистику с новыми полями. ID:', id);
       console.log('🔗 URL будет:', `${API_URL}/api/admin/stats/${encodeURIComponent(id)}`);
       
       const response = await adminApi.get(`/stats/${encodeURIComponent(id)}`);
+      const stats = response.data as AdminStats;
       
-      console.log('✅ Статистика загружена успешно. Размер данных:', JSON.stringify(response.data).length);
-      return response.data;
+      console.log('✅ Статистика загружена успешно. Размер данных:', JSON.stringify(stats).length);
+      
+      // 🆕 Валидация новых полей
+      if (!stats.all_exchanges) {
+        console.warn('⚠️ Поле all_exchanges отсутствует в ответе backend');
+      }
+      if (!stats.minigames) {
+        console.warn('⚠️ Поле minigames отсутствует в ответе backend');
+      }
+      if (!stats.debug) {
+        console.warn('⚠️ Поле debug отсутствует в ответе backend');
+      }
+      
+      return stats;
     } catch (error) {
       console.error('❌ Ошибка загрузки статистики:', error);
       throw error;
@@ -373,9 +429,9 @@ export const setTestAdminId = (): void => {
   }
 };
 
-// Функция для отладочного тестирования API
+// 🆕 ОБНОВЛЕННАЯ функция для отладочного тестирования API с новыми полями
 export const testAdminApi = async (): Promise<void> => {
-  console.log('🧪 === ТЕСТИРОВАНИЕ ADMIN API ===');
+  console.log('🧪 === ТЕСТИРОВАНИЕ ADMIN API С НОВЫМИ ПОЛЯМИ ===');
   
   try {
     const id = forceGetTelegramId();
@@ -388,13 +444,43 @@ export const testAdminApi = async (): Promise<void> => {
     
     if (authResult.isAdmin) {
       // Тест загрузки статистики
-      console.log('3. Тестируем загрузку статистики...');
+      console.log('3. Тестируем загрузку статистики с новыми полями...');
       const statsResult = await adminApiService.getStats(id);
       console.log('✅ Результат загрузки статистики:', {
         totalPlayers: statsResult.players?.total_players,
+        active24h: statsResult.players?.active_24h,
         totalCS: statsResult.currencies?.total_cs,
-        topPlayersCount: statsResult.top_players?.length
+        topPlayersCount: statsResult.top_players?.length,
+        // 🆕 Новые поля
+        hasAllExchanges: !!statsResult.all_exchanges,
+        totalExchanges: statsResult.all_exchanges?.totals?.all_exchanges,
+        cccCsExchanges: (statsResult.all_exchanges?.ccc_cs?.ccc_to_cs_exchanges || 0) + (statsResult.all_exchanges?.ccc_cs?.cs_to_ccc_exchanges || 0),
+        hasMinigames: !!statsResult.minigames,
+        totalGames: statsResult.minigames?.total_games,
+        hasDebug: !!statsResult.debug,
+        activityField: statsResult.debug?.activity_field_used,
+        reasonValues: statsResult.debug?.reason_values_found
       });
+      
+      // Детальная проверка новых полей
+      if (statsResult.all_exchanges) {
+        console.log('✅ all_exchanges поле присутствует');
+      } else {
+        console.error('❌ all_exchanges поле отсутствует!');
+      }
+      
+      if (statsResult.minigames) {
+        console.log('✅ minigames поле присутствует');
+      } else {
+        console.error('❌ minigames поле отсутствует!');
+      }
+      
+      if (statsResult.debug) {
+        console.log('✅ debug поле присутствует');
+      } else {
+        console.error('❌ debug поле отсутствует!');
+      }
+      
     } else {
       console.log('❌ Не является админом, статистику не загружаем');
     }

@@ -1,23 +1,67 @@
-// pages/admin/AdminPage.tsx
+// pages/admin/AdminPage.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ с модульной архитектурой
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../context/NewPlayerContext';
 import { useAdminAuth } from './hooks/useAdminAuth';
-import type { AdminTabType } from './types';
 
-// Импортируем компоненты
+// Импортируем СУЩЕСТВУЮЩИЕ компоненты
 import AdminLayout from './components/AdminLayout';
 import AdminStatsTab from './components/AdminStatsTab';
+
+// Простые заглушки для остальных вкладок (пока не созданы)
+const AdminPlayersTab: React.FC<{ colorStyle: string }> = ({ colorStyle }) => (
+  <div style={{
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: `1px solid ${colorStyle}40`,
+    borderRadius: '12px',
+    padding: '40px',
+    textAlign: 'center'
+  }}>
+    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>👥</div>
+    <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Управление игроками</h2>
+    <p style={{ color: '#aaa' }}>В разработке - поиск и управление игроками</p>
+  </div>
+);
+
+const AdminExchangeTab: React.FC<{ colorStyle: string }> = ({ colorStyle }) => (
+  <div style={{
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: `1px solid ${colorStyle}40`,
+    borderRadius: '12px',
+    padding: '40px',
+    textAlign: 'center'
+  }}>
+    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>💱</div>
+    <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Управление обменами</h2>
+    <p style={{ color: '#aaa' }}>В разработке - курсы валют и управление обменами</p>
+  </div>
+);
+
+const AdminManagementTab: React.FC<{ colorStyle: string }> = ({ colorStyle }) => (
+  <div style={{
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: `1px solid ${colorStyle}40`,
+    borderRadius: '12px',
+    padding: '40px',
+    textAlign: 'center'
+  }}>
+    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>⚙️</div>
+    <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Системное управление</h2>
+    <p style={{ color: '#aaa' }}>В разработке - системные настройки и управление</p>
+  </div>
+);
 
 const AdminPage: React.FC = () => {
   const { player } = useNewPlayer();
   const navigate = useNavigate();
   const { isAdmin, loading, error } = useAdminAuth();
-  const [activeTab, setActiveTab] = useState<AdminTabType>('stats');
+  
+  // Состояние активной вкладки
+  const [activeTab, setActiveTab] = useState<'stats' | 'players' | 'exchange' | 'management'>('stats');
 
   const colorStyle = player?.color || '#00f0ff';
 
-  // Загрузка
+  // Пока идет проверка прав
   if (loading) {
     return (
       <div style={{
@@ -30,12 +74,12 @@ const AdminPage: React.FC = () => {
         flexDirection: 'column'
       }}>
         <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🔐</div>
-        <div>Проверка прав...</div>
+        <div>Проверка админских прав...</div>
       </div>
     );
   }
 
-  // Ошибка доступа
+  // Если ошибка или не админ
   if (error || !isAdmin) {
     return (
       <div style={{
@@ -48,21 +92,22 @@ const AdminPage: React.FC = () => {
         flexDirection: 'column'
       }}>
         <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🚫</div>
-        <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
+        <div style={{ fontSize: '1.2rem', marginBottom: '10px', textAlign: 'center' }}>
           {error || 'Доступ запрещен'}
         </div>
         <div style={{ color: '#aaa', marginBottom: '20px' }}>
-          Перенаправление через 3 секунды...
+          Перенаправление на главную через 3 секунды...
         </div>
         <button
           onClick={() => navigate('/')}
           style={{
             padding: '10px 20px',
-            background: '#00f0ff20',
-            border: '2px solid #00f0ff',
+            background: `rgba(255, 255, 255, 0.1)`,
+            border: `2px solid ${colorStyle}`,
             borderRadius: '10px',
             color: '#fff',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontSize: '0.9rem'
           }}
         >
           Вернуться в игру
@@ -71,74 +116,53 @@ const AdminPage: React.FC = () => {
     );
   }
 
+  // Обработчик смены вкладки  
+  const handleTabChange = (tab: 'stats' | 'players' | 'exchange' | 'management') => {
+    console.log('🔄 Переключение на вкладку:', tab);
+    setActiveTab(tab);
+  };
+
+  // Обработчик возврата в игру
+  const handleBackClick = () => {
+    navigate('/', { replace: true });
+  };
+
+  // Обработчик клика по игроку (для будущего использования)
   const handlePlayerClick = (playerId: string) => {
-    console.log('Клик по игроку:', playerId);
-    // TODO: Открыть детальную страницу игрока
+    console.log('👤 Клик по игроку:', playerId);
+    // В будущем здесь будет переключение на вкладку игроков с выбранным игроком
+    setActiveTab('players');
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'stats':
-        return (
-          <AdminStatsTab 
-            colorStyle={colorStyle}
-            onPlayerClick={handlePlayerClick}
-          />
-        );
-      case 'players':
-        return (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
-            <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Управление игроками</h2>
-            <p style={{ color: '#aaa', marginBottom: '20px' }}>
-              Поиск, редактирование, верификация игроков
-            </p>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>
-              Раздел в разработке...
-            </div>
-          </div>
-        );
-      case 'exchange':
-        return (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💱</div>
-            <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Обмены и курсы</h2>
-            <p style={{ color: '#aaa', marginBottom: '20px' }}>
-              Управление курсами валют и разблокировками
-            </p>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>
-              Раздел в разработке...
-            </div>
-          </div>
-        );
-      case 'management':
-        return (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚙️</div>
-            <h2 style={{ color: colorStyle, marginBottom: '10px' }}>Системные настройки</h2>
-            <p style={{ color: '#aaa', marginBottom: '20px' }}>
-              Конфигурация и управление системой
-            </p>
-            <div style={{ fontSize: '0.9rem', color: '#666' }}>
-              Раздел в разработке...
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
+  // Главный интерфейс админки
   return (
     <AdminLayout
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
       colorStyle={colorStyle}
       playerName={player?.first_name || player?.username}
       playerId={player?.telegram_id}
-      onBackClick={() => navigate('/')}
+      onBackClick={handleBackClick}
     >
-      {renderTabContent()}
+      {/* Рендерим контент в зависимости от активной вкладки */}
+      {activeTab === 'stats' && (
+        <AdminStatsTab 
+          colorStyle={colorStyle}
+          onPlayerClick={handlePlayerClick}
+        />
+      )}
+      
+      {activeTab === 'players' && (
+        <AdminPlayersTab colorStyle={colorStyle} />
+      )}
+      
+      {activeTab === 'exchange' && (
+        <AdminExchangeTab colorStyle={colorStyle} />
+      )}
+      
+      {activeTab === 'management' && (
+        <AdminManagementTab colorStyle={colorStyle} />
+      )}
     </AdminLayout>
   );
 };

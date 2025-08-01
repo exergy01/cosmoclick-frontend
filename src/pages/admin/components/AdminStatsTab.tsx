@@ -1,4 +1,4 @@
-// pages/admin/components/AdminStatsTab.tsx
+// pages/admin/components/AdminStatsTab.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React, { useEffect, useState } from 'react';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { forceSaveTelegramId, setTestAdminId, testAdminApi } from '../services/adminApi';
@@ -54,20 +54,15 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
   };
 
   const handleDebug = () => {
-    // Собираем всю отладочную информацию
     const telegram = (window as any)?.Telegram;
     const webApp = telegram?.WebApp;
     
-    // Получаем все возможные ID
     const webAppId = webApp?.initDataUnsafe?.user?.id;
     const savedId = localStorage.getItem('telegramId');
-    
-    // Приводим к строкам для правильного сравнения
     const webAppIdStr = webAppId ? String(webAppId) : null;
     const adminIdStr = '1222791281';
     
     const info = {
-      // Telegram данные
       telegramExists: !!telegram,
       webAppExists: !!webApp,
       initDataUnsafe: webApp?.initDataUnsafe,
@@ -76,42 +71,54 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
       userName: webApp?.initDataUnsafe?.user?.first_name,
       userUsername: webApp?.initDataUnsafe?.user?.username,
       
-      // Другие источники
       savedId: savedId,
       currentUrl: window.location.href,
       urlParams: window.location.search,
       
-      // Устройство
       userAgent: navigator.userAgent,
       isMobile: /Mobi|Android/i.test(navigator.userAgent),
       platform: navigator.platform,
       
-      // Сравнение ID
       expectedAdminId: adminIdStr,
       webAppIdMatches: webAppIdStr === adminIdStr,
       savedIdMatches: savedId === adminIdStr,
       
-      // Что мы получили итого
       finalId: savedId || webAppIdStr,
       finalIdMatches: (savedId || webAppIdStr) === adminIdStr,
       
-      // Отладка типов
       webAppIdType: typeof webAppId,
       savedIdType: typeof savedId,
       adminIdType: typeof adminIdStr,
       
-      // API информация
       apiUrl: process.env.REACT_APP_API_URL || 'http://localhost:5000',
       
-      // Отладка данных статистики
+      // 🆕 Отладка НОВЫХ данных статистики
       statsData: stats ? {
         hasPlayers: !!stats.players,
         hasCurrencies: !!stats.currencies,
         hasStarsExchange: !!stats.stars_exchange,
+        hasAllExchanges: !!stats.all_exchanges, // НОВОЕ поле
+        hasMinigames: !!stats.minigames, // НОВОЕ поле
+        hasDebug: !!stats.debug, // НОВОЕ поле с отладочной информацией
+        
         playersData: stats.players,
         currenciesData: stats.currencies,
         starsExchangeData: stats.stars_exchange,
-        topPlayersCount: stats.top_players?.length || 0
+        allExchangesData: stats.all_exchanges, // НОВОЕ
+        minigamesData: stats.minigames, // НОВОЕ
+        debugData: stats.debug, // НОВОЕ
+        topPlayersCount: stats.top_players?.length || 0,
+        
+        // Подробная диагностика новых полей
+        detailedAnalysis: {
+          activePlayers24h: stats.players?.active_24h,
+          cccCsExchanges: stats.all_exchanges?.ccc_cs,
+          csTonExchanges: stats.all_exchanges?.cs_ton,
+          totalExchanges: stats.all_exchanges?.totals,
+          minigamesTotalGames: stats.minigames?.total_games,
+          activityFieldUsed: stats.debug?.activity_field_used,
+          reasonValuesFound: stats.debug?.reason_values_found
+        }
       } : null
     };
     
@@ -140,7 +147,6 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
     try {
       await testAdminApi();
       alert('✅ Тест API завершен! Проверьте результаты в диагностике.');
-      // Автоматически показываем диагностику после теста
       setTimeout(() => {
         handleDebug();
       }, 500);
@@ -167,7 +173,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           margin: 0,
           fontSize: '1.4rem'
         }}>
-          📊 Статистика
+          📊 Статистика системы
         </h2>
         
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -186,7 +192,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
               fontSize: '0.75rem'
             }}
           >
-            {loading ? '⏳' : '🔄'} Загрузить
+            {loading ? '⏳' : '🔄'} Обновить
           </button>
           
           <button
@@ -240,7 +246,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             alignItems: 'center',
             marginBottom: '15px'
           }}>
-            <h3 style={{ color: colorStyle, margin: 0, fontSize: '1rem' }}>🔍 Подробная диагностика</h3>
+            <h3 style={{ color: colorStyle, margin: 0, fontSize: '1rem' }}>🔍 Диагностика (включая новые поля)</h3>
             <button 
               onClick={() => setShowDebug(false)}
               style={{
@@ -257,48 +263,40 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             </button>
           </div>
           
+          {/* Telegram данные */}
           <div style={{ marginBottom: '12px' }}>
             <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>📱 Telegram WebApp:</div>
-            <div>• Telegram: {debugInfo.telegramExists ? '✅' : '❌'}</div>
-            <div>• WebApp: {debugInfo.webAppExists ? '✅' : '❌'}</div>
             <div>• User ID: <strong>{debugInfo.userId || '❌'}</strong> (тип: {debugInfo.webAppIdType})</div>
-            <div>• User ID как строка: <strong>{debugInfo.userIdString || '❌'}</strong></div>
             <div>• Имя: {debugInfo.userName || '❌'}</div>
             <div>• Username: {debugInfo.userUsername || '❌'}</div>
           </div>
-          
+
+          {/* Сравнение ID */}
           <div style={{ marginBottom: '12px' }}>
-            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>💾 localStorage:</div>
-            <div>• Сохраненный ID: <strong>{debugInfo.savedId || '❌'}</strong> (тип: {debugInfo.savedIdType})</div>
-          </div>
-          
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>🔍 Сравнение ID:</div>
-            <div>• Админский ID: <strong>{debugInfo.expectedAdminId}</strong> (тип: {debugInfo.adminIdType})</div>
-            <div>• WebApp ID совпадает: {debugInfo.webAppIdMatches ? '✅ ДА' : '❌ НЕТ'}</div>
-            <div>• Сохраненный ID совпадает: {debugInfo.savedIdMatches ? '✅ ДА' : '❌ НЕТ'}</div>
-          </div>
-          
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>🌐 API информация:</div>
-            <div>• API URL: <strong>{debugInfo.apiUrl}</strong></div>
-            <div>• Проверка: <code>/api/admin/check/{debugInfo.finalId}</code></div>
-            <div>• Статистика: <code>/api/admin/stats/{debugInfo.finalId}</code></div>
+            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>🔍 Проверка прав:</div>
+            <div>• Сохраненный ID: <strong>{debugInfo.savedId || '❌'}</strong></div>
+            <div>• Админский ID: <strong>{debugInfo.expectedAdminId}</strong></div>
+            <div>• Является админом: <strong>{debugInfo.finalIdMatches ? '✅ ДА' : '❌ НЕТ'}</strong></div>
           </div>
 
-          {/* Отладка данных статистики */}
+          {/* 🆕 НОВАЯ СЕКЦИЯ - Диагностика данных статистики */}
           {debugInfo.statsData && (
             <div style={{ marginBottom: '12px' }}>
-              <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>📊 Данные статистики:</div>
-              <div>• Есть игроки: {debugInfo.statsData.hasPlayers ? '✅' : '❌'}</div>
-              <div>• Есть валюты: {debugInfo.statsData.hasCurrencies ? '✅' : '❌'}</div>
-              <div>• Есть обмены: {debugInfo.statsData.hasStarsExchange ? '✅' : '❌'}</div>
-              <div>• ТОП игроков: {debugInfo.statsData.topPlayersCount}</div>
-              <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '5px' }}>
-                Игроки: {JSON.stringify(debugInfo.statsData.playersData)}<br/>
-                Валюты: {JSON.stringify(debugInfo.statsData.currenciesData)}<br/>
-                Обмены: {JSON.stringify(debugInfo.statsData.starsExchangeData)}
-              </div>
+              <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>📊 Анализ новых данных статистики:</div>
+              <div>• Игроки: {debugInfo.statsData.hasPlayers ? '✅' : '❌'} (активны 24ч: <strong>{debugInfo.statsData.detailedAnalysis?.activePlayers24h || 0}</strong>)</div>
+              <div>• Валюты: {debugInfo.statsData.hasCurrencies ? '✅' : '❌'}</div>
+              <div>• Stars обмены: {debugInfo.statsData.hasStarsExchange ? '✅' : '❌'}</div>
+              <div>• Все обмены (НОВОЕ): {debugInfo.statsData.hasAllExchanges ? '✅' : '❌'}</div>
+              <div>• CCC↔CS: <strong>{(debugInfo.statsData.detailedAnalysis?.cccCsExchanges?.ccc_to_cs_exchanges || 0) + (debugInfo.statsData.detailedAnalysis?.cccCsExchanges?.cs_to_ccc_exchanges || 0)}</strong></div>
+              <div>• CS↔TON: <strong>{(debugInfo.statsData.detailedAnalysis?.csTonExchanges?.cs_to_ton_exchanges || 0) + (debugInfo.statsData.detailedAnalysis?.csTonExchanges?.ton_to_cs_exchanges || 0)}</strong></div>
+              <div>• Мини-игры (НОВОЕ): {debugInfo.statsData.hasMinigames ? '✅' : '❌'} (игр: <strong>{debugInfo.statsData.detailedAnalysis?.minigamesTotalGames || 0}</strong>)</div>
+              <div>• Отладка БД (НОВОЕ): {debugInfo.statsData.hasDebug ? '✅' : '❌'}</div>
+              {debugInfo.statsData.hasDebug && (
+                <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '5px' }}>
+                  • Поле активности: <strong>{debugInfo.statsData.detailedAnalysis?.activityFieldUsed}</strong><br/>
+                  • Найдено значений reason: <strong>{debugInfo.statsData.detailedAnalysis?.reasonValuesFound}</strong>
+                </div>
+              )}
             </div>
           )}
           
@@ -308,14 +306,9 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             background: debugInfo.finalIdMatches ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 87, 34, 0.2)',
             borderRadius: '8px'
           }}>
-            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>🎯 ФИНАЛЬНЫЙ РЕЗУЛЬТАТ:</div>
-            <div>• Итоговый ID: <strong>{debugInfo.finalId || '❌ НЕ НАЙДЕН'}</strong></div>
-            <div>• Является админом: <strong>{debugInfo.finalIdMatches ? '✅ ДА' : '❌ НЕТ'}</strong></div>
-            {!debugInfo.finalIdMatches && (
-              <div style={{ color: '#ff6666', fontSize: '0.75rem', marginTop: '5px' }}>
-                ⚠️ ID не совпадает с админским! Попробуйте кнопки ниже.
-              </div>
-            )}
+            <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>🎯 СТАТУС:</div>
+            <div>• ID: <strong>{debugInfo.finalId || '❌ НЕ НАЙДЕН'}</strong></div>
+            <div>• Доступ: <strong>{debugInfo.finalIdMatches ? '✅ РАЗРЕШЕН' : '❌ ЗАПРЕЩЕН'}</strong></div>
           </div>
           
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -331,7 +324,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
                 fontSize: '0.7rem'
               }}
             >
-              📱 Сохранить из Telegram
+              📱 Получить из Telegram
             </button>
             
             <button
@@ -348,34 +341,6 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             >
               🧪 Принудительно админ
             </button>
-            
-            <button
-              onClick={() => {
-                localStorage.clear();
-                alert('🗑️ localStorage очищен. Перезагружаем...');
-                window.location.reload();
-              }}
-              style={{
-                padding: '5px 8px',
-                background: 'linear-gradient(135deg, #f44336, #f4433688)',
-                border: 'none',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.7rem'
-              }}
-            >
-              🗑️ Очистить localStorage
-            </button>
-          </div>
-          
-          <div style={{ 
-            marginTop: '10px',
-            fontSize: '0.65rem',
-            color: '#888',
-            fontStyle: 'italic'
-          }}>
-            💡 Если кнопка "🧪 Тест API" показывает ошибки - проблема в backend
           </div>
         </div>
       )}
@@ -400,10 +365,10 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           
           <div style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '15px' }}>
             🔧 **Возможные причины:**<br/>
-            • Данные приходят с сервера, но frontend не может их обработать<br/>
-            • Какое-то поле содержит не число, а строку или null<br/>
-            • Попробуйте кнопку "🧪 Тест API" для диагностики<br/>
-            • Или используйте диагностику для просмотра сырых данных
+            • Backend возвращает неправильные данные<br/>
+            • SQL запросы содержат ошибки<br/>
+            • Поля в БД названы по-другому<br/>
+            • Используйте диагностику для анализа
           </div>
           
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -443,7 +408,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
         </div>
       )}
 
-      {/* Карточки статистики с безопасной обработкой */}
+      {/* 🆕 ИСПРАВЛЕННЫЕ карточки статистики с поддержкой новых полей */}
       {(stats || loading) && (
         <div style={{ 
           display: 'grid', 
@@ -480,17 +445,31 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             ] : []}
           />
 
-          {/* Статистика обменов */}
+          {/* 🆕 НОВАЯ карточка - Все обмены (вместо только Stars) */}
           <AdminStatsCard
-            title="Обмены Stars"
-            icon="🌟"
+            title="Все обмены"
+            icon="💱"
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'Всего обменов', value: safeNumber(stats.stars_exchange?.total_exchanges) },
-              { label: 'Stars обменено', value: safeNumber(stats.stars_exchange?.total_stars_exchanged), color: '#FFA500' },
-              { label: 'CS получено', value: safeFormat(stats.stars_exchange?.total_cs_received, 2), color: '#FFD700' },
-              { label: 'За 24ч', value: safeNumber(stats.stars_exchange?.exchanges_24h), color: '#FF9800' }
+              { label: 'Stars→CS', value: safeNumber(stats.all_exchanges?.stars_to_cs?.total_exchanges || stats.stars_exchange?.total_exchanges), color: '#FFA500' },
+              { label: 'CCC↔CS', value: safeNumber((stats.all_exchanges?.ccc_cs?.ccc_to_cs_exchanges || 0) + (stats.all_exchanges?.ccc_cs?.cs_to_ccc_exchanges || 0)), color: '#FFD700' },
+              { label: 'CS↔TON', value: safeNumber((stats.all_exchanges?.cs_ton?.cs_to_ton_exchanges || 0) + (stats.all_exchanges?.cs_ton?.ton_to_cs_exchanges || 0)), color: '#0088cc' },
+              { label: 'За 24ч', value: safeNumber(stats.all_exchanges?.totals?.all_exchanges_24h || stats.stars_exchange?.exchanges_24h), color: '#FF9800' }
+            ] : []}
+          />
+
+          {/* 🆕 НОВАЯ карточка - Мини-игры */}
+          <AdminStatsCard
+            title="Мини-игры"
+            icon="🎮"
+            colorStyle={colorStyle}
+            loading={loading}
+            data={stats ? [
+              { label: 'Игр сыграно', value: safeNumber(stats.minigames?.total_games), color: '#FF6B35' },
+              { label: 'Активных игроков', value: safeNumber(stats.minigames?.active_players), color: '#4ECDC4' },
+              { label: 'Ставок на', value: safeFormat(stats.minigames?.total_bet, 2), color: '#45B7D1' },
+              { label: 'Выиграно', value: safeFormat(stats.minigames?.total_won, 2), color: '#96CEB4' }
             ] : []}
           />
 
@@ -503,7 +482,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             data={stats ? [
               ...(stats.current_rates?.TON_USD ? [{
                 label: 'TON/USD',
-                value: `$${safeFormat(stats.current_rates.TON_USD.rate, 2)}`,
+                value: `${safeFormat(stats.current_rates.TON_USD.rate, 2)}`,
                 color: '#0088cc'
               }] : [{ label: 'TON/USD', value: 'Не загружен', color: '#666' }]),
               ...(stats.current_rates?.STARS_CS ? [{
@@ -513,6 +492,22 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
               }] : [{ label: 'Stars/CS', value: 'Не загружен', color: '#666' }])
             ] : []}
           />
+
+          {/* 🆕 НОВАЯ карточка - Отладочная информация БД (только если есть debug данные) */}
+          {stats?.debug && (
+            <AdminStatsCard
+              title="Отладка БД"
+              icon="🔧"
+              colorStyle={colorStyle}
+              loading={loading}
+              data={[
+                { label: 'Поле активности', value: stats.debug.activity_field_used || 'неизвестно', color: '#9C27B0' },
+                { label: 'Значений reason', value: stats.debug.reason_values_found || 0, color: '#9C27B0' },
+                { label: 'ТОП reason', value: stats.debug.top_reasons?.join(', ').slice(0, 30) + '...' || 'нет данных', color: '#9C27B0' },
+                { label: 'Таблиц проверено', value: stats.debug.tables_checked?.length || 0, color: '#9C27B0' }
+              ]}
+            />
+          )}
         </div>
       )}
 
@@ -536,7 +531,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           border: `1px solid ${colorStyle}20`
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '15px' }}>📊</div>
-          <div style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Нажмите "Загрузить" для получения статистики</div>
+          <div style={{ fontSize: '1.1rem', marginBottom: '10px' }}>Нажмите "Обновить" для получения статистики</div>
           <div style={{ fontSize: '0.9rem', color: '#aaa', marginBottom: '15px' }}>Информация о состоянии системы CosmoClick</div>
           
           <button
@@ -558,7 +553,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
         </div>
       )}
       
-      {/* Информация о статистике */}
+      {/* 🆕 УЛУЧШЕННАЯ информация о статистике с новыми данными */}
       {stats && (
         <div style={{
           marginTop: '30px',
@@ -574,10 +569,18 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             Данные обновлены: {new Date().toLocaleString('ru-RU')}
           </div>
           <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '8px' }}>
-            Всего игроков: {safeNumber(stats.players?.total_players)} | 
-            Всего CS: {safeFormat(stats.currencies?.total_cs, 2)} | 
-            Обменов: {safeNumber(stats.stars_exchange?.total_exchanges)}
+            Игроков: {safeNumber(stats.players?.total_players)} | 
+            Активны 24ч: {safeNumber(stats.players?.active_24h)} | 
+            CS: {safeFormat(stats.currencies?.total_cs, 0)} | 
+            Всего обменов: {safeNumber(stats.all_exchanges?.totals?.all_exchanges)} | 
+            Игр: {safeNumber(stats.minigames?.total_games)}
           </div>
+          {/* Показываем отладочную информацию если есть */}
+          {stats.debug && (
+            <div style={{ color: '#888', fontSize: '0.7rem', marginTop: '5px', fontStyle: 'italic' }}>
+              🔧 Backend использует поле "{stats.debug.activity_field_used}" для активности, найдено {stats.debug.reason_values_found} различных типов операций
+            </div>
+          )}
         </div>
       )}
     </div>
