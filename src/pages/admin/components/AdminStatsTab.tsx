@@ -10,6 +10,31 @@ interface AdminStatsTabProps {
   onPlayerClick?: (playerId: string) => void;
 }
 
+// Безопасная функция для преобразования в число
+const safeNumber = (value: any, defaultValue: number = 0): number => {
+  try {
+    if (value === null || value === undefined) return defaultValue;
+    if (typeof value === 'number') return isNaN(value) ? defaultValue : value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? defaultValue : parsed;
+    }
+    return defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+// Безопасная функция для форматирования чисел
+const safeFormat = (value: any, decimals: number = 0): string => {
+  try {
+    const num = safeNumber(value);
+    return num.toFixed(decimals);
+  } catch {
+    return '0';
+  }
+};
+
 const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
   colorStyle,
   onPlayerClick
@@ -77,6 +102,17 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
       
       // API информация
       apiUrl: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+      
+      // Отладка данных статистики
+      statsData: stats ? {
+        hasPlayers: !!stats.players,
+        hasCurrencies: !!stats.currencies,
+        hasStarsExchange: !!stats.stars_exchange,
+        playersData: stats.players,
+        currenciesData: stats.currencies,
+        starsExchangeData: stats.stars_exchange,
+        topPlayersCount: stats.top_players?.length || 0
+      } : null
     };
     
     setDebugInfo(info);
@@ -249,6 +285,22 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             <div>• Проверка: <code>/api/admin/check/{debugInfo.finalId}</code></div>
             <div>• Статистика: <code>/api/admin/stats/{debugInfo.finalId}</code></div>
           </div>
+
+          {/* Отладка данных статистики */}
+          {debugInfo.statsData && (
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ color: '#aaa', marginBottom: '8px', fontSize: '0.85rem' }}>📊 Данные статистики:</div>
+              <div>• Есть игроки: {debugInfo.statsData.hasPlayers ? '✅' : '❌'}</div>
+              <div>• Есть валюты: {debugInfo.statsData.hasCurrencies ? '✅' : '❌'}</div>
+              <div>• Есть обмены: {debugInfo.statsData.hasStarsExchange ? '✅' : '❌'}</div>
+              <div>• ТОП игроков: {debugInfo.statsData.topPlayersCount}</div>
+              <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '5px' }}>
+                Игроки: {JSON.stringify(debugInfo.statsData.playersData)}<br/>
+                Валюты: {JSON.stringify(debugInfo.statsData.currenciesData)}<br/>
+                Обмены: {JSON.stringify(debugInfo.statsData.starsExchangeData)}
+              </div>
+            </div>
+          )}
           
           <div style={{ 
             marginBottom: '15px',
@@ -347,11 +399,11 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
           </div>
           
           <div style={{ fontSize: '0.8rem', color: '#ccc', marginBottom: '15px' }}>
-            🔧 <strong>Диагностика показывает:</strong><br/>
-            • Frontend правильно определяет админский ID<br/>
-            • Проблема в передаче ID в API запросы<br/>
+            🔧 **Возможные причины:**<br/>
+            • Данные приходят с сервера, но frontend не может их обработать<br/>
+            • Какое-то поле содержит не число, а строку или null<br/>
             • Попробуйте кнопку "🧪 Тест API" для диагностики<br/>
-            • Если тест не проходит - проблема в backend
+            • Или используйте диагностику для просмотра сырых данных
           </div>
           
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -391,48 +443,7 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
         </div>
       )}
 
-      {/* Быстрые действия при ошибке */}
-      {error && !showDebug && (
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          justifyContent: 'center',
-          marginBottom: '20px',
-          flexWrap: 'wrap'
-        }}>
-          <button
-            onClick={handleTelegramTest}
-            style={{
-              padding: '6px 10px',
-              background: 'linear-gradient(135deg, #4CAF50, #4CAF5088)',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '0.75rem'
-            }}
-          >
-            📱 Попробовать Telegram ID
-          </button>
-          
-          <button
-            onClick={handleForceTest}
-            style={{
-              padding: '6px 10px',
-              background: 'linear-gradient(135deg, #FF9800, #FF980088)',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '0.75rem'
-            }}
-          >
-            🧪 Форсировать админ доступ
-          </button>
-        </div>
-      )}
-
-      {/* Карточки статистики */}
+      {/* Карточки статистики с безопасной обработкой */}
       {(stats || loading) && (
         <div style={{ 
           display: 'grid', 
@@ -448,30 +459,10 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'Всего', value: stats.players.total_players },
-              { label: 'Верифицированных', value: stats.players.verified_players, color: '#4CAF50' },
-              { label: 'Активны 24ч', value: stats.players.active_24h, color: '#FF9800' },
-              { label: 'Активны 7д', value: stats.players.active_7d, color: '#2196F3' }
-            ] : []}
-          />
-
-          {/* Курсы */}
-          <AdminStatsCard
-            title="Курсы"
-            icon="📈"
-            colorStyle={colorStyle}
-            loading={loading}
-            data={stats ? [
-              ...(stats.current_rates?.TON_USD ? [{
-                label: 'TON/USD',
-                value: `${Number(stats.current_rates.TON_USD.rate || 0).toFixed(2)}`,
-                color: '#0088cc'
-              }] : [{ label: 'TON/USD', value: 'Не загружен', color: '#666' }]),
-              ...(stats.current_rates?.STARS_CS ? [{
-                label: '1 Star',
-                value: `${Number(stats.current_rates.STARS_CS.rate || 0).toFixed(2)} CS`,
-                color: '#FFA500'
-              }] : [{ label: 'Stars/CS', value: 'Не загружен', color: '#666' }])
+              { label: 'Всего', value: safeNumber(stats.players?.total_players) },
+              { label: 'Верифицированных', value: safeNumber(stats.players?.verified_players), color: '#4CAF50' },
+              { label: 'Активны 24ч', value: safeNumber(stats.players?.active_24h), color: '#FF9800' },
+              { label: 'Активны 7д', value: safeNumber(stats.players?.active_7d), color: '#2196F3' }
             ] : []}
           />
 
@@ -482,10 +473,10 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'CCC', value: Number(stats.currencies.total_ccc || 0).toFixed(2) },
-              { label: 'CS', value: Number(stats.currencies.total_cs || 0).toFixed(2), color: '#FFD700' },
-              { label: 'TON', value: Number(stats.currencies.total_ton || 0).toFixed(4), color: '#0088cc' },
-              { label: 'Stars', value: Number(stats.currencies.total_stars || 0), color: '#FFA500' }
+              { label: 'CCC', value: safeFormat(stats.currencies?.total_ccc, 2) },
+              { label: 'CS', value: safeFormat(stats.currencies?.total_cs, 2), color: '#FFD700' },
+              { label: 'TON', value: safeFormat(stats.currencies?.total_ton, 4), color: '#0088cc' },
+              { label: 'Stars', value: safeNumber(stats.currencies?.total_stars), color: '#FFA500' }
             ] : []}
           />
 
@@ -496,10 +487,10 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             colorStyle={colorStyle}
             loading={loading}
             data={stats ? [
-              { label: 'Всего обменов', value: stats.stars_exchange.total_exchanges || 0 },
-              { label: 'Stars обменено', value: stats.stars_exchange.total_stars_exchanged || 0, color: '#FFA500' },
-              { label: 'CS получено', value: (stats.stars_exchange.total_cs_received || 0).toFixed(2), color: '#FFD700' },
-              { label: 'За 24ч', value: stats.stars_exchange.exchanges_24h || 0, color: '#FF9800' }
+              { label: 'Всего обменов', value: safeNumber(stats.stars_exchange?.total_exchanges) },
+              { label: 'Stars обменено', value: safeNumber(stats.stars_exchange?.total_stars_exchanged), color: '#FFA500' },
+              { label: 'CS получено', value: safeFormat(stats.stars_exchange?.total_cs_received, 2), color: '#FFD700' },
+              { label: 'За 24ч', value: safeNumber(stats.stars_exchange?.exchanges_24h), color: '#FF9800' }
             ] : []}
           />
 
@@ -512,12 +503,12 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             data={stats ? [
               ...(stats.current_rates?.TON_USD ? [{
                 label: 'TON/USD',
-                value: `${stats.current_rates.TON_USD.rate}`,
+                value: `$${safeFormat(stats.current_rates.TON_USD.rate, 2)}`,
                 color: '#0088cc'
               }] : [{ label: 'TON/USD', value: 'Не загружен', color: '#666' }]),
               ...(stats.current_rates?.STARS_CS ? [{
                 label: '1 Star',
-                value: `${stats.current_rates.STARS_CS.rate} CS`,
+                value: `${safeFormat(stats.current_rates.STARS_CS.rate, 2)} CS`,
                 color: '#FFA500'
               }] : [{ label: 'Stars/CS', value: 'Не загружен', color: '#666' }])
             ] : []}
@@ -583,9 +574,9 @@ const AdminStatsTab: React.FC<AdminStatsTabProps> = ({
             Данные обновлены: {new Date().toLocaleString('ru-RU')}
           </div>
           <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '8px' }}>
-            Всего игроков: {Number(stats.players?.total_players || 0)} | 
-            Всего CS: {Number(stats.currencies?.total_cs || 0).toFixed(2)} | 
-            Обменов: {Number(stats.stars_exchange?.total_exchanges || 0)}
+            Всего игроков: {safeNumber(stats.players?.total_players)} | 
+            Всего CS: {safeFormat(stats.currencies?.total_cs, 2)} | 
+            Обменов: {safeNumber(stats.stars_exchange?.total_exchanges)}
           </div>
         </div>
       )}
