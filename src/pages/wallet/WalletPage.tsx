@@ -443,7 +443,7 @@ const WalletPage: React.FC = () => {
                   onClick={handleDisconnect}
                   style={{
                     padding: '12px 20px',
-                    background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ')}, 0.2)`,
+                    background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
                     border: `2px solid ${colorStyle}`,
                     borderRadius: '12px',
                     color: colorStyle,
@@ -505,7 +505,7 @@ const WalletPage: React.FC = () => {
               <button
                 onClick={() => { setShowWithdrawModal(false); setWithdrawAmount(''); setError(null); }}
                 style={{
-                  flex: 1, padding: '15px', background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ')}, 0.2)`,
+                  flex: 1, padding: '15px', background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
                   border: `2px solid ${colorStyle}`, borderRadius: '10px', color: colorStyle, cursor: 'pointer'
                 }}
               >❌ {t('wallet.cancel')}</button>

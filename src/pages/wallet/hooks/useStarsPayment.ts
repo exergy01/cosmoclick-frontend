@@ -54,8 +54,8 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
         }
         
         // Используем Telegram WebApp API вместо window.open
-        if (window.Telegram?.WebApp?.openTelegramLink) {
-          window.Telegram.WebApp.openTelegramLink(telegramUrl);
+        if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+          (window as any).Telegram.WebApp.openTelegramLink(telegramUrl);
         } else {
           // Fallback для тестирования вне Telegram
           window.open(telegramUrl, '_blank');

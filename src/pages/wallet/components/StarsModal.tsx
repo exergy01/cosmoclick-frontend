@@ -64,7 +64,7 @@ export const StarsModal: React.FC<StarsModalProps> = ({
         border: `2px solid ${colorStyle}`,
         maxWidth: '400px',
         width: '100%',
-        boxShadow: `0 0 30px rgba(${colorStyle.slice(1).match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ')}, 0.3)`
+        boxShadow: `0 0 30px rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.3)`
       }}>
         <h2 style={{ 
           color: colorStyle, 
@@ -190,7 +190,7 @@ export const StarsModal: React.FC<StarsModalProps> = ({
             style={{
               flex: 1,
               padding: '15px',
-              background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ')}, 0.2)`,
+              background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
               border: `2px solid ${colorStyle}`,
               borderRadius: '10px',
               color: colorStyle,
