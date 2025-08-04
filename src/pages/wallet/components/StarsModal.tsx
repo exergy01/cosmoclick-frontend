@@ -27,6 +27,19 @@ export const StarsModal: React.FC<StarsModalProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // Функция для получения актуального количества Stars, которое будет куплено
+  const getActualStarsAmount = (inputAmount: string): number => {
+    const amount = parseInt(inputAmount);
+    if (!amount || amount < 100) return 100;
+    if (amount > 150000) return 150000;
+    
+    // Находим ближайшее валидное значение (большее или равное)
+    return validAmounts.find(validAmount => validAmount >= amount) || 150000;
+  };
+
+  const actualAmount = getActualStarsAmount(starsAmount);
+  const inputAmount = parseInt(starsAmount);
+
   if (!isOpen) return null;
 
   return (
@@ -80,7 +93,7 @@ export const StarsModal: React.FC<StarsModalProps> = ({
         <div style={{ marginBottom: '20px' }}>
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
             gap: '10px',
             marginBottom: '15px'
           }}>
@@ -105,7 +118,7 @@ export const StarsModal: React.FC<StarsModalProps> = ({
                   transition: 'all 0.3s ease'
                 }}
               >
-                ⭐ {amount}
+                ⭐ {amount.toLocaleString()}
                 {amount === 250 && (
                   <span style={{
                     position: 'absolute',
@@ -153,11 +166,29 @@ export const StarsModal: React.FC<StarsModalProps> = ({
           <p style={{ color: '#888', fontSize: '0.8rem', marginTop: '5px' }}>
             {t('wallet.stars_modal.min_max', { min: 100, max: 150000 })}
           </p>
+          
+          {/* Информация о том, что будет куплено */}
+          {starsAmount && inputAmount >= 100 && (
+            <div style={{ 
+              marginTop: '10px', 
+              padding: '10px',
+              background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.1)`,
+              border: `1px solid ${colorStyle}`,
+              borderRadius: '8px'
+            }}>
+              <p style={{ color: colorStyle, fontSize: '0.9rem', margin: 0 }}>
+                {inputAmount === actualAmount 
+                  ? `✅ Будет куплено: ${actualAmount.toLocaleString()} Stars`
+                  : `⬆️ Будет куплено: ${actualAmount.toLocaleString()} Stars (округлено вверх)`
+                }
+              </p>
+            </div>
+          )}
         </div>
 
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           <p style={{ color: colorStyle, fontSize: '1rem' }}>
-            💰 {t('wallet.stars_modal.cost', { amount: parseInt(starsAmount || '0') })}
+            💰 {t('wallet.stars_modal.cost', { amount: actualAmount })}
           </p>
           <p style={{ color: '#888', fontSize: '0.8rem' }}>
             {t('wallet.stars_modal.payment_method')}
@@ -167,7 +198,7 @@ export const StarsModal: React.FC<StarsModalProps> = ({
         <div style={{ display: 'flex', gap: '15px' }}>
           <button
             onClick={onSubmit}
-            disabled={isProcessing || !starsAmount || parseInt(starsAmount) < 100}
+            disabled={isProcessing || !starsAmount || parseInt(starsAmount) < 100 || parseInt(starsAmount) > 150000}
             style={{
               flex: 1,
               padding: '15px',
@@ -176,8 +207,8 @@ export const StarsModal: React.FC<StarsModalProps> = ({
               borderRadius: '10px',
               color: '#fff',
               fontSize: '1.1rem',
-              cursor: (isProcessing || !starsAmount || parseInt(starsAmount) < 100) ? 'not-allowed' : 'pointer',
-              opacity: (isProcessing || !starsAmount || parseInt(starsAmount) < 100) ? 0.5 : 1,
+              cursor: (isProcessing || !starsAmount || parseInt(starsAmount) < 100 || parseInt(starsAmount) > 150000) ? 'not-allowed' : 'pointer',
+              opacity: (isProcessing || !starsAmount || parseInt(starsAmount) < 100 || parseInt(starsAmount) > 150000) ? 0.5 : 1,
               transition: 'all 0.3s ease'
             }}
           >

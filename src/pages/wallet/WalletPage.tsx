@@ -23,7 +23,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // Официальные пакеты Stars от Telegram
 const VALID_STARS_AMOUNTS = [100, 150, 250, 350, 500, 750, 1000, 1500, 2500, 5000, 10000, 25000, 50000, 100000, 150000];
-const POPULAR_STARS_PACKAGES = [100, 250, 500, 1000, 2500];
+const POPULAR_STARS_PACKAGES = [100, 250, 500, 1000, 2500, 5000];
 
 const WalletPage: React.FC = () => {
   const { t } = useTranslation();
@@ -152,22 +152,23 @@ const WalletPage: React.FC = () => {
 
   // Обработчики
   const handleStarsDeposit = async () => {
-    const amount = parseInt(starsAmount);
+    const inputAmount = parseInt(starsAmount);
     
-    // Валидация
-    if (!amount || amount < 100) {
+    // Валидация минимума
+    if (!inputAmount || inputAmount < 100) {
       setError(t('wallet.errors.invalid_stars_amount', { min: 100, max: 150000 }));
       return;
     }
 
-    if (!VALID_STARS_AMOUNTS.includes(amount)) {
-      setError(t('wallet.errors.invalid_stars_package', { 
-        packages: POPULAR_STARS_PACKAGES.join(', ') 
-      }));
+    if (inputAmount > 150000) {
+      setError(t('wallet.errors.invalid_stars_amount', { min: 100, max: 150000 }));
       return;
     }
 
-    await createStarsInvoice(amount);
+    // Находим ближайшее валидное значение (большее или равное)
+    const actualAmount = VALID_STARS_AMOUNTS.find(validAmount => validAmount >= inputAmount) || 150000;
+
+    await createStarsInvoice(actualAmount);
   };
 
   const handleTONDeposit = async () => {
