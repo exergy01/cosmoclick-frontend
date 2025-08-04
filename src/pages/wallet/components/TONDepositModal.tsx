@@ -1,5 +1,6 @@
 // src/pages/wallet/components/TONDepositModal.tsx
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface TONDepositModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface TONDepositModalProps {
   setDepositAmount: (amount: string) => void;
   onSubmit: () => void;
   isProcessing: boolean;
+  colorStyle: string;
 }
 
 export const TONDepositModal: React.FC<TONDepositModalProps> = ({
@@ -16,8 +18,11 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
   depositAmount,
   setDepositAmount,
   onSubmit,
-  isProcessing
+  isProcessing,
+  colorStyle
 }) => {
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
   return (
@@ -34,28 +39,42 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
       zIndex: 1000,
       padding: '20px'
     }}>
+      {/* Стили для убирания стрелочек в input */}
+      <style>
+        {`
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
+        `}
+      </style>
+
       <div style={{
         background: 'rgba(0, 0, 0, 0.95)',
         padding: '30px',
         borderRadius: '20px',
-        border: '2px solid #22c55e',
+        border: `2px solid ${colorStyle}`,
         maxWidth: '400px',
         width: '100%',
-        boxShadow: '0 0 30px rgba(34, 197, 94, 0.3)'
+        boxShadow: `0 0 30px rgba(${colorStyle.slice(1).match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ')}, 0.3)`
       }}>
         <h2 style={{ 
-          color: '#22c55e', 
+          color: colorStyle, 
           marginBottom: '20px', 
           textAlign: 'center',
-          textShadow: '0 0 10px #22c55e',
+          textShadow: `0 0 10px ${colorStyle}`,
           fontSize: '1.5rem'
         }}>
-          💰 Пополнение TON
+          💰 {t('wallet.ton_modal.title')}
         </h2>
         
         <div style={{ marginBottom: '20px' }}>
           <label style={{ color: '#ccc', display: 'block', marginBottom: '10px' }}>
-            Сумма для пополнения:
+            {t('wallet.ton_modal.amount_label')}
           </label>
           <input
             type="number"
@@ -69,7 +88,7 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
               width: '100%',
               padding: '12px',
               background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid #22c55e',
+              border: `1px solid ${colorStyle}`,
               borderRadius: '10px',
               color: '#fff',
               fontSize: '1.1rem',
@@ -77,16 +96,16 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
             }}
           />
           <p style={{ color: '#888', fontSize: '0.8rem', marginTop: '5px' }}>
-            Минимум: 0.01 TON
+            {t('wallet.ton_modal.min_amount', { amount: '0.01' })}
           </p>
         </div>
 
         <div style={{ marginBottom: '15px', textAlign: 'center' }}>
-          <p style={{ color: '#22c55e', fontSize: '1rem' }}>
-            💎 К пополнению: {parseFloat(depositAmount || '0').toFixed(4)} TON
+          <p style={{ color: colorStyle, fontSize: '1rem' }}>
+            💎 {t('wallet.ton_modal.to_deposit', { amount: parseFloat(depositAmount || '0').toFixed(4) })}
           </p>
           <p style={{ color: '#888', fontSize: '0.8rem' }}>
-            Отправка на игровой кошелек
+            {t('wallet.ton_modal.send_to_game_wallet')}
           </p>
         </div>
 
@@ -97,8 +116,8 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
             style={{
               flex: 1,
               padding: '15px',
-              background: 'linear-gradient(135deg, #22c55e30, #22c55e60, #22c55e30)',
-              border: '2px solid #22c55e',
+              background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
+              border: `2px solid ${colorStyle}`,
               borderRadius: '10px',
               color: '#fff',
               fontSize: '1.1rem',
@@ -107,7 +126,7 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
               transition: 'all 0.3s ease'
             }}
           >
-            {isProcessing ? '🔄 Отправка...' : '✅ Пополнить'}
+            {isProcessing ? `🔄 ${t('wallet.ton_modal.sending')}` : `✅ ${t('wallet.ton_modal.deposit_button')}`}
           </button>
           
           <button
@@ -116,17 +135,17 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
             style={{
               flex: 1,
               padding: '15px',
-              background: 'rgba(239, 68, 68, 0.2)',
-              border: '2px solid #ef4444',
+              background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map(hex => parseInt(hex, 16)).join(', ')}, 0.2)`,
+              border: `2px solid ${colorStyle}`,
               borderRadius: '10px',
-              color: '#ef4444',
+              color: colorStyle,
               fontSize: '1.1rem',
               cursor: isProcessing ? 'not-allowed' : 'pointer',
               opacity: isProcessing ? 0.5 : 1,
               transition: 'all 0.3s ease'
             }}
           >
-            ❌ Отмена
+            ❌ {t('wallet.cancel')}
           </button>
         </div>
       </div>

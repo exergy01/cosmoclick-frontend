@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - УПРОЩЕННАЯ ВЕРСИЯ
+// src/pages/wallet/hooks/useTONDeposit.ts - ОЧИЩЕННАЯ ВЕРСИЯ
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
@@ -38,38 +38,26 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
     setIsProcessing(true);
 
     try {
-      console.log('💰 Начинаем упрощенное пополнение TON:', amount);
+      // Адрес игрового кошелька из переменных окружения
+      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
       
-      // Адрес игрового кошелька
-      const gameWalletAddress = 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
-      
-      console.log('🏪 Game wallet address:', gameWalletAddress);
-
       // Сумма в нанотонах
       const nanoAmount = Math.floor(amount * 1_000_000_000);
-      
-      console.log('💎 Сумма в nanoton:', nanoAmount);
 
-      // 🔥 УПРОЩЕННАЯ ТРАНЗАКЦИЯ БЕЗ PAYLOAD
+      // Упрощенная транзакция без payload
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
         messages: [
           {
             address: gameWalletAddress,
             amount: nanoAmount.toString()
-            // БЕЗ payload - самая простая транзакция
+            // Без payload - самая простая транзакция
           }
         ]
       };
-
-      console.log('🔗 Отправляем упрощенную транзакцию...');
-      console.log('📋 Transaction:', JSON.stringify(transaction, null, 2));
       
       // Отправляем транзакцию
       const result = await tonConnectUI.sendTransaction(transaction);
-      
-      console.log('✅ Транзакция отправлена успешно!');
-      console.log('📄 Result:', result);
       
       const shortHash = result.boc?.slice(0, 10) || 'unknown';
       onSuccess?.(`Транзакция отправлена! Hash: ${shortHash}...`);
@@ -77,14 +65,6 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       return true;
 
     } catch (err: any) {
-      console.error('❌ Ошибка пополнения TON:', err);
-      console.error('📊 Error details:', {
-        name: err.name,
-        message: err.message,
-        code: err.code,
-        stack: err.stack
-      });
-      
       // Детальная диагностика ошибок
       let errorMessage = 'Ошибка отправки транзакции';
       

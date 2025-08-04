@@ -25,21 +25,19 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
       return false;
     }
 
-    if (amount < 1) {
-      onError?.('Минимальная сумма: 1 Star');
+    if (amount < 100) {
+      onError?.('Минимальная сумма: 100 Stars');
       return false;
     }
 
-    if (amount > 2500) {
-      onError?.('Максимальная сумма: 2500 Stars');
+    if (amount > 150000) {
+      onError?.('Максимальная сумма: 150000 Stars');
       return false;
     }
 
     setIsProcessing(true);
 
     try {
-      console.log('🌟 Создаем счет на оплату Stars:', amount);
-      
       const response = await axios.post(`${API_URL}/api/wallet/create-stars-invoice`, {
         telegram_id: playerId,
         amount: amount,
@@ -47,11 +45,23 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
       });
 
       if (response.data.success && response.data.invoice_url) {
-        // Открываем ссылку на оплату в Telegram
-        window.open(response.data.invoice_url, '_blank');
+        // Используем правильный Telegram WebApp API для открытия ссылки
+        let telegramUrl = response.data.invoice_url;
+        
+        // Убедимся, что ссылка в правильном формате для Telegram
+        if (!telegramUrl.startsWith('t.me') && !telegramUrl.startsWith('https://t.me')) {
+          telegramUrl = telegramUrl.replace(/^https?:\/\//, 'https://t.me/');
+        }
+        
+        // Используем Telegram WebApp API вместо window.open
+        if (window.Telegram?.WebApp?.openTelegramLink) {
+          window.Telegram.WebApp.openTelegramLink(telegramUrl);
+        } else {
+          // Fallback для тестирования вне Telegram
+          window.open(telegramUrl, '_blank');
+        }
         
         onSuccess?.('Счет создан! Откройте ссылку для оплаты');
-        console.log('✅ Stars счет создан успешно:', response.data.invoice_url);
         
         return true;
       } else {
@@ -59,8 +69,6 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
       }
 
     } catch (err: any) {
-      console.error('❌ Ошибка создания счета Stars:', err);
-      
       const errorMessage = `Ошибка: ${err.response?.data?.error || err.message}`;
       onError?.(errorMessage);
       

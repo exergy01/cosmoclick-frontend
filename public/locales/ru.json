@@ -71,6 +71,79 @@
   "no_resources_to_collect": "⚠️ Нечего собирать!\n\nПодождите, пока ресурсы накопятся.",
   "collection_error": "❌ Ошибка сбора ресурсов:\n\n{{error}}",
   "resources": "Ресурсы",
+  "wallet": {
+    "title": "TON Кошелек",
+    "loading_ton_connect": "Загрузка TON Connect...",
+    "balance_title": "Ваш баланс",
+    "ton_balance": "TON",
+    "stars_balance": "Telegram Stars",
+    "stars_description": "Telegram Stars для внутриигровых покупок",
+    "connected_wallet": "Подключенный кошелек:",
+    "connect_wallet": "Подключить кошелек",
+    "disconnect_wallet": "Отключить",
+    "deposit_ton": "Пополнить TON",
+    "buy_stars": "Купить Stars",
+    "withdraw_ton": "Вывести TON",
+    "wallet_connected": "Кошелек успешно подключен",
+    "wallet_already_connected": "Кошелек уже подключен",
+    "wallet_disconnected": "Кошелек отключен",
+    "connection_error": "Ошибка подключения кошелька",
+    "disconnect_error": "Ошибка отключения кошелька",
+    "first_connect_wallet": "Сначала подключите кошелек",
+    "invalid_amount": "Неверная сумма или недостаточно средств",
+    "processing": "Обработка...",
+    "confirm": "Подтвердить",
+    "cancel": "Отмена",
+    "available": "Доступно",
+    "minimum": "Минимум",
+    "maximum": "Максимум",
+    "stars_modal": {
+      "title": "Купить Telegram Stars",
+      "amount_label": "Количество Stars:",
+      "cost": "Стоимость: {{amount}} Stars",
+      "payment_method": "Оплата через Telegram",
+      "min_max": "От {{min}} до {{max}} Stars",
+      "buy_button": "Купить Stars",
+      "creating": "Создание...",
+      "packages": {
+        "popular": "Популярно"
+      }
+    },
+    "ton_modal": {
+      "title": "Пополнение TON",
+      "amount_label": "Сумма для пополнения:",
+      "to_deposit": "К пополнению: {{amount}} TON",
+      "send_to_game_wallet": "Отправка на игровой кошелек",
+      "min_amount": "Минимум: {{amount}} TON",
+      "deposit_button": "Пополнить",
+      "sending": "Отправка..."
+    },
+    "withdraw_modal": {
+      "title": "Вывод TON",
+      "available_amount": "Доступно: {{amount}} TON"
+    },
+    "errors": {
+      "invalid_stars_amount": "Введите сумму от {{min}} до {{max}} Stars",
+      "invalid_ton_amount": "Введите сумму от {{min}} до {{max}} TON",
+      "insufficient_funds": "Недостаточно средств",
+      "invalid_stars_package": "Доступные суммы: {{packages}}",
+      "create_invoice_failed": "Ошибка создания счета",
+      "transaction_declined": "Транзакция отклонена",
+      "transaction_error": "Ошибка отправки транзакции",
+      "insufficient_ton_balance": "Недостаточно TON в кошельке",
+      "network_error": "Ошибка сети, попробуйте еще раз",
+      "invalid_wallet_address": "Неверный адрес кошелька",
+      "wallet_connection_error": "Ошибка подключения к кошельку",
+      "withdrawal_error": "Ошибка вывода"
+    },
+    "success": {
+      "invoice_created": "Счет создан! Откройте ссылку для оплаты",
+      "transaction_sent": "Транзакция отправлена! Hash: {{hash}}...",
+      "withdrawal_completed": "Вывод выполнен успешно!",
+      "stars_purchased": "Stars успешно приобретены!",
+      "ton_deposited": "TON успешно пополнен!"
+    }
+  },
   "exchange_page": {
     "commission": "Комиссия",
     "available": "Доступно",
