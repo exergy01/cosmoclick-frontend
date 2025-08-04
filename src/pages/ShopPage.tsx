@@ -25,6 +25,8 @@ interface Item {
   name?: string;
   isPurchased?: boolean;
   isPreviousPurchased?: boolean;
+  currency?: string; // Добавляем поле currency
+  isBomb?: boolean; // Добавляем поле isBomb
 }
 
 interface ShopButton {
@@ -151,28 +153,41 @@ const ShopPage: React.FC = () => {
       ]);
       
       // Проверяем доступность "бомбы" (13-й астероид)
-      const systemAsteroids = asteroids.filter((item: Item) => item.system === currentSystem);
+      const systemAsteroids = asteroids.filter((item: Item) => item.system === currentSystem && item.id <= 12); // только основные астероиды
       const systemDrones = drones.filter((item: Item) => item.system === currentSystem);
       const systemCargo = cargo.filter((item: Item) => item.system === currentSystem);
       
-      const purchasedAsteroids = player.asteroids.filter((a: any) => a.system === currentSystem).length;
+      const purchasedAsteroids = player.asteroids.filter((a: any) => a.system === currentSystem && a.id <= 12).length; // только основные
       const purchasedDrones = player.drones.filter((d: any) => d.system === currentSystem).length;
       const purchasedCargo = player.cargo_levels.filter((c: any) => c.system === currentSystem).length;
       
-      const hasAllItems = purchasedAsteroids === 12 && purchasedDrones === 15 && purchasedCargo === 5;
+      console.log(`🔍 Система ${currentSystem} проверка бомбы:`, {
+        purchasedAsteroids, 
+        purchasedDrones, 
+        purchasedCargo,
+        maxAsteroids: systemAsteroids.length,
+        maxDrones: systemDrones.length, 
+        maxCargo: systemCargo.length
+      });
+      
+      const hasAllItems = purchasedAsteroids === systemAsteroids.length && 
+                          purchasedDrones === systemDrones.length && 
+                          purchasedCargo === systemCargo.length;
       
       setShopItems({
-        asteroids: systemAsteroids
+        asteroids: asteroids
+          .filter((item: Item) => item.system === currentSystem) // все астероиды системы, включая бомбу
           .map((item: Item) => {
             const isPurchased = player?.asteroids.some((a: any) => a.id === item.id && a.system === item.system) || false;
             const isPreviousPurchased = item.id === 1 || player?.asteroids.some((a: any) => a.id === item.id - 1 && a.system === item.system) || false;
             
             // Особая логика для "бомбы" (13-й астероид)
             if (item.id === 13) {
+              console.log(`💣 Бомба в системе ${currentSystem}: hasAllItems=${hasAllItems}, isPurchased=${isPurchased}`);
               return { 
                 ...item, 
                 isPurchased, 
-                isPreviousPurchased: hasAllItems // доступна только если куплено все
+                isPreviousPurchased: hasAllItems // доступна только если куплено все основное
               };
             }
             
@@ -670,7 +685,7 @@ const buyItem = async (type: string, id: number, price: number) => {
                 </span>
                 <span style={{ fontSize: '0.8rem' }}>💎 {getResourceName()}: {getResourceValue(item)}</span>
                 <span style={{ fontSize: '0.8rem' }}>
-                  💰 {item.price || 0} {isBomb ? 'TON' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
+                  💰 {item.price || 0} {isBomb || item.currency === 'ton' ? 'TON' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
                 </span>
                 {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
                 {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>
