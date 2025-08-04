@@ -8,6 +8,7 @@ import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 import SystemUnlockModal from '../components/SystemUnlockModal';
+import ToastNotification from '../components/ToastNotification';
 
 // Импортируем новый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
@@ -30,6 +31,12 @@ interface ShopButton {
   type: string;
   count: string;
   amount?: string;
+}
+
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'warning';
 }
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -74,6 +81,26 @@ const ShopPage: React.FC = () => {
   const [showSystemDropdown, setShowSystemDropdown] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [targetSystem, setTargetSystem] = useState<number | null>(null);
+
+  // 🎉 TOAST УВЕДОМЛЕНИЯ
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toastCounter, setToastCounter] = useState(0);
+
+  // Функция добавления toast
+  const addToast = (message: string, type: 'success' | 'error' | 'warning') => {
+    const newToast: Toast = {
+      id: toastCounter,
+      message,
+      type
+    };
+    setToasts(prev => [...prev, newToast]);
+    setToastCounter(prev => prev + 1);
+    
+    // Автоматическое удаление через 4 секунды
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== newToast.id));
+    }, 4000);
+  };
 
   // Установка активной вкладки из location state
   useEffect(() => {
@@ -123,23 +150,41 @@ const ShopPage: React.FC = () => {
         axios.get(`${API_URL}/api/shop/cargo`).then(res => res.data)
       ]);
       
+      // Проверяем доступность "бомбы" (13-й астероид)
+      const systemAsteroids = asteroids.filter((item: Item) => item.system === currentSystem);
+      const systemDrones = drones.filter((item: Item) => item.system === currentSystem);
+      const systemCargo = cargo.filter((item: Item) => item.system === currentSystem);
+      
+      const purchasedAsteroids = player.asteroids.filter((a: any) => a.system === currentSystem).length;
+      const purchasedDrones = player.drones.filter((d: any) => d.system === currentSystem).length;
+      const purchasedCargo = player.cargo_levels.filter((c: any) => c.system === currentSystem).length;
+      
+      const hasAllItems = purchasedAsteroids === 12 && purchasedDrones === 15 && purchasedCargo === 5;
+      
       setShopItems({
-        asteroids: asteroids
-          .filter((item: Item) => item.system === currentSystem)
+        asteroids: systemAsteroids
           .map((item: Item) => {
             const isPurchased = player?.asteroids.some((a: any) => a.id === item.id && a.system === item.system) || false;
             const isPreviousPurchased = item.id === 1 || player?.asteroids.some((a: any) => a.id === item.id - 1 && a.system === item.system) || false;
+            
+            // Особая логика для "бомбы" (13-й астероид)
+            if (item.id === 13) {
+              return { 
+                ...item, 
+                isPurchased, 
+                isPreviousPurchased: hasAllItems // доступна только если куплено все
+              };
+            }
+            
             return { ...item, isPurchased, isPreviousPurchased };
           }),
-        drones: drones
-          .filter((item: Item) => item.system === currentSystem)
+        drones: systemDrones
           .map((item: Item) => {
             const isPurchased = player?.drones.some((d: any) => d.id === item.id && d.system === item.system) || false;
             const isPreviousPurchased = item.id === 1 || player?.drones.some((d: any) => d.id === item.id - 1 && d.system === item.system) || false;
             return { ...item, isPurchased, isPreviousPurchased };
           }),
-        cargo: cargo
-          .filter((item: Item) => item.system === currentSystem)
+        cargo: systemCargo
           .map((item: Item) => ({
             ...item,
             isPurchased: player?.cargo_levels.some((c: any) => c.id === item.id && c.system === item.system) || false,
@@ -157,10 +202,10 @@ const ShopPage: React.FC = () => {
     }
   }, [fetchShopItems]);
 
-// Функция покупки с улучшенной обработкой ошибок
+// Функция покупки с toast уведомлениями
 const buyItem = async (type: string, id: number, price: number) => {
   if (!player?.telegram_id) {
-    console.error('No telegram_id found for player');
+    addToast(t('player_not_found'), 'error');
     return;
   }
   
@@ -186,16 +231,12 @@ const buyItem = async (type: string, id: number, price: number) => {
   
   if (currentBalance < price) {
     const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    const message = `💰 Недостаточно средств!\n\n` +
-          `🛒 Товар: ${itemName}\n` +
-          `🌌 Система: ${currentSystem}\n` +
-          `💎 Цена: ${price} ${currencyName}\n` +
-          `💰 У вас: ${currentBalance.toFixed(2)} ${currencyName}\n` +
-          `❌ Не хватает: ${(price - currentBalance).toFixed(2)} ${currencyName}\n\n` +
-          `💡 Соберите больше ресурсов или обменяйте валюту!`;
+    const shortfall = (price - currentBalance).toFixed(2);
     
-    // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
-    alert(message);
+    addToast(
+      `${t('insufficient_funds')}! ${t('item_name')}: ${itemName}. ${t('price')}: ${price} ${currencyName}. ${t('not_enough')}: ${shortfall} ${currencyName}`,
+      'error'
+    );
     return;
   }
   
@@ -207,6 +248,11 @@ const buyItem = async (type: string, id: number, price: number) => {
       await buyAsteroid(id, price, currentSystem);
       // 🔥 СПЕЦИАЛЬНЫЙ СБРОС для астероидов
       resetForNewAsteroid(currentSystem);
+      
+      // Проверка на "бомбу"
+      if (id === 13) {
+        addToast(t('bomb_purchased'), 'success');
+      }
     } else if (type === 'drones') {
       await buyDrone(id, price, currentSystem);
       
@@ -216,10 +262,10 @@ const buyItem = async (type: string, id: number, price: number) => {
         const newDroneCount = systemDrones.length + 1; // +1 за только что купленный
         
         if (newDroneCount === 15) {
-          const achievementMessage = `🎉 СКРЫТОЕ ЗАДАНИЕ ВЫПОЛНЕНО! 🎉\n\nВы собрали полную коллекцию дронов в системе ${currentSystem}!\n\n🚀 Бонус: +1% к скорости добычи!\n\nТеперь ваши дроны работают еще эффективнее!`;
-          
-          // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
-          alert(achievementMessage);
+          addToast(
+            `🎉 ${t('achievement_15_drones')}! ${t('achievement_15_drones_desc')}`,
+            'success'
+          );
         }
       }
       
@@ -236,10 +282,10 @@ const buyItem = async (type: string, id: number, price: number) => {
     
     // 🎉 УСПЕШНАЯ ПОКУПКА
     const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    const successMessage = `✅ Покупка успешна!\n\n🛒 Куплено: ${itemName}\n🌌 Система: ${currentSystem}\n💰 Потрачено: ${price} ${currencyName}`;
-    
-    // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ
-    alert(successMessage);
+    addToast(
+      `✅ ${t('purchase_successful')}! ${t('item_name')}: ${itemName}. ${t('spent')}: ${price} ${currencyName}`,
+      'success'
+    );
     
     // Обновляем товары магазина
     await fetchShopItems();
@@ -248,29 +294,25 @@ const buyItem = async (type: string, id: number, price: number) => {
     console.error(`Failed to buy ${type}:`, err);
     
     // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
-    let errorMessage = '';
     const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
     
     if (err.response?.data?.error) {
       const serverError = err.response.data.error;
       
       if (serverError.includes('Insufficient funds') || serverError.includes('Not enough')) {
-        errorMessage = `💰 Недостаточно средств для покупки!\n\n🛒 Товар: ${itemName}\n🌌 Система: ${currentSystem}\n💎 Цена: ${price} ${currencyName}`;
+        addToast(`${t('insufficient_funds')} для ${itemName}`, 'error');
       } else if (serverError.includes('already purchased')) {
-        errorMessage = `⚠️ Товар уже куплен!\n\n🛒 ${itemName} уже есть в системе ${currentSystem}.`;
+        addToast(`${t('already_purchased')}: ${itemName}`, 'error');
       } else if (serverError.includes('Player not found')) {
-        errorMessage = `❌ Ошибка игрока!\n\nПопробуйте перезагрузить страницу.`;
+        addToast(t('player_not_found'), 'error');
       } else {
-        errorMessage = `❌ Ошибка сервера!\n\n${serverError}`;
+        addToast(`${t('purchase_error')}: ${serverError}`, 'error');
       }
     } else if (err.message) {
-      errorMessage = `❌ Ошибка покупки!\n\n${err.message}`;
+      addToast(`${t('purchase_error')}: ${err.message}`, 'error');
     } else {
-      errorMessage = `❌ Неизвестная ошибка!\n\nПопробуйте еще раз или перезагрузите страницу.`;
+      addToast(t('unknown_error'), 'error');
     }
-    
-    // 🔥 ПРОСТОЕ УВЕДОМЛЕНИЕ ОБ ОШИБКЕ
-    alert(errorMessage);
   } finally {
     setIsLoading(false);
   }
@@ -408,9 +450,21 @@ const buyItem = async (type: string, id: number, price: number) => {
     });
   }, [player, currentSystem, shopItems.asteroids]);
 
-  // 🔥 ТОЛЬКО 5 СИСТЕМ (убираем 6 и 7)
-  const systemNames = [t('system_1'), t('system_2'), t('system_3'), t('system_4'), t('system_5')];
-  const systemName = `${t('system')} ${currentSystem} - ${systemNames[currentSystem - 1]}`;
+  // 🔥 ИСПРАВЛЕНО: Используем правильные названия систем
+  const systemNames = [
+    t('system_1_name'),
+    t('system_2_name'),
+    t('system_3_name'),
+    t('system_4_name'),
+    t('system_5_name')
+  ];
+  
+  // 🔥 ИСПРАВЛЕНО: Используем шаблон для отображения
+  const systemName = t('system_display_format', {
+    number: currentSystem,
+    name: systemNames[currentSystem - 1]
+  });
+  
   const colorStyle = player?.color || '#00f0ff';
 
   if (!player) return <div>{t('loading')}</div>;
@@ -481,7 +535,7 @@ const buyItem = async (type: string, id: number, price: number) => {
           ))}
         </div>
 
-        {/* 🔥 НОВЫЙ БЛОК: Выбор системы (как на MainPage) */}
+        {/* 🔥 ИСПРАВЛЕННЫЙ БЛОК: Выбор системы */}
         <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
           <span 
             onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} 
@@ -536,7 +590,8 @@ const buyItem = async (type: string, id: number, price: number) => {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')} 
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    {`Система ${i} - ${systemNames[i - 1]}`}
+                    {/* 🔥 ИСПРАВЛЕНО: Используем правильный шаблон */}
+                    {t('system_display_format', { number: i, name: systemNames[i-1] })}
                     {!isUnlocked && (
                       <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
                         🔒 {system.price} {system.currency.toUpperCase()}
@@ -573,44 +628,57 @@ const buyItem = async (type: string, id: number, price: number) => {
           justifyContent: 'space-between'
         }}>
           {/* АСТЕРОИДЫ */}
-          {activeTab === 'asteroid' && shopItems.asteroids.map((item: Item) => (
-            <button
-              key={`asteroid-${item.id}`}
-              onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('asteroid', item.id, item.price || 0)}
-              disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
-              style={{
-                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд с учетом gap
-                minWidth: '140px', // минимальная ширина
-                padding: '12px 8px',
-                background: item.isPurchased 
-                  ? 'rgba(0, 255, 0, 0.2)' 
-                  : !item.isPreviousPurchased 
-                    ? 'rgba(255, 0, 0, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.5)',
-                border: `2px solid ${colorStyle}`,
-                borderRadius: '12px',
-                boxShadow: `0 0 8px ${colorStyle}`,
-                color: '#fff',
-                fontSize: '0.9rem', // 🔥 меньший шрифт
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s ease',
-                boxSizing: 'border-box',
-                opacity: isLoading || loading ? 0.7 : 1,
-              }}
-              onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
-              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>🌍 {getItemName('asteroid', item.id, currentSystem)}</span>
-              <span style={{ fontSize: '0.8rem' }}>💎 {getResourceName()}: {getResourceValue(item)}</span>
-              <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
-              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
-              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous')}</span>}
-            </button>
-          ))}
+          {activeTab === 'asteroid' && shopItems.asteroids.map((item: Item) => {
+            // Особый стиль для "бомбы" (13-й астероид)
+            const isBomb = item.id === 13;
+            const bombBorderColor = isBomb ? '#FFD700' : colorStyle;
+            const bombGlow = isBomb ? '0 0 15px #FFD700' : `0 0 8px ${colorStyle}`;
+            
+            return (
+              <button
+                key={`asteroid-${item.id}`}
+                onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('asteroid', item.id, item.price || 0)}
+                disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
+                style={{
+                  width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд с учетом gap
+                  minWidth: '140px', // минимальная ширина
+                  padding: '12px 8px',
+                  background: item.isPurchased 
+                    ? 'rgba(0, 255, 0, 0.2)' 
+                    : !item.isPreviousPurchased 
+                      ? 'rgba(255, 0, 0, 0.2)' 
+                      : 'rgba(0, 0, 0, 0.5)',
+                  border: `2px solid ${bombBorderColor}`,
+                  borderRadius: '12px',
+                  boxShadow: bombGlow,
+                  color: '#fff',
+                  fontSize: '0.9rem', // 🔥 меньший шрифт
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxSizing: 'border-box',
+                  opacity: isLoading || loading ? 0.7 : 1,
+                }}
+                onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
+                  {isBomb ? '💣' : '🌍'} {getItemName('asteroid', item.id, currentSystem)}
+                </span>
+                <span style={{ fontSize: '0.8rem' }}>💎 {getResourceName()}: {getResourceValue(item)}</span>
+                <span style={{ fontSize: '0.8rem' }}>
+                  💰 {item.price || 0} {isBomb ? 'TON' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
+                </span>
+                {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
+                {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>
+                  {isBomb ? `🔒 ${t('bomb_available')}` : `🔒 ${t('buy_previous')}`}
+                </span>}
+              </button>
+            );
+          })}
 
           {/* ДРОНЫ */}
           {activeTab === 'drones' && shopItems.drones.map((item: Item) => (
@@ -699,6 +767,26 @@ const buyItem = async (type: string, id: number, price: number) => {
             {error}
           </div>
         )}
+      </div>
+
+      {/* 🎉 TOAST КОНТЕЙНЕР */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        {toasts.map(toast => (
+          <ToastNotification
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={4000}
+          />
+        ))}
       </div>
 
       {/* Нижняя навигация */}
