@@ -8,7 +8,7 @@ interface ShopContextType {
   loading: boolean;
   error: string | null;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
-  buyAsteroid: (id: number, price: number, systemId: number) => Promise<void>;
+  buyAsteroid: (id: number, price: number, systemId: number, currency?: string) => Promise<void>; // 🔥 Добавлен currency
   buyDrone: (id: number, price: number, systemId: number) => Promise<void>;
   buyCargo: (id: number, price: number, capacity: number, systemId: number) => Promise<void>;
   buySystem: (id: number, price: number) => Promise<void>;
@@ -32,10 +32,11 @@ export const ShopProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     getMaxItems,
   } = useShopOperations();
 
-  // Обертка для покупки астероида с обновлением игрока
-  const buyAsteroid = async (id: number, price: number, systemId: number) => {
+  // 🔥 ИСПРАВЛЕННАЯ Обертка для покупки астероида с поддержкой валюты
+  const buyAsteroid = async (id: number, price: number, systemId: number, currency?: string) => {
     try {
-      const result = await buyAsteroidAPI(id, price, systemId);
+      // 🔥 ПЕРЕДАЕМ currency в API функцию
+      const result = await buyAsteroidAPI(id, price, systemId, currency);
       if (result && player) {
         // Обновляем данные игрока
         const updatedPlayer = createPlayerWithDefaults(result, systemId);

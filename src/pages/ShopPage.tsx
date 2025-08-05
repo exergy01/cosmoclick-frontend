@@ -88,6 +88,9 @@ const ShopPage: React.FC = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [toastCounter, setToastCounter] = useState(0);
 
+  // 🔥 НОВЫЕ СОСТОЯНИЯ для кнопок магазина
+  const [shopButtons, setShopButtons] = useState<ShopButton[]>([]);
+
   // Функция добавления toast
   const addToast = (message: string, type: 'success' | 'error' | 'warning') => {
     const newToast: Toast = {
@@ -140,198 +143,6 @@ const ShopPage: React.FC = () => {
       setCurrentSystem(lastUnlocked);
     }
   };
-
-  // Загрузка товаров магазина
-  const fetchShopItems = useCallback(async () => {
-    if (!player) return;
-    
-    try {
-      const [asteroids, drones, cargo] = await Promise.all([
-        axios.get(`${API_URL}/api/shop/asteroids`).then(res => res.data),
-        axios.get(`${API_URL}/api/shop/drones`).then(res => res.data),
-        axios.get(`${API_URL}/api/shop/cargo`).then(res => res.data)
-      ]);
-      
-      // Проверяем доступность "бомбы" (13-й астероид)
-      const systemAsteroids = asteroids.filter((item: Item) => item.system === currentSystem && item.id <= 12); // только основные астероиды
-      const systemDrones = drones.filter((item: Item) => item.system === currentSystem);
-      const systemCargo = cargo.filter((item: Item) => item.system === currentSystem);
-      
-      const purchasedAsteroids = player.asteroids.filter((a: any) => a.system === currentSystem && a.id <= 12).length; // только основные
-      const purchasedDrones = player.drones.filter((d: any) => d.system === currentSystem).length;
-      const purchasedCargo = player.cargo_levels.filter((c: any) => c.system === currentSystem).length;
-      
-      console.log(`🔍 Система ${currentSystem} проверка бомбы:`, {
-        purchasedAsteroids, 
-        purchasedDrones, 
-        purchasedCargo,
-        maxAsteroids: systemAsteroids.length,
-        maxDrones: systemDrones.length, 
-        maxCargo: systemCargo.length
-      });
-      
-      const hasAllItems = purchasedAsteroids === systemAsteroids.length && 
-                          purchasedDrones === systemDrones.length && 
-                          purchasedCargo === systemCargo.length;
-      
-      setShopItems({
-        asteroids: asteroids
-          .filter((item: Item) => item.system === currentSystem) // все астероиды системы, включая бомбу
-          .map((item: Item) => {
-            const isPurchased = player?.asteroids.some((a: any) => a.id === item.id && a.system === item.system) || false;
-            const isPreviousPurchased = item.id === 1 || player?.asteroids.some((a: any) => a.id === item.id - 1 && a.system === item.system) || false;
-            
-            // Особая логика для "бомбы" (13-й астероид)
-            if (item.id === 13) {
-              console.log(`💣 Бомба в системе ${currentSystem}: hasAllItems=${hasAllItems}, isPurchased=${isPurchased}`);
-              return { 
-                ...item, 
-                isPurchased, 
-                isPreviousPurchased: hasAllItems // доступна только если куплено все основное
-              };
-            }
-            
-            return { ...item, isPurchased, isPreviousPurchased };
-          }),
-        drones: systemDrones
-          .map((item: Item) => {
-            const isPurchased = player?.drones.some((d: any) => d.id === item.id && d.system === item.system) || false;
-            const isPreviousPurchased = item.id === 1 || player?.drones.some((d: any) => d.id === item.id - 1 && d.system === item.system) || false;
-            return { ...item, isPurchased, isPreviousPurchased };
-          }),
-        cargo: systemCargo
-          .map((item: Item) => ({
-            ...item,
-            isPurchased: player?.cargo_levels.some((c: any) => c.id === item.id && c.system === item.system) || false,
-            isPreviousPurchased: item.id === 1 || player?.cargo_levels.some((c: any) => c.id === item.id - 1 && c.system === item.system) || false,
-          })),
-      });
-    } catch (err) {
-      console.error('Error fetching shop items:', err);
-    }
-  }, [player, currentSystem]);
-
-  useEffect(() => {
-    if (player) {
-      fetchShopItems();
-    }
-  }, [fetchShopItems]);
-
-// Функция покупки с toast уведомлениями
-const buyItem = async (type: string, id: number, price: number) => {
-  if (!player?.telegram_id) {
-    addToast(t('player_not_found'), 'error');
-    return;
-  }
-  
-  if (isLoading) return;
-  
-  // 🔥 ПРОВЕРКА БАЛАНСА ПЕРЕД ПОКУПКОЙ
-  const currencyToCheck = currentSystem >= 1 && currentSystem <= 4 ? 'cs' : 
-                         currentSystem >= 5 && currentSystem <= 5 ? 'ton' : 'ccc';
-  
-  let currentBalance = 0;
-  let currencyName = '';
-  
-  if (currencyToCheck === 'cs') {
-    currentBalance = parseFloat(player.cs?.toString() || '0');
-    currencyName = 'CS';
-  } else if (currencyToCheck === 'ton') {
-    currentBalance = parseFloat(player.ton?.toString() || '0');
-    currencyName = 'TON';
-  } else {
-    currentBalance = parseFloat(player.ccc?.toString() || '0');
-    currencyName = 'CCC';
-  }
-  
-  if (currentBalance < price) {
-    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    const shortfall = (price - currentBalance).toFixed(2);
-    
-    addToast(
-      `${t('insufficient_funds')}! ${t('item_name')}: ${itemName}. ${t('price')}: ${price} ${currencyName}. ${t('not_enough')}: ${shortfall} ${currencyName}`,
-      'error'
-    );
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  try {
-    // Покупка товара через новые контексты
-    if (type === 'asteroid') {
-      await buyAsteroid(id, price, currentSystem);
-      // 🔥 СПЕЦИАЛЬНЫЙ СБРОС для астероидов
-      resetForNewAsteroid(currentSystem);
-      
-      // Проверка на "бомбу"
-      if (id === 13) {
-        addToast(t('bomb_purchased'), 'success');
-      }
-    } else if (type === 'drones') {
-      await buyDrone(id, price, currentSystem);
-      
-      // 🎉 ПРОВЕРЯЕМ ДОСТИЖЕНИЕ 15 ДРОНОВ (ДЛЯ СИСТЕМ 1-4)
-      if (player.drones && currentSystem >= 1 && currentSystem <= 4) {
-        const systemDrones = player.drones.filter((d: any) => d.system === currentSystem);
-        const newDroneCount = systemDrones.length + 1; // +1 за только что купленный
-        
-        if (newDroneCount === 15) {
-          addToast(
-            `🎉 ${t('achievement_15_drones')}! ${t('achievement_15_drones_desc')}`,
-            'success'
-          );
-        }
-      }
-      
-      // Обычный сброс для дронов
-      resetCleanCounter(currentSystem);
-    } else if (type === 'cargo') {
-      const cargoItem = shopItems.cargo.find((item: Item) => item.id === id && item.system === currentSystem);
-      if (!cargoItem?.capacity) throw new Error('Invalid cargo capacity');
-      const capacityValue = typeof cargoItem.capacity === 'string' ? parseFloat(cargoItem.capacity) : cargoItem.capacity;
-      await buyCargo(id, price, capacityValue, currentSystem);
-      // Обычный сброс для дронов и карго
-      resetCleanCounter(currentSystem);
-    }
-    
-    // 🎉 УСПЕШНАЯ ПОКУПКА
-    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    addToast(
-      `✅ ${t('purchase_successful')}! ${t('item_name')}: ${itemName}. ${t('spent')}: ${price} ${currencyName}`,
-      'success'
-    );
-    
-    // Обновляем товары магазина
-    await fetchShopItems();
-    
-  } catch (err: any) {
-    console.error(`Failed to buy ${type}:`, err);
-    
-    // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
-    const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-    
-    if (err.response?.data?.error) {
-      const serverError = err.response.data.error;
-      
-      if (serverError.includes('Insufficient funds') || serverError.includes('Not enough')) {
-        addToast(`${t('insufficient_funds')} для ${itemName}`, 'error');
-      } else if (serverError.includes('already purchased')) {
-        addToast(`${t('already_purchased')}: ${itemName}`, 'error');
-      } else if (serverError.includes('Player not found')) {
-        addToast(t('player_not_found'), 'error');
-      } else {
-        addToast(`${t('purchase_error')}: ${serverError}`, 'error');
-      }
-    } else if (err.message) {
-      addToast(`${t('purchase_error')}: ${err.message}`, 'error');
-    } else {
-      addToast(t('unknown_error'), 'error');
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
 
   // Функция для получения локализованного названия товара
   const getItemName = (type: string, id: number, system: number): string => {
@@ -413,6 +224,277 @@ const buyItem = async (type: string, id: number, price: number) => {
     return currentSystem === 4 ? 'CS' : 'CCC';
   };
 
+  // 🔥 ИСПРАВЛЕННАЯ Загрузка товаров магазина
+  const fetchShopItems = useCallback(async () => {
+    if (!player) return;
+    
+    try {
+      const [asteroids, drones, cargo] = await Promise.all([
+        axios.get(`${API_URL}/api/shop/asteroids`).then(res => res.data),
+        axios.get(`${API_URL}/api/shop/drones`).then(res => res.data),
+        axios.get(`${API_URL}/api/shop/cargo`).then(res => res.data)
+      ]);
+      
+      // 🔥 ИСПРАВЛЕНО: Считаем только ОСНОВНЫЕ товары (без бомбы)
+      const systemAsteroids = asteroids.filter((item: Item) => item.system === currentSystem && item.id <= 12);
+      const systemDrones = drones.filter((item: Item) => item.system === currentSystem);
+      const systemCargo = cargo.filter((item: Item) => item.system === currentSystem);
+      
+      const purchasedAsteroids = player.asteroids.filter((a: any) => a.system === currentSystem && a.id <= 12).length;
+      const purchasedDrones = player.drones.filter((d: any) => d.system === currentSystem).length;
+      const purchasedCargo = player.cargo_levels.filter((c: any) => c.system === currentSystem).length;
+      
+      console.log(`🔍 Система ${currentSystem} проверка бомбы:`, {
+        purchasedAsteroids, 
+        purchasedDrones, 
+        purchasedCargo,
+        maxAsteroids: systemAsteroids.length,
+        maxDrones: systemDrones.length, 
+        maxCargo: systemCargo.length
+      });
+      
+      // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Проверяем ВСЕ основные товары
+      const hasAllItems = purchasedAsteroids === systemAsteroids.length && 
+                          purchasedDrones === systemDrones.length && 
+                          purchasedCargo === systemCargo.length;
+      
+      console.log(`💣 Бомба доступна в системе ${currentSystem}:`, hasAllItems);
+      
+      // 🔥 ИСПРАВЛЕНО: Фильтруем астероиды - показываем бомбу ТОЛЬКО если куплено все
+      const availableAsteroids = asteroids
+        .filter((item: Item) => {
+          if (item.system !== currentSystem) return false;
+          
+          // Если это бомба (id=13), показываем только если куплено ВСЕ основное
+          if (item.id === 13) {
+            return hasAllItems;
+          }
+          
+          // Обычные астероиды (1-12) показываем всегда
+          return item.id <= 12;
+        })
+        .map((item: Item) => {
+          const isPurchased = player?.asteroids.some((a: any) => a.id === item.id && a.system === item.system) || false;
+          let isPreviousPurchased = false;
+          
+          if (item.id === 13) {
+            // Для бомбы - доступна если куплено все основное
+            isPreviousPurchased = hasAllItems;
+          } else {
+            // Для обычных астероидов - стандартная логика
+            isPreviousPurchased = item.id === 1 || player?.asteroids.some((a: any) => a.id === item.id - 1 && a.system === item.system) || false;
+          }
+          
+          return { ...item, isPurchased, isPreviousPurchased };
+        });
+      
+      setShopItems({
+        asteroids: availableAsteroids,
+        drones: systemDrones.map((item: Item) => {
+          const isPurchased = player?.drones.some((d: any) => d.id === item.id && d.system === item.system) || false;
+          const isPreviousPurchased = item.id === 1 || player?.drones.some((d: any) => d.id === item.id - 1 && d.system === item.system) || false;
+          return { ...item, isPurchased, isPreviousPurchased };
+        }),
+        cargo: systemCargo.map((item: Item) => ({
+          ...item,
+          isPurchased: player?.cargo_levels.some((c: any) => c.id === item.id && c.system === item.system) || false,
+          isPreviousPurchased: item.id === 1 || player?.cargo_levels.some((c: any) => c.id === item.id - 1 && c.system === item.system) || false,
+        })),
+      });
+    } catch (err) {
+      console.error('Error fetching shop items:', err);
+    }
+  }, [player, currentSystem]);
+
+  useEffect(() => {
+    if (player) {
+      fetchShopItems();
+    }
+  }, [fetchShopItems]);
+
+  // 🔥 ИСПРАВЛЕННАЯ Функция покупки с ОТЛАДКОЙ
+  const buyItem = async (type: string, id: number, price: number) => {
+    if (!player?.telegram_id) {
+      addToast(t('player_not_found'), 'error');
+      return;
+    }
+    
+    if (isLoading) return;
+    
+    // 🔥 ИСПРАВЛЕНО: Определяем валюту для бомбы ПРАВИЛЬНО
+    let currencyToCheck = 'ccc'; // по умолчанию
+    let currencyName = 'CCC';
+    
+    // Проверяем, это бомба?
+    const isBomb = (type === 'asteroid' && id === 13);
+    
+    if (isBomb) {
+      // 💣 ВРЕМЕННО: ДЛЯ БОМБЫ CS (ДЛЯ ТЕСТА)
+      currencyToCheck = 'cs';
+      currencyName = 'CS';
+    } else {
+      // Стандартная логика валют для обычных товаров
+      if (currentSystem >= 1 && currentSystem <= 4) {
+        currencyToCheck = 'cs';
+        currencyName = 'CS';
+      } else if (currentSystem >= 5 && currentSystem <= 7) {
+        currencyToCheck = 'ton';
+        currencyName = 'TON';
+      } else {
+        currencyToCheck = 'ccc';
+        currencyName = 'CCC';
+      }
+    }
+    
+    // Проверка баланса
+    let currentBalance = 0;
+    if (currencyToCheck === 'ton') {
+      currentBalance = parseFloat(player.ton?.toString() || '0');
+    } else if (currencyToCheck === 'cs') {
+      currentBalance = parseFloat(player.cs?.toString() || '0');
+    } else {
+      currentBalance = parseFloat(player.ccc?.toString() || '0');
+    }
+    
+    // 🔍 ОТЛАДКА: Логируем данные перед покупкой
+    console.log('🔍 ПОКУПКА ДАННЫЕ:', {
+      type,
+      id,
+      price,
+      currentSystem,
+      isBomb,
+      currencyToCheck,
+      currencyName,
+      currentBalance,
+      playerTelegramId: player.telegram_id,
+      playerCS: player.cs,
+      playerTON: player.ton,
+      playerCCC: player.ccc
+    });
+    
+    if (currentBalance < price) {
+      const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
+      const shortfall = (price - currentBalance).toFixed(2);
+      
+      console.log('🔍 НЕДОСТАТОЧНО СРЕДСТВ:', {
+        currentBalance,
+        price,
+        shortfall,
+        currencyName
+      });
+      
+      addToast(
+        `${t('insufficient_funds')}! ${t('item_name')}: ${itemName}. ${t('price')}: ${price} ${currencyName}. ${t('not_enough')}: ${shortfall} ${currencyName}`,
+        'error'
+      );
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Покупка товара через новые контексты
+      if (type === 'asteroid') {
+        console.log('🔍 ВЫЗОВ buyAsteroid:', { id, price, currentSystem, isBomb });
+        
+        await buyAsteroid(id, price, currentSystem);
+        // 🔥 СПЕЦИАЛЬНЫЙ СБРОС для астероидов
+        resetForNewAsteroid(currentSystem);
+        
+        // Проверка на "бомбу"
+        if (id === 13) {
+          addToast(t('bomb_purchased') || '💣 Бомба куплена!', 'success');
+        }
+      } else if (type === 'drones') {
+        await buyDrone(id, price, currentSystem);
+        
+        // 🎉 ПРОВЕРЯЕМ ДОСТИЖЕНИЕ 15 ДРОНОВ (ДЛЯ СИСТЕМ 1-4)
+        if (player.drones && currentSystem >= 1 && currentSystem <= 4) {
+          const systemDrones = player.drones.filter((d: any) => d.system === currentSystem);
+          const newDroneCount = systemDrones.length + 1; // +1 за только что купленный
+          
+          if (newDroneCount === 15) {
+            addToast(
+              `🎉 ${t('achievement_15_drones')}! ${t('achievement_15_drones_desc')}`,
+              'success'
+            );
+          }
+        }
+        
+        // Обычный сброс для дронов
+        resetCleanCounter(currentSystem);
+      } else if (type === 'cargo') {
+        const cargoItem = shopItems.cargo.find((item: Item) => item.id === id && item.system === currentSystem);
+        if (!cargoItem?.capacity) throw new Error('Invalid cargo capacity');
+        const capacityValue = typeof cargoItem.capacity === 'string' ? parseFloat(cargoItem.capacity) : cargoItem.capacity;
+        await buyCargo(id, price, capacityValue, currentSystem);
+        // Обычный сброс для дронов и карго
+        resetCleanCounter(currentSystem);
+      }
+      
+      // 🎉 УСПЕШНАЯ ПОКУПКА
+      const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
+      addToast(
+        `✅ ${t('purchase_successful')}! ${t('item_name')}: ${itemName}. ${t('spent')}: ${price} ${currencyName}`,
+        'success'
+      );
+      
+      console.log('🎉 ПОКУПКА УСПЕШНА:', { type, id, price, currencyName });
+      
+      // Обновляем товары магазина
+      await fetchShopItems();
+      
+    } catch (err: any) {
+      console.error(`Failed to buy ${type}:`, err);
+      
+      // 🔍 ОТЛАДКА: Логируем полную ошибку
+      console.error('🔍 ПОЛНАЯ ОШИБКА:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        serverError: err.response?.data?.error,
+        serverData: err.response?.data,
+        fullResponse: err.response,
+        requestData: {
+          type,
+          id,
+          price,
+          currentSystem,
+          isBomb,
+          currencyToCheck,
+          currencyName,
+          playerTelegramId: player.telegram_id
+        }
+      });
+      
+      // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
+      const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
+      
+      if (err.response?.data?.error) {
+        const serverError = err.response.data.error;
+        console.error('🔍 ОШИБКА СЕРВЕРА:', serverError);
+        
+        if (serverError.includes('Insufficient funds') || serverError.includes('Not enough')) {
+          addToast(`${t('insufficient_funds')} для ${itemName}`, 'error');
+        } else if (serverError.includes('already purchased')) {
+          addToast(`${t('already_purchased')}: ${itemName}`, 'error');
+        } else if (serverError.includes('Player not found')) {
+          addToast(t('player_not_found'), 'error');
+        } else if (serverError.includes('Invalid currency')) {
+          addToast(`Ошибка валюты для ${itemName}: ${serverError}`, 'error');
+        } else {
+          addToast(`${t('purchase_error')}: ${serverError}`, 'error');
+        }
+      } else if (err.message) {
+        addToast(`${t('purchase_error')}: ${err.message}`, 'error');
+      } else {
+        addToast(t('unknown_error'), 'error');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getMaxItems = async (system: number, type: string): Promise<number> => {
     try {
       if (type === 'cargo') {
@@ -441,11 +523,9 @@ const buyItem = async (type: string, id: number, price: number) => {
     return { maxAsteroids, maxDrones, maxCargo };
   };
 
-  const [shopButtons, setShopButtons] = useState<ShopButton[]>([]);
-
+  // 🔥 ИСПРАВЛЕННОЕ: Обновляем счетчик ресурсов (считаем ТОЛЬКО основные астероиды)
   useEffect(() => {
     fetchMaxItems().then(({ maxAsteroids, maxDrones, maxCargo }) => {
-      // Правильное отображение карго
       const cargoInCurrentSystem = player.cargo_levels.filter((c: any) => c.system === currentSystem);
       let currentCargoLevel = 0;
       
@@ -453,12 +533,19 @@ const buyItem = async (type: string, id: number, price: number) => {
         currentCargoLevel = Math.max(...cargoInCurrentSystem.map((c: any) => c.id));
       }
       
-      // ИСПРАВЛЕНО: используем локальные функции для правильного расчета ресурсов
       const currentRemaining = getSystemAsteroidTotal();
       const initialTotal = getInitialAsteroidTotal();
       
+      // 🔥 ИСПРАВЛЕНО: Считаем только основные астероиды (1-12)
+      const mainAsteroidsCount = player.asteroids.filter((a: any) => a.system === currentSystem && a.id <= 12).length;
+      const maxMainAsteroids = 12; // всегда 12 основных астероидов
+      
       setShopButtons([
-        { type: 'resources', count: `${player.asteroids.filter((a: any) => a.system === currentSystem).length}/${maxAsteroids}`, amount: `${currentRemaining.toFixed(1)} / ${initialTotal.toFixed(1)} ${getResourceName()}` },
+        { 
+          type: 'resources', 
+          count: `${mainAsteroidsCount}/${maxMainAsteroids}`, 
+          amount: `${currentRemaining.toFixed(1)} / ${initialTotal.toFixed(1)} ${getResourceName()}` 
+        },
         { type: 'drones', count: `${player.drones.filter((d: any) => d.system === currentSystem).length}/${maxDrones}` },
         { type: 'cargo', count: `${currentCargoLevel}/${maxCargo}` },
       ]);
@@ -683,13 +770,13 @@ const buyItem = async (type: string, id: number, price: number) => {
                 <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
                   {isBomb ? '💣' : '🌍'} {getItemName('asteroid', item.id, currentSystem)}
                 </span>
-                <span style={{ fontSize: '0.8rem' }}>💎 {getResourceName()}: {getResourceValue(item)}</span>
+                <span style={{ fontSize: '0.8rem' }}>💠 {getResourceName()}: {getResourceValue(item)}</span>
                 <span style={{ fontSize: '0.8rem' }}>
-                  💰 {item.price || 0} {isBomb || item.currency === 'ton' ? 'TON' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
+                  💰 {item.price || 0} {isBomb ? 'CS (ТЕСТ)' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
                 </span>
                 {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
                 {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>
-                  {isBomb ? `🔒 ${t('bomb_available')}` : `🔒 ${t('buy_previous')}`}
+                  {isBomb ? `🔒 ${t('bomb_available') || 'Купите все товары'}` : `🔒 ${t('buy_previous') || 'Купите предыдущий'}`}
                 </span>}
               </button>
             );
@@ -731,7 +818,7 @@ const buyItem = async (type: string, id: number, price: number) => {
               <span style={{ fontSize: '0.8rem' }}>⚡ {getResourceName()}/день: {getDroneProductivity(item)}</span>
               <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
               {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
-              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous')}</span>}
+              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous') || 'Купите предыдущий'}</span>}
             </button>
           ))}
 
@@ -759,7 +846,7 @@ const buyItem = async (type: string, id: number, price: number) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '6px',
-                cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
+                cursor: item.isPurchased || !item.isPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
                 boxSizing: 'border-box',
                 opacity: isLoading || loading ? 0.7 : 1,
@@ -768,11 +855,11 @@ const buyItem = async (type: string, id: number, price: number) => {
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
               <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>📦 {getItemName('cargo', item.id, currentSystem)}</span>
-              <span style={{ fontSize: '0.8rem' }}>📊 {t('capacity')}: {item.capacity === 999999 || item.capacity === 99999 ? '∞' : item.capacity || 0}</span>
+              <span style={{ fontSize: '0.8rem' }}>📊 {t('capacity') || 'Вместимость'}: {item.capacity === 999999 || item.capacity === 99999 ? '∞' : item.capacity || 0}</span>
               <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
-              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
-              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous')}</span>}
-              {item.id === 5 && !item.isPurchased && <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>⭐ {t('infinite_capacity')}</span>}
+              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased') || 'Куплено'}</span>}
+              {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous') || 'Купите предыдущий'}</span>}
+              {item.id === 5 && !item.isPurchased && <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>⭐ {t('infinite_capacity') || 'Бесконечная вместимость'}</span>}
             </button>
           ))}
         </div>

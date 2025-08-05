@@ -2,13 +2,16 @@
 import { useState } from 'react';
 import { shopApi } from '../services';
 import { getTelegramId } from '../utils/telegram';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const useShopOperations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Купить астероид
-  const buyAsteroid = async (id: number, price: number, systemId: number) => {
+  // 🔥 ПОЛНОСТЬЮ ПЕРЕПИСАННЫЙ buyAsteroid с прямым axios
+  const buyAsteroid = async (id: number, price: number, systemId: number, currency?: string) => {
     const telegramId = getTelegramId();
     if (!telegramId) {
       setError('No telegram ID found');
@@ -19,25 +22,56 @@ export const useShopOperations = () => {
     setError(null);
     
     try {
-      // Получаем данные астероида с сервера
-      const asteroidsResponse = await shopApi.getAsteroids();
-      const asteroidData = asteroidsResponse.data.find((a: any) => a.id === id && a.system === systemId);
+      // 🔥 ОПРЕДЕЛЯЕМ ВАЛЮТУ
+      let currencyToSend = currency;
       
-      if (!asteroidData) {
-        throw new Error('Asteroid not found');
+      if (!currencyToSend) {
+        if (id === 13) {
+          // 💣 ВРЕМЕННО: ДЛЯ БОМБЫ CS (ДЛЯ ТЕСТА)
+          currencyToSend = 'cs';
+        } else if (systemId >= 1 && systemId <= 4) {
+          currencyToSend = 'cs';
+        } else if (systemId >= 5 && systemId <= 7) {
+          currencyToSend = 'ton';
+        } else {
+          currencyToSend = 'ccc';
+        }
       }
 
-      const response = await shopApi.buyAsteroid(telegramId, id, systemId, asteroidData.totalCcc);
+      const requestData = {
+        telegramId,
+        itemId: id,
+        itemType: 'asteroid',
+        systemId,
+        currency: currencyToSend
+      };
+
+      console.log(`🛒 ОТПРАВКА ЗАПРОСА НА ПОКУПКУ АСТЕРОИДА:`, requestData);
+
+      // 🔥 ПРЯМОЙ AXIOS ВЫЗОВ (НЕ shopApi!)
+      const response = await axios.post(`${API_URL}/api/shop/buy`, requestData);
+
+      console.log(`✅ Астероид ${id} куплен успешно:`, response.data);
       return response.data;
     } catch (err: any) {
-      setError(`Failed to buy asteroid: ${err.message}`);
+      console.error('❌ Ошибка покупки астероида:', err);
+      console.error('🔍 ДЕТАЛИ ОШИБКИ:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        requestURL: err.config?.url,
+        requestData: err.config?.data
+      });
+      
+      const errorMessage = err.response?.data?.error || err.message;
+      setError(`Failed to buy asteroid: ${errorMessage}`);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  // Купить дрона
+  // Купить дрона (БЕЗ ИЗМЕНЕНИЙ - используем shopApi)
   const buyDrone = async (id: number, price: number, systemId: number) => {
     const telegramId = getTelegramId();
     if (!telegramId) {
@@ -57,7 +91,7 @@ export const useShopOperations = () => {
         throw new Error('Drone not found');
       }
 
-      const response = await shopApi.buyDrone(telegramId, id, systemId, droneData.cccPerDay);
+      const response = await shopApi.buyDrone(telegramId, id, systemId, droneData.cccPerDay || droneData.csPerDay || 0);
       return response.data;
     } catch (err: any) {
       setError(`Failed to buy drone: ${err.message}`);
@@ -67,7 +101,7 @@ export const useShopOperations = () => {
     }
   };
 
-  // Купить карго
+  // Купить карго (БЕЗ ИЗМЕНЕНИЙ - используем shopApi)
   const buyCargo = async (id: number, price: number, capacity: number, systemId: number) => {
     const telegramId = getTelegramId();
     if (!telegramId) {
@@ -89,7 +123,7 @@ export const useShopOperations = () => {
     }
   };
 
-  // Купить систему
+  // Купить систему (БЕЗ ИЗМЕНЕНИЙ - используем shopApi)
   const buySystem = async (id: number, price: number) => {
     const telegramId = getTelegramId();
     if (!telegramId) {
@@ -111,7 +145,7 @@ export const useShopOperations = () => {
     }
   };
 
-  // Получить данные магазина
+  // Получить данные магазина (БЕЗ ИЗМЕНЕНИЙ)
   const getShopData = async () => {
     setLoading(true);
     setError(null);
@@ -136,7 +170,7 @@ export const useShopOperations = () => {
     }
   };
 
-  // Получить максимальное количество предметов для системы
+  // Получить максимальное количество предметов для системы (БЕЗ ИЗМЕНЕНИЙ)
   const getMaxItems = async (system: number, type: string): Promise<number> => {
     try {
       let response;
