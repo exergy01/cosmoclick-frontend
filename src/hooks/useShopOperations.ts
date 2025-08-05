@@ -47,6 +47,8 @@ export const useShopOperations = () => {
       };
 
       console.log(`🛒 ОТПРАВКА ЗАПРОСА НА ПОКУПКУ АСТЕРОИДА:`, requestData);
+      console.log(`🔍 URL: ${API_URL}/api/shop/buy`);
+      console.log(`🔍 Тело запроса:`, JSON.stringify(requestData, null, 2));
 
       // 🔥 ПРЯМОЙ AXIOS ВЫЗОВ (НЕ shopApi!)
       const response = await axios.post(`${API_URL}/api/shop/buy`, requestData);
