@@ -25,8 +25,8 @@ interface Item {
   name?: string;
   isPurchased?: boolean;
   isPreviousPurchased?: boolean;
-  currency?: string; // Добавляем поле currency
-  isBomb?: boolean; // Добавляем поле isBomb
+  currency?: string;
+  isBomb?: boolean;
 }
 
 interface ShopButton {
@@ -260,7 +260,7 @@ const ShopPage: React.FC = () => {
       
       console.log(`💣 Бомба доступна в системе ${currentSystem}:`, hasAllItems);
       
-      // 🔥 ИСПРАВЛЕНО: Фильтруем астероиды - показываем бомбу ТОЛЬКО если куплено все
+      // 🔥 ИСПРАВЛЕНО: Показываем бомбу только если куплено все (но она всегда доступна для покупки)
       const availableAsteroids = asteroids
         .filter((item: Item) => {
           if (item.system !== currentSystem) return false;
@@ -274,11 +274,11 @@ const ShopPage: React.FC = () => {
           return item.id <= 12;
         })
         .map((item: Item) => {
-          const isPurchased = player?.asteroids.some((a: any) => a.id === item.id && a.system === item.system) || false;
+          const isPurchased = false; // 💣 БОМБА НИКОГДА НЕ СЧИТАЕТСЯ КУПЛЕННОЙ
           let isPreviousPurchased = false;
           
           if (item.id === 13) {
-            // Для бомбы - доступна если куплено все основное
+            // 💣 БОМБА ВСЕГДА ДОСТУПНА если куплено все основное
             isPreviousPurchased = hasAllItems;
           } else {
             // Для обычных астероидов - стандартная логика
@@ -312,7 +312,7 @@ const ShopPage: React.FC = () => {
     }
   }, [fetchShopItems]);
 
-  // 🔥 ИСПРАВЛЕННАЯ Функция покупки с ОТЛАДКОЙ
+  // 🔥 ИСПРАВЛЕННАЯ Функция покупки
   const buyItem = async (type: string, id: number, price: number) => {
     if (!player?.telegram_id) {
       addToast(t('player_not_found'), 'error');
@@ -321,7 +321,7 @@ const ShopPage: React.FC = () => {
     
     if (isLoading) return;
     
-    // 🔥 ИСПРАВЛЕНО: Определяем валюту для бомбы ПРАВИЛЬНО
+    // 🔥 ИСПРАВЛЕНО: Определяем валюту для бомбы
     let currencyToCheck = 'ccc'; // по умолчанию
     let currencyName = 'CCC';
     
@@ -329,9 +329,9 @@ const ShopPage: React.FC = () => {
     const isBomb = (type === 'asteroid' && id === 13);
     
     if (isBomb) {
-      // 💣 ВРЕМЕННО: ДЛЯ БОМБЫ CS (ДЛЯ ТЕСТА)
-      currencyToCheck = 'cs';
-      currencyName = 'CS';
+      // 💣 БОМБА: используем TON (или CS для теста)
+      currencyToCheck = 'ton'; // В продакшене TON
+      currencyName = 'TON';
     } else {
       // Стандартная логика валют для обычных товаров
       if (currentSystem >= 1 && currentSystem <= 4) {
@@ -356,32 +356,9 @@ const ShopPage: React.FC = () => {
       currentBalance = parseFloat(player.ccc?.toString() || '0');
     }
     
-    // 🔍 ОТЛАДКА: Логируем данные перед покупкой
-    console.log('🔍 ПОКУПКА ДАННЫЕ:', {
-      type,
-      id,
-      price,
-      currentSystem,
-      isBomb,
-      currencyToCheck,
-      currencyName,
-      currentBalance,
-      playerTelegramId: player.telegram_id,
-      playerCS: player.cs,
-      playerTON: player.ton,
-      playerCCC: player.ccc
-    });
-    
     if (currentBalance < price) {
       const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
       const shortfall = (price - currentBalance).toFixed(2);
-      
-      console.log('🔍 НЕДОСТАТОЧНО СРЕДСТВ:', {
-        currentBalance,
-        price,
-        shortfall,
-        currencyName
-      });
       
       addToast(
         `${t('insufficient_funds')}! ${t('item_name')}: ${itemName}. ${t('price')}: ${price} ${currencyName}. ${t('not_enough')}: ${shortfall} ${currencyName}`,
@@ -395,15 +372,13 @@ const ShopPage: React.FC = () => {
     try {
       // Покупка товара через новые контексты
       if (type === 'asteroid') {
-        console.log('🔍 ВЫЗОВ buyAsteroid:', { id, price, currentSystem, isBomb });
-        
         await buyAsteroid(id, price, currentSystem);
-        // 🔥 СПЕЦИАЛЬНЫЙ СБРОС для астероидов
-        resetForNewAsteroid(currentSystem);
         
-        // Проверка на "бомбу"
+        // 🔥 СПЕЦИАЛЬНАЯ ЛОГИКА для бомбы
         if (id === 13) {
-          addToast(t('bomb_purchased') || '💣 Бомба куплена!', 'success');
+          addToast('💣 Лимиты астероидов восстановлены!', 'success');
+        } else {
+          resetForNewAsteroid(currentSystem);
         }
       } else if (type === 'drones') {
         await buyDrone(id, price, currentSystem);
@@ -421,25 +396,23 @@ const ShopPage: React.FC = () => {
           }
         }
         
-        // Обычный сброс для дронов
         resetCleanCounter(currentSystem);
       } else if (type === 'cargo') {
         const cargoItem = shopItems.cargo.find((item: Item) => item.id === id && item.system === currentSystem);
         if (!cargoItem?.capacity) throw new Error('Invalid cargo capacity');
         const capacityValue = typeof cargoItem.capacity === 'string' ? parseFloat(cargoItem.capacity) : cargoItem.capacity;
         await buyCargo(id, price, capacityValue, currentSystem);
-        // Обычный сброс для дронов и карго
         resetCleanCounter(currentSystem);
       }
       
       // 🎉 УСПЕШНАЯ ПОКУПКА
       const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
-      addToast(
-        `✅ ${t('purchase_successful')}! ${t('item_name')}: ${itemName}. ${t('spent')}: ${price} ${currencyName}`,
-        'success'
-      );
-      
-      console.log('🎉 ПОКУПКА УСПЕШНА:', { type, id, price, currencyName });
+      if (!isBomb) {
+        addToast(
+          `✅ ${t('purchase_successful')}! ${t('item_name')}: ${itemName}. ${t('spent')}: ${price} ${currencyName}`,
+          'success'
+        );
+      }
       
       // Обновляем товары магазина
       await fetchShopItems();
@@ -447,32 +420,10 @@ const ShopPage: React.FC = () => {
     } catch (err: any) {
       console.error(`Failed to buy ${type}:`, err);
       
-      // 🔍 ОТЛАДКА: Логируем полную ошибку
-      console.error('🔍 ПОЛНАЯ ОШИБКА:', {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        serverError: err.response?.data?.error,
-        serverData: err.response?.data,
-        fullResponse: err.response,
-        requestData: {
-          type,
-          id,
-          price,
-          currentSystem,
-          isBomb,
-          currencyToCheck,
-          currencyName,
-          playerTelegramId: player.telegram_id
-        }
-      });
-      
-      // 🔥 УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК
       const itemName = getItemName(type === 'drones' ? 'drone' : type, id, currentSystem);
       
       if (err.response?.data?.error) {
         const serverError = err.response.data.error;
-        console.error('🔍 ОШИБКА СЕРВЕРА:', serverError);
         
         if (serverError.includes('Insufficient funds') || serverError.includes('Not enough')) {
           addToast(`${t('insufficient_funds')} для ${itemName}`, 'error');
@@ -480,8 +431,6 @@ const ShopPage: React.FC = () => {
           addToast(`${t('already_purchased')}: ${itemName}`, 'error');
         } else if (serverError.includes('Player not found')) {
           addToast(t('player_not_found'), 'error');
-        } else if (serverError.includes('Invalid currency')) {
-          addToast(`Ошибка валюты для ${itemName}: ${serverError}`, 'error');
         } else {
           addToast(`${t('purchase_error')}: ${serverError}`, 'error');
         }
@@ -525,8 +474,10 @@ const ShopPage: React.FC = () => {
 
   // 🔥 ИСПРАВЛЕННОЕ: Обновляем счетчик ресурсов (считаем ТОЛЬКО основные астероиды)
   useEffect(() => {
+    if (!player) return;
+    
     fetchMaxItems().then(({ maxAsteroids, maxDrones, maxCargo }) => {
-      const cargoInCurrentSystem = player.cargo_levels.filter((c: any) => c.system === currentSystem);
+      const cargoInCurrentSystem = player.cargo_levels?.filter((c: any) => c.system === currentSystem) || [];
       let currentCargoLevel = 0;
       
       if (cargoInCurrentSystem.length > 0) {
@@ -537,7 +488,7 @@ const ShopPage: React.FC = () => {
       const initialTotal = getInitialAsteroidTotal();
       
       // 🔥 ИСПРАВЛЕНО: Считаем только основные астероиды (1-12)
-      const mainAsteroidsCount = player.asteroids.filter((a: any) => a.system === currentSystem && a.id <= 12).length;
+      const mainAsteroidsCount = player.asteroids?.filter((a: any) => a.system === currentSystem && a.id <= 12).length || 0;
       const maxMainAsteroids = 12; // всегда 12 основных астероидов
       
       setShopButtons([
@@ -546,7 +497,7 @@ const ShopPage: React.FC = () => {
           count: `${mainAsteroidsCount}/${maxMainAsteroids}`, 
           amount: `${currentRemaining.toFixed(1)} / ${initialTotal.toFixed(1)} ${getResourceName()}` 
         },
-        { type: 'drones', count: `${player.drones.filter((d: any) => d.system === currentSystem).length}/${maxDrones}` },
+        { type: 'drones', count: `${player.drones?.filter((d: any) => d.system === currentSystem).length || 0}/${maxDrones}` },
         { type: 'cargo', count: `${currentCargoLevel}/${maxCargo}` },
       ]);
     });
@@ -637,7 +588,7 @@ const ShopPage: React.FC = () => {
           ))}
         </div>
 
-        {/* 🔥 ИСПРАВЛЕННЫЙ БЛОК: Выбор системы */}
+        {/* 🔥 БЛОК: Выбор системы */}
         <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
           <span 
             onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} 
@@ -692,7 +643,6 @@ const ShopPage: React.FC = () => {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')} 
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    {/* 🔥 ИСПРАВЛЕНО: Используем правильный шаблон */}
                     {t('system_display_format', { number: i, name: systemNames[i-1] })}
                     {!isUnlocked && (
                       <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
@@ -722,7 +672,7 @@ const ShopPage: React.FC = () => {
           </div>
         )}
 
-        {/* 🔥 ТОВАРЫ - УМЕНЬШЕННЫЕ КНОПКИ для мобильных экранов */}
+        {/* 🔥 ТОВАРЫ */}
         <div style={{ 
           display: 'flex', 
           flexWrap: 'wrap', 
@@ -738,33 +688,31 @@ const ShopPage: React.FC = () => {
             
             return (
               <button
-                key={`asteroid-${item.id}`}
-                onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('asteroid', item.id, item.price || 0)}
-                disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
+                key={`asteroid-${item.id}-${item.system}`}
+                onClick={() => !isLoading && !loading && item.isPreviousPurchased && buyItem('asteroid', item.id, item.price || 0)}
+                disabled={!item.isPreviousPurchased || isLoading || loading}
                 style={{
-                  width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд с учетом gap
-                  minWidth: '140px', // минимальная ширина
+                  width: 'calc(50% - 5px)',
+                  minWidth: '140px',
                   padding: '12px 8px',
-                  background: item.isPurchased 
-                    ? 'rgba(0, 255, 0, 0.2)' 
-                    : !item.isPreviousPurchased 
-                      ? 'rgba(255, 0, 0, 0.2)' 
-                      : 'rgba(0, 0, 0, 0.5)',
+                  background: !item.isPreviousPurchased 
+                    ? 'rgba(255, 0, 0, 0.2)' 
+                    : 'rgba(0, 0, 0, 0.5)',
                   border: `2px solid ${bombBorderColor}`,
                   borderRadius: '12px',
                   boxShadow: bombGlow,
                   color: '#fff',
-                  fontSize: '0.9rem', // 🔥 меньший шрифт
+                  fontSize: '0.9rem',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '6px',
-                  cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
+                  cursor: !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box',
                   opacity: isLoading || loading ? 0.7 : 1,
                 }}
-                onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
+                onMouseEnter={e => item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
                 <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
@@ -772,11 +720,13 @@ const ShopPage: React.FC = () => {
                 </span>
                 <span style={{ fontSize: '0.8rem' }}>💠 {getResourceName()}: {getResourceValue(item)}</span>
                 <span style={{ fontSize: '0.8rem' }}>
-                  💰 {item.price || 0} {isBomb ? 'CS (ТЕСТ)' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
+                  💰 {item.price || 0} {isBomb ? 'TON' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
                 </span>
-                {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
                 {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>
                   {isBomb ? `🔒 ${t('bomb_available') || 'Купите все товары'}` : `🔒 ${t('buy_previous') || 'Купите предыдущий'}`}
+                </span>}
+                {isBomb && item.isPreviousPurchased && <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>
+                  🔄 {t('restore_limits') || 'Восстановить лимиты'}
                 </span>}
               </button>
             );
@@ -785,11 +735,11 @@ const ShopPage: React.FC = () => {
           {/* ДРОНЫ */}
           {activeTab === 'drones' && shopItems.drones.map((item: Item) => (
             <button
-              key={`drone-${item.id}`}
+              key={`drone-${item.id}-${item.system}`}
               onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('drones', item.id, item.price || 0)}
               disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
               style={{
-                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд
+                width: 'calc(50% - 5px)',
                 minWidth: '140px',
                 padding: '12px 8px',
                 background: item.isPurchased 
@@ -817,7 +767,7 @@ const ShopPage: React.FC = () => {
               <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>🤖 {getItemName('drone', item.id, currentSystem)}</span>
               <span style={{ fontSize: '0.8rem' }}>⚡ {getResourceName()}/день: {getDroneProductivity(item)}</span>
               <span style={{ fontSize: '0.8rem' }}>💰 {item.price || 0} {currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}</span>
-              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased')}</span>}
+              {item.isPurchased && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>✅ {t('purchased') || 'Куплено'}</span>}
               {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>🔒 {t('buy_previous') || 'Купите предыдущий'}</span>}
             </button>
           ))}
@@ -825,11 +775,11 @@ const ShopPage: React.FC = () => {
           {/* КАРГО */}
           {activeTab === 'cargo' && shopItems.cargo.map((item: Item) => (
             <button
-              key={`cargo-${item.id}`}
+              key={`cargo-${item.id}-${item.system}`}
               onClick={() => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && buyItem('cargo', item.id, item.price || 0)}
               disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
               style={{
-                width: 'calc(50% - 5px)', // 🔥 2 кнопки в ряд
+                width: 'calc(50% - 5px)',
                 minWidth: '140px',
                 padding: '12px 8px',
                 background: item.isPurchased 
@@ -846,7 +796,7 @@ const ShopPage: React.FC = () => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '6px',
-                cursor: item.isPurchased || !item.isPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
+                cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
                 boxSizing: 'border-box',
                 opacity: isLoading || loading ? 0.7 : 1,
