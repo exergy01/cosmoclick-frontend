@@ -212,6 +212,7 @@ const QuestsPage: React.FC = () => {
             : quest
         ));
         
+        // Устанавливаем -1 чтобы скрыть все кнопки для этого задания
         setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
         
         addNotification(
