@@ -39,10 +39,10 @@ interface Toast {
   id: number;
   message: string;
   type: 'success' | 'error' | 'warning';
+  duration?: number;
 }
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
   const { player } = useNewPlayer();
@@ -90,7 +90,6 @@ const ShopPage: React.FC = () => {
 
   // 🔥 НОВЫЕ СОСТОЯНИЯ для кнопок магазина
   const [shopButtons, setShopButtons] = useState<ShopButton[]>([]);
-
   // Функция добавления toast
   const addToast = (message: string, type: 'success' | 'error' | 'warning') => {
     const newToast: Toast = {
@@ -113,10 +112,26 @@ const ShopPage: React.FC = () => {
     if (stateTab) setActiveTab(stateTab);
   }, [location.state]);
 
-  // 🔥 ОБРАБОТЧИКИ для смены системы
+  // 🔥 ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ для смены системы (с поддержкой системы 5)
   const handleSystemChange = (systemId: number) => {
     if (!player) return;
     
+    // 🚀 СИСТЕМА 5: Перенаправляем на главную страницу
+    if (systemId === 5) {
+      if (player.unlocked_systems?.includes(5)) {
+        // Если система 5 разблокирована - переходим на главную с системой 5
+        setCurrentSystem(5);
+        navigate('/main');
+      } else {
+        // Если система 5 заблокирована - показываем модальное окно разблокировки
+        setTargetSystem(5);
+        setShowUnlockModal(true);
+        setShowSystemDropdown(false);
+      }
+      return;
+    }
+    
+    // 🛒 СИСТЕМЫ 1-4: Обычная логика магазина
     if (player.unlocked_systems?.includes(systemId)) {
       setCurrentSystem(systemId);
       setShowSystemDropdown(false);
@@ -130,17 +145,30 @@ const ShopPage: React.FC = () => {
   const handleUnlockSuccess = () => {
     setShowUnlockModal(false);
     if (targetSystem) {
-      setCurrentSystem(targetSystem);
+      // 🚀 Если разблокировали систему 5 - переходим на главную
+      if (targetSystem === 5) {
+        setCurrentSystem(5);
+        navigate('/main');
+      } else {
+        // Для систем 1-4 остаемся в магазине
+        setCurrentSystem(targetSystem);
+      }
       setTargetSystem(null);
     }
   };
 
+  // 🔥 ИСПРАВЛЕНИЕ: Добавляем типы для TypeScript
   const handleUnlockCancel = () => {
     setShowUnlockModal(false);
     setTargetSystem(null);
     if (player?.unlocked_systems && player.unlocked_systems.length > 0) {
-      const lastUnlocked = Math.max(...player.unlocked_systems);
-      setCurrentSystem(lastUnlocked);
+      // Возвращаемся к последней разблокированной системе (но не к системе 5 в магазине)
+      const availableSystems = player.unlocked_systems.filter((sys: number) => sys <= 4);
+      if (availableSystems.length > 0) {
+        setCurrentSystem(Math.max(...availableSystems));
+      } else {
+        setCurrentSystem(1);
+      }
     }
   };
 
@@ -165,9 +193,32 @@ const ShopPage: React.FC = () => {
     
     return translated;
   };
-
-  // НОВАЯ ФУНКЦИЯ: получение значения ресурса в зависимости от системы
+  // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: получение значения ресурса с поддержкой бомбы
   const getResourceValue = (item: Item): number => {
+    // 💣 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ БОМБЫ
+    const isBomb = item.id === 13 || item.isBomb;
+    
+    if (isBomb) {
+      // Для бомбы показываем сумму ВСЕХ основных астероидов системы из shopData
+      const systemAsteroids = shopItems.asteroids.filter(a => 
+        a.system === currentSystem && a.id <= 12 && !a.isBomb
+      );
+      
+      console.log(`💣 Рассчитываем ресурсы бомбы для системы ${currentSystem}:`, systemAsteroids);
+      
+      const totalResources = systemAsteroids.reduce((sum, asteroid) => {
+        if (currentSystem === 4) {
+          return sum + (asteroid.totalCs || 0);
+        } else {
+          return sum + (asteroid.totalCcc || 0);
+        }
+      }, 0);
+      
+      console.log(`💣 Общие ресурсы системы ${currentSystem}:`, totalResources);
+      return totalResources;
+    }
+    
+    // Для обычных астероидов - стандартная логика
     if (currentSystem === 4) {
       return item.totalCs || 0;
     } else {
@@ -223,7 +274,6 @@ const ShopPage: React.FC = () => {
   const getResourceName = (): string => {
     return currentSystem === 4 ? 'CS' : 'CCC';
   };
-
   // 🔥 ИСПРАВЛЕННАЯ Загрузка товаров магазина
   const fetchShopItems = useCallback(async () => {
     if (!player) return;
@@ -260,13 +310,13 @@ const ShopPage: React.FC = () => {
       
       console.log(`💣 Бомба доступна в системе ${currentSystem}:`, hasAllItems);
       
-      // 🔥 ИСПРАВЛЕНО: Показываем бомбу только если куплено все (но она всегда доступна для покупки)
+      // 🔥 ИСПРАВЛЕНО: Показываем бомбу только если куплено все (но она ВСЕГДА доступна для покупки)
       const availableAsteroids = asteroids
         .filter((item: Item) => {
           if (item.system !== currentSystem) return false;
           
-          // Если это бомба (id=13), показываем только если куплено ВСЕ основное
-          if (item.id === 13) {
+          // Если это бомба (id=13), показываем только если куплено ВСЁ основное
+          if (item.id === 13 || item.isBomb) {
             return hasAllItems;
           }
           
@@ -274,14 +324,24 @@ const ShopPage: React.FC = () => {
           return item.id <= 12;
         })
         .map((item: Item) => {
-          const isPurchased = false; // 💣 БОМБА НИКОГДА НЕ СЧИТАЕТСЯ КУПЛЕННОЙ
-          let isPreviousPurchased = false;
+          const isBomb = item.id === 13 || item.isBomb;
           
-          if (item.id === 13) {
-            // 💣 БОМБА ВСЕГДА ДОСТУПНА если куплено все основное
+          // 🔥 ИСПРАВЛЕНО: Четко разделяем логику для бомбы и обычных астероидов
+          let isPurchased = false;
+          if (isBomb) {
+            // 💣 БОМБА: НИКОГДА не считается купленной (всегда доступна)
+            isPurchased = false;
+          } else {
+            // 🌍 ОБЫЧНЫЕ АСТЕРОИДЫ: Проверяем реальный статус покупки
+            isPurchased = player?.asteroids.some((a: any) => a.id === item.id && a.system === item.system) || false;
+          }
+          
+          let isPreviousPurchased = false;
+          if (isBomb) {
+            // 💣 БОМБА ВСЕГДА доступна если куплено всё основное
             isPreviousPurchased = hasAllItems;
           } else {
-            // Для обычных астероидов - стандартная логика
+            // 🌍 ОБЫЧНЫЕ АСТЕРОИДЫ: стандартная логика последовательности
             isPreviousPurchased = item.id === 1 || player?.asteroids.some((a: any) => a.id === item.id - 1 && a.system === item.system) || false;
           }
           
@@ -311,8 +371,7 @@ const ShopPage: React.FC = () => {
       fetchShopItems();
     }
   }, [fetchShopItems]);
-
-  // 🔥 ИСПРАВЛЕННАЯ Функция покупки
+  // 🔥 ОБНОВЛЕННАЯ Функция покупки с TON бомбами
   const buyItem = async (type: string, id: number, price: number) => {
     if (!player?.telegram_id) {
       addToast(t('player_not_found'), 'error');
@@ -321,7 +380,7 @@ const ShopPage: React.FC = () => {
     
     if (isLoading) return;
     
-    // 🔥 ИСПРАВЛЕНО: Определяем валюту для бомбы
+    // 🔥 ОБНОВЛЕНО: Определяем валюту для бомбы (теперь все бомбы за TON)
     let currencyToCheck = 'ccc'; // по умолчанию
     let currencyName = 'CCC';
     
@@ -329,8 +388,8 @@ const ShopPage: React.FC = () => {
     const isBomb = (type === 'asteroid' && id === 13);
     
     if (isBomb) {
-      // 💣 БОМБА: используем TON (или CS для теста)
-      currencyToCheck = 'ton'; // В продакшене TON
+      // 💣 БОМБА: Теперь ВСЕ бомбы покупаются за TON (продакшн)
+      currencyToCheck = 'ton';
       currencyName = 'TON';
     } else {
       // Стандартная логика валют для обычных товаров
@@ -372,7 +431,8 @@ const ShopPage: React.FC = () => {
     try {
       // Покупка товара через новые контексты
       if (type === 'asteroid') {
-        await buyAsteroid(id, price, currentSystem);
+        // 🔥 ПЕРЕДАЁМ currencyToCheck для бомбы (теперь TON)
+        await buyAsteroid(id, price, currentSystem, currencyToCheck);
         
         // 🔥 СПЕЦИАЛЬНАЯ ЛОГИКА для бомбы
         if (id === 13) {
@@ -443,7 +503,6 @@ const ShopPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-
   const getMaxItems = async (system: number, type: string): Promise<number> => {
     try {
       if (type === 'cargo') {
@@ -503,7 +562,7 @@ const ShopPage: React.FC = () => {
     });
   }, [player, currentSystem, shopItems.asteroids]);
 
-  // 🔥 ИСПРАВЛЕНО: Используем правильные названия систем
+  // 🔥 ИСПРАВЛЕНО: Используем правильные названия систем (включая систему 5)
   const systemNames = [
     t('system_1_name'),
     t('system_2_name'),
@@ -521,7 +580,6 @@ const ShopPage: React.FC = () => {
   const colorStyle = player?.color || '#00f0ff';
 
   if (!player) return <div>{t('loading')}</div>;
-
   return (
     <div style={{ 
       backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`, 
@@ -588,7 +646,7 @@ const ShopPage: React.FC = () => {
           ))}
         </div>
 
-        {/* 🔥 БЛОК: Выбор системы */}
+        {/* 🔥 БЛОК: Выбор системы (с поддержкой системы 5) */}
         <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
           <span 
             onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} 
@@ -651,7 +709,8 @@ const ShopPage: React.FC = () => {
                     )}
                   </div>
                 );
-              })}
+                
+                })}
             </div>
           )}
         </div>
@@ -671,7 +730,6 @@ const ShopPage: React.FC = () => {
             ⏳ {t('processing_purchase')}
           </div>
         )}
-
         {/* 🔥 ТОВАРЫ */}
         <div style={{ 
           display: 'flex', 
@@ -682,22 +740,32 @@ const ShopPage: React.FC = () => {
           {/* АСТЕРОИДЫ */}
           {activeTab === 'asteroid' && shopItems.asteroids.map((item: Item) => {
             // Особый стиль для "бомбы" (13-й астероид)
-            const isBomb = item.id === 13;
+            const isBomb = item.id === 13 || item.isBomb;
             const bombBorderColor = isBomb ? '#FFD700' : colorStyle;
             const bombGlow = isBomb ? '0 0 15px #FFD700' : `0 0 8px ${colorStyle}`;
+            
+            // 🔥 ОБНОВЛЕНО: Определяем валюту для отображения (все бомбы TON)
+            let displayCurrency = '';
+            if (isBomb) {
+              displayCurrency = 'TON'; // 💣 ВСЕ БОМБЫ ТЕПЕРЬ ПОКУПАЮТСЯ ЗА TON
+            } else {
+              displayCurrency = currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC';
+            }
             
             return (
               <button
                 key={`asteroid-${item.id}-${item.system}`}
-                onClick={() => !isLoading && !loading && item.isPreviousPurchased && buyItem('asteroid', item.id, item.price || 0)}
-                disabled={!item.isPreviousPurchased || isLoading || loading}
+                onClick={() => !isLoading && !loading && item.isPreviousPurchased && !item.isPurchased && buyItem('asteroid', item.id, item.price || 0)}
+                disabled={item.isPurchased || !item.isPreviousPurchased || isLoading || loading}
                 style={{
                   width: 'calc(50% - 5px)',
                   minWidth: '140px',
                   padding: '12px 8px',
-                  background: !item.isPreviousPurchased 
-                    ? 'rgba(255, 0, 0, 0.2)' 
-                    : 'rgba(0, 0, 0, 0.5)',
+                  background: item.isPurchased 
+                    ? 'rgba(0, 255, 0, 0.2)'  // 🔥 ЗЕЛЕНЫЙ фон для купленных
+                    : !item.isPreviousPurchased 
+                      ? 'rgba(255, 0, 0, 0.2)' // КРАСНЫЙ для недоступных
+                      : 'rgba(0, 0, 0, 0.5)',  // ЧЕРНЫЙ для доступных
                   border: `2px solid ${bombBorderColor}`,
                   borderRadius: '12px',
                   boxShadow: bombGlow,
@@ -707,24 +775,32 @@ const ShopPage: React.FC = () => {
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '6px',
-                  cursor: !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
+                  cursor: item.isPurchased || !item.isPreviousPurchased || isLoading || loading ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box',
                   opacity: isLoading || loading ? 0.7 : 1,
                 }}
-                onMouseEnter={e => item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
+                onMouseEnter={e => !item.isPurchased && item.isPreviousPurchased && !isLoading && !loading && (e.currentTarget.style.transform = 'scale(1.02)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
                 <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>
                   {isBomb ? '💣' : '🌍'} {getItemName('asteroid', item.id, currentSystem)}
                 </span>
+                {/* 🔥 ИСПРАВЛЕНО: Теперь бомба показывает сумму всех ресурсов системы */}
                 <span style={{ fontSize: '0.8rem' }}>💠 {getResourceName()}: {getResourceValue(item)}</span>
                 <span style={{ fontSize: '0.8rem' }}>
-                  💰 {item.price || 0} {isBomb ? 'TON' : currentSystem >= 1 && currentSystem <= 4 ? 'CS' : currentSystem >= 5 ? 'TON' : 'CCC'}
+                  💰 {item.price || 0} {displayCurrency}
                 </span>
+                
+                {/* 🔥 ИСПРАВЛЕНО: Правильная логика отображения статусов */}
+                {item.isPurchased && !isBomb && <span style={{ color: '#00ff00', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                  ✅ {t('purchased') || 'Куплено'}
+                </span>}
+                
                 {!item.isPreviousPurchased && <span style={{ color: '#ff4444', fontSize: '0.8rem' }}>
                   {isBomb ? `🔒 ${t('bomb_available') || 'Купите все товары'}` : `🔒 ${t('buy_previous') || 'Купите предыдущий'}`}
                 </span>}
+                
                 {isBomb && item.isPreviousPurchased && <span style={{ color: '#ffa500', fontSize: '0.8rem' }}>
                   🔄 {t('restore_limits') || 'Восстановить лимиты'}
                 </span>}
@@ -813,7 +889,6 @@ const ShopPage: React.FC = () => {
             </button>
           ))}
         </div>
-
         {error && (
           <div style={{ color: '#ff0000', textAlign: 'center', margin: '20px 0' }}>
             {error}
@@ -821,7 +896,7 @@ const ShopPage: React.FC = () => {
         )}
       </div>
 
-      {/* 🎉 TOAST КОНТЕЙНЕР */}
+      {/* 🎉 ИСПРАВЛЕННЫЙ TOAST КОНТЕЙНЕР */}
       <div style={{
         position: 'fixed',
         top: '20px',
@@ -837,6 +912,7 @@ const ShopPage: React.FC = () => {
             message={toast.message}
             type={toast.type}
             duration={4000}
+            colorStyle={colorStyle}
           />
         ))}
       </div>
@@ -844,7 +920,7 @@ const ShopPage: React.FC = () => {
       {/* Нижняя навигация */}
       <NavigationMenu colorStyle={colorStyle} />
 
-      {/* 🔥 НОВОЕ: Модальное окно разблокировки системы */}
+      {/* 🔥 НОВОЕ: Модальное окно разблокировки системы (с поддержкой системы 5) */}
       {showUnlockModal && targetSystem && (
         <SystemUnlockModal 
           systemId={targetSystem}

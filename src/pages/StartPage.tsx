@@ -136,7 +136,7 @@ const StartPage: React.FC = () => {
   const colorStyle = player?.color || '#00f0ff';
 
   return (
-    <Suspense fallback={<div>Загрузка...</div>}>
+    <Suspense fallback={<div>{t('loading')}</div>}>
       <div
         style={{
           backgroundImage: `url(/assets/startpage_bg.png)`,

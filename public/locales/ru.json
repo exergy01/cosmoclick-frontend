@@ -1,6 +1,8 @@
 {
   "welcome_player": "Добро пожаловать, {{username}}!",
   "loading": "Загрузка...",
+  "restore_limits": "Обновление лимитов астероидов",
+  "under_construction": "В процессе разработки",
   "loading_complete": "Готово!",
   "welcome_to_cosmoclick": "Добро пожаловать в CosmoClick!",
   "game_description": "CosmoClick — это космическая кликер-игра, где вы можете:",

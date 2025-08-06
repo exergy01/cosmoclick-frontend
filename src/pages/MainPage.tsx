@@ -14,6 +14,7 @@ import { adService } from '../services/adsgramService';
 
 // Импортируем новый чистый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
+import ToastNotification from '../components/ToastNotification'; // Убедитесь, что импорт правильный
 
 interface Item {
   id: number;
@@ -72,6 +73,20 @@ const MainPage: React.FC = () => {
   // 🔐 БЕЗОПАСНАЯ ПРОВЕРКА АДМИНА ЧЕРЕЗ API
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  
+  // Добавляем состояние для тостов
+  const [toasts, setToasts] = useState<any[]>([]);
+  const nextToastId = React.useRef(0);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'warning', duration = 3000) => {
+    const id = nextToastId.current++;
+    const newToast = { id, message, type, duration };
+    setToasts(prevToasts => [...prevToasts, newToast]);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+  }, []);
 
   // Проверяем админский статус через API
   useEffect(() => {
@@ -129,7 +144,8 @@ const MainPage: React.FC = () => {
     const currentValue = getCurrentValue(currentSystem);
     
     if (currentValue <= 0) {
-      alert(t('no_resources_to_collect'));
+      // Используем новый тост
+      addToast(t('no_resources_to_collect'), 'warning');
       return;
     }
 
@@ -163,11 +179,11 @@ const MainPage: React.FC = () => {
         await performCollection();
       } else {
         console.log('❌ Реклама не была просмотрена:', adResult.error);
-        alert('Для сбора ресурсов необходимо просмотреть рекламу до конца');
+        addToast('Для сбора ресурсов необходимо просмотреть рекламу до конца', 'warning');
       }
     } catch (err) {
       console.error('❌ Ошибка показа рекламы:', err);
-      alert('Ошибка при показе рекламы. Попробуйте еще раз.');
+      addToast('Ошибка при показе рекламы. Попробуйте еще раз.', 'error');
     } finally {
       setIsWatchingAd(false);
     }
@@ -180,7 +196,7 @@ const MainPage: React.FC = () => {
       const currentValue = getCurrentValue(currentSystem);
       
       if (currentValue <= 0) {
-        alert(t('no_resources_to_collect'));
+        addToast(t('no_resources_to_collect'), 'warning');
         return;
       }
       
@@ -206,11 +222,12 @@ const MainPage: React.FC = () => {
 
       if (result) {
         resetCleanCounter(currentSystem);
+        addToast(`${t('collected')} ${currentValue.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`, 'success');
         console.log(`✅ Сбор выполнен успешно: ${currentValue.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`);
       }
     } catch (err) {
       console.error('❌ Ошибка при сборе:', err);
-      alert(t('collection_error', { error: err }));
+      addToast(t('collection_error', { error: err }), 'error');
     } finally {
       setIsCollecting(false);
     }
@@ -313,16 +330,20 @@ const MainPage: React.FC = () => {
     if (!player || isTonSystem) return;
     
     fetchMaxItems().then(({ maxAsteroids, maxDrones }) => {
-      const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem).length;
+      // 🔥 ИСПРАВЛЕНО: Считаем только основные астероиды (1-12), исключая бомбу (id=13)
+      const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
       const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
       const miningSpeed = player.mining_speed_data?.[currentSystem] || 0;
       const speedPerHour = (miningSpeed * 3600).toFixed(2);
       const realCargoCapacity = getRealCargoCapacity(currentSystem);
       
+      // 🔥 ИСПРАВЛЕНО: maxAsteroids тоже должно быть 12 (основные астероиды)
+      const maxMainAsteroids = 12; // Всегда 12 основных астероидов
+      
       setShopButtons([
         {
           type: 'resources',
-          count: `${asteroidCount}/${maxAsteroids}`,
+          count: `${asteroidCount}/${maxMainAsteroids}`, // 🔥 Используем 12 вместо maxAsteroids
           amount: `${remainingResources.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`
         },
         {
@@ -338,7 +359,7 @@ const MainPage: React.FC = () => {
       ]);
     });
   }, [player, currentSystem, cargoLevelId, fetchMaxItems, getRealCargoCapacity, isTonSystem, t]);
-
+  
   return (
     <div style={{
       backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
@@ -506,12 +527,44 @@ const MainPage: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Контейнер для тостов */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 10000,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        {toasts.map(toast => (
+          <ToastNotification
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={toast.duration}
+            colorStyle={colorStyle}
+          />
+        ))}
+      </div>
 
       <style>
         {`
           @keyframes spin {
             from { transform: translate(-50%, -50%) rotate(0deg); }
             to { transform: translate(-50%, -50%) rotate(360deg); }
+          }
+          /* 🔥 ДОБАВЛЕНА АНИМАЦИЯ ДЛЯ ВСПЛЫВАЮЩИХ СООБЩЕНИЙ */
+          @keyframes slideInRight {
+            from {
+              opacity: 0;
+              transform: translateX(100%);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
           }
         `}
       </style>

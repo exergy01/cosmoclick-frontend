@@ -228,18 +228,24 @@ const QuestsPage: React.FC = () => {
       />
 
       {/* Отрисовка всплывающих уведомлений */}
+
+      {/* Container for toasts */}
       <div style={{
         position: 'fixed',
         top: '20px',
         right: '20px',
-        zIndex: 1000,
+        zIndex: 10000,
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
-        alignItems: 'flex-end'
+        gap: '10px'
       }}>
         {notifications.map(n => (
-          <ToastNotification key={n.id} message={n.message} type={n.type} />
+          <ToastNotification 
+            key={n.id} 
+            message={n.message} 
+            type={n.type} 
+            colorStyle={colorStyle} // ✅ ИСПРАВЛЕНО: Добавлен обязательный пропс colorStyle
+          />
         ))}
       </div>
 
