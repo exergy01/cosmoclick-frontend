@@ -8,6 +8,7 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@adsgram/react": "^1.0.2",
     "@tonconnect/ui-react": "^2.2.0",
     "axios": "^1.6.0",
     "i18next": "^23.7.0",

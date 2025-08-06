@@ -1,7 +1,8 @@
 // src/pages/QuestsPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { usePlayer } from '../context/PlayerContext';
+import { useNewPlayer } from '../context/NewPlayerContext';
+import { useGame } from '../context/GameContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
@@ -12,11 +13,10 @@ import { adService } from '../services/adsgramService';
 // Импортируем компонент для всплывающих уведомлений
 import ToastNotification from '../components/ToastNotification'; 
 
-const apiUrl = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+// Используем общий API_URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// Определяем ID рекламного блока, как в MainPage, с правильным резервным значением
+// Используем общий ADSGRAM_BLOCK_ID
 const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
 
 interface QuestData {
@@ -37,28 +37,11 @@ interface ToastNotificationData {
   duration?: number;
 }
 
-// Добавим интерфейс для Player, если его нет в PlayerContext
-// Это очень важно для корректной работы TypeScript
-interface Player {
-  telegram_id: number;
-  cs: number;
-  ccc: number;
-  color: string;
-  energy: number; // Добавил energy
-  max_energy: number; // Добавил max_energy
-  ad_views: number;
-  last_ad_reset: string;
-  drones: any[]; // Уточните тип, если известен
-  // ... другие поля игрока
-  verified: boolean; // Добавил verified, т.к. используется в MainPage для проверки рекламы
-  unlocked_systems: number[]; // Добавил unlocked_systems для корректного типа
-  telegram_wallet: string | null; // Добавил telegram_wallet
-}
-
 const QuestsPage: React.FC = () => {
   const { t } = useTranslation();
-  // Добавляем refreshPlayer из контекста
-  const { player, setPlayer, currentSystem, refreshPlayer } = usePlayer();
+  // Используем новые контексты
+  const { player, refreshPlayer } = useNewPlayer();
+  const { currentSystem } = useGame();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -69,6 +52,20 @@ const QuestsPage: React.FC = () => {
   // Состояние для уведомлений
   const [notifications, setNotifications] = useState<ToastNotificationData[]>([]);
 
+  // ✅ ДОБАВЛЯЕМ: Определение colorStyle на основе текущей системы
+  const getColorStyle = (system: number) => {
+    const colors = {
+      1: '#00BFFF',    // Cyber Blue
+      2: '#9D4EDD',    // Neon Purple  
+      3: '#FF1493',    // Plasma Pink
+      4: '#00FF7F',    // Cosmo Green
+      5: '#FFD700'     // Star Gold
+    };
+    return colors[system as keyof typeof colors] || '#00BFFF';
+  };
+
+  const colorStyle = getColorStyle(currentSystem);
+
   // Функция для добавления уведомлений
   const addNotification = useCallback((message: string, type: 'success' | 'error' | 'warning', duration = 3000) => {
     const id = Date.now() + Math.random();
@@ -78,23 +75,91 @@ const QuestsPage: React.FC = () => {
     }, duration);
   }, []);
 
+  // ✅ ДОБАВЛЯЕМ: Функция просмотра рекламы для заданий
+  const watchAd = useCallback(async () => {
+    if (!player?.telegram_id) {
+      addNotification('Ошибка: игрок не найден', 'error');
+      return;
+    }
+
+    // Проверяем лимит просмотров рекламы для заданий (5 в день)
+    const questAdViews = player?.quest_ad_views || 0;
+    if (questAdViews >= 5) {
+      addNotification(t('daily_ads_completed') || 'Реклама за сегодня просмотрена!', 'warning');
+      return;
+    }
+
+    try {
+      console.log('🎬 Запуск рекламы для заданий...');
+      
+      // Проверяем доступность рекламного сервиса
+      if (!adService.isAvailable()) {
+        console.log('🔄 Инициализируем рекламный сервис...');
+        await adService.initialize(ADSGRAM_BLOCK_ID);
+      }
+      
+      // Показываем рекламу через ваш adService
+      const result = await adService.showRewardedAd();
+      
+      if (result.success) {
+        console.log('🎉 Реклама успешно просмотрена:', result);
+        
+        try {
+          // Отправляем запрос на сервер для обновления счетчика рекламы заданий
+          const response = await axios.post(`${API_URL}/api/quests/watch_ad`, {
+            telegramId: player.telegram_id
+          });
+
+          if (response.data.success) {
+            // Обновляем данные игрока
+            await refreshPlayer();
+            
+            addNotification(
+              t('quest_ad_reward') || '🎉 Получено 10 CCC за просмотр рекламы!', 
+              'success'
+            );
+          } else {
+            throw new Error(response.data.error || 'Ошибка сервера');
+          }
+        } catch (error: any) {
+          console.error('❌ Ошибка обработки награды:', error);
+          addNotification(
+            error.response?.data?.error || 'Ошибка получения награды', 
+            'error'
+          );
+        }
+      } else {
+        // Реклама не была успешно просмотрена
+        console.log('❌ Реклама не была успешно просмотрена:', result);
+        addNotification(
+          result.error || 'Реклама была пропущена или произошла ошибка', 
+          'warning'
+        );
+      }
+
+    } catch (error: any) {
+      console.error('❌ Критическая ошибка рекламы:', error);
+      addNotification('Реклама недоступна', 'error');
+    }
+  }, [player?.telegram_id, player?.quest_ad_views, refreshPlayer, addNotification, t]);
+
   const loadQuests = useCallback(async () => {
     if (!player?.telegram_id) return;
     
     try {
       setLoading(true);
-      const response = await axios.get(`${apiUrl}/api/quests/${player.telegram_id}`);
+      const response = await axios.get(`${API_URL}/api/quests/${player.telegram_id}`);
       if (response.data.success) {
         setQuests(response.data.quests);
         console.log(`✅ Загружено ${response.data.quests.length} заданий`);
       }
     } catch (error) {
       console.error('Ошибка загрузки заданий:', error);
-      addNotification('Ошибка загрузки заданий.', 'error');
+      addNotification(t('quests_load_error') || 'Ошибка загрузки заданий.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [player?.telegram_id, addNotification]);
+  }, [player?.telegram_id, addNotification, t]);
 
   useEffect(() => {
     loadQuests();
@@ -123,16 +188,14 @@ const QuestsPage: React.FC = () => {
     try {
       setCompletingQuest(questId);
       
-      const response = await axios.post(`${apiUrl}/api/quests/complete`, {
+      const response = await axios.post(`${API_URL}/api/quests/complete`, {
         telegramId: player.telegram_id,
         questId: questId
       });
       
       if (response.data.success) {
-        setPlayer((prevPlayer: Player | null) => ({ 
-            ...prevPlayer!,
-            cs: Number(prevPlayer!.cs) + Number(response.data.reward_cs)
-        }));
+        // Обновляем игрока через refreshPlayer
+        await refreshPlayer();
         
         setQuests(prev => prev.map(quest => 
           quest.quest_id === questId 
@@ -142,70 +205,34 @@ const QuestsPage: React.FC = () => {
         
         setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
         
-        addNotification(`🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`, 'success');
+        addNotification(
+          t('quest_reward_received', { reward: Number(response.data.reward_cs).toLocaleString() }) || 
+          `🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`, 
+          'success'
+        );
       } else {
-        addNotification(response.data.error || 'Неизвестная ошибка при выполнении задания.', 'error');
+        addNotification(response.data.error || t('quest_completion_error') || 'Неизвестная ошибка при выполнении задания.', 'error');
       }
     } catch (error: any) {
       console.error('Ошибка выполнения задания:', error);
-      addNotification(error.response?.data?.error || 'Ошибка выполнения задания', 'error');
+      addNotification(error.response?.data?.error || t('quest_completion_error') || 'Ошибка выполнения задания', 'error');
     } finally {
       setCompletingQuest(null);
     }
   };
 
-  const watchAd = useCallback(async () => {
-    if ((player?.ad_views || 0) >= 5) {
-      addNotification(t('ad_limit_reached') || 'Лимит просмотров рекламы достигнут.', 'warning');
-      return;
-    }
-    try {
-      await adService.initialize(ADSGRAM_BLOCK_ID);
-      const result = await adService.showRewardedAd();
-      
-      if (result.success) {
-        const backendResponse = await axios.post(`${apiUrl}/api/player/watch_ad`, {
-          telegramId: player.telegram_id,
-        });
-
-        if (backendResponse.data.success) {
-          setPlayer((prevPlayer: Player | null) => ({
-            ...prevPlayer!,
-            ad_views: (prevPlayer!.ad_views || 0) + 1,
-            ccc: Number(prevPlayer!.ccc) + 10 // Добавляем 10 CCC
-          }));
-          addNotification(t('ad_watched') || 'Реклама просмотрена!', 'success');
-        } else {
-          addNotification(backendResponse.data.error || t('ad_update_error') || 'Ошибка при обновлении данных после рекламы.', 'error');
-        }
-      } else {
-        addNotification(result.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
-      }
-    } catch (err: any) {
-      console.error('Ad watch error:', err);
-      addNotification(err.response?.data?.error || t('ad_error') || 'Ошибка при просмотре рекламы.', 'error');
-    }
-  }, [player, setPlayer, addNotification, t]);
-
-  const colorStyle = player?.color || '#00f0ff';
-
-  if (!player) {
-    return <div>Loading...</div>;
-  }
-
-  const combinedBasicAndPartnerQuests = quests.filter(q => 
+  // Упрощенная логика фильтрации заданий
+  const basicQuests = quests.filter(q => 
     !q.completed && (q.quest_type === 'referral' || q.quest_type === 'partner_link')
   ).sort((a, b) => {
-    if (a.quest_type === 'referral' && b.quest_type !== 'referral') {
-      return 1;
-    }
-    if (a.quest_type !== 'referral' && b.quest_type === 'referral') {
-      return -1;
-    }
+    // Партнерские ссылки показываем первыми
+    if (a.quest_type === 'partner_link' && b.quest_type !== 'partner_link') return -1;
+    if (a.quest_type !== 'partner_link' && b.quest_type === 'partner_link') return 1;
     return 0;
   });
 
   const manualQuests = quests.filter(q => !q.completed && q.quest_type === 'manual_check');
+  const hasCompletedAllQuests = basicQuests.length === 0 && manualQuests.length === 0;
 
   return (
     <div
@@ -227,9 +254,7 @@ const QuestsPage: React.FC = () => {
         colorStyle={colorStyle}
       />
 
-      {/* Отрисовка всплывающих уведомлений */}
-
-      {/* Container for toasts */}
+      {/* TOAST КОНТЕЙНЕР */}
       <div style={{
         position: 'fixed',
         top: '20px',
@@ -244,19 +269,28 @@ const QuestsPage: React.FC = () => {
             key={n.id} 
             message={n.message} 
             type={n.type} 
-            colorStyle={colorStyle} // ✅ ИСПРАВЛЕНО: Добавлен обязательный пропс colorStyle
+            colorStyle={colorStyle}
+            duration={n.duration}
           />
         ))}
       </div>
 
-      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
           
           {loading ? (
-            <div style={{ color: colorStyle, fontSize: '1.2rem' }}>Wait...</div>
+            <div style={{ 
+              color: colorStyle, 
+              fontSize: '1.2rem',
+              textAlign: 'center',
+              padding: '50px'
+            }}>
+              ⏳ {t('loading_quests') || 'Загружаем задания...'}
+            </div>
           ) : (
             <>
-              {combinedBasicAndPartnerQuests.length > 0 && (
+              {/* ОСНОВНЫЕ ЗАДАНИЯ */}
+              {basicQuests.length > 0 && (
                 <div style={{ marginBottom: '30px' }}>
                   <h3 style={{ 
                     color: colorStyle, 
@@ -264,121 +298,127 @@ const QuestsPage: React.FC = () => {
                     marginBottom: '20px',
                     textShadow: `0 0 10px ${colorStyle}`
                   }}>
-                    📋 Основные задания
+                    📋 {t('main_quests') || 'Основные задания'}
                   </h3>
-                  {combinedBasicAndPartnerQuests.map(quest => (
+                  {basicQuests.map(quest => (
                     <div
                       key={quest.quest_id}
                       style={{
                         margin: '15px auto',
                         padding: '20px',
                         maxWidth: '500px',
-                        background: quest.completed 
-                          ? 'rgba(0, 255, 0, 0.2)' 
-                          : 'rgba(0, 0, 0, 0.3)',
+                        background: 'rgba(0, 0, 0, 0.3)',
                         border: `2px solid ${colorStyle}`,
                         borderRadius: '15px',
                         boxShadow: `0 0 20px ${colorStyle}30`,
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ textAlign: 'left' }}>
-                          <h4 style={{ color: colorStyle, marginBottom: '5px' }}>{quest.quest_name}</h4>
-                          <p style={{ color: '#ccc', margin: 0, fontSize: '0.9rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ textAlign: 'left', flex: 1 }}>
+                          <h4 style={{ color: colorStyle, marginBottom: '8px', fontSize: '1.1rem' }}>
+                            {quest.quest_name}
+                          </h4>
+                          <p style={{ color: '#ccc', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.4' }}>
                             {quest.description}
                           </p>
-                          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
-                            🎁 Награда: {Number(quest.reward_cs).toLocaleString()} CS
+                          <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
+                            🎁 {t('reward')}: {Number(quest.reward_cs).toLocaleString()} CS
                           </p>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {quest.completed ? (
-                            <div style={{
-                              padding: '8px 16px',
-                              borderRadius: '20px',
-                              background: 'rgba(0, 255, 0, 0.3)',
-                              border: '1px solid #00ff00',
-                              fontSize: '0.9rem',
-                              fontWeight: 'bold'
-                            }}>
-                              ✅ Выполнено
-                            </div>
-                          ) : (
-                            quest.quest_type === 'partner_link' ? (
-                              (() => {
-                                const timerValue = linkTimers[quest.quest_id];
-                                const isTimerRunning = timerValue > 0;
-                                const canClaim = timerValue === 0;
-                                return (
-                                  <>
-                                    {!isTimerRunning && !canClaim && (
-                                      <button
-                                        onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
-                                        style={{
-                                          padding: '10px 20px',
-                                          background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
-                                          border: `2px solid ${colorStyle}`,
-                                          borderRadius: '12px',
-                                          boxShadow: `0 0 15px ${colorStyle}`,
-                                          color: '#fff',
-                                          cursor: 'pointer',
-                                          transition: 'all 0.3s ease',
-                                          fontWeight: 'bold'
-                                        }}
-                                      >
-                                        🔗 Перейти
-                                      </button>
-                                    )}
-                                    
-                                    {isTimerRunning && (
-                                      <div style={{
-                                        padding: '8px 16px',
-                                        borderRadius: '20px',
-                                        background: 'rgba(255, 165, 0, 0.3)',
-                                        border: '1px solid #ffa500',
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '140px' }}>
+                          {quest.quest_type === 'partner_link' ? (
+                            (() => {
+                              const timerValue = linkTimers[quest.quest_id];
+                              const isTimerRunning = timerValue > 0;
+                              const canClaim = timerValue === 0;
+                              
+                              return (
+                                <>
+                                  {!isTimerRunning && !canClaim && (
+                                    <button
+                                      onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
+                                      style={{
+                                        padding: '10px 15px',
+                                        background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
+                                        border: `2px solid ${colorStyle}`,
+                                        borderRadius: '12px',
+                                        boxShadow: `0 0 15px ${colorStyle}50`,
+                                        color: '#fff',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.9rem'
+                                      }}
+                                      onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                                      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                      🔗 {t('go_to_link') || 'Перейти'}
+                                    </button>
+                                  )}
+                                  
+                                  {isTimerRunning && (
+                                    <div style={{
+                                      padding: '10px 15px',
+                                      borderRadius: '12px',
+                                      background: 'rgba(255, 165, 0, 0.3)',
+                                      border: '2px solid #ffa500',
+                                      fontSize: '0.9rem',
+                                      color: '#ffa500',
+                                      textAlign: 'center',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      ⏱️ {timerValue}{t('seconds_short') || 'сек'}
+                                    </div>
+                                  )}
+                                  
+                                  {canClaim && (
+                                    <button
+                                      onClick={() => completeQuest(quest.quest_id)}
+                                      disabled={completingQuest === quest.quest_id}
+                                      style={{
+                                        padding: '10px 15px',
+                                        background: completingQuest === quest.quest_id 
+                                          ? 'rgba(128, 128, 128, 0.5)' 
+                                          : 'linear-gradient(135deg, #00ff0040, #00ff0080)',
+                                        border: `2px solid ${completingQuest === quest.quest_id ? '#888' : '#00ff00'}`,
+                                        borderRadius: '12px',
+                                        boxShadow: completingQuest === quest.quest_id 
+                                          ? 'none' 
+                                          : '0 0 15px #00ff0050',
+                                        color: '#fff',
+                                        cursor: completingQuest === quest.quest_id ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        fontWeight: 'bold',
                                         fontSize: '0.9rem',
-                                        color: '#ffa500'
-                                      }}>
-                                        ⏱️ {timerValue}с
-                                      </div>
-                                    )}
-                                    
-                                    {canClaim && (
-                                      <button
-                                        onClick={() => completeQuest(quest.quest_id)}
-                                        disabled={completingQuest === quest.quest_id}
-                                        style={{
-                                          padding: '10px 20px',
-                                          background: `linear-gradient(135deg, #00ff0030, #00ff0060, #00ff0030)`,
-                                          border: '2px solid #00ff00',
-                                          borderRadius: '12px',
-                                          boxShadow: '0 0 15px #00ff00',
-                                          color: '#fff',
-                                          cursor: completingQuest === quest.quest_id ? 'not-allowed' : 'pointer',
-                                          transition: 'all 0.3s ease',
-                                          fontWeight: 'bold',
-                                          opacity: completingQuest === quest.quest_id ? 0.7 : 1
-                                        }}
-                                      >
-                                        {completingQuest === quest.quest_id ? '⏳ Получение...' : '🎁 Получить награду'}
-                                      </button>
-                                    )}
-                                  </>
-                                );
-                              })()
-                            ) : (
-                              <div style={{
-                                padding: '8px 16px',
-                                borderRadius: '20px',
-                                background: 'rgba(255, 165, 0, 0.3)',
-                                border: '1px solid #ffa500',
-                                fontSize: '0.9rem',
-                                fontWeight: 'bold'
-                              }}>
-                                ⏳ В процессе
-                              </div>
-                            )
+                                        opacity: completingQuest === quest.quest_id ? 0.7 : 1
+                                      }}
+                                      onMouseEnter={e => !completingQuest && (e.currentTarget.style.transform = 'scale(1.05)')}
+                                      onMouseLeave={e => !completingQuest && (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                      {completingQuest === quest.quest_id 
+                                        ? `⏳ ${t('claiming') || 'Получение...'}` 
+                                        : `🎁 ${t('claim_reward') || 'Получить'}`
+                                      }
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()
+                          ) : (
+                            <div style={{
+                              padding: '10px 15px',
+                              borderRadius: '12px',
+                              background: 'rgba(255, 165, 0, 0.3)',
+                              border: '2px solid #ffa500',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              color: '#ffa500',
+                              textAlign: 'center'
+                            }}>
+                              ⏳ {t('in_progress') || 'В процессе'}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -387,6 +427,7 @@ const QuestsPage: React.FC = () => {
                 </div>
               )}
 
+              {/* ЗАДАНИЯ С РУЧНОЙ ПРОВЕРКОЙ */}
               {manualQuests.length > 0 && (
                 <div style={{ marginBottom: '30px' }}>
                   <h3 style={{ 
@@ -395,7 +436,7 @@ const QuestsPage: React.FC = () => {
                     marginBottom: '20px',
                     textShadow: `0 0 10px ${colorStyle}`
                   }}>
-                    🔍 Задания с проверкой
+                    🔍 {t('manual_check_quests') || 'Задания с проверкой'}
                   </h3>
                   {manualQuests.map(quest => (
                     <div
@@ -404,43 +445,37 @@ const QuestsPage: React.FC = () => {
                         margin: '15px auto',
                         padding: '20px',
                         maxWidth: '500px',
-                        background: quest.completed 
-                          ? 'rgba(0, 255, 0, 0.2)' 
-                          : 'rgba(255, 165, 0, 0.1)',
-                        border: `2px solid ${quest.completed ? '#00ff00' : '#ffa500'}`,
+                        background: 'rgba(255, 165, 0, 0.1)',
+                        border: '2px solid #ffa500',
                         borderRadius: '15px',
-                        boxShadow: `0 0 20px ${quest.completed ? '#00ff0030' : '#ffa50030'}`,
+                        boxShadow: '0 0 20px #ffa50030',
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ textAlign: 'left' }}>
-                          <h4 style={{ color: quest.completed ? '#00ff00' : '#ffa500', marginBottom: '5px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ textAlign: 'left', flex: 1 }}>
+                          <h4 style={{ color: '#ffa500', marginBottom: '8px', fontSize: '1.1rem' }}>
                             {quest.quest_name}
                           </h4>
-                          <p style={{ color: '#ccc', margin: 0, fontSize: '0.9rem' }}>
+                          <p style={{ color: '#ccc', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.4' }}>
                             {quest.description}
                           </p>
-                          <p style={{ color: '#ccc', margin: '5px 0 0 0' }}>
-                            🎁 Награда: {Number(quest.reward_cs).toLocaleString()} CS
+                          <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
+                            🎁 {t('reward')}: {Number(quest.reward_cs).toLocaleString()} CS
                           </p>
                         </div>
                         <div style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          background: quest.completed 
-                            ? 'rgba(0, 255, 0, 0.3)' 
-                            : 'rgba(255, 165, 0, 0.3)',
-                          border: quest.completed 
-                            ? '1px solid #00ff00' 
-                            : '1px solid #ffa500',
+                          padding: '10px 15px',
+                          borderRadius: '12px',
+                          background: 'rgba(255, 165, 0, 0.3)',
+                          border: '2px solid #ffa500',
                           fontSize: '0.9rem',
                           fontWeight: 'bold',
-                          color: quest.completed ? '#00ff00' : '#ffa500'
+                          color: '#ffa500',
+                          textAlign: 'center',
+                          minWidth: '140px'
                         }}>
-                          {quest.completed 
-                            ? '✅ Выполнено' 
-                            : '⏳ Ручная проверка'}
+                          ⏳ {t('manual_check') || 'Ручная проверка'}
                         </div>
                       </div>
                     </div>
@@ -448,7 +483,8 @@ const QuestsPage: React.FC = () => {
                 </div>
               )}
 
-              {combinedBasicAndPartnerQuests.length === 0 && manualQuests.length === 0 && (
+              {/* СООБЩЕНИЕ О ЗАВЕРШЕНИИ ВСЕХ ЗАДАНИЙ */}
+              {hasCompletedAllQuests && (
                 <div style={{
                   margin: '30px auto',
                   padding: '30px',
@@ -459,27 +495,30 @@ const QuestsPage: React.FC = () => {
                   textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '3rem', marginBottom: '15px' }}>🎉</div>
-                  <h3 style={{ color: '#00ff00', marginBottom: '10px' }}>
-                    Все основные задания выполнены!
+                  <h3 style={{ color: '#00ff00', marginBottom: '15px', fontSize: '1.3rem' }}>
+                    {t('all_quests_completed') || 'Все основные задания выполнены!'}
                   </h3>
-                  <p style={{ color: '#ccc' }}>
-                    Отличная работа! Возвращайтесь позже за новыми заданиями или просмотрите рекламу.
+                  <p style={{ color: '#ccc', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                    {t('all_quests_completed_desc') || 'Отличная работа! Возвращайтесь позже за новыми заданиями или просмотрите рекламу.'}
                   </p>
                 </div>
               )}
 
-              <div>
+              {/* ПРОСМОТР РЕКЛАМЫ ДЛЯ ЗАДАНИЙ */}
+              <div style={{ marginTop: '40px' }}>
                 <h3 style={{ 
                   color: colorStyle, 
                   fontSize: '1.5rem', 
                   marginBottom: '20px',
                   textShadow: `0 0 10px ${colorStyle}`
                 }}>
-                  📺 Просмотр рекламы (Ежедневно)
+                  📺 {t('daily_ads') || 'Просмотр рекламы (Ежедневно)'}
                 </h3>
+                
                 {Array(5).fill(null).map((_, index) => {
-                  const isCompleted = (player?.ad_views || 0) > index;
-                  const isAvailable = (player?.ad_views || 0) === index;
+                  // ✅ ИСПРАВЛЕНО: используем quest_ad_views для счетчика рекламы заданий
+                  const isCompleted = (player?.quest_ad_views || 0) > index;
+                  const isAvailable = (player?.quest_ad_views || 0) === index;
                   
                   return (
                     <div
@@ -489,60 +528,75 @@ const QuestsPage: React.FC = () => {
                         padding: '20px',
                         maxWidth: '500px',
                         background: isCompleted 
-                          ? 'rgba(0, 255, 0, 0.2)' 
+                          ? 'rgba(0, 255, 0, 0.1)' 
                           : 'rgba(0, 0, 0, 0.3)',
-                        border: `2px solid ${colorStyle}`,
+                        border: `2px solid ${isCompleted ? '#00ff00' : colorStyle}`,
                         borderRadius: '15px',
-                        boxShadow: `0 0 20px ${colorStyle}30`,
+                        boxShadow: `0 0 20px ${isCompleted ? '#00ff0030' : colorStyle + '30'}`,
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ textAlign: 'left' }}>
-                          <h4 style={{ color: colorStyle, marginBottom: '5px' }}>Просмотр рекламы #{index + 1}</h4>
-                          <p style={{ color: '#ccc', margin: 0 }}>
-                            🎁 Награда: 10 CCC
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+                        <div style={{ textAlign: 'left', flex: 1 }}>
+                          <h4 style={{ 
+                            color: isCompleted ? '#00ff00' : colorStyle, 
+                            marginBottom: '8px',
+                            fontSize: '1.1rem'
+                          }}>
+                            📺 {t('ad_watch')} #{index + 1}
+                          </h4>
+                          <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
+                            🎁 {t('reward')}: 10 CCC
                           </p>
                         </div>
-                        <div>
+                        
+                        <div style={{ minWidth: '140px' }}>
                           {isCompleted ? (
                             <div style={{
-                              padding: '8px 16px',
-                              borderRadius: '20px',
+                              padding: '10px 15px',
+                              borderRadius: '12px',
                               background: 'rgba(0, 255, 0, 0.3)',
-                              border: '1px solid #00ff00',
+                              border: '2px solid #00ff00',
                               fontSize: '0.9rem',
-                              fontWeight: 'bold'
+                              fontWeight: 'bold',
+                              color: '#00ff00',
+                              textAlign: 'center'
                             }}>
-                              ✅ Выполнено
+                              ✅ {t('completed') || 'Выполнено'}
                             </div>
                           ) : isAvailable ? (
                             <button
                               onClick={watchAd}
                               style={{
-                                padding: '10px 20px',
-                                background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
+                                padding: '10px 15px',
+                                background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
                                 border: `2px solid ${colorStyle}`,
                                 borderRadius: '12px',
-                                boxShadow: `0 0 15px ${colorStyle}`,
+                                boxShadow: `0 0 15px ${colorStyle}50`,
                                 color: '#fff',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem',
+                                width: '100%'
                               }}
+                              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
                             >
                               📺 {t('watch') || 'Смотреть'}
                             </button>
                           ) : (
                             <div style={{
-                              padding: '8px 16px',
-                              borderRadius: '20px',
+                              padding: '10px 15px',
+                              borderRadius: '12px',
                               background: 'rgba(128, 128, 128, 0.3)',
-                              border: '1px solid #888',
+                              border: '2px solid #888',
                               fontSize: '0.9rem',
-                              color: '#888'
+                              color: '#888',
+                              textAlign: 'center',
+                              fontWeight: 'bold'
                             }}>
-                              Заблокировано
+                              🔒 {t('locked') || 'Заблокировано'}
                             </div>
                           )}
                         </div>
@@ -550,41 +604,64 @@ const QuestsPage: React.FC = () => {
                     </div>
                   );
                 })}
-                {(player?.ad_views || 0) === 5 && (
+                
+                {/* СООБЩЕНИЕ О ЗАВЕРШЕНИИ РЕКЛАМЫ */}
+                {(player?.quest_ad_views || 0) >= 5 && (
                   <div style={{
-                    margin: '15px auto',
+                    margin: '20px auto',
                     padding: '20px',
                     maxWidth: '500px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: `2px solid ${colorStyle}`,
+                    background: 'rgba(0, 255, 0, 0.1)',
+                    border: '2px solid #00ff00',
                     borderRadius: '15px',
-                    boxShadow: `0 0 20px ${colorStyle}30`,
-                    textAlign: 'center',
-                    color: '#ccc'
+                    textAlign: 'center'
                   }}>
-                    Завтра будут новые рекламные ролики!
+                    <h4 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '1.1rem' }}>
+                      🎉 {t('daily_ads_completed') || 'Реклама за сегодня просмотрена!'}
+                    </h4>
+                    <p style={{ color: '#ccc', fontSize: '0.9rem', margin: 0 }}>
+                      {t('daily_ads_reset') || 'Завтра будут новые рекламные ролики!'}
+                    </p>
                   </div>
                 )}
               </div>
             </>
           )}
 
+          {/* ИНФОРМАЦИОННЫЙ БЛОК */}
           <div style={{
-            margin: '30px auto 0',
+            margin: '40px auto 0',
             padding: '20px',
             maxWidth: '500px',
             background: 'rgba(255, 165, 0, 0.1)',
-            border: '1px solid #ffa500',
+            border: '2px solid #ffa500',
             borderRadius: '15px',
             boxShadow: '0 0 15px #ffa50030'
           }}>
-            <h4 style={{ color: '#ffa500', marginBottom: '10px' }}>ℹ️ Информация</h4>
-            <p style={{ color: '#ccc', fontSize: '0.9rem', margin: 0, lineHeight: '1.4' }}>
-              • Партнерские задания выполняются один раз<br/>
-              • После клика "Перейти" подождите 30 сек и нажмите "Получить награду"<br/>
-              • Реклама: лимит 5 раз в день, сброс каждые 24 часа<br/>
-              • Задания с ручной проверкой требуют подтверждения администратора
-            </p>
+            <h4 style={{ 
+              color: '#ffa500', 
+              marginBottom: '15px', 
+              fontSize: '1.1rem',
+              textAlign: 'center' 
+            }}>
+              ℹ️ {t('information') || 'Информация'}
+            </h4>
+            <div style={{ 
+              color: '#ccc', 
+              fontSize: '0.9rem', 
+              lineHeight: '1.6',
+              textAlign: 'left' 
+            }}>
+              <div style={{ marginBottom: '8px' }}>
+                • {t('timer_info') || 'После клика "Перейти" подождите 30 сек и нажмите "Получить награду"'}
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                • {t('ads_limit_info') || 'Реклама: лимит 5 раз в день, сброс каждые 24 часа'}
+              </div>
+              <div>
+                • {t('manual_check_info') || 'Задания с ручной проверкой требуют подтверждения администратора'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -594,4 +671,4 @@ const QuestsPage: React.FC = () => {
   );
 };
 
-export default QuestsPage;
+export default QuestsPage; 
