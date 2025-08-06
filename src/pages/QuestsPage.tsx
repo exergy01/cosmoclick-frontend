@@ -75,6 +75,21 @@ const QuestsPage: React.FC = () => {
     }, duration);
   }, []);
 
+  // ✅ ДОБАВЛЯЕМ: Инициализация adService при монтировании компонента
+  useEffect(() => {
+    const initializeAdService = async () => {
+      try {
+        console.log('🎯 Инициализируем adService с blockId:', ADSGRAM_BLOCK_ID);
+        await adService.initialize(ADSGRAM_BLOCK_ID);
+        console.log('✅ AdService инициализирован:', adService.getProvidersStatus());
+      } catch (error) {
+        console.error('❌ Ошибка инициализации adService:', error);
+      }
+    };
+    
+    initializeAdService();
+  }, []);
+
   // ✅ ДОБАВЛЯЕМ: Функция просмотра рекламы для заданий
   const watchAd = useCallback(async () => {
     if (!player?.telegram_id) {
@@ -92,13 +107,7 @@ const QuestsPage: React.FC = () => {
     try {
       console.log('🎬 Запуск рекламы для заданий...');
       
-      // Проверяем доступность рекламного сервиса
-      if (!adService.isAvailable()) {
-        console.log('🔄 Инициализируем рекламный сервис...');
-        await adService.initialize(ADSGRAM_BLOCK_ID);
-      }
-      
-      // Показываем рекламу через ваш adService
+      // Показываем рекламу через ваш adService (уже инициализирован в useEffect)
       const result = await adService.showRewardedAd();
       
       if (result.success) {
@@ -337,25 +346,25 @@ const QuestsPage: React.FC = () => {
                               return (
                                 <>
                                   {!isTimerRunning && !canClaim && (
-                                    <button
-                                      onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
-                                      style={{
-                                        padding: '10px 15px',
-                                        background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
-                                        border: `2px solid ${colorStyle}`,
-                                        borderRadius: '12px',
-                                        boxShadow: `0 0 15px ${colorStyle}50`,
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        fontWeight: 'bold',
-                                        fontSize: '0.9rem'
-                                      }}
-                                      onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
-                                      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-                                    >
-                                      🔗 {t('go_to_link') || 'Перейти'}
-                                    </button>
+                                      <button
+                                        onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
+                                        style={{
+                                          padding: '10px 15px',
+                                          background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
+                                          border: `2px solid ${colorStyle}`,
+                                          borderRadius: '12px',
+                                          boxShadow: `0 0 15px ${colorStyle}50`,
+                                          color: '#fff',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.3s ease',
+                                          fontWeight: 'bold',
+                                          fontSize: '0.9rem'
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                                        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                                      >
+                                        🔗 {t('go_to_link') || 'Перейти'}
+                                      </button>
                                   )}
                                   
                                   {isTimerRunning && (
@@ -373,7 +382,6 @@ const QuestsPage: React.FC = () => {
                                     </div>
                                   )}
                                   
-                                  {canClaim && (
                                     <button
                                       onClick={() => completeQuest(quest.quest_id)}
                                       disabled={completingQuest === quest.quest_id}
@@ -402,7 +410,6 @@ const QuestsPage: React.FC = () => {
                                         : `🎁 ${t('claim_reward') || 'Получить'}`
                                       }
                                     </button>
-                                  )}
                                 </>
                               );
                             })()
