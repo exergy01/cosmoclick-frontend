@@ -483,7 +483,6 @@ const StakingView: React.FC<StakingViewProps> = ({
 
         {/* Сообщение о том что нет активных стейков */}
         <div style={{ textAlign: 'center', padding: '30px 20px', color: '#ccc' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>💰</div>
           <div style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
             В системе 5 нет активных стейков
           </div>
