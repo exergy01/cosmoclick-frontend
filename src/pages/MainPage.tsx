@@ -98,15 +98,24 @@ const MainPage: React.FC = () => {
   useEffect(() => {
     const initializePremiumService = async () => {
       if (player?.telegram_id) {
+        console.log('👑 Начинаем инициализацию премиум сервиса...');
+        
         // Устанавливаем ID игрока
         premiumAdService.setTelegramId(player.telegram_id);
         
         // Инициализируем сервис с Adsgram блоком
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
+        console.log('👑 Инициализируем с блоком:', ADSGRAM_BLOCK_ID);
+        
+        const startTime = Date.now();
         await premiumAdService.initialize(ADSGRAM_BLOCK_ID);
+        console.log('👑 Инициализация завершена за:', Date.now() - startTime, 'мс');
         
         // Получаем премиум статус
+        const statusStartTime = Date.now();
         const status = await premiumAdService.refreshPremiumStatus();
+        console.log('👑 Получение статуса заняло:', Date.now() - statusStartTime, 'мс');
+        
         setPremiumStatus(status);
         
         console.log('👑 Premium service initialized for:', player.telegram_id);
@@ -114,7 +123,9 @@ const MainPage: React.FC = () => {
       }
     };
 
-    initializePremiumService();
+    initializePremiumService().catch(err => {
+      console.error('👑 Ошибка инициализации премиум сервиса:', err);
+    });
   }, [player?.telegram_id]);
 
   // Проверяем админский статус через API
@@ -213,10 +224,8 @@ const MainPage: React.FC = () => {
           
           // Проверяем, нужно ли показать предложение премиума
           if (!adResult.premium?.hasPremium) {
-            // Показываем предложение премиума через 2 секунды после успешной рекламы
-            setTimeout(() => {
-              setShowPremiumOffer(true);
-            }, 2000);
+            // Показываем предложение премиума сразу после успешной рекламы
+            setShowPremiumOffer(true);
           }
         }
         
@@ -406,23 +415,33 @@ const MainPage: React.FC = () => {
     if (!showPremiumOffer) return null;
 
     return (
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0, 0, 0, 0.8)', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', zIndex: 1000
-      }}>
+      <div 
+        style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          padding: '5%' // Меньше отступов
+        }}
+        onClick={(e) => {
+          // Закрываем если кликнули на фон
+          if (e.target === e.currentTarget) {
+            setShowPremiumOffer(false);
+          }
+        }}
+      >
         <div style={{
           background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          padding: '30px',
+          padding: '25px',
           borderRadius: '20px',
           border: '2px solid #FFD700',
-          maxWidth: '350px',
+          width: '90%', // 90% ширины экрана
+          maxWidth: '500px', // Максимум для больших экранов
           textAlign: 'center',
           color: 'white'
         }}>
           <div style={{ fontSize: '2rem', marginBottom: '15px' }}>👑</div>
           
-          <h3 style={{ color: '#FFD700', marginBottom: '15px' }}>
+          <h3 style={{ color: '#FFD700', marginBottom: '15px', fontSize: '1.3rem' }}>
             Устали от рекламы?
           </h3>
           
@@ -433,70 +452,104 @@ const MainPage: React.FC = () => {
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: '10px',
+            gap: '12px',
             marginBottom: '20px'
           }}>
             <div style={{ 
-              padding: '10px', 
+              padding: '12px', 
               background: 'rgba(255, 215, 0, 0.1)', 
-              borderRadius: '8px',
+              borderRadius: '12px',
               border: '1px solid #FFD700'
             }}>
-              <div style={{ fontWeight: 'bold' }}>🚫 30 дней</div>
-              <div style={{ fontSize: '0.8rem', color: '#FFD700' }}>
-                150 ⭐ или 1 💎 TON
+              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>🚫 Без рекламы на 30 дней</div>
+              <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
+                150 ⭐ Stars или 1 💎 TON
               </div>
             </div>
             
             <div style={{ 
-              padding: '10px', 
+              padding: '12px', 
               background: 'rgba(255, 215, 0, 0.2)', 
-              borderRadius: '8px',
-              border: '2px solid #FFD700'
+              borderRadius: '12px',
+              border: '2px solid #FFD700',
+              position: 'relative'
             }}>
-              <div style={{ fontWeight: 'bold' }}>👑 Навсегда</div>
-              <div style={{ fontSize: '0.8rem', color: '#FFD700' }}>
-                1500 ⭐ или 10 💎 TON
+              <div style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '10px',
+                background: '#FFD700',
+                color: '#000',
+                padding: '2px 8px',
+                borderRadius: '10px',
+                fontSize: '0.7rem',
+                fontWeight: 'bold'
+              }}>
+                🏆 ВЫГОДНО
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#90EE90' }}>
-                Экономия до 90%!
+              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>👑 Без рекламы НАВСЕГДА</div>
+              <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
+                1500 ⭐ Stars или 10 💎 TON
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#90EE90', marginTop: '3px' }}>
+                💰 Экономия до 90%!
               </div>
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => {
-                setShowPremiumOffer(false);
-                navigate('/wallet');
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('👑 Кнопка "Купить" нажата');
+                setShowPremiumOffer(false); // Сразу закрываем
+                navigate('/wallet'); // Переходим
               }}
               style={{
                 flex: 1,
-                padding: '12px',
+                minWidth: '120px',
+                padding: '14px 20px',
                 background: 'linear-gradient(45deg, #FFD700, #FFA500)',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 color: '#000',
                 fontWeight: 'bold',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'transform 0.2s ease'
               }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              💳 Купить
+              💳 Купить премиум
             </button>
             
             <button
-              onClick={() => setShowPremiumOffer(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('👑 Кнопка "Позже" нажата');
+                setShowPremiumOffer(false); // Сразу закрываем
+              }}
               style={{
                 flex: 1,
-                padding: '12px',
+                minWidth: '120px',
+                padding: '14px 20px',
                 background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid #666',
-                borderRadius: '8px',
+                border: '2px solid #666',
+                borderRadius: '12px',
                 color: '#ccc',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'transform 0.2s ease'
               }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              Позже
+              ⏰ Позже
             </button>
           </div>
         </div>
