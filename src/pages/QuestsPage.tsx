@@ -7,17 +7,20 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
-
 // Импортируем рекламный сервис
 import { adService } from '../services/adsgramService';
 // Импортируем компонент для всплывающих уведомлений
 import ToastNotification from '../components/ToastNotification'; 
-
 // Используем общий API_URL
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
 // Используем общий ADSGRAM_BLOCK_ID
 const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
+
+interface QuestLinkState {
+  clicked_at: string;
+  timer_remaining: number;
+  can_claim: boolean;
+}
 
 interface QuestData {
   quest_id: number;
@@ -27,6 +30,7 @@ interface QuestData {
   reward_cs: number;
   quest_data?: any;
   completed: boolean;
+  link_state?: QuestLinkState | null;
 }
 
 // Интерфейс для всплывающих уведомлений
@@ -44,7 +48,6 @@ const QuestsPage: React.FC = () => {
   const { currentSystem } = useGame();
   const navigate = useNavigate();
   const location = useLocation();
-  
   const [quests, setQuests] = useState<QuestData[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkTimers, setLinkTimers] = useState<{[key: number]: number}>({});
@@ -63,7 +66,6 @@ const QuestsPage: React.FC = () => {
     };
     return colors[system as keyof typeof colors] || '#00BFFF';
   };
-
   const colorStyle = getColorStyle(currentSystem);
 
   // Функция для добавления уведомлений
@@ -86,43 +88,30 @@ const QuestsPage: React.FC = () => {
         console.error('❌ Ошибка инициализации adService:', error);
       }
     };
-    
     initializeAdService();
   }, []);
 
-  // ✅ ДОБАВЛЯЕМ: Функция просмотра рекламы для заданий
+  // ✅ ОБНОВЛЕНО: Функция просмотра рекламы для заданий
   const watchAd = useCallback(async () => {
     if (!player?.telegram_id) {
       addNotification('Ошибка: игрок не найден', 'error');
       return;
     }
-
-    // Проверяем лимит просмотров рекламы для заданий (5 в день)
-    const questAdViews = player?.quest_ad_views || 0;
-    if (questAdViews >= 5) {
-      addNotification(t('daily_ads_completed') || 'Реклама за сегодня просмотрена!', 'warning');
-      return;
-    }
-
+    
     try {
       console.log('🎬 Запуск рекламы для заданий...');
-      
       // Показываем рекламу через ваш adService (уже инициализирован в useEffect)
       const result = await adService.showRewardedAd();
-      
       if (result.success) {
         console.log('🎉 Реклама успешно просмотрена:', result);
-        
         try {
           // Отправляем запрос на сервер для обновления счетчика рекламы заданий
           const response = await axios.post(`${API_URL}/api/quests/watch_ad`, {
             telegramId: player.telegram_id
           });
-
           if (response.data.success) {
             // Обновляем данные игрока
             await refreshPlayer();
-            
             addNotification(
               t('quest_ad_reward') || '🎉 Получено 10 CCC за просмотр рекламы!', 
               'success'
@@ -145,21 +134,39 @@ const QuestsPage: React.FC = () => {
           'warning'
         );
       }
-
     } catch (error: any) {
       console.error('❌ Критическая ошибка рекламы:', error);
       addNotification('Реклама недоступна', 'error');
     }
-  }, [player?.telegram_id, player?.quest_ad_views, refreshPlayer, addNotification, t]);
+  }, [player?.telegram_id, refreshPlayer, addNotification, t]);
 
+  // ✅ ОБНОВЛЕНО: Загрузка заданий с состояниями ссылок
   const loadQuests = useCallback(async () => {
     if (!player?.telegram_id) return;
-    
     try {
       setLoading(true);
       const response = await axios.get(`${API_URL}/api/quests/${player.telegram_id}`);
       if (response.data.success) {
         setQuests(response.data.quests);
+        
+        // Инициализируем локальные таймеры на основе серверных данных
+        const serverLinkStates = response.data.quest_link_states || {};
+        const newTimers: {[key: number]: number} = {};
+        
+        response.data.quests.forEach((quest: QuestData) => {
+          const serverState = serverLinkStates[quest.quest_id.toString()];
+          if (serverState) {
+            if (quest.completed) {
+              newTimers[quest.quest_id] = -1; // Задание выполнено
+            } else if (serverState.can_claim) {
+              newTimers[quest.quest_id] = 0; // Можно забрать награду
+            } else {
+              newTimers[quest.quest_id] = serverState.timer_remaining; // Активный таймер
+            }
+          }
+        });
+        
+        setLinkTimers(newTimers);
         console.log(`✅ Загружено ${response.data.quests.length} заданий`);
       }
     } catch (error) {
@@ -170,51 +177,80 @@ const QuestsPage: React.FC = () => {
     }
   }, [player?.telegram_id, addNotification, t]);
 
+  // ✅ ОБНОВЛЕНО: Таймер обновления локальных состояний
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLinkTimers(prev => {
+        const updated = { ...prev };
+        let hasChanges = false;
+        
+        Object.keys(updated).forEach(questIdStr => {
+          const questId = parseInt(questIdStr);
+          const currentTime = updated[questId];
+          
+          if (currentTime > 0) {
+            updated[questId] = currentTime - 1;
+            hasChanges = true;
+          }
+        });
+        
+        return hasChanges ? updated : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     loadQuests();
   }, [loadQuests]);
 
-  const handleLinkClick = (questId: number, url: string) => {
-    window.open(url, '_blank');
-    
-    setLinkTimers(prev => ({ ...prev, [questId]: 30 }));
-    
-    const timer = setInterval(() => {
-      setLinkTimers(prev => {
-        const newTime = (prev[questId] || 0) - 1;
-        if (newTime <= 0) {
-          clearInterval(timer);
-          return { ...prev, [questId]: 0 };
-        }
-        return { ...prev, [questId]: newTime };
-      });
-    }, 1000);
-  };
-
-  const completeQuest = async (questId: number) => {
-    if (!player?.telegram_id || completingQuest) return;
+  // ✅ ОБНОВЛЕНО: Обработка клика по ссылке с сохранением на сервере
+  const handleLinkClick = async (questId: number, url: string) => {
+    if (!player?.telegram_id) return;
     
     try {
-      setCompletingQuest(questId);
-      
-      const response = await axios.post(`${API_URL}/api/quests/complete`, {
+      // Отправляем запрос на сервер для регистрации клика
+      const response = await axios.post(`${API_URL}/api/quests/click_link`, {
         telegramId: player.telegram_id,
         questId: questId
       });
       
       if (response.data.success) {
+        // Открываем ссылку
+        window.open(url, '_blank');
+        
+        // Устанавливаем локальный таймер
+        setLinkTimers(prev => ({ ...prev, [questId]: 30 }));
+        
+        console.log(`✅ Клик по ссылке задания ${questId} зарегистрирован на сервере`);
+      } else {
+        addNotification('Ошибка регистрации клика', 'error');
+      }
+    } catch (error: any) {
+      console.error('Ошибка обработки клика по ссылке:', error);
+      addNotification('Ошибка обработки клика', 'error');
+    }
+  };
+
+  const completeQuest = async (questId: number) => {
+    if (!player?.telegram_id || completingQuest) return;
+    try {
+      setCompletingQuest(questId);
+      const response = await axios.post(`${API_URL}/api/quests/complete`, {
+        telegramId: player.telegram_id,
+        questId: questId
+      });
+      if (response.data.success) {
         // Обновляем игрока через refreshPlayer
         await refreshPlayer();
-        
         setQuests(prev => prev.map(quest => 
           quest.quest_id === questId 
             ? { ...quest, completed: true }
             : quest
         ));
-        
         // Устанавливаем -1 чтобы скрыть все кнопки для этого задания
         setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
-        
         addNotification(
           t('quest_reward_received', { reward: Number(response.data.reward_cs).toLocaleString() }) || 
           `🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`, 
@@ -263,7 +299,6 @@ const QuestsPage: React.FC = () => {
         currentSystem={currentSystem}
         colorStyle={colorStyle}
       />
-
       {/* TOAST КОНТЕЙНЕР */}
       <div style={{
         position: 'fixed',
@@ -287,7 +322,6 @@ const QuestsPage: React.FC = () => {
 
       <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
-          
           {loading ? (
             <div style={{ 
               color: colorStyle, 
@@ -336,38 +370,40 @@ const QuestsPage: React.FC = () => {
                             🎁 {t('reward')}: {Number(quest.reward_cs).toLocaleString()} CS
                           </p>
                         </div>
-                        
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '140px' }}>
                           {quest.quest_type === 'partner_link' ? (
                             (() => {
                               const timerValue = linkTimers[quest.quest_id];
                               const isTimerRunning = timerValue > 0;
                               const canClaim = timerValue === 0;
-                              
+                              const isCompleted = timerValue === -1 || quest.completed;
+
                               return (
                                 <>
-                                  {!isTimerRunning && !canClaim && (
-                                      <button
-                                        onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
-                                        style={{
-                                          padding: '10px 15px',
-                                          background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
-                                          border: `2px solid ${colorStyle}`,
-                                          borderRadius: '12px',
-                                          boxShadow: `0 0 15px ${colorStyle}50`,
-                                          color: '#fff',
-                                          cursor: 'pointer',
-                                          transition: 'all 0.3s ease',
-                                          fontWeight: 'bold',
-                                          fontSize: '0.9rem'
-                                        }}
-                                        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
-                                        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-                                      >
-                                        🔗 {t('go_to_link') || 'Перейти'}
-                                      </button>
+                                  {/* Показываем кнопку "Перейти" только если таймер не запущен и задание не завершено */}
+                                  {!isTimerRunning && !canClaim && !isCompleted && (
+                                    <button
+                                      onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
+                                      style={{
+                                        padding: '10px 15px',
+                                        background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
+                                        border: `2px solid ${colorStyle}`,
+                                        borderRadius: '12px',
+                                        boxShadow: `0 0 15px ${colorStyle}50`,
+                                        color: '#fff',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.9rem'
+                                      }}
+                                      onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                                      onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                                    >
+                                      🔗 {t('go_to_link') || 'Перейти'}
+                                    </button>
                                   )}
                                   
+                                  {/* Показываем таймер, если он запущен */}
                                   {isTimerRunning && (
                                     <div style={{
                                       padding: '10px 15px',
@@ -379,10 +415,12 @@ const QuestsPage: React.FC = () => {
                                       textAlign: 'center',
                                       fontWeight: 'bold'
                                     }}>
-                                      ⏱️ {timerValue}{t('seconds_short') || 'сек'}
+                                      ⏳ {timerValue}с
                                     </div>
                                   )}
                                   
+                                  {/* Показываем кнопку "Получить" только когда таймер завершен и задание не завершено */}
+                                  {canClaim && !isCompleted && (
                                     <button
                                       onClick={() => completeQuest(quest.quest_id)}
                                       disabled={completingQuest === quest.quest_id}
@@ -411,6 +449,23 @@ const QuestsPage: React.FC = () => {
                                         : `🎁 ${t('claim_reward') || 'Получить'}`
                                       }
                                     </button>
+                                  )}
+                                  
+                                  {/* Показываем статус выполнения, если задание завершено */}
+                                  {isCompleted && (
+                                    <div style={{
+                                      padding: '10px 15px',
+                                      borderRadius: '12px',
+                                      background: 'rgba(0, 255, 0, 0.3)',
+                                      border: '2px solid #00ff00',
+                                      fontSize: '0.9rem',
+                                      color: '#00ff00',
+                                      textAlign: 'center',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      ✅ {t('completed') || 'Выполнено'}
+                                    </div>
+                                  )}
                                 </>
                               );
                             })()
@@ -434,7 +489,7 @@ const QuestsPage: React.FC = () => {
                   ))}
                 </div>
               )}
-
+              
               {/* ЗАДАНИЯ С РУЧНОЙ ПРОВЕРКОЙ */}
               {manualQuests.length > 0 && (
                 <div style={{ marginBottom: '30px' }}>
@@ -490,7 +545,7 @@ const QuestsPage: React.FC = () => {
                   ))}
                 </div>
               )}
-
+              
               {/* СООБЩЕНИЕ О ЗАВЕРШЕНИИ ВСЕХ ЗАДАНИЙ */}
               {hasCompletedAllQuests && (
                 <div style={{
@@ -511,7 +566,7 @@ const QuestsPage: React.FC = () => {
                   </p>
                 </div>
               )}
-
+              
               {/* ПРОСМОТР РЕКЛАМЫ ДЛЯ ЗАДАНИЙ */}
               <div style={{ marginTop: '40px' }}>
                 <h3 style={{ 
@@ -522,12 +577,10 @@ const QuestsPage: React.FC = () => {
                 }}>
                   📺 {t('daily_ads') || 'Просмотр рекламы (Ежедневно)'}
                 </h3>
-                
                 {Array(5).fill(null).map((_, index) => {
                   // ✅ ИСПРАВЛЕНО: используем quest_ad_views для счетчика рекламы заданий
                   const isCompleted = (player?.quest_ad_views || 0) > index;
                   const isAvailable = (player?.quest_ad_views || 0) === index;
-                  
                   return (
                     <div
                       key={index}
@@ -557,7 +610,6 @@ const QuestsPage: React.FC = () => {
                             🎁 {t('reward')}: 10 CCC
                           </p>
                         </div>
-                        
                         <div style={{ minWidth: '140px' }}>
                           {isCompleted ? (
                             <div style={{
@@ -612,7 +664,6 @@ const QuestsPage: React.FC = () => {
                     </div>
                   );
                 })}
-                
                 {/* СООБЩЕНИЕ О ЗАВЕРШЕНИИ РЕКЛАМЫ */}
                 {(player?.quest_ad_views || 0) >= 5 && (
                   <div style={{
@@ -635,7 +686,7 @@ const QuestsPage: React.FC = () => {
               </div>
             </>
           )}
-
+          
           {/* ИНФОРМАЦИОННЫЙ БЛОК */}
           <div style={{
             margin: '40px auto 0',
@@ -664,7 +715,10 @@ const QuestsPage: React.FC = () => {
                 • {t('timer_info') || 'После клика "Перейти" подождите 30 сек и нажмите "Получить награду"'}
               </div>
               <div style={{ marginBottom: '8px' }}>
-                • {t('ads_limit_info') || 'Реклама: лимит 5 раз в день, сброс каждые 24 часа'}
+                • {t('ads_limit_info') || 'Реклама заданий: лимит 5 раз в день (отдельно от игровой рекламы)'}
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                • {t('server_save_info') || 'Состояние заданий сохраняется на сервере - можно закрыть и вернуться'}
               </div>
               <div>
                 • {t('manual_check_info') || 'Задания с ручной проверкой требуют подтверждения администратора'}
@@ -673,10 +727,9 @@ const QuestsPage: React.FC = () => {
           </div>
         </div>
       </div>
-
       <NavigationMenu colorStyle={colorStyle} />
     </div>
   );
 };
 
-export default QuestsPage; 
+export default QuestsPage;
