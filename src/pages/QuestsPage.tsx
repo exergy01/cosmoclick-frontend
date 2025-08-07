@@ -55,18 +55,8 @@ const QuestsPage: React.FC = () => {
   // Состояние для уведомлений
   const [notifications, setNotifications] = useState<ToastNotificationData[]>([]);
 
-  // ✅ ДОБАВЛЯЕМ: Определение colorStyle на основе текущей системы
-  const getColorStyle = (system: number) => {
-    const colors = {
-      1: '#00BFFF',    // Cyber Blue
-      2: '#9D4EDD',    // Neon Purple  
-      3: '#FF1493',    // Plasma Pink
-      4: '#00FF7F',    // Cosmo Green
-      5: '#FFD700'     // Star Gold
-    };
-    return colors[system as keyof typeof colors] || '#00BFFF';
-  };
-  const colorStyle = getColorStyle(currentSystem);
+  // ✅ ИСПРАВЛЕНО: Используем цвет игрока, а не системы
+  const colorStyle = player?.color || '#00BFFF'; // Цвет игрока или дефолтный
 
   // Функция для добавления уведомлений
   const addNotification = useCallback((message: string, type: 'success' | 'error' | 'warning', duration = 3000) => {
@@ -140,7 +130,7 @@ const QuestsPage: React.FC = () => {
     }
   }, [player?.telegram_id, refreshPlayer, addNotification, t]);
 
-  // ✅ УПРОЩЕННАЯ: Загрузка заданий 
+  // ✅ ОБНОВЛЕНО: Загрузка заданий с правильной обработкой состояний
   const loadQuests = useCallback(async () => {
     if (!player?.telegram_id) return;
     try {
@@ -148,10 +138,40 @@ const QuestsPage: React.FC = () => {
       const response = await axios.get(`${API_URL}/api/quests/${player.telegram_id}`);
       if (response.data.success) {
         setQuests(response.data.quests);
-        console.log(`✅ Загружено ${response.data.quests.length} заданий`);
         
-        // Сбрасываем таймеры - они будут управляться только локально для UI
-        setLinkTimers({});
+        // Восстанавливаем состояния таймеров из контекста игрока
+        if (player.quest_link_states) {
+          const newTimers: {[key: number]: number} = {};
+          
+          response.data.quests.forEach((quest: QuestData) => {
+            if (quest.completed) {
+              newTimers[quest.quest_id] = -1; // Задание выполнено
+            } else if (quest.quest_type === 'partner_link') {
+              const linkState = player.quest_link_states?.[quest.quest_id.toString()];
+              
+              if (linkState?.completed) {
+                // Задание было завершено - показываем статус завершения
+                newTimers[quest.quest_id] = -1;
+              } else if (linkState?.clicked_at) {
+                // Есть клик - проверяем таймер
+                const clickedTime = new Date(linkState.clicked_at);
+                const currentTime = new Date();
+                const elapsedSeconds = Math.floor((currentTime.getTime() - clickedTime.getTime()) / 1000);
+                
+                if (elapsedSeconds >= 30) {
+                  newTimers[quest.quest_id] = 0; // Можно забрать награду
+                } else {
+                  newTimers[quest.quest_id] = 30 - elapsedSeconds; // Активный таймер
+                }
+              }
+              // Если состояния нет, кнопка "Перейти" будет доступна
+            }
+          });
+          
+          setLinkTimers(newTimers);
+        }
+        
+        console.log(`✅ Загружено ${response.data.quests.length} заданий`);
       }
     } catch (error) {
       console.error('Ошибка загрузки заданий:', error);
@@ -159,7 +179,7 @@ const QuestsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [player?.telegram_id, addNotification, t]);
+  }, [player?.telegram_id, player?.quest_link_states, addNotification, t]);
 
   // ✅ ОБНОВЛЕНО: Таймер обновления локальных состояний
   useEffect(() => {
@@ -704,13 +724,13 @@ const QuestsPage: React.FC = () => {
               textAlign: 'left' 
             }}>
               <div style={{ marginBottom: '8px' }}>
-                • {t('timer_info') || 'После клика "Перейти" подождите 30 сек и нажмите "Получить награду"'}
+                • {t('timer_info') || 'После клика "Перейти" подождите пока появится кнопка "Получить"'}
               </div>
               <div style={{ marginBottom: '8px' }}>
                 • {t('ads_limit_info') || 'Реклама заданий: лимит 5 раз в день (отдельно от игровой рекламы)'}
               </div>
               <div style={{ marginBottom: '8px' }}>
-                • {t('server_save_info') || 'Состояние заданий сохраняется на сервере - можно закрыть и вернуться'}
+                • {t('server_save_info') || 'Прогресс заданий сохраняется автоматически'}
               </div>
               <div>
                 • {t('manual_check_info') || 'Задания с ручной проверкой требуют подтверждения администратора'}
