@@ -71,9 +71,7 @@ const QuestsPage: React.FC = () => {
   useEffect(() => {
     const initializeAdService = async () => {
       try {
-        console.log('🎯 Инициализируем adService с blockId:', ADSGRAM_BLOCK_ID);
         await adService.initialize(ADSGRAM_BLOCK_ID);
-        console.log('✅ AdService инициализирован:', adService.getProvidersStatus());
       } catch (error) {
         console.error('❌ Ошибка инициализации adService:', error);
       }
@@ -170,8 +168,6 @@ const QuestsPage: React.FC = () => {
           
           setLinkTimers(newTimers);
         }
-        
-        console.log(`✅ Загружено ${response.data.quests.length} заданий`);
       }
     } catch (error) {
       console.error('Ошибка загрузки заданий:', error);
@@ -227,7 +223,7 @@ const QuestsPage: React.FC = () => {
         // Устанавливаем локальный таймер
         setLinkTimers(prev => ({ ...prev, [questId]: 30 }));
         
-        console.log(`✅ Клик по ссылке задания ${questId} зарегистрирован на сервере`);
+        console.log(`✅ Клик по ссылке задания ${questId} зарегистрирован`);
       } else {
         addNotification('Ошибка регистрации клика', 'error');
       }
