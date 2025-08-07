@@ -1,3 +1,5 @@
+// MainPage.tsx - ЗАМЕНИТЬ ВЕСЬ ФАЙЛ
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
@@ -9,12 +11,12 @@ import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 import StakingView from '../components/StakingView';
 
-// Импортируем рекламный сервис
-import { adService } from '../services/adsgramService';
+// 👑 ЗАМЕНЯЕМ ИМПОРТ НА ПРЕМИУМ СЕРВИС
+import { premiumAdService, PremiumAdResult } from '../services/premiumAwareAdService';
 
 // Импортируем новый чистый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
-import ToastNotification from '../components/ToastNotification'; // Убедитесь, что импорт правильный
+import ToastNotification from '../components/ToastNotification';
 
 interface Item {
   id: number;
@@ -70,6 +72,10 @@ const MainPage: React.FC = () => {
   const [isCollecting, setIsCollecting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
 
+  // 👑 ПРЕМИУМ СОСТОЯНИЕ
+  const [premiumStatus, setPremiumStatus] = useState<any>(null);
+  const [showPremiumOffer, setShowPremiumOffer] = useState(false);
+
   // 🔐 БЕЗОПАСНАЯ ПРОВЕРКА АДМИНА ЧЕРЕЗ API
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
@@ -87,6 +93,29 @@ const MainPage: React.FC = () => {
   const removeToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
+
+  // 👑 ИНИЦИАЛИЗАЦИЯ ПРЕМИУМ СЕРВИСА
+  useEffect(() => {
+    const initializePremiumService = async () => {
+      if (player?.telegram_id) {
+        // Устанавливаем ID игрока
+        premiumAdService.setTelegramId(player.telegram_id);
+        
+        // Инициализируем сервис с Adsgram блоком
+        const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
+        await premiumAdService.initialize(ADSGRAM_BLOCK_ID);
+        
+        // Получаем премиум статус
+        const status = await premiumAdService.refreshPremiumStatus();
+        setPremiumStatus(status);
+        
+        console.log('👑 Premium service initialized for:', player.telegram_id);
+        console.log('👑 Premium status:', status);
+      }
+    };
+
+    initializePremiumService();
+  }, [player?.telegram_id]);
 
   // Проверяем админский статус через API
   useEffect(() => {
@@ -117,12 +146,16 @@ const MainPage: React.FC = () => {
 
   // Проверяем нужна ли реклама для сбора
   const needsAdForCollection = useCallback(() => {
-    // Системы 1-4 требуют рекламу, если игрок не верифицирован
+    // Системы 1-4 требуют рекламу, если игрок не верифицирован И НЕ ПРЕМИУМ
     if (currentSystem >= 1 && currentSystem <= 4) {
+      // Если есть премиум - реклама не нужна
+      if (premiumStatus?.hasPremium) {
+        return false;
+      }
       return !player?.verified; // Если не верифицирован - нужна реклама
     }
     return false; // Система 5 (TON) - реклама не нужна
-  }, [currentSystem, player?.verified]);
+  }, [currentSystem, player?.verified, premiumStatus?.hasPremium]);
 
   const handleCreateNewStake = () => {
     if (currentSystem === 5) {
@@ -144,7 +177,6 @@ const MainPage: React.FC = () => {
     const currentValue = getCurrentValue(currentSystem);
     
     if (currentValue <= 0) {
-      // Используем новый тост
       addToast(t('no_resources_to_collect'), 'warning');
       return;
     }
@@ -154,28 +186,40 @@ const MainPage: React.FC = () => {
       console.log('🎯 Требуется просмотр рекламы для сбора в системе', currentSystem);
       await handleAdBeforeCollection();
     } else {
-      console.log('🎯 Сбор без рекламы - игрок верифицирован или система TON');
+      console.log('🎯 Сбор без рекламы - игрок верифицирован, премиум или система TON');
       await performCollection();
     }
   };
 
+  // 👑 ОБНОВЛЕННАЯ ФУНКЦИЯ РЕКЛАМЫ С ПРЕМИУМОМ
   const handleAdBeforeCollection = async () => {
     setIsWatchingAd(true);
     
     try {
       console.log('⚡ Показываем рекламу перед сбором...');
-      console.log('🔍 ADSGRAM_BLOCK_ID из env:', process.env.REACT_APP_ADSGRAM_BLOCK_ID);
       
-      // 🔥 ПРИНУДИТЕЛЬНАЯ ПЕРЕИНИЦИАЛИЗАЦИЯ
-      const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
-      console.log('🔍 Принудительно переинициализируем adService с ID:', ADSGRAM_BLOCK_ID);
-      await adService.initialize(ADSGRAM_BLOCK_ID);
-      
-      const adResult = await adService.showRewardedAd();
-      console.log('⚡ Результат рекламы:', adResult);
+      const adResult: PremiumAdResult = await premiumAdService.showRewardedAd();
+      console.log('⚡ Результат рекламы/премиума:', adResult);
       
       if (adResult.success) {
-        console.log('✅ Реклама просмотрена успешно, выполняем сбор');
+        if (adResult.skipped) {
+          // Премиум пользователь
+          console.log('✅ Премиум награда - сбор разрешен');
+          addToast('👑 Премиум награда! Сбор выполняется автоматически.', 'success');
+        } else {
+          // Обычная реклама просмотрена
+          console.log('✅ Реклама просмотрена успешно, выполняем сбор');
+          addToast('🎯 Реклама просмотрена! Награда получена.', 'success');
+          
+          // Проверяем, нужно ли показать предложение премиума
+          if (!adResult.premium?.hasPremium) {
+            // Показываем предложение премиума через 2 секунды после успешной рекламы
+            setTimeout(() => {
+              setShowPremiumOffer(true);
+            }, 2000);
+          }
+        }
+        
         await performCollection();
       } else {
         console.log('❌ Реклама не была просмотрена:', adResult.error);
@@ -247,7 +291,6 @@ const MainPage: React.FC = () => {
     t('system_5_name')
   ];
 
-  // 🔥 ИЗМЕНЕНИЕ 1: Используем шаблон для перевода
   const systemName = t('system_display_format', {
     number: currentSystem,
     name: systemNames[currentSystem - 1]
@@ -330,20 +373,18 @@ const MainPage: React.FC = () => {
     if (!player || isTonSystem) return;
     
     fetchMaxItems().then(({ maxAsteroids, maxDrones }) => {
-      // 🔥 ИСПРАВЛЕНО: Считаем только основные астероиды (1-12), исключая бомбу (id=13)
       const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
       const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
       const miningSpeed = player.mining_speed_data?.[currentSystem] || 0;
       const speedPerHour = (miningSpeed * 3600).toFixed(2);
       const realCargoCapacity = getRealCargoCapacity(currentSystem);
       
-      // 🔥 ИСПРАВЛЕНО: maxAsteroids тоже должно быть 12 (основные астероиды)
-      const maxMainAsteroids = 12; // Всегда 12 основных астероидов
+      const maxMainAsteroids = 12;
       
       setShopButtons([
         {
           type: 'resources',
-          count: `${asteroidCount}/${maxMainAsteroids}`, // 🔥 Используем 12 вместо maxAsteroids
+          count: `${asteroidCount}/${maxMainAsteroids}`,
           amount: `${remainingResources.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`
         },
         {
@@ -359,7 +400,112 @@ const MainPage: React.FC = () => {
       ]);
     });
   }, [player, currentSystem, cargoLevelId, fetchMaxItems, getRealCargoCapacity, isTonSystem, t]);
-  
+
+  // 👑 КОМПОНЕНТ ПРЕМИУМ ПРЕДЛОЖЕНИЯ
+  const PremiumOfferModal = () => {
+    if (!showPremiumOffer) return null;
+
+    return (
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', zIndex: 1000
+      }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+          padding: '30px',
+          borderRadius: '20px',
+          border: '2px solid #FFD700',
+          maxWidth: '350px',
+          textAlign: 'center',
+          color: 'white'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '15px' }}>👑</div>
+          
+          <h3 style={{ color: '#FFD700', marginBottom: '15px' }}>
+            Устали от рекламы?
+          </h3>
+          
+          <p style={{ color: '#ccc', marginBottom: '20px', fontSize: '0.9rem' }}>
+            Отключите рекламу и получайте награды автоматически!
+          </p>
+          
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '10px',
+            marginBottom: '20px'
+          }}>
+            <div style={{ 
+              padding: '10px', 
+              background: 'rgba(255, 215, 0, 0.1)', 
+              borderRadius: '8px',
+              border: '1px solid #FFD700'
+            }}>
+              <div style={{ fontWeight: 'bold' }}>🚫 30 дней</div>
+              <div style={{ fontSize: '0.8rem', color: '#FFD700' }}>
+                150 ⭐ или 1 💎 TON
+              </div>
+            </div>
+            
+            <div style={{ 
+              padding: '10px', 
+              background: 'rgba(255, 215, 0, 0.2)', 
+              borderRadius: '8px',
+              border: '2px solid #FFD700'
+            }}>
+              <div style={{ fontWeight: 'bold' }}>👑 Навсегда</div>
+              <div style={{ fontSize: '0.8rem', color: '#FFD700' }}>
+                1500 ⭐ или 10 💎 TON
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#90EE90' }}>
+                Экономия до 90%!
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => {
+                setShowPremiumOffer(false);
+                navigate('/wallet');
+              }}
+              style={{
+                flex: 1,
+                padding: '12px',
+                background: 'linear-gradient(45deg, #FFD700, #FFA500)',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#000',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            >
+              💳 Купить
+            </button>
+            
+            <button
+              onClick={() => setShowPremiumOffer(false)}
+              style={{
+                flex: 1,
+                padding: '12px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid #666',
+                borderRadius: '8px',
+                color: '#ccc',
+                cursor: 'pointer'
+              }}
+            >
+              Позже
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
+
   return (
     <div style={{
       backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
@@ -374,6 +520,32 @@ const MainPage: React.FC = () => {
     }}>
       
       <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
+
+      {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
+      {premiumStatus?.hasPremium && (
+        <div style={{
+          position: 'fixed',
+          top: '75px',
+          right: '15px',
+          background: 'rgba(255, 215, 0, 0.8)',
+          color: '#000',
+          padding: '4px 8px',
+          borderRadius: '8px',
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '3px'
+        }}>
+          👑
+          {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
+            <span style={{ fontSize: '0.6rem' }}>
+              {premiumStatus.daysLeft}д
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
         
@@ -404,7 +576,6 @@ const MainPage: React.FC = () => {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    {/* 🔥 ИЗМЕНЕНИЕ 2: Используем шаблон и здесь */}
                     {t('system_display_format', { number: i, name: systemNames[i-1] })}
                     {!isUnlocked && (
                       <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
@@ -475,7 +646,7 @@ const MainPage: React.FC = () => {
                     fontSize: '2rem',
                     animation: 'spin 1s linear infinite'
                   }}>
-                    {isWatchingAd ? '📺' : '⏳'}
+                    {isWatchingAd ? (premiumStatus?.hasPremium ? '👑' : '📺') : '⏳'}
                   </div>
                 )}
               </div>
@@ -488,7 +659,7 @@ const MainPage: React.FC = () => {
           </>
         )}
 
-        {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА - ПРОВЕРКА ЧЕРЕЗ API */}
+        {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА */}
         {!adminCheckLoading && isAdmin && (
           <div style={{
             margin: '30px auto 20px',
@@ -549,13 +720,15 @@ const MainPage: React.FC = () => {
         ))}
       </div>
 
+      {/* 👑 ПРЕМИУМ ПРЕДЛОЖЕНИЕ */}
+      <PremiumOfferModal />
+
       <style>
         {`
           @keyframes spin {
             from { transform: translate(-50%, -50%) rotate(0deg); }
             to { transform: translate(-50%, -50%) rotate(360deg); }
           }
-          /* 🔥 ДОБАВЛЕНА АНИМАЦИЯ ДЛЯ ВСПЛЫВАЮЩИХ СООБЩЕНИЙ */
           @keyframes slideInRight {
             from {
               opacity: 0;
