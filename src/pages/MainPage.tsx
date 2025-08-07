@@ -1,6 +1,6 @@
-// MainPage.tsx - ЗАМЕНИТЬ ВЕСЬ ФАЙЛ
+// MainPage.tsx - ЗАМЕНИТЬ ВЕСЬ ФАЙЛ - ЧАСТЬ 1 из 6
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
 import { useGame } from '../context/GameContext';
@@ -46,6 +46,185 @@ interface ShopButton {
 }
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// MainPage.tsx - ЧАСТЬ 2 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 1
+
+// 👑 ВЫНЕСЕННЫЙ КОМПОНЕНТ ПРЕМИУМ ПРЕДЛОЖЕНИЯ
+const PremiumOfferModal = React.memo(({ 
+  isVisible, 
+  onClose, 
+  onBuyPremium 
+}: { 
+  isVisible: boolean; 
+  onClose: () => void; 
+  onBuyPremium: () => void; 
+}) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // 🔒 ЗАЩИЩЕННЫЕ ОБРАБОТЧИКИ С DEBOUNCE
+  const handleBuy = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isProcessing) {
+      console.log('👑 Кнопка уже обрабатывается, игнорируем');
+      return;
+    }
+    
+    setIsProcessing(true);
+    console.log('👑 Кнопка "Купить" нажата');
+    
+    try {
+      onClose(); // Сразу закрываем
+      await new Promise(resolve => setTimeout(resolve, 100)); // Небольшая задержка для UI
+      onBuyPremium();
+    } finally {
+      setTimeout(() => setIsProcessing(false), 1000); // Защита от спама
+    }
+  }, [isProcessing, onClose, onBuyPremium]);
+
+  const handleLater = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isProcessing) return;
+    
+    console.log('👑 Кнопка "Позже" нажата');
+    onClose();
+  }, [isProcessing, onClose]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div 
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        padding: '5%'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isProcessing) {
+          onClose();
+        }
+      }}
+    >
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+        padding: '25px',
+        borderRadius: '20px',
+        border: '2px solid #FFD700',
+        width: '90%',
+        maxWidth: '500px',
+        textAlign: 'center',
+        color: 'white'
+      }}>
+        <div style={{ fontSize: '2rem', marginBottom: '15px' }}>👑</div>
+        
+        <h3 style={{ color: '#FFD700', marginBottom: '15px', fontSize: '1.3rem' }}>
+          Устали от рекламы?
+        </h3>
+        
+        <p style={{ color: '#ccc', marginBottom: '20px', fontSize: '0.9rem' }}>
+          Отключите рекламу и получайте награды автоматически!
+        </p>
+        
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '12px',
+          marginBottom: '20px'
+        }}>
+          <div style={{ 
+            padding: '12px', 
+            background: 'rgba(255, 215, 0, 0.1)', 
+            borderRadius: '12px',
+            border: '1px solid #FFD700'
+          }}>
+            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>🚫 Без рекламы на 30 дней</div>
+            <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
+              150 ⭐ Stars или 1 💎 TON
+            </div>
+          </div>
+          
+          <div style={{ 
+            padding: '12px', 
+            background: 'rgba(255, 215, 0, 0.2)', 
+            borderRadius: '12px',
+            border: '2px solid #FFD700',
+            position: 'relative'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '10px',
+              background: '#FFD700',
+              color: '#000',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              fontSize: '0.7rem',
+              fontWeight: 'bold'
+            }}>
+              🏆 ВЫГОДНО
+            </div>
+            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>👑 Без рекламы НАВСЕГДА</div>
+            <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
+              1500 ⭐ Stars или 10 💎 TON
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#90EE90', marginTop: '3px' }}>
+              💰 Экономия до 90%!
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleBuy}
+            disabled={isProcessing}
+            style={{
+              flex: 1,
+              minWidth: '120px',
+              padding: '14px 20px',
+              background: isProcessing ? '#666' : 'linear-gradient(45deg, #FFD700, #FFA500)',
+              border: 'none',
+              borderRadius: '12px',
+              color: isProcessing ? '#ccc' : '#000',
+              fontWeight: 'bold',
+              cursor: isProcessing ? 'wait' : 'pointer',
+              fontSize: '1rem',
+              transition: 'all 0.2s ease',
+              opacity: isProcessing ? 0.7 : 1
+            }}
+          >
+            {isProcessing ? '⏳ Обработка...' : '💳 Купить премиум'}
+          </button>
+          
+          <button
+            onClick={handleLater}
+            disabled={isProcessing}
+            style={{
+              flex: 1,
+              minWidth: '120px',
+              padding: '14px 20px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '2px solid #666',
+              borderRadius: '12px',
+              color: isProcessing ? '#666' : '#ccc',
+              cursor: isProcessing ? 'wait' : 'pointer',
+              fontSize: '1rem',
+              transition: 'all 0.2s ease',
+              opacity: isProcessing ? 0.7 : 1
+            }}
+          >
+            ⏰ Позже
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+PremiumOfferModal.displayName = 'PremiumOfferModal';
+// MainPage.tsx - ЧАСТЬ 3 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 2
 
 const MainPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -72,9 +251,11 @@ const MainPage: React.FC = () => {
   const [isCollecting, setIsCollecting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
 
-  // 👑 ПРЕМИУМ СОСТОЯНИЕ
+  // 👑 ОПТИМИЗИРОВАННОЕ ПРЕМИУМ СОСТОЯНИЕ
   const [premiumStatus, setPremiumStatus] = useState<any>(null);
   const [showPremiumOffer, setShowPremiumOffer] = useState(false);
+  const premiumInitialized = useRef(false);
+  const lastTelegramId = useRef<string | null>(null);
 
   // 🔐 БЕЗОПАСНАЯ ПРОВЕРКА АДМИНА ЧЕРЕЗ API
   const [isAdmin, setIsAdmin] = useState(false);
@@ -83,6 +264,12 @@ const MainPage: React.FC = () => {
   // Добавляем состояние для тостов
   const [toasts, setToasts] = useState<any[]>([]);
   const nextToastId = React.useRef(0);
+
+  // Дополнительные состояния
+  const [shopButtons, setShopButtons] = useState<ShopButton[]>([]);
+  const [initialAsteroidTotals, setInitialAsteroidTotals] = useState<{ [key: number]: number }>({});
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [targetSystem, setTargetSystem] = useState<number | null>(null);
 
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'warning', duration = 3000) => {
     const id = nextToastId.current++;
@@ -93,12 +280,20 @@ const MainPage: React.FC = () => {
   const removeToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
+  // MainPage.tsx - ЧАСТЬ 4 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 3
 
-  // 👑 ИНИЦИАЛИЗАЦИЯ ПРЕМИУМ СЕРВИСА
+  // 👑 ОПТИМИЗИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ПРЕМИУМ СЕРВИСА (ТОЛЬКО ОДИН РАЗ)
   useEffect(() => {
     const initializePremiumService = async () => {
-      if (player?.telegram_id) {
-        console.log('👑 Начинаем инициализацию премиум сервиса...');
+      if (!player?.telegram_id || premiumInitialized.current || lastTelegramId.current === player.telegram_id) {
+        return;
+      }
+
+      console.log('👑 Начинаем ЕДИНСТВЕННУЮ инициализацию премиум сервиса для:', player.telegram_id);
+      
+      try {
+        premiumInitialized.current = true;
+        lastTelegramId.current = player.telegram_id;
         
         // Устанавливаем ID игрока
         premiumAdService.setTelegramId(player.telegram_id);
@@ -118,17 +313,19 @@ const MainPage: React.FC = () => {
         
         setPremiumStatus(status);
         
-        console.log('👑 Premium service initialized for:', player.telegram_id);
+        console.log('👑 Premium service initialized ONCE for:', player.telegram_id);
         console.log('👑 Premium status:', status);
+        
+      } catch (err) {
+        console.error('👑 Ошибка инициализации премиум сервиса:', err);
+        premiumInitialized.current = false; // Сбрасываем при ошибке
       }
     };
 
-    initializePremiumService().catch(err => {
-      console.error('👑 Ошибка инициализации премиум сервиса:', err);
-    });
-  }, [player?.telegram_id]);
+    initializePremiumService();
+  }, [player?.telegram_id]); // Только telegram_id в зависимостях
 
-  // Проверяем админский статус через API
+  // Проверяем админский статус через API (ТОЛЬКО ОДИН РАЗ)
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!player?.telegram_id) {
@@ -155,8 +352,55 @@ const MainPage: React.FC = () => {
     checkAdminStatus();
   }, [player?.telegram_id]);
 
-  // Проверяем нужна ли реклама для сбора
-  const needsAdForCollection = useCallback(() => {
+  useEffect(() => {
+    if (player && !player.unlocked_systems?.includes(currentSystem)) {
+      setTargetSystem(currentSystem);
+      setShowUnlockModal(true);
+    }
+  }, [currentSystem, player]);
+
+  useEffect(() => {
+    if (player && (!player.unlocked_systems || player.unlocked_systems.length === 0)) {
+      setTargetSystem(1);
+      setShowUnlockModal(true);
+    }
+  }, [player]);
+
+  useEffect(() => {
+    if (!player || isTonSystem) return;
+    
+    fetchMaxItems().then(({ maxAsteroids, maxDrones }) => {
+      const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
+      const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
+      const miningSpeed = player.mining_speed_data?.[currentSystem] || 0;
+      const speedPerHour = (miningSpeed * 3600).toFixed(2);
+      const realCargoCapacity = getRealCargoCapacity(currentSystem);
+      
+      const maxMainAsteroids = 12;
+      
+      setShopButtons([
+        {
+          type: 'resources',
+          count: `${asteroidCount}/${maxMainAsteroids}`,
+          amount: `${remainingResources.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`
+        },
+        {
+          type: 'drones',
+          count: `${player.drones.filter((d: Drone) => d.system === currentSystem).length}/${maxDrones}`,
+          amount: `${speedPerHour} ${t('per_hour')}`
+        },
+        {
+          type: 'cargo',
+          count: t('level_prefix', { level: player.cargo_levels.filter((c: any) => c.system === currentSystem).length }),
+          amount: realCargoCapacity === 999999 || realCargoCapacity === 99999 ? '∞' : realCargoCapacity.toString()
+        },
+      ]);
+    });
+  }, [player, currentSystem, getRealCargoCapacity, t]);
+  // MainPage.tsx - ЧАСТЬ 5 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 4
+
+  // 🎯 ОПТИМИЗИРОВАННАЯ ПРОВЕРКА НУЖДЫ В РЕКЛАМЕ
+  const needsAdForCollection = useMemo(() => {
     // Системы 1-4 требуют рекламу, если игрок не верифицирован И НЕ ПРЕМИУМ
     if (currentSystem >= 1 && currentSystem <= 4) {
       // Если есть премиум - реклама не нужна
@@ -168,14 +412,14 @@ const MainPage: React.FC = () => {
     return false; // Система 5 (TON) - реклама не нужна
   }, [currentSystem, player?.verified, premiumStatus?.hasPremium]);
 
-  const handleCreateNewStake = () => {
+  const handleCreateNewStake = useCallback(() => {
     if (currentSystem === 5) {
       setTargetSystem(5);
       setShowUnlockModal(true);
     }
-  };
+  }, [currentSystem]);
 
-  const handleSafeClick = async () => {
+  const handleSafeClick = useCallback(async () => {
     if (!player?.telegram_id || isCollecting || isWatchingAd) {
       console.log('🚫 Сбор заблокирован:', { 
         hasPlayer: !!player?.telegram_id, 
@@ -193,17 +437,17 @@ const MainPage: React.FC = () => {
     }
 
     // Проверяем нужна ли реклама
-    if (needsAdForCollection()) {
+    if (needsAdForCollection) {
       console.log('🎯 Требуется просмотр рекламы для сбора в системе', currentSystem);
       await handleAdBeforeCollection();
     } else {
       console.log('🎯 Сбор без рекламы - игрок верифицирован, премиум или система TON');
       await performCollection();
     }
-  };
+  }, [player?.telegram_id, isCollecting, isWatchingAd, getCurrentValue, currentSystem, needsAdForCollection, addToast, t]);
 
   // 👑 ОБНОВЛЕННАЯ ФУНКЦИЯ РЕКЛАМЫ С ПРЕМИУМОМ
-  const handleAdBeforeCollection = async () => {
+  const handleAdBeforeCollection = useCallback(async () => {
     setIsWatchingAd(true);
     
     try {
@@ -225,7 +469,7 @@ const MainPage: React.FC = () => {
           // Проверяем, нужно ли показать предложение премиума
           if (!adResult.premium?.hasPremium) {
             // Показываем предложение премиума сразу после успешной рекламы
-            setShowPremiumOffer(true);
+            setTimeout(() => setShowPremiumOffer(true), 500);
           }
         }
         
@@ -240,9 +484,9 @@ const MainPage: React.FC = () => {
     } finally {
       setIsWatchingAd(false);
     }
-  };
+  }, [addToast]);
     
-  const performCollection = async () => {
+  const performCollection = useCallback(async () => {
     setIsCollecting(true);
     
     try {
@@ -284,30 +528,53 @@ const MainPage: React.FC = () => {
     } finally {
       setIsCollecting(false);
     }
-  };
+  }, [getCurrentValue, currentSystem, addToast, t, player, safeCollect, resetCleanCounter]);
 
-  const handlePurchase = (type: string) => () => {
+  const handlePurchase = useCallback((type: string) => () => {
     navigate('/shop', { state: { tab: type === 'resources' ? 'asteroid' : type } });
-  };
+  }, [navigate]);
 
-  if (!player) return <div>{t('loading')}</div>;
+  // 🎯 ОПТИМИЗИРОВАННЫЕ ОБРАБОТЧИКИ ПРЕМИУМ МОДАЛКИ
+  const handleClosePremiumOffer = useCallback(() => {
+    console.log('👑 Закрываем премиум предложение');
+    setShowPremiumOffer(false);
+  }, []);
 
-  const systemNames = [
-    t('system_1_name'),
-    t('system_2_name'),
-    t('system_3_name'),
-    t('system_4_name'),
-    t('system_5_name')
-  ];
+  const handleBuyPremium = useCallback(() => {
+    console.log('👑 Переходим к покупке премиума');
+    navigate('/wallet');
+  }, [navigate]);
 
-  const systemName = t('system_display_format', {
-    number: currentSystem,
-    name: systemNames[currentSystem - 1]
-  });
-  
-  const colorStyle = player.color || '#00f0ff';
-  const isTonSystem = currentSystem === 5;
-  const cargoLevelId = player.cargo_levels.find((c: CargoLevel) => c.system === currentSystem)?.id || 0;
+  const handleSystemChange = useCallback((systemId: number) => {
+    if (!player) return;
+    
+    if (player.unlocked_systems?.includes(systemId)) {
+      setCurrentSystem(systemId);
+    } else {
+      setTargetSystem(systemId);
+      setShowUnlockModal(true);
+    }
+    setShowSystemDropdown(false);
+  }, [player, setCurrentSystem]);
+
+  const handleUnlockSuccess = useCallback(async () => {
+    setShowUnlockModal(false);
+    if (targetSystem) {
+      setTimeout(async () => {
+        await refreshPlayer();
+        setCurrentSystem(targetSystem);
+        setTargetSystem(null);
+      }, 100);
+    }
+  }, [targetSystem, refreshPlayer, setCurrentSystem]);
+
+  const handleUnlockCancel = useCallback(() => {
+    setShowUnlockModal(false);
+    setTargetSystem(null);
+    if (player?.unlocked_systems?.length > 0) {
+      setCurrentSystem(Math.max(...player.unlocked_systems));
+    }
+  }, [player, setCurrentSystem]);
 
   const getMaxItems = useCallback(async (system: number, type: string): Promise<number> => {
     try {
@@ -328,236 +595,25 @@ const MainPage: React.FC = () => {
     return { maxAsteroids, maxDrones, maxCargo };
   }, [currentSystem, getMaxItems]);
 
-  const [shopButtons, setShopButtons] = useState<ShopButton[]>([]);
-  const [initialAsteroidTotals, setInitialAsteroidTotals] = useState<{ [key: number]: number }>({});
-  const [showUnlockModal, setShowUnlockModal] = useState(false);
-  const [targetSystem, setTargetSystem] = useState<number | null>(null);
+  if (!player) return <div>{t('loading')}</div>;
 
-  useEffect(() => {
-    if (player && !player.unlocked_systems?.includes(currentSystem)) {
-      setTargetSystem(currentSystem);
-      setShowUnlockModal(true);
-    }
-  }, [currentSystem, player]);
+  const systemNames = [
+    t('system_1_name'),
+    t('system_2_name'),
+    t('system_3_name'),
+    t('system_4_name'),
+    t('system_5_name')
+  ];
 
-  const handleSystemChange = (systemId: number) => {
-    if (!player) return;
-    
-    if (player.unlocked_systems?.includes(systemId)) {
-      setCurrentSystem(systemId);
-    } else {
-      setTargetSystem(systemId);
-      setShowUnlockModal(true);
-    }
-    setShowSystemDropdown(false);
-  };
-
-  const handleUnlockSuccess = async () => {
-    setShowUnlockModal(false);
-    if (targetSystem) {
-      setTimeout(async () => {
-        await refreshPlayer();
-        setCurrentSystem(targetSystem);
-        setTargetSystem(null);
-      }, 100);
-    }
-  };
-
-  const handleUnlockCancel = () => {
-    setShowUnlockModal(false);
-    setTargetSystem(null);
-    if (player?.unlocked_systems?.length > 0) {
-      setCurrentSystem(Math.max(...player.unlocked_systems));
-    }
-  };
-
-  useEffect(() => {
-    if (player && (!player.unlocked_systems || player.unlocked_systems.length === 0)) {
-      setTargetSystem(1);
-      setShowUnlockModal(true);
-    }
-  }, [player]);
-
-  useEffect(() => {
-    if (!player || isTonSystem) return;
-    
-    fetchMaxItems().then(({ maxAsteroids, maxDrones }) => {
-      const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
-      const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
-      const miningSpeed = player.mining_speed_data?.[currentSystem] || 0;
-      const speedPerHour = (miningSpeed * 3600).toFixed(2);
-      const realCargoCapacity = getRealCargoCapacity(currentSystem);
-      
-      const maxMainAsteroids = 12;
-      
-      setShopButtons([
-        {
-          type: 'resources',
-          count: `${asteroidCount}/${maxMainAsteroids}`,
-          amount: `${remainingResources.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`
-        },
-        {
-          type: 'drones',
-          count: `${player.drones.filter((d: Drone) => d.system === currentSystem).length}/${maxDrones}`,
-          amount: `${speedPerHour} ${t('per_hour')}`
-        },
-        {
-          type: 'cargo',
-          count: t('level_prefix', { level: player.cargo_levels.filter((c: any) => c.system === currentSystem).length }),
-          amount: realCargoCapacity === 999999 || realCargoCapacity === 99999 ? '∞' : realCargoCapacity.toString()
-        },
-      ]);
-    });
-  }, [player, currentSystem, cargoLevelId, fetchMaxItems, getRealCargoCapacity, isTonSystem, t]);
-
-  // 👑 КОМПОНЕНТ ПРЕМИУМ ПРЕДЛОЖЕНИЯ
-  const PremiumOfferModal = () => {
-    if (!showPremiumOffer) return null;
-
-    return (
-      <div 
-        style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-          padding: '5%' // Меньше отступов
-        }}
-        onClick={(e) => {
-          // Закрываем если кликнули на фон
-          if (e.target === e.currentTarget) {
-            setShowPremiumOffer(false);
-          }
-        }}
-      >
-        <div style={{
-          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          padding: '25px',
-          borderRadius: '20px',
-          border: '2px solid #FFD700',
-          width: '90%', // 90% ширины экрана
-          maxWidth: '500px', // Максимум для больших экранов
-          textAlign: 'center',
-          color: 'white'
-        }}>
-          <div style={{ fontSize: '2rem', marginBottom: '15px' }}>👑</div>
-          
-          <h3 style={{ color: '#FFD700', marginBottom: '15px', fontSize: '1.3rem' }}>
-            Устали от рекламы?
-          </h3>
-          
-          <p style={{ color: '#ccc', marginBottom: '20px', fontSize: '0.9rem' }}>
-            Отключите рекламу и получайте награды автоматически!
-          </p>
-          
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '12px',
-            marginBottom: '20px'
-          }}>
-            <div style={{ 
-              padding: '12px', 
-              background: 'rgba(255, 215, 0, 0.1)', 
-              borderRadius: '12px',
-              border: '1px solid #FFD700'
-            }}>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>🚫 Без рекламы на 30 дней</div>
-              <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
-                150 ⭐ Stars или 1 💎 TON
-              </div>
-            </div>
-            
-            <div style={{ 
-              padding: '12px', 
-              background: 'rgba(255, 215, 0, 0.2)', 
-              borderRadius: '12px',
-              border: '2px solid #FFD700',
-              position: 'relative'
-            }}>
-              <div style={{
-                position: 'absolute',
-                top: '-8px',
-                right: '10px',
-                background: '#FFD700',
-                color: '#000',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                fontSize: '0.7rem',
-                fontWeight: 'bold'
-              }}>
-                🏆 ВЫГОДНО
-              </div>
-              <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>👑 Без рекламы НАВСЕГДА</div>
-              <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
-                1500 ⭐ Stars или 10 💎 TON
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#90EE90', marginTop: '3px' }}>
-                💰 Экономия до 90%!
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('👑 Кнопка "Купить" нажата');
-                setShowPremiumOffer(false); // Сразу закрываем
-                navigate('/wallet'); // Переходим
-              }}
-              style={{
-                flex: 1,
-                minWidth: '120px',
-                padding: '14px 20px',
-                background: 'linear-gradient(45deg, #FFD700, #FFA500)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#000',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                transition: 'transform 0.2s ease'
-              }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              💳 Купить премиум
-            </button>
-            
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('👑 Кнопка "Позже" нажата');
-                setShowPremiumOffer(false); // Сразу закрываем
-              }}
-              style={{
-                flex: 1,
-                minWidth: '120px',
-                padding: '14px 20px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '2px solid #666',
-                borderRadius: '12px',
-                color: '#ccc',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                transition: 'transform 0.2s ease'
-              }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              ⏰ Позже
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-
+  const systemName = t('system_display_format', {
+    number: currentSystem,
+    name: systemNames[currentSystem - 1]
+  });
+  
+  const colorStyle = player.color || '#00f0ff';
+  const isTonSystem = currentSystem === 5;
+  const cargoLevelId = player.cargo_levels.find((c: CargoLevel) => c.system === currentSystem)?.id || 0;
+  // MainPage.tsx - ЧАСТЬ 6 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 5
 
   return (
     <div style={{
@@ -773,8 +829,12 @@ const MainPage: React.FC = () => {
         ))}
       </div>
 
-      {/* 👑 ПРЕМИУМ ПРЕДЛОЖЕНИЕ */}
-      <PremiumOfferModal />
+      {/* 👑 ОПТИМИЗИРОВАННОЕ ПРЕМИУМ ПРЕДЛОЖЕНИЕ */}
+      <PremiumOfferModal 
+        isVisible={showPremiumOffer}
+        onClose={handleClosePremiumOffer}
+        onBuyPremium={handleBuyPremium}
+      />
 
       <style>
         {`
