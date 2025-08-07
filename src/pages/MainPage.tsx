@@ -397,7 +397,7 @@ const MainPage: React.FC = () => {
       ]);
     });
   }, [player, currentSystem, getRealCargoCapacity, t]);
-  // MainPage.tsx - ЧАСТЬ 5 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 4
+  // MainPage.tsx - ЧАСТЬ 5 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 5
 
   // 🎯 ОПТИМИЗИРОВАННАЯ ПРОВЕРКА НУЖДЫ В РЕКЛАМЕ
   const needsAdForCollection = useMemo(() => {
@@ -412,80 +412,6 @@ const MainPage: React.FC = () => {
     return false; // Система 5 (TON) - реклама не нужна
   }, [currentSystem, player?.verified, premiumStatus?.hasPremium]);
 
-  const handleCreateNewStake = useCallback(() => {
-    if (currentSystem === 5) {
-      setTargetSystem(5);
-      setShowUnlockModal(true);
-    }
-  }, [currentSystem]);
-
-  const handleSafeClick = useCallback(async () => {
-    if (!player?.telegram_id || isCollecting || isWatchingAd) {
-      console.log('🚫 Сбор заблокирован:', { 
-        hasPlayer: !!player?.telegram_id, 
-        isCollecting, 
-        isWatchingAd 
-      });
-      return;
-    }
-
-    const currentValue = getCurrentValue(currentSystem);
-    
-    if (currentValue <= 0) {
-      addToast(t('no_resources_to_collect'), 'warning');
-      return;
-    }
-
-    // Проверяем нужна ли реклама
-    if (needsAdForCollection) {
-      console.log('🎯 Требуется просмотр рекламы для сбора в системе', currentSystem);
-      await handleAdBeforeCollection();
-    } else {
-      console.log('🎯 Сбор без рекламы - игрок верифицирован, премиум или система TON');
-      await performCollection();
-    }
-  }, [player?.telegram_id, isCollecting, isWatchingAd, getCurrentValue, currentSystem, needsAdForCollection, addToast, t]);
-
-  // 👑 ОБНОВЛЕННАЯ ФУНКЦИЯ РЕКЛАМЫ С ПРЕМИУМОМ
-  const handleAdBeforeCollection = useCallback(async () => {
-    setIsWatchingAd(true);
-    
-    try {
-      console.log('⚡ Показываем рекламу перед сбором...');
-      
-      const adResult: PremiumAdResult = await premiumAdService.showRewardedAd();
-      console.log('⚡ Результат рекламы/премиума:', adResult);
-      
-      if (adResult.success) {
-        if (adResult.skipped) {
-          // Премиум пользователь
-          console.log('✅ Премиум награда - сбор разрешен');
-          addToast('👑 Премиум награда! Сбор выполняется автоматически.', 'success');
-        } else {
-          // Обычная реклама просмотрена
-          console.log('✅ Реклама просмотрена успешно, выполняем сбор');
-          addToast('🎯 Реклама просмотрена! Награда получена.', 'success');
-          
-          // Проверяем, нужно ли показать предложение премиума
-          if (!adResult.premium?.hasPremium) {
-            // Показываем предложение премиума сразу после успешной рекламы
-            setTimeout(() => setShowPremiumOffer(true), 500);
-          }
-        }
-        
-        await performCollection();
-      } else {
-        console.log('❌ Реклама не была просмотрена:', adResult.error);
-        addToast('Для сбора ресурсов необходимо просмотреть рекламу до конца', 'warning');
-      }
-    } catch (err) {
-      console.error('❌ Ошибка показа рекламы:', err);
-      addToast('Ошибка при показе рекламы. Попробуйте еще раз.', 'error');
-    } finally {
-      setIsWatchingAd(false);
-    }
-  }, [addToast]);
-    
   const performCollection = useCallback(async () => {
     setIsCollecting(true);
     
@@ -530,20 +456,107 @@ const MainPage: React.FC = () => {
     }
   }, [getCurrentValue, currentSystem, addToast, t, player, safeCollect, resetCleanCounter]);
 
+  const handleCreateNewStake = useCallback(() => {
+    if (currentSystem === 5) {
+      setTargetSystem(5);
+      setShowUnlockModal(true);
+    }
+  }, [currentSystem]);
+
+  const handleSafeClick = useCallback(async () => {
+    if (!player?.telegram_id || isCollecting || isWatchingAd) {
+      console.log('🚫 Сбор заблокирован:', { 
+        hasPlayer: !!player?.telegram_id, 
+        isCollecting, 
+        isWatchingAd 
+      });
+      return;
+    }
+
+    const currentValue = getCurrentValue(currentSystem);
+    
+    if (currentValue <= 0) {
+      addToast(t('no_resources_to_collect'), 'warning');
+      return;
+    }
+
+    // Проверяем нужна ли реклама
+    if (needsAdForCollection) {
+      console.log('🎯 Требуется просмотр рекламы для сбора в системе', currentSystem);
+      await handleAdBeforeCollection();
+    } else {
+      console.log('🎯 Сбор без рекламы - игрок верифицирован, премиум или система TON');
+      await performCollection();
+    }
+  }, [player?.telegram_id, isCollecting, isWatchingAd, getCurrentValue, currentSystem, needsAdForCollection, addToast, t, performCollection]);
+
+  // 👑 ОБНОВЛЕННАЯ ФУНКЦИЯ РЕКЛАМЫ С ПРЕМИУМОМ
+  const handleAdBeforeCollection = useCallback(async () => {
+    setIsWatchingAd(true);
+    
+    try {
+      console.log('⚡ Показываем рекламу перед сбором...');
+      
+      const adResult: PremiumAdResult = await premiumAdService.showRewardedAd();
+      console.log('⚡ Результат рекламы/премиума:', adResult);
+      
+      if (adResult.success) {
+        if (adResult.skipped) {
+          // Премиум пользователь
+          console.log('✅ Премиум награда - сбор разрешен');
+          addToast('👑 Премиум награда! Сбор выполняется автоматически.', 'success');
+        } else {
+          // Обычная реклама просмотрена
+          console.log('✅ Реклама просмотрена успешно, выполняем сбор');
+          addToast('🎯 Реклама просмотрена! Награда получена.', 'success');
+          
+          // Проверяем, нужно ли показать предложение премиума
+          if (!adResult.premium?.hasPremium) {
+            // Показываем предложение премиума сразу после успешной рекламы
+            setTimeout(() => setShowPremiumOffer(true), 500);
+          }
+        }
+        
+        // 🎯 ВАЖНО: ВСЕГДА ВЫПОЛНЯЕМ СБОР ПОСЛЕ УСПЕШНОЙ РЕКЛАМЫ
+        await performCollection();
+      } else {
+        console.log('❌ Реклама не была просмотрена:', adResult.error);
+        addToast('Для сбора ресурсов необходимо просмотреть рекламу до конца', 'warning');
+      }
+    } catch (err) {
+      console.error('❌ Ошибка показа рекламы:', err);
+      addToast('Ошибка при показе рекламы. Попробуйте еще раз.', 'error');
+    } finally {
+      setIsWatchingAd(false);
+    }
+  }, [addToast, performCollection]); // 🎯 ДОБАВИЛИ performCollection в зависимости
+
   const handlePurchase = useCallback((type: string) => () => {
     navigate('/shop', { state: { tab: type === 'resources' ? 'asteroid' : type } });
   }, [navigate]);
 
-  // 🎯 ОПТИМИЗИРОВАННЫЕ ОБРАБОТЧИКИ ПРЕМИУМ МОДАЛКИ
-  const handleClosePremiumOffer = useCallback(() => {
-    console.log('👑 Закрываем премиум предложение');
+  // 🎯 ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ ПРЕМИУМ МОДАЛКИ - ВСЕГДА ВЫПОЛНЯЕМ СБОР
+  const handleClosePremiumOffer = useCallback(async () => {
+    console.log('👑 Закрываем премиум предложение и выполняем сбор');
     setShowPremiumOffer(false);
-  }, []);
+    
+    // 🎯 ВЫПОЛНЯЕМ СБОР ДАЖЕ ЕСЛИ НАЖАЛИ "ПОЗЖЕ"
+    setTimeout(async () => {
+      await performCollection();
+    }, 100);
+  }, [performCollection]);
 
-  const handleBuyPremium = useCallback(() => {
-    console.log('👑 Переходим к покупке премиума');
-    navigate('/wallet');
-  }, [navigate]);
+  const handleBuyPremium = useCallback(async () => {
+    console.log('👑 Переходим к покупке премиума и выполняем сбор');
+    
+    // 🎯 СНАЧАЛА ВЫПОЛНЯЕМ СБОР, ПОТОМ ПЕРЕХОДИМ
+    await performCollection();
+    
+    // Небольшая задержка для завершения сбора
+    setTimeout(() => {
+      navigate('/wallet');
+    }, 500);
+  }, [navigate, performCollection]);
 
   const handleSystemChange = useCallback((systemId: number) => {
     if (!player) return;
