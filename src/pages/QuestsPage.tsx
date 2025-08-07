@@ -140,7 +140,7 @@ const QuestsPage: React.FC = () => {
     }
   }, [player?.telegram_id, refreshPlayer, addNotification, t]);
 
-  // ✅ ОБНОВЛЕНО: Загрузка заданий с состояниями ссылок
+  // ✅ УПРОЩЕННАЯ: Загрузка заданий 
   const loadQuests = useCallback(async () => {
     if (!player?.telegram_id) return;
     try {
@@ -148,26 +148,10 @@ const QuestsPage: React.FC = () => {
       const response = await axios.get(`${API_URL}/api/quests/${player.telegram_id}`);
       if (response.data.success) {
         setQuests(response.data.quests);
-        
-        // Инициализируем локальные таймеры на основе серверных данных
-        const serverLinkStates = response.data.quest_link_states || {};
-        const newTimers: {[key: number]: number} = {};
-        
-        response.data.quests.forEach((quest: QuestData) => {
-          const serverState = serverLinkStates[quest.quest_id.toString()];
-          if (serverState) {
-            if (quest.completed) {
-              newTimers[quest.quest_id] = -1; // Задание выполнено
-            } else if (serverState.can_claim) {
-              newTimers[quest.quest_id] = 0; // Можно забрать награду
-            } else {
-              newTimers[quest.quest_id] = serverState.timer_remaining; // Активный таймер
-            }
-          }
-        });
-        
-        setLinkTimers(newTimers);
         console.log(`✅ Загружено ${response.data.quests.length} заданий`);
+        
+        // Сбрасываем таймеры - они будут управляться только локально для UI
+        setLinkTimers({});
       }
     } catch (error) {
       console.error('Ошибка загрузки заданий:', error);
@@ -261,7 +245,15 @@ const QuestsPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Ошибка выполнения задания:', error);
-      addNotification(error.response?.data?.error || t('quest_completion_error') || 'Ошибка выполнения задания', 'error');
+      const errorMessage = error.response?.data?.error || t('quest_completion_error') || 'Ошибка выполнения задания';
+      
+      // Если таймер еще не завершен, перезапускаем UI таймер
+      if (errorMessage.includes('timer not completed')) {
+        addNotification('Подождите еще немного перед получением награды', 'warning');
+        setLinkTimers(prev => ({ ...prev, [questId]: 10 })); // Показываем еще 10 секунд ожидания
+      } else {
+        addNotification(errorMessage, 'error');
+      }
     } finally {
       setCompletingQuest(null);
     }
@@ -403,7 +395,7 @@ const QuestsPage: React.FC = () => {
                                     </button>
                                   )}
                                   
-                                  {/* Показываем таймер, если он запущен */}
+                                  {/* Показываем статус "Проверяем...", если таймер запущен */}
                                   {isTimerRunning && (
                                     <div style={{
                                       padding: '10px 15px',
@@ -415,7 +407,7 @@ const QuestsPage: React.FC = () => {
                                       textAlign: 'center',
                                       fontWeight: 'bold'
                                     }}>
-                                      ⏳ {timerValue}с
+                                      ⏳ {t('checking_progress') || 'Проверяем...'}
                                     </div>
                                   )}
                                   
