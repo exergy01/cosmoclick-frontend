@@ -1,4 +1,4 @@
-// services/premiumAwareAdService.ts - ЗАМЕНИТЬ ВЕСЬ ФАЙЛ
+// services/premiumAwareAdService.ts - БЕЗ КЕША - ЗАМЕНИТЬ ВЕСЬ ФАЙЛ
 
 import { adService, AdsgramResult } from './adsgramService';
 import axios from 'axios';
@@ -19,38 +19,24 @@ interface PremiumAdResult extends AdsgramResult {
 
 class PremiumAwareAdService {
   private telegramId: string | null = null;
-  private lastPremiumCheck: number = 0;
-  private premiumCache: PremiumStatus = { hasPremium: false, reason: 'Not initialized' };
-  private readonly CACHE_DURATION = 15 * 60 * 1000; // 🎯 УВЕЛИЧИВАЕМ КЕШ ДО 15 МИНУТ
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
-  private statusCheckPromise: Promise<PremiumStatus> | null = null; // 🔒 Предотвращаем дублирующие запросы
+  private statusCheckPromise: Promise<PremiumStatus> | null = null;
 
   constructor() {
-    console.log('👑 PremiumAwareAdService initialized');
+    console.log('👑 PremiumAwareAdService initialized (NO CACHE)');
   }
 
   // Устанавливаем ID игрока
   setTelegramId(telegramId: string) {
-    if (this.telegramId !== telegramId) {
-      this.telegramId = telegramId;
-      // 🎯 НЕ СБРАСЫВАЕМ КЕШ при смене пользователя - проверим позже
-      console.log(`👑 Telegram ID set to: ${telegramId}`);
-    }
+    this.telegramId = telegramId;
+    console.log(`👑 Telegram ID set to: ${telegramId}`);
   }
 
-  // 🔒 ЗАЩИЩЕННАЯ ПРОВЕРКА ПРЕМИУМ СТАТУСА С ПРЕДОТВРАЩЕНИЕМ ДУБЛИРОВАНИЯ
-  private async checkPremiumStatus(force: boolean = false): Promise<PremiumStatus> {
+  // 🚀 ПРОВЕРКА ПРЕМИУМ СТАТУСА БЕЗ КЕША - ВСЕГДА СВЕЖИЕ ДАННЫЕ
+  private async checkPremiumStatus(): Promise<PremiumStatus> {
     if (!this.telegramId) {
       return { hasPremium: false, reason: 'No telegram ID provided' };
-    }
-
-    const now = Date.now();
-    
-    // Используем кеш если он свежий и не форсируем обновление
-    if (!force && (now - this.lastPremiumCheck) < this.CACHE_DURATION) {
-      console.log('👑 Using cached premium status:', this.premiumCache);
-      return this.premiumCache;
     }
 
     // 🔒 Если уже идет запрос статуса - ждем его завершения
@@ -60,7 +46,7 @@ class PremiumAwareAdService {
     }
 
     // 🎯 СОЗДАЕМ ЗАЩИЩЕННЫЙ ПРОМИС
-    this.statusCheckPromise = this._performStatusCheck(now);
+    this.statusCheckPromise = this._performStatusCheck();
     
     try {
       const result = await this.statusCheckPromise;
@@ -71,12 +57,12 @@ class PremiumAwareAdService {
   }
 
   // 🔒 ВНУТРЕННИЙ МЕТОД ПРОВЕРКИ СТАТУСА
-  private async _performStatusCheck(timestamp: number): Promise<PremiumStatus> {
+  private async _performStatusCheck(): Promise<PremiumStatus> {
     try {
-      console.log(`👑 Checking premium status for ${this.telegramId}...`);
+      console.log(`👑 Checking premium status for ${this.telegramId} (NO CACHE)...`);
       
       const response = await axios.get(`${API_URL}/api/adsgram/check-ad-block/${this.telegramId}`, {
-        timeout: 10000, // 🎯 ТАЙМАУТ 10 СЕКУНД
+        timeout: 8000, // 🎯 ТАЙМАУТ 8 СЕКУНД для быстроты
       });
       
       if (response.data.success) {
@@ -85,10 +71,7 @@ class PremiumAwareAdService {
           reason: 'No premium data received' 
         };
         
-        this.premiumCache = premiumData;
-        this.lastPremiumCheck = timestamp;
-        
-        console.log(`👑 Premium status updated:`, premiumData);
+        console.log(`👑 Fresh premium status:`, premiumData);
         return premiumData;
       } else {
         throw new Error(response.data.error || 'Failed to check premium status');
@@ -97,20 +80,11 @@ class PremiumAwareAdService {
     } catch (err: any) {
       console.error('👑 Error checking premium status:', err.message);
       
-      // 🎯 В случае ошибки используем старый кеш если он есть и не очень старый (1 час)
-      if (this.premiumCache && (timestamp - this.lastPremiumCheck) < (60 * 60 * 1000)) {
-        console.log('👑 Using stale cache due to error');
-        return this.premiumCache;
-      }
-      
-      // В крайнем случае возвращаем безопасное значение
+      // 🎯 В случае ошибки возвращаем безопасное значение (БЕЗ премиума)
       const fallbackStatus: PremiumStatus = { 
         hasPremium: false, 
-        reason: 'Error checking premium status' 
+        reason: 'Error checking premium status - fallback to no premium' 
       };
-      
-      this.premiumCache = fallbackStatus;
-      this.lastPremiumCheck = timestamp;
       
       return fallbackStatus;
     }
@@ -151,16 +125,15 @@ class PremiumAwareAdService {
     // Инициализируем базовый адный сервис
     await adService.initialize(blockId);
     
-    // 🎯 НЕ ВЫЗЫВАЕМ ПРОВЕРКУ СТАТУСА ЗДЕСЬ - будет вызвана при необходимости
-    console.log('👑 Premium-aware ad service initialized without status check');
+    console.log('👑 Premium-aware ad service initialized (NO STATUS CHECK)');
   }
 
-  // 🎯 ГЛАВНЫЙ МЕТОД С ОПТИМИЗАЦИЕЙ
-  async showRewardedAd(forceCheck: boolean = false): Promise<PremiumAdResult> {
-    console.log('👑 Attempting to show rewarded ad...');
+  // 🎯 ГЛАВНЫЙ МЕТОД - ВСЕГДА СВЕЖИЕ ДАННЫЕ
+  async showRewardedAd(): Promise<PremiumAdResult> {
+    console.log('👑 Attempting to show rewarded ad (checking fresh status)...');
 
-    // Проверяем премиум статус ТОЛЬКО при необходимости
-    const premiumStatus = await this.checkPremiumStatus(forceCheck);
+    // 🚀 ВСЕГДА ПОЛУЧАЕМ СВЕЖИЙ СТАТУС ПРЕМИУМА
+    const premiumStatus = await this.checkPremiumStatus();
     
     if (premiumStatus.hasPremium) {
       console.log('👑 User has premium - skipping ad');
@@ -178,7 +151,7 @@ class PremiumAwareAdService {
 
     console.log('👑 User does not have premium - showing ad');
     
-    // 🎯 ПОКАЗЫВАЕМ РЕКЛАМУ БЕЗ ДОПОЛНИТЕЛЬНЫХ ЗАДЕРЖЕК
+    // 🎯 ПОКАЗЫВАЕМ РЕКЛАМУ
     const adResult = await adService.showRewardedAd();
     
     return {
@@ -190,83 +163,72 @@ class PremiumAwareAdService {
 
   // 🎯 БЫСТРАЯ ПРОВЕРКА ДОСТУПНОСТИ
   async isAvailable(): Promise<boolean> {
-    // 🎯 СНАЧАЛА ПРОВЕРЯЕМ КЕШ БЕЗ ЗАПРОСОВ К СЕРВЕРУ
-    const cachedStatus = this.getCurrentPremiumStatus();
-    
-    if (cachedStatus.hasPremium && this.isCacheValid()) {
-      console.log('👑 Ad service available (premium user - auto reward from cache)');
-      return true;
+    // 🚀 ПРОВЕРЯЕМ ПРЕМИУМ СТАТУС В РЕАЛЬНОМ ВРЕМЕНИ
+    try {
+      const premiumStatus = await this.checkPremiumStatus();
+      
+      if (premiumStatus.hasPremium) {
+        console.log('👑 Ad service available (premium user - auto reward)');
+        return true;
+      }
+    } catch (err) {
+      console.log('👑 Premium check failed, falling back to ad service check');
     }
     
-    // Если нет премиума в кеше, проверяем обычные рекламные сервисы
+    // Если нет премиума, проверяем обычные рекламные сервисы
     const isAdServiceAvailable = adService.isAvailable();
     console.log(`👑 Ad service available (regular user): ${isAdServiceAvailable}`);
     
     return isAdServiceAvailable;
   }
 
-  // 🎯 ПРОВЕРКА ВАЛИДНОСТИ КЕША
-  private isCacheValid(): boolean {
-    const now = Date.now();
-    return (now - this.lastPremiumCheck) < this.CACHE_DURATION;
-  }
-
-  // 🎯 ПОЛУЧЕНИЕ ИНФОРМАЦИИ О ПРОВАЙДЕРЕ БЕЗ ЗАПРОСОВ
-  getProviderInfo() {
-    const cachedStatus = this.getCurrentPremiumStatus();
-    
-    if (cachedStatus.hasPremium && this.isCacheValid()) {
-      return {
-        name: 'premium',
-        type: cachedStatus.type,
-        daysLeft: cachedStatus.daysLeft,
-        available: true,
-        description: 'Premium user - ads disabled'
-      };
+  // 🎯 ПОЛУЧЕНИЕ ИНФОРМАЦИИ О ПРОВАЙДЕРЕ
+  async getProviderInfo() {
+    try {
+      const premiumStatus = await this.checkPremiumStatus();
+      
+      if (premiumStatus.hasPremium) {
+        return {
+          name: 'premium',
+          type: premiumStatus.type,
+          daysLeft: premiumStatus.daysLeft,
+          available: true,
+          description: 'Premium user - ads disabled'
+        };
+      }
+    } catch (err) {
+      console.log('👑 Premium check failed for provider info');
     }
     
     return adService.getProviderInfo();
   }
 
-  // 🔥 ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ С ЗАЩИТОЙ ОТ ДУБЛИРОВАНИЯ
+  // 🔥 ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ = ОБЫЧНАЯ ПРОВЕРКА (БЕЗ КЕША)
   async refreshPremiumStatus(): Promise<PremiumStatus> {
-    console.log('👑 Force refreshing premium status...');
-    return await this.checkPremiumStatus(true);
+    console.log('👑 Refreshing premium status (same as regular check - no cache)...');
+    return await this.checkPremiumStatus();
   }
 
-  // 🎯 БЫСТРОЕ ПОЛУЧЕНИЕ ТЕКУЩЕГО СТАТУСА БЕЗ ЗАПРОСОВ
-  getCurrentPremiumStatus(): PremiumStatus {
-    return { ...this.premiumCache }; // Возвращаем копию для безопасности
+  // 🎯 ПОЛУЧЕНИЕ ПОСЛЕДНЕГО СТАТУСА (если есть активная проверка)
+  getCurrentPremiumStatus(): PremiumStatus | null {
+    // БЕЗ КЕША - возвращаем null, заставляя делать свежий запрос
+    console.log('👑 No cached status - use refreshPremiumStatus() for fresh data');
+    return null;
   }
 
-  // 🆕 НОВЫЙ МЕТОД - ПРОВЕРКА НУЖНОСТИ ОБНОВЛЕНИЯ СТАТУСА
+  // 🆕 ПРОВЕРКА НУЖНОСТИ ОБНОВЛЕНИЯ (всегда true без кеша)
   shouldRefreshStatus(): boolean {
-    const now = Date.now();
-    const timeSinceLastCheck = now - this.lastPremiumCheck;
-    
-    // Если кеш старше 15 минут или никогда не проверяли
-    return timeSinceLastCheck > this.CACHE_DURATION || this.lastPremiumCheck === 0;
+    return true; // Всегда нужно обновлять без кеша
   }
 
-  // 🆕 ФОНОВОЕ ОБНОВЛЕНИЕ СТАТУСА (НЕ БЛОКИРУЮЩЕЕ)
+  // 🆕 ФОНОВОЕ ОБНОВЛЕНИЕ НЕ НУЖНО БЕЗ КЕША
   backgroundRefresh(): void {
-    if (!this.shouldRefreshStatus() || this.statusCheckPromise) {
-      return; // Не нужно обновлять или уже идет обновление
-    }
-
-    console.log('👑 Starting background status refresh...');
-    
-    // 🎯 ЗАПУСКАЕМ В ФОНЕ, НЕ БЛОКИРУЕМ UI
-    this.checkPremiumStatus(true).catch(err => {
-      console.log('👑 Background refresh failed (non-critical):', err.message);
-    });
+    console.log('👑 Background refresh not needed without cache');
   }
 
-  // 🆕 МЕТОД ДЛЯ ОЧИСТКИ СОСТОЯНИЯ
+  // 🆕 СБРОС СОСТОЯНИЯ
   reset(): void {
     console.log('👑 Resetting premium service state');
-    this.lastPremiumCheck = 0;
-    this.premiumCache = { hasPremium: false, reason: 'Reset' };
     this.statusCheckPromise = null;
   }
 
@@ -275,10 +237,9 @@ class PremiumAwareAdService {
     return {
       telegramId: this.telegramId,
       isInitialized: this.isInitialized,
-      cacheAge: Date.now() - this.lastPremiumCheck,
-      cacheValid: this.isCacheValid(),
       hasActiveRequest: !!this.statusCheckPromise,
-      currentStatus: this.premiumCache
+      cacheStrategy: 'NO_CACHE',
+      description: 'Always fresh data from server'
     };
   }
 }
