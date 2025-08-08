@@ -46,7 +46,8 @@ interface ShopButton {
 }
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-// MainPage.tsx - ЧАСТЬ 2 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 1
+
+// MainPage.tsx - ЧАСТЬ 2 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 2 (С ПЕРЕВОДАМИ)
 
 // 👑 ВЫНЕСЕННЫЙ КОМПОНЕНТ ПРЕМИУМ ПРЕДЛОЖЕНИЯ
 const PremiumOfferModal = React.memo(({ 
@@ -58,6 +59,7 @@ const PremiumOfferModal = React.memo(({
   onClose: () => void; 
   onBuyPremium: () => void; 
 }) => {
+  const { t } = useTranslation(); // 🌍 ДОБАВЛЯЕМ ПЕРЕВОДЫ
   const [isProcessing, setIsProcessing] = useState(false);
 
   // 🔒 ЗАЩИЩЕННЫЕ ОБРАБОТЧИКИ С DEBOUNCE
@@ -66,12 +68,12 @@ const PremiumOfferModal = React.memo(({
     e.stopPropagation();
     
     if (isProcessing) {
-      console.log('👑 Кнопка уже обрабатывается, игнорируем');
+      console.log('Premium button already processing, ignoring');
       return;
     }
     
     setIsProcessing(true);
-    console.log('👑 Кнопка "Купить" нажата');
+    console.log('Premium buy button clicked');
     
     try {
       onClose(); // Сразу закрываем
@@ -88,7 +90,7 @@ const PremiumOfferModal = React.memo(({
     
     if (isProcessing) return;
     
-    console.log('👑 Кнопка "Позже" нажата');
+    console.log('Premium later button clicked');
     onClose();
   }, [isProcessing, onClose]);
 
@@ -121,11 +123,11 @@ const PremiumOfferModal = React.memo(({
         <div style={{ fontSize: '2rem', marginBottom: '15px' }}>👑</div>
         
         <h3 style={{ color: '#FFD700', marginBottom: '15px', fontSize: '1.3rem' }}>
-          Устали от рекламы?
+          {t('premium.tired_of_ads')}
         </h3>
         
         <p style={{ color: '#ccc', marginBottom: '20px', fontSize: '0.9rem' }}>
-          Отключите рекламу и получайте награды автоматически!
+          {t('premium.disable_ads_description')}
         </p>
         
         <div style={{ 
@@ -140,9 +142,11 @@ const PremiumOfferModal = React.memo(({
             borderRadius: '12px',
             border: '1px solid #FFD700'
           }}>
-            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>🚫 Без рекламы на 30 дней</div>
+            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+              🚫 {t('premium.no_ads_30_days')}
+            </div>
             <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
-              150 ⭐ Stars или 1 💎 TON
+              {t('premium.price_30_days')}
             </div>
           </div>
           
@@ -164,14 +168,16 @@ const PremiumOfferModal = React.memo(({
               fontSize: '0.7rem',
               fontWeight: 'bold'
             }}>
-              🏆 ВЫГОДНО
+              🏆 {t('premium.best_offer')}
             </div>
-            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>👑 Без рекламы НАВСЕГДА</div>
+            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+              👑 {t('premium.no_ads_forever')}
+            </div>
             <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
-              1500 ⭐ Stars или 10 💎 TON
+              {t('premium.price_forever')}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#90EE90', marginTop: '3px' }}>
-              💰 Экономия до 90%!
+              💰 {t('premium.savings_info')}
             </div>
           </div>
         </div>
@@ -195,7 +201,7 @@ const PremiumOfferModal = React.memo(({
               opacity: isProcessing ? 0.7 : 1
             }}
           >
-            {isProcessing ? '⏳ Обработка...' : '💳 Купить премиум'}
+            {isProcessing ? t('premium.processing') : t('premium.buy_premium')}
           </button>
           
           <button
@@ -215,7 +221,7 @@ const PremiumOfferModal = React.memo(({
               opacity: isProcessing ? 0.7 : 1
             }}
           >
-            ⏰ Позже
+            ⏰ {t('premium.later')}
           </button>
         </div>
       </div>
@@ -224,6 +230,7 @@ const PremiumOfferModal = React.memo(({
 });
 
 PremiumOfferModal.displayName = 'PremiumOfferModal';
+
 // MainPage.tsx - ЧАСТЬ 3 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 2
 
 const MainPage: React.FC = () => {
@@ -383,7 +390,8 @@ const MainPage: React.FC = () => {
       ]);
     });
   }, [player, currentSystem, getRealCargoCapacity, t]);
-// MainPage.tsx - ЧАСТЬ 5 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 5 (ЧИСТАЯ ВЕРСИЯ)
+
+// MainPage.tsx - ЧАСТЬ 5 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 5 (С ПЕРЕВОДАМИ УВЕДОМЛЕНИЙ)
 
   // 🎯 ОПТИМИЗИРОВАННАЯ ПРОВЕРКА НУЖДЫ В РЕКЛАМЕ
   const needsAdForCollection = useMemo(() => {
@@ -468,7 +476,7 @@ const MainPage: React.FC = () => {
     }
   }, [player?.telegram_id, isCollecting, isWatchingAd, getCurrentValue, currentSystem, needsAdForCollection, addToast, t, performCollection]);
 
-  // 👑 ОБНОВЛЕННАЯ ФУНКЦИЯ РЕКЛАМЫ С ПРЕМИУМОМ
+  // 👑 ОБНОВЛЕННАЯ ФУНКЦИЯ РЕКЛАМЫ С ПРЕМИУМОМ (С ПЕРЕВОДАМИ)
   const handleAdBeforeCollection = useCallback(async () => {
     setIsWatchingAd(true);
     
@@ -478,10 +486,10 @@ const MainPage: React.FC = () => {
       if (adResult.success) {
         if (adResult.skipped) {
           // Премиум пользователь
-          addToast('👑 Премиум награда! Сбор выполняется автоматически.', 'success');
+          addToast(t('premium.auto_reward_message'), 'success');
         } else {
           // Обычная реклама просмотрена
-          addToast('🎯 Реклама просмотрена! Награда получена.', 'success');
+          addToast(t('premium.ad_watched_message'), 'success');
           
           // Проверяем, нужно ли показать предложение премиума
           if (!adResult.premium?.hasPremium) {
@@ -493,15 +501,15 @@ const MainPage: React.FC = () => {
         // 🎯 ВАЖНО: ВСЕГДА ВЫПОЛНЯЕМ СБОР ПОСЛЕ УСПЕШНОЙ РЕКЛАМЫ
         await performCollection();
       } else {
-        addToast('Для сбора ресурсов необходимо просмотреть рекламу до конца', 'warning');
+        addToast(t('premium.ad_required_message'), 'warning');
       }
     } catch (err) {
       console.error('Ad display error:', err);
-      addToast('Ошибка при показе рекламы. Попробуйте еще раз.', 'error');
+      addToast(t('premium.ad_error_message'), 'error');
     } finally {
       setIsWatchingAd(false);
     }
-  }, [addToast, performCollection]);
+  }, [addToast, performCollection, t]);
 
   const handlePurchase = useCallback((type: string) => () => {
     navigate('/shop', { state: { tab: type === 'resources' ? 'asteroid' : type } });
@@ -595,7 +603,7 @@ const MainPage: React.FC = () => {
   const colorStyle = player.color || '#00f0ff';
   const isTonSystem = currentSystem === 5;
   const cargoLevelId = player.cargo_levels.find((c: CargoLevel) => c.system === currentSystem)?.id || 0;
-
+  
 // MainPage.tsx - ЧАСТЬ 6 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 5
 
 return (
