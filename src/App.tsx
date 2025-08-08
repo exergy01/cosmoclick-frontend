@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { TonConnectUIProvider, THEME } from '@tonconnect/ui-react';
 import { AppProvider } from './context/AppProvider';
@@ -29,6 +29,156 @@ const MANIFEST_URL = process.env.NODE_ENV === 'production'
 
 // Конфигурация возврата в приложение
 const TWA_RETURN_URL = 'https://t.me/CosmoClickBot/cosmoclick';
+
+// 📱 КОМПОНЕНТ ПРОВЕРКИ МОБИЛЬНОГО УСТРОЙСТВА И ОРИЕНТАЦИИ
+const MobileRestriction: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isMobile, setIsMobile] = useState(true);
+  const [isPortrait, setIsPortrait] = useState(true);
+  const [showWarning, setShowWarning] = useState(false);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      // Проверка мобильного устройства
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'mobile'];
+      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
+                            window.innerWidth <= 768;
+
+      // Проверка ориентации
+      const isPortraitOrientation = window.innerHeight > window.innerWidth;
+
+      setIsMobile(isMobileDevice);
+      setIsPortrait(isPortraitOrientation);
+      setShowWarning(!isMobileDevice || !isPortraitOrientation);
+    };
+
+    // Проверяем при загрузке
+    checkDevice();
+
+    // Отслеживаем изменения размера окна и ориентации
+    const handleResize = () => checkDevice();
+    const handleOrientationChange = () => {
+      // Небольшая задержка для корректного определения ориентации
+      setTimeout(checkDevice, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, []);
+
+  // Если устройство не мобильное или не вертикальная ориентация
+  if (showWarning) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: '#fff',
+        padding: '20px',
+        boxSizing: 'border-box',
+        textAlign: 'center',
+        zIndex: 9999
+      }}>
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.7)',
+          padding: '30px',
+          borderRadius: '20px',
+          border: '2px solid #00f0ff',
+          boxShadow: '0 0 30px rgba(0, 240, 255, 0.3)',
+          maxWidth: '400px',
+          width: '90%'
+        }}>
+          {!isMobile ? (
+            <>
+              <div style={{ fontSize: '4rem', marginBottom: '20px' }}>📱</div>
+              <h2 style={{ 
+                color: '#00f0ff', 
+                marginBottom: '15px', 
+                textShadow: '0 0 10px #00f0ff' 
+              }}>
+                Только для мобильных устройств
+              </h2>
+              <p style={{ 
+                fontSize: '1.1rem', 
+                lineHeight: '1.5', 
+                marginBottom: '20px',
+                color: '#ccc'
+              }}>
+                CosmoClick разработан специально для мобильных устройств.
+              </p>
+              <p style={{ 
+                fontSize: '1rem', 
+                color: '#ffaa00',
+                fontWeight: 'bold'
+              }}>
+                🚀 Откройте игру на телефоне через Telegram!
+              </p>
+            </>
+          ) : (
+            <>
+              <div style={{ 
+                fontSize: '4rem', 
+                marginBottom: '20px',
+                animation: 'rotate 2s ease-in-out infinite alternate'
+              }}>
+                📲
+              </div>
+              <h2 style={{ 
+                color: '#00f0ff', 
+                marginBottom: '15px', 
+                textShadow: '0 0 10px #00f0ff' 
+              }}>
+                Поверните экран
+              </h2>
+              <p style={{ 
+                fontSize: '1.1rem', 
+                lineHeight: '1.5', 
+                marginBottom: '20px',
+                color: '#ccc'
+              }}>
+                Для лучшего игрового опыта используйте вертикальную ориентацию экрана.
+              </p>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '2rem'
+              }}>
+                <span style={{ transform: 'rotate(90deg)' }}>📱</span>
+                <span style={{ color: '#00f0ff' }}>→</span>
+                <span>📱</span>
+              </div>
+            </>
+          )}
+          
+          <style>
+            {`
+              @keyframes rotate {
+                0% { transform: rotate(-5deg); }
+                100% { transform: rotate(5deg); }
+              }
+            `}
+          </style>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 // Компонент для логики приложения (внутри провайдеров)
 const AppContent: React.FC = () => {
@@ -119,7 +269,10 @@ const App: React.FC = () => {
       }}
     >
       <AppProvider>
-        <AppContent />
+        {/* 📱 ОБОРАЧИВАЕМ ВСЕ ПРИЛОЖЕНИЕ В ПРОВЕРКУ МОБИЛЬНОСТИ */}
+        <MobileRestriction>
+          <AppContent />
+        </MobileRestriction>
       </AppProvider>
     </TonConnectUIProvider>
   );

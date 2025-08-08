@@ -287,6 +287,7 @@ const MainPage: React.FC = () => {
   const removeToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
+
 // MainPage.tsx - ЧАСТЬ 4 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 4 (ЧИСТАЯ ВЕРСИЯ)
 
   // 👑 ОПТИМИЗИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ПРЕМИУМ СЕРВИСА (ТОЛЬКО ОДИН РАЗ)
@@ -604,199 +605,215 @@ const MainPage: React.FC = () => {
   const isTonSystem = currentSystem === 5;
   const cargoLevelId = player.cargo_levels.find((c: CargoLevel) => c.system === currentSystem)?.id || 0;
   
-// MainPage.tsx - ЧАСТЬ 6 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 5
+// MainPage.tsx - ЧАСТЬ 6 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 5 - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 return (
   <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
     backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
     backgroundSize: 'cover',
-    backgroundAttachment: 'fixed',
-    minHeight: '100vh',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
     color: '#fff',
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '10px',
-    position: 'relative'
+    overflow: 'hidden', // Блокируем прокрутку основного контейнера
+    boxSizing: 'border-box'
   }}>
     
-    <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
+    {/* Скроллируемый контент */}
+    <div style={{
+      width: '100%',
+      height: '100%',
+      overflowY: 'auto',
+      padding: '10px',
+      paddingBottom: '130px', // Место для навигации
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+    
+      <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
 
-    {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
-    {premiumStatus?.hasPremium && (
-      <div style={{
-        position: 'fixed',
-        top: '75px',
-        right: '15px',
-        background: 'rgba(255, 215, 0, 0.8)',
-        color: '#000',
-        padding: '4px 8px',
-        borderRadius: '8px',
-        fontSize: '0.7rem',
-        fontWeight: 'bold',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '3px'
-      }}>
-        👑
-        {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
-          <span style={{ fontSize: '0.6rem' }}>
-            {premiumStatus.daysLeft}д
-          </span>
-        )}
-      </div>
-    )}
-
-    <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
-      
-      <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
-        <span onClick={() => setShowSystemDropdown(!showSystemDropdown)} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
-          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-          {systemName}
-        </span>
-        {showSystemDropdown && (
-          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
-            {[1, 2, 3, 4, 5].map(i => {
-              const isUnlocked = player.unlocked_systems?.includes(i);
-              const systemData = { 1: { price: 0, currency: 'cs' }, 2: { price: 150, currency: 'cs' }, 3: { price: 300, currency: 'cs' }, 4: { price: 500, currency: 'cs' }, 5: { price: 15, currency: 'ton' }};
-              const system = systemData[i as keyof typeof systemData];
-              
-              return (
-                <div
-                  key={i}
-                  onClick={() => handleSystemChange(i)}
-                  style={{
-                    padding: '10px 20px',
-                    color: isUnlocked ? '#fff' : '#888',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    transition: 'background 0.3s ease',
-                    borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  {t('system_display_format', { number: i, name: systemNames[i-1] })}
-                  {!isUnlocked && (
-                    <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                      🔒 {system.price} {system.currency.toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {isTonSystem ? (
-        <StakingView
-          player={player}
-          systemId={currentSystem}
-          colorStyle={colorStyle}
-          onSystemChange={setCurrentSystem}
-          onPlayerUpdate={refreshPlayer}
-          onCreateNewStake={handleCreateNewStake}
-        />
-      ) : (
-        <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
-            {shopButtons.map(({ type, count, amount }) => (
-              <button key={type} onClick={handlePurchase(type)} style={{ flex: 1, padding: '8px 5px', background: 'rgba(0, 0, 0, 0.5)', border: `2px solid ${colorStyle}`, borderRadius: '15px', boxShadow: `0 0 10px ${colorStyle}`, color: '#fff', fontSize: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '5px', cursor: 'pointer', transition: 'transform 0.3s ease', boxSizing: 'border-box', height: 'auto' }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-                <span>{t(type)}</span>
-                <span>{count}</span>
-                {amount && <span>{amount}</span>}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '30px' }}>
-            <div
-              style={{
-                position: 'relative',
-                width: '150px',
-                height: '150px',
-                cursor: (isCollecting || isWatchingAd) ? 'wait' : 'pointer',
-                opacity: (isCollecting || isWatchingAd) ? 0.7 : 1
-              }}
-              onClick={handleSafeClick}
-            >
-              <img
-                src="/assets/safe.png"
-                alt={t("safe_alt")}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`,
-                  transition: 'transform 0.3s ease',
-                  transform: (isCollecting || isWatchingAd) ? 'scale(0.95)' : 'scale(1)'
-                }}
-                onMouseEnter={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1.1)')}
-                onMouseLeave={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1)')}
-              />
-              {(isCollecting || isWatchingAd) && (
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  color: colorStyle,
-                  fontSize: '2rem',
-                  animation: 'spin 1s linear infinite'
-                }}>
-                  {isWatchingAd ? (premiumStatus?.hasPremium ? '👑' : '📺') : '⏳'}
-                </div>
-              )}
-            </div>
-            
-            <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
-              {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
-            </p>
-            
-          </div>
-        </>
-      )}
-
-      {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА */}
-      {!adminCheckLoading && isAdmin && (
+      {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
+      {premiumStatus?.hasPremium && (
         <div style={{
-          margin: '30px auto 20px',
-          textAlign: 'center'
+          position: 'fixed',
+          top: '75px',
+          right: '15px',
+          background: 'rgba(255, 215, 0, 0.8)',
+          color: '#000',
+          padding: '4px 8px',
+          borderRadius: '8px',
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '3px'
         }}>
-          <button
-            onClick={() => navigate('/admin')}
-            style={{
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-              color: '#fff',
-              border: 'none',
-              padding: '12px 20px',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              margin: '0 auto'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
-            }}
-          >
-            🔧 Админ панель
-          </button>
+          👑
+          {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
+            <span style={{ fontSize: '0.6rem' }}>
+              {premiumStatus.daysLeft}д
+            </span>
+          )}
         </div>
       )}
+
+      <div style={{ marginTop: '100px', flex: 1 }}>
+        
+        <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
+          <span onClick={() => setShowSystemDropdown(!showSystemDropdown)} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+            {systemName}
+          </span>
+          {showSystemDropdown && (
+            <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
+              {[1, 2, 3, 4, 5].map(i => {
+                const isUnlocked = player.unlocked_systems?.includes(i);
+                const systemData = { 1: { price: 0, currency: 'cs' }, 2: { price: 150, currency: 'cs' }, 3: { price: 300, currency: 'cs' }, 4: { price: 500, currency: 'cs' }, 5: { price: 15, currency: 'ton' }};
+                const system = systemData[i as keyof typeof systemData];
+                
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleSystemChange(i)}
+                    style={{
+                      padding: '10px 20px',
+                      color: isUnlocked ? '#fff' : '#888',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'background 0.3s ease',
+                      borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {t('system_display_format', { number: i, name: systemNames[i-1] })}
+                    {!isUnlocked && (
+                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                        🔒 {system.price} {system.currency.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {isTonSystem ? (
+          <StakingView
+            player={player}
+            systemId={currentSystem}
+            colorStyle={colorStyle}
+            onSystemChange={setCurrentSystem}
+            onPlayerUpdate={refreshPlayer}
+            onCreateNewStake={handleCreateNewStake}
+          />
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
+              {shopButtons.map(({ type, count, amount }) => (
+                <button key={type} onClick={handlePurchase(type)} style={{ flex: 1, padding: '8px 5px', background: 'rgba(0, 0, 0, 0.5)', border: `2px solid ${colorStyle}`, borderRadius: '15px', boxShadow: `0 0 10px ${colorStyle}`, color: '#fff', fontSize: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '5px', cursor: 'pointer', transition: 'transform 0.3s ease', boxSizing: 'border-box', height: 'auto' }}
+                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+                  <span>{t(type)}</span>
+                  <span>{count}</span>
+                  {amount && <span>{amount}</span>}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '30px' }}>
+              <div
+                style={{
+                  position: 'relative',
+                  width: '150px',
+                  height: '150px',
+                  cursor: (isCollecting || isWatchingAd) ? 'wait' : 'pointer',
+                  opacity: (isCollecting || isWatchingAd) ? 0.7 : 1
+                }}
+                onClick={handleSafeClick}
+              >
+                <img
+                  src="/assets/safe.png"
+                  alt={t("safe_alt")}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`,
+                    transition: 'transform 0.3s ease',
+                    transform: (isCollecting || isWatchingAd) ? 'scale(0.95)' : 'scale(1)'
+                  }}
+                  onMouseEnter={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1.1)')}
+                  onMouseLeave={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1)')}
+                />
+                {(isCollecting || isWatchingAd) && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    color: colorStyle,
+                    fontSize: '2rem',
+                    animation: 'spin 1s linear infinite'
+                  }}>
+                    {isWatchingAd ? (premiumStatus?.hasPremium ? '👑' : '📺') : '⏳'}
+                  </div>
+                )}
+              </div>
+              
+              <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
+                {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
+              </p>
+              
+            </div>
+          </>
+        )}
+
+        {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА */}
+        {!adminCheckLoading && isAdmin && (
+          <div style={{
+            margin: '30px auto 20px',
+            textAlign: 'center'
+          }}>
+            <button
+              onClick={() => navigate('/admin')}
+              style={{
+                background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                margin: '0 auto'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
+              }}
+            >
+              🔧 Админ панель
+            </button>
+          </div>
+        )}
+      </div>
     </div>
     
     {/* Контейнер для тостов */}
