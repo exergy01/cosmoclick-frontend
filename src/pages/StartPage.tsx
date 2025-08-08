@@ -21,6 +21,29 @@ const StartPage: React.FC = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
 
+  // Блокировка прокрутки при показе модального окна
+  useEffect(() => {
+    if (showWelcomeModal) {
+      // Сохраняем текущую позицию прокрутки
+      const scrollY = window.scrollY;
+      
+      // Блокируем прокрутку
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Восстанавливаем прокрутку
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [showWelcomeModal]);
+
   useEffect(() => {
     const minDelayTimer = setTimeout(() => setMinDelayElapsed(true), 4000);
     const timeoutTimer = setTimeout(() => setTimeoutElapsed(true), 15000);
@@ -144,13 +167,18 @@ const StartPage: React.FC = () => {
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           height: '100vh',
+          width: '100vw',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-start',
           alignItems: 'center',
           color: '#fff',
           padding: '20px',
-          position: 'relative',
+          position: 'fixed', // Изменено с relative на fixed
+          top: 0,
+          left: 0,
+          overflow: 'hidden', // Предотвращает прокрутку
+          boxSizing: 'border-box',
         }}
       >
         <h1
@@ -162,8 +190,13 @@ const StartPage: React.FC = () => {
             whiteSpace: 'pre-line',
             position: 'absolute',
             top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)', // Центрируем по горизонтали
+            width: 'calc(100% - 40px)', // Учитываем padding
             opacity: dataLoaded ? 1 : 0.7,
-            transition: 'opacity 0.5s ease'
+            transition: 'opacity 0.5s ease',
+            margin: 0,
+            zIndex: 1,
           }}
         >
           {player && player.language ?
@@ -177,7 +210,12 @@ const StartPage: React.FC = () => {
             fontSize: '1.2rem',
             color: '#ff4d4d',
             textShadow: '0 0 10px #ff4d4d',
-            marginTop: '200px',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            zIndex: 1,
           }}>
             {error}
           </p>
@@ -188,7 +226,10 @@ const StartPage: React.FC = () => {
           width: '80%',
           maxWidth: '600px',
           position: 'absolute',
-          bottom: '20px',
+          bottom: '40px', // Увеличил отступ
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1,
         }}>
           <div style={{
             width: '100%',
@@ -204,7 +245,11 @@ const StartPage: React.FC = () => {
               transition: 'width 0.3s ease',
             }} />
           </div>
-          <p style={{ textAlign: 'center', marginTop: '10px' }}>
+          <p style={{ 
+            textAlign: 'center', 
+            marginTop: '10px',
+            fontSize: '14px',
+          }}>
             {dataLoaded ?
               t('loading_complete') || 'Готово!' :
               t('loading') || 'Загрузка...'
@@ -218,55 +263,81 @@ const StartPage: React.FC = () => {
             position: 'fixed',
             top: '0',
             left: '0',
-            width: '100%',
-            height: '100%',
+            width: '100vw',
+            height: '100vh',
             background: 'rgba(0, 0, 0, 0.9)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000,
-            padding: '20px'
+            padding: '20px',
+            boxSizing: 'border-box',
+            overflow: 'hidden', // Блокируем прокрутку модального окна
           }}>
             <div style={{
               background: 'rgba(0, 0, 40, 0.95)',
-              padding: '30px',
+              padding: '20px',
               borderRadius: '20px',
               textAlign: 'center',
               boxShadow: `0 0 30px ${colorStyle}`,
               border: `3px solid ${colorStyle}`,
               maxWidth: '500px',
               width: '90%',
-              maxHeight: '80vh',
-              overflowY: 'auto'
+              maxHeight: '90vh', // Увеличил максимальную высоту
+              overflowY: 'auto', // Скролл только внутри модального окна
+              boxSizing: 'border-box',
             }}>
-              <h2 style={{ color: colorStyle, marginBottom: '20px', fontSize: '24px' }}>
+              <h2 style={{ 
+                color: colorStyle, 
+                marginBottom: '15px', 
+                fontSize: '20px',
+                margin: '0 0 15px 0',
+              }}>
                 🚀 {t('welcome_to_cosmoclick') || 'Добро пожаловать в CosmoClick!'}
               </h2>
 
-              <div style={{ textAlign: 'left', lineHeight: '1.6', fontSize: '16px', marginBottom: '25px' }}>
-                <p style={{ marginBottom: '15px' }}>
+              <div style={{ 
+                textAlign: 'left', 
+                lineHeight: '1.5', 
+                fontSize: '14px', 
+                marginBottom: '20px' 
+              }}>
+                <p style={{ marginBottom: '12px' }}>
                   🌟 <strong>{t('game_description') || 'CosmoClick - это космическая игра-кликер, где вы:'}</strong>
                 </p>
 
-                <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
-                  <li style={{ marginBottom: '8px' }}>🪨 {t('buy_asteroids')}</li>
-                  <li style={{ marginBottom: '8px' }}>🤖 {t('buy_drones')}</li>
-                  <li style={{ marginBottom: '8px' }}>📦 {t('buy_cargo')}</li>
-                  <li style={{ marginBottom: '8px' }}>🌌 {t('unlock_systems')}</li>
-                  <li style={{ marginBottom: '8px' }}>💎 {t('stake_ton')}</li>
+                <ul style={{ 
+                  paddingLeft: '20px', 
+                  marginBottom: '12px',
+                  margin: '0 0 12px 0',
+                }}>
+                  <li style={{ marginBottom: '6px' }}>🪨 {t('buy_asteroids')}</li>
+                  <li style={{ marginBottom: '6px' }}>🤖 {t('buy_drones')}</li>
+                  <li style={{ marginBottom: '6px' }}>📦 {t('buy_cargo')}</li>
+                  <li style={{ marginBottom: '6px' }}>🌌 {t('unlock_systems')}</li>
+                  <li style={{ marginBottom: '6px' }}>💎 {t('stake_ton')}</li>
                 </ul>
 
-                <p style={{ marginBottom: '15px' }}>
+                <p style={{ marginBottom: '12px' }}>
                   💰 <strong>{t('currencies')}:</strong>
                 </p>
 
-                <ul style={{ paddingLeft: '20px', marginBottom: '15px' }}>
-                  <li>🔸 <strong>CCC</strong> - {t('ccc_description')}</li>
-                  <li>🔹 <strong>CS</strong> - {t('cs_description')}</li>
-                  <li>💎 <strong>TON</strong> - {t('ton_description')}</li>
+                <ul style={{ 
+                  paddingLeft: '20px', 
+                  marginBottom: '12px',
+                  margin: '0 0 12px 0',
+                }}>
+                  <li style={{ marginBottom: '4px' }}>🔸 <strong>CCC</strong> - {t('ccc_description')}</li>
+                  <li style={{ marginBottom: '4px' }}>🔹 <strong>CS</strong> - {t('cs_description')}</li>
+                  <li style={{ marginBottom: '4px' }}>💎 <strong>TON</strong> - {t('ton_description')}</li>
                 </ul>
 
-                <p style={{ textAlign: 'center', color: colorStyle, fontWeight: 'bold' }}>
+                <p style={{ 
+                  textAlign: 'center', 
+                  color: colorStyle, 
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                }}>
                   {t('start_journey')}
                 </p>
               </div>
@@ -274,15 +345,16 @@ const StartPage: React.FC = () => {
               <button
                 onClick={handleWelcomeClose}
                 style={{
-                  padding: '15px 30px',
+                  padding: '12px 24px',
                   background: colorStyle,
                   border: 'none',
                   borderRadius: '10px',
                   color: '#000',
                   cursor: 'pointer',
-                  fontSize: '18px',
+                  fontSize: '16px',
                   fontWeight: 'bold',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  margin: 0,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'scale(1.05)';
