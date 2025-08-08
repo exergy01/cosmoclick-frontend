@@ -280,7 +280,7 @@ const MainPage: React.FC = () => {
   const removeToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
-  // MainPage.tsx - ЧАСТЬ 4 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 3
+// MainPage.tsx - ЧАСТЬ 4 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 4 (ЧИСТАЯ ВЕРСИЯ)
 
   // 👑 ОПТИМИЗИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ПРЕМИУМ СЕРВИСА (ТОЛЬКО ОДИН РАЗ)
   useEffect(() => {
@@ -289,8 +289,6 @@ const MainPage: React.FC = () => {
         return;
       }
 
-      console.log('👑 Начинаем ЕДИНСТВЕННУЮ инициализацию премиум сервиса для:', player.telegram_id);
-      
       try {
         premiumInitialized.current = true;
         lastTelegramId.current = player.telegram_id;
@@ -300,24 +298,15 @@ const MainPage: React.FC = () => {
         
         // Инициализируем сервис с Adsgram блоком
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
-        console.log('👑 Инициализируем с блоком:', ADSGRAM_BLOCK_ID);
         
-        const startTime = Date.now();
         await premiumAdService.initialize(ADSGRAM_BLOCK_ID);
-        console.log('👑 Инициализация завершена за:', Date.now() - startTime, 'мс');
         
         // Получаем премиум статус
-        const statusStartTime = Date.now();
         const status = await premiumAdService.refreshPremiumStatus();
-        console.log('👑 Получение статуса заняло:', Date.now() - statusStartTime, 'мс');
-        
         setPremiumStatus(status);
         
-        console.log('👑 Premium service initialized ONCE for:', player.telegram_id);
-        console.log('👑 Premium status:', status);
-        
       } catch (err) {
-        console.error('👑 Ошибка инициализации премиум сервиса:', err);
+        console.error('Premium service initialization failed:', err);
         premiumInitialized.current = false; // Сбрасываем при ошибке
       }
     };
@@ -335,14 +324,11 @@ const MainPage: React.FC = () => {
       }
       
       try {
-        console.log('🔍 Проверяем админский статус для:', player.telegram_id);
         const response = await axios.get(`${API_URL}/api/admin/check/${player.telegram_id}`);
         const adminStatus = response.data.isAdmin;
         
         setIsAdmin(adminStatus);
-        console.log('🔐 Результат проверки админа:', adminStatus);
       } catch (error) {
-        console.log('❌ Ошибка проверки админа:', error);
         setIsAdmin(false);
       } finally {
         setAdminCheckLoading(false);
@@ -397,7 +383,7 @@ const MainPage: React.FC = () => {
       ]);
     });
   }, [player, currentSystem, getRealCargoCapacity, t]);
-  // MainPage.tsx - ЧАСТЬ 5 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 5
+// MainPage.tsx - ЧАСТЬ 5 из 6 - ЗАМЕНИТЬ ПРЕДЫДУЩУЮ ЧАСТЬ 5 (ЧИСТАЯ ВЕРСИЯ)
 
   // 🎯 ОПТИМИЗИРОВАННАЯ ПРОВЕРКА НУЖДЫ В РЕКЛАМЕ
   const needsAdForCollection = useMemo(() => {
@@ -446,10 +432,9 @@ const MainPage: React.FC = () => {
       if (result) {
         resetCleanCounter(currentSystem);
         addToast(`${t('collected')} ${currentValue.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`, 'success');
-        console.log(`✅ Сбор выполнен успешно: ${currentValue.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`);
       }
     } catch (err) {
-      console.error('❌ Ошибка при сборе:', err);
+      console.error('Collection error:', err);
       addToast(t('collection_error', { error: err }), 'error');
     } finally {
       setIsCollecting(false);
@@ -465,11 +450,6 @@ const MainPage: React.FC = () => {
 
   const handleSafeClick = useCallback(async () => {
     if (!player?.telegram_id || isCollecting || isWatchingAd) {
-      console.log('🚫 Сбор заблокирован:', { 
-        hasPlayer: !!player?.telegram_id, 
-        isCollecting, 
-        isWatchingAd 
-      });
       return;
     }
 
@@ -482,10 +462,8 @@ const MainPage: React.FC = () => {
 
     // Проверяем нужна ли реклама
     if (needsAdForCollection) {
-      console.log('🎯 Требуется просмотр рекламы для сбора в системе', currentSystem);
       await handleAdBeforeCollection();
     } else {
-      console.log('🎯 Сбор без рекламы - игрок верифицирован, премиум или система TON');
       await performCollection();
     }
   }, [player?.telegram_id, isCollecting, isWatchingAd, getCurrentValue, currentSystem, needsAdForCollection, addToast, t, performCollection]);
@@ -495,19 +473,14 @@ const MainPage: React.FC = () => {
     setIsWatchingAd(true);
     
     try {
-      console.log('⚡ Показываем рекламу перед сбором...');
-      
       const adResult: PremiumAdResult = await premiumAdService.showRewardedAd();
-      console.log('⚡ Результат рекламы/премиума:', adResult);
       
       if (adResult.success) {
         if (adResult.skipped) {
           // Премиум пользователь
-          console.log('✅ Премиум награда - сбор разрешен');
           addToast('👑 Премиум награда! Сбор выполняется автоматически.', 'success');
         } else {
           // Обычная реклама просмотрена
-          console.log('✅ Реклама просмотрена успешно, выполняем сбор');
           addToast('🎯 Реклама просмотрена! Награда получена.', 'success');
           
           // Проверяем, нужно ли показать предложение премиума
@@ -520,16 +493,15 @@ const MainPage: React.FC = () => {
         // 🎯 ВАЖНО: ВСЕГДА ВЫПОЛНЯЕМ СБОР ПОСЛЕ УСПЕШНОЙ РЕКЛАМЫ
         await performCollection();
       } else {
-        console.log('❌ Реклама не была просмотрена:', adResult.error);
         addToast('Для сбора ресурсов необходимо просмотреть рекламу до конца', 'warning');
       }
     } catch (err) {
-      console.error('❌ Ошибка показа рекламы:', err);
+      console.error('Ad display error:', err);
       addToast('Ошибка при показе рекламы. Попробуйте еще раз.', 'error');
     } finally {
       setIsWatchingAd(false);
     }
-  }, [addToast, performCollection]); // 🎯 ДОБАВИЛИ performCollection в зависимости
+  }, [addToast, performCollection]);
 
   const handlePurchase = useCallback((type: string) => () => {
     navigate('/shop', { state: { tab: type === 'resources' ? 'asteroid' : type } });
@@ -537,7 +509,6 @@ const MainPage: React.FC = () => {
 
   // 🎯 ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ ПРЕМИУМ МОДАЛКИ - ВСЕГДА ВЫПОЛНЯЕМ СБОР
   const handleClosePremiumOffer = useCallback(async () => {
-    console.log('👑 Закрываем премиум предложение и выполняем сбор');
     setShowPremiumOffer(false);
     
     // 🎯 ВЫПОЛНЯЕМ СБОР ДАЖЕ ЕСЛИ НАЖАЛИ "ПОЗЖЕ"
@@ -547,8 +518,6 @@ const MainPage: React.FC = () => {
   }, [performCollection]);
 
   const handleBuyPremium = useCallback(async () => {
-    console.log('👑 Переходим к покупке премиума и выполняем сбор');
-    
     // 🎯 СНАЧАЛА ВЫПОЛНЯЕМ СБОР, ПОТОМ ПЕРЕХОДИМ
     await performCollection();
     
@@ -626,259 +595,260 @@ const MainPage: React.FC = () => {
   const colorStyle = player.color || '#00f0ff';
   const isTonSystem = currentSystem === 5;
   const cargoLevelId = player.cargo_levels.find((c: CargoLevel) => c.system === currentSystem)?.id || 0;
-  // MainPage.tsx - ЧАСТЬ 6 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 5
 
-  return (
-    <div style={{
-      backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
-      backgroundSize: 'cover',
-      backgroundAttachment: 'fixed',
-      minHeight: '100vh',
-      color: '#fff',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '10px',
-      position: 'relative'
-    }}>
-      
-      <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
+// MainPage.tsx - ЧАСТЬ 6 из 6 - ДОБАВИТЬ ПОСЛЕ ЧАСТИ 5
 
-      {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
-      {premiumStatus?.hasPremium && (
-        <div style={{
-          position: 'fixed',
-          top: '75px',
-          right: '15px',
-          background: 'rgba(255, 215, 0, 0.8)',
-          color: '#000',
-          padding: '4px 8px',
-          borderRadius: '8px',
-          fontSize: '0.7rem',
-          fontWeight: 'bold',
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '3px'
-        }}>
-          👑
-          {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
-            <span style={{ fontSize: '0.6rem' }}>
-              {premiumStatus.daysLeft}д
-            </span>
-          )}
-        </div>
-      )}
+return (
+  <div style={{
+    backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
+    backgroundSize: 'cover',
+    backgroundAttachment: 'fixed',
+    minHeight: '100vh',
+    color: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '10px',
+    position: 'relative'
+  }}>
+    
+    <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
 
-      <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
-        
-        <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
-          <span onClick={() => setShowSystemDropdown(!showSystemDropdown)} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
-            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-            {systemName}
+    {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
+    {premiumStatus?.hasPremium && (
+      <div style={{
+        position: 'fixed',
+        top: '75px',
+        right: '15px',
+        background: 'rgba(255, 215, 0, 0.8)',
+        color: '#000',
+        padding: '4px 8px',
+        borderRadius: '8px',
+        fontSize: '0.7rem',
+        fontWeight: 'bold',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px'
+      }}>
+        👑
+        {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
+          <span style={{ fontSize: '0.6rem' }}>
+            {premiumStatus.daysLeft}д
           </span>
-          {showSystemDropdown && (
-            <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
-              {[1, 2, 3, 4, 5].map(i => {
-                const isUnlocked = player.unlocked_systems?.includes(i);
-                const systemData = { 1: { price: 0, currency: 'cs' }, 2: { price: 150, currency: 'cs' }, 3: { price: 300, currency: 'cs' }, 4: { price: 500, currency: 'cs' }, 5: { price: 15, currency: 'ton' }};
-                const system = systemData[i as keyof typeof systemData];
-                
-                return (
-                  <div
-                    key={i}
-                    onClick={() => handleSystemChange(i)}
-                    style={{
-                      padding: '10px 20px',
-                      color: isUnlocked ? '#fff' : '#888',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      transition: 'background 0.3s ease',
-                      borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    {t('system_display_format', { number: i, name: systemNames[i-1] })}
-                    {!isUnlocked && (
-                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                        🔒 {system.price} {system.currency.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {isTonSystem ? (
-          <StakingView
-            player={player}
-            systemId={currentSystem}
-            colorStyle={colorStyle}
-            onSystemChange={setCurrentSystem}
-            onPlayerUpdate={refreshPlayer}
-            onCreateNewStake={handleCreateNewStake}
-          />
-        ) : (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
-              {shopButtons.map(({ type, count, amount }) => (
-                <button key={type} onClick={handlePurchase(type)} style={{ flex: 1, padding: '8px 5px', background: 'rgba(0, 0, 0, 0.5)', border: `2px solid ${colorStyle}`, borderRadius: '15px', boxShadow: `0 0 10px ${colorStyle}`, color: '#fff', fontSize: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '5px', cursor: 'pointer', transition: 'transform 0.3s ease', boxSizing: 'border-box', height: 'auto' }}
-                  onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-                  <span>{t(type)}</span>
-                  <span>{count}</span>
-                  {amount && <span>{amount}</span>}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '30px' }}>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '150px',
-                  height: '150px',
-                  cursor: (isCollecting || isWatchingAd) ? 'wait' : 'pointer',
-                  opacity: (isCollecting || isWatchingAd) ? 0.7 : 1
-                }}
-                onClick={handleSafeClick}
-              >
-                <img
-                  src="/assets/safe.png"
-                  alt={t("safe_alt")}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`,
-                    transition: 'transform 0.3s ease',
-                    transform: (isCollecting || isWatchingAd) ? 'scale(0.95)' : 'scale(1)'
-                  }}
-                  onMouseEnter={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1.1)')}
-                  onMouseLeave={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1)')}
-                />
-                {(isCollecting || isWatchingAd) && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    color: colorStyle,
-                    fontSize: '2rem',
-                    animation: 'spin 1s linear infinite'
-                  }}>
-                    {isWatchingAd ? (premiumStatus?.hasPremium ? '👑' : '📺') : '⏳'}
-                  </div>
-                )}
-              </div>
-              
-              <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
-                {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
-              </p>
-              
-            </div>
-          </>
         )}
+      </div>
+    )}
 
-        {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА */}
-        {!adminCheckLoading && isAdmin && (
-          <div style={{
-            margin: '30px auto 20px',
-            textAlign: 'center'
-          }}>
-            <button
-              onClick={() => navigate('/admin')}
-              style={{
-                background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-                color: '#fff',
-                border: 'none',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                margin: '0 auto'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
-              }}
-            >
-              🔧 Админ панель
-            </button>
+    <div style={{ marginTop: '100px', paddingBottom: '130px' }}>
+      
+      <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
+        <span onClick={() => setShowSystemDropdown(!showSystemDropdown)} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+          {systemName}
+        </span>
+        {showSystemDropdown && (
+          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
+            {[1, 2, 3, 4, 5].map(i => {
+              const isUnlocked = player.unlocked_systems?.includes(i);
+              const systemData = { 1: { price: 0, currency: 'cs' }, 2: { price: 150, currency: 'cs' }, 3: { price: 300, currency: 'cs' }, 4: { price: 500, currency: 'cs' }, 5: { price: 15, currency: 'ton' }};
+              const system = systemData[i as keyof typeof systemData];
+              
+              return (
+                <div
+                  key={i}
+                  onClick={() => handleSystemChange(i)}
+                  style={{
+                    padding: '10px 20px',
+                    color: isUnlocked ? '#fff' : '#888',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'background 0.3s ease',
+                    borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {t('system_display_format', { number: i, name: systemNames[i-1] })}
+                  {!isUnlocked && (
+                    <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                      🔒 {system.price} {system.currency.toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-      
-      {/* Контейнер для тостов */}
-      <div style={{
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 10000,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px'
-      }}>
-        {toasts.map(toast => (
-          <ToastNotification
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            duration={toast.duration}
-            colorStyle={colorStyle}
-          />
-        ))}
-      </div>
 
-      {/* 👑 ОПТИМИЗИРОВАННОЕ ПРЕМИУМ ПРЕДЛОЖЕНИЕ */}
-      <PremiumOfferModal 
-        isVisible={showPremiumOffer}
-        onClose={handleClosePremiumOffer}
-        onBuyPremium={handleBuyPremium}
-      />
-
-      <style>
-        {`
-          @keyframes spin {
-            from { transform: translate(-50%, -50%) rotate(0deg); }
-            to { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-          @keyframes slideInRight {
-            from {
-              opacity: 0;
-              transform: translateX(100%);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
-          }
-        `}
-      </style>
-
-      <NavigationMenu colorStyle={colorStyle} />
-
-      {showUnlockModal && targetSystem && (
-        <SystemUnlockModal
-          systemId={targetSystem}
-          onUnlock={handleUnlockSuccess}
-          onCancel={handleUnlockCancel}
+      {isTonSystem ? (
+        <StakingView
+          player={player}
+          systemId={currentSystem}
+          colorStyle={colorStyle}
+          onSystemChange={setCurrentSystem}
+          onPlayerUpdate={refreshPlayer}
+          onCreateNewStake={handleCreateNewStake}
         />
+      ) : (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
+            {shopButtons.map(({ type, count, amount }) => (
+              <button key={type} onClick={handlePurchase(type)} style={{ flex: 1, padding: '8px 5px', background: 'rgba(0, 0, 0, 0.5)', border: `2px solid ${colorStyle}`, borderRadius: '15px', boxShadow: `0 0 10px ${colorStyle}`, color: '#fff', fontSize: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '5px', cursor: 'pointer', transition: 'transform 0.3s ease', boxSizing: 'border-box', height: 'auto' }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+                <span>{t(type)}</span>
+                <span>{count}</span>
+                {amount && <span>{amount}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', margin: '10px', paddingTop: '30px' }}>
+            <div
+              style={{
+                position: 'relative',
+                width: '150px',
+                height: '150px',
+                cursor: (isCollecting || isWatchingAd) ? 'wait' : 'pointer',
+                opacity: (isCollecting || isWatchingAd) ? 0.7 : 1
+              }}
+              onClick={handleSafeClick}
+            >
+              <img
+                src="/assets/safe.png"
+                alt={t("safe_alt")}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  filter: `drop-shadow(0 0 10px ${colorStyle}) drop-shadow(0 0 20px ${colorStyle})`,
+                  transition: 'transform 0.3s ease',
+                  transform: (isCollecting || isWatchingAd) ? 'scale(0.95)' : 'scale(1)'
+                }}
+                onMouseEnter={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1.1)')}
+                onMouseLeave={e => !(isCollecting || isWatchingAd) && (e.currentTarget.style.transform = 'scale(1)')}
+              />
+              {(isCollecting || isWatchingAd) && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: colorStyle,
+                  fontSize: '2rem',
+                  animation: 'spin 1s linear infinite'
+                }}>
+                  {isWatchingAd ? (premiumStatus?.hasPremium ? '👑' : '📺') : '⏳'}
+                </div>
+              )}
+            </div>
+            
+            <p style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 5px ${colorStyle}`, marginTop: '10px' }}>
+              {getCurrentValue(currentSystem).toFixed(5)} {currentSystem === 4 ? 'CS' : currentSystem === 5 ? 'TON' : 'CCC'}
+            </p>
+            
+          </div>
+        </>
+      )}
+
+      {/* 🔧 БЕЗОПАСНАЯ АДМИНСКАЯ КНОПКА */}
+      {!adminCheckLoading && isAdmin && (
+        <div style={{
+          margin: '30px auto 20px',
+          textAlign: 'center'
+        }}>
+          <button
+            onClick={() => navigate('/admin')}
+            style={{
+              background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+              color: '#fff',
+              border: 'none',
+              padding: '12px 20px',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(255, 107, 107, 0.3)',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              margin: '0 auto'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
+            }}
+          >
+            🔧 Админ панель
+          </button>
+        </div>
       )}
     </div>
-  );
+    
+    {/* Контейнер для тостов */}
+    <div style={{
+      position: 'fixed',
+      top: '20px',
+      right: '20px',
+      zIndex: 10000,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px'
+    }}>
+      {toasts.map(toast => (
+        <ToastNotification
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          duration={toast.duration}
+          colorStyle={colorStyle}
+        />
+      ))}
+    </div>
+
+    {/* 👑 ОПТИМИЗИРОВАННОЕ ПРЕМИУМ ПРЕДЛОЖЕНИЕ */}
+    <PremiumOfferModal 
+      isVisible={showPremiumOffer}
+      onClose={handleClosePremiumOffer}
+      onBuyPremium={handleBuyPremium}
+    />
+
+    <style>
+      {`
+        @keyframes spin {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}
+    </style>
+
+    <NavigationMenu colorStyle={colorStyle} />
+
+    {showUnlockModal && targetSystem && (
+      <SystemUnlockModal
+        systemId={targetSystem}
+        onUnlock={handleUnlockSuccess}
+        onCancel={handleUnlockCancel}
+      />
+    )}
+  </div>
+);
 };
 
 export default MainPage;
