@@ -762,7 +762,6 @@ const AdminPage: React.FC = () => {
             )}
 
             {/* 💰 БЫСТРОЕ УПРАВЛЕНИЕ БАЛАНСОМ */}
-            // ===== ЗАМЕНИТЬ СЕКЦИЮ "💰 БЫСТРОЕ УПРАВЛЕНИЕ" в AdminPage.tsx =====
 
 {/* 💰 БЫСТРОЕ УПРАВЛЕНИЕ */}
 <div style={{
