@@ -1,4 +1,4 @@
-// pages/admin/AdminPage.tsx
+// pages/admin/AdminPage.tsx - ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../context/NewPlayerContext';
@@ -8,6 +8,44 @@ const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
   : 'http://localhost:5000';
 
+interface AdminStats {
+  players: {
+    total_players: number;
+    verified_players: number;
+    active_24h: number;
+    active_7d: number;
+  };
+  currencies: {
+    total_ccc: number;
+    total_cs: number;
+    total_ton: number;
+    total_stars: number;
+  };
+  all_exchanges?: {
+    stars_to_cs?: {
+      total_exchanges: number;
+      exchanges_24h: number;
+    };
+    totals?: {
+      all_exchanges: number;
+      all_exchanges_24h: number;
+    };
+  };
+  minigames?: {
+    total_games: number;
+    active_players: number;
+  };
+  top_players: Array<{
+    telegram_id: string;
+    first_name: string;
+    username: string;
+    cs: number;
+    ccc: number;
+    ton: number;
+    verified: boolean;
+  }>;
+}
+
 const AdminPage: React.FC = () => {
   const { player } = useNewPlayer();
   const navigate = useNavigate();
@@ -15,16 +53,18 @@ const AdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+  
+  // Дополнительные состояния для функций
+  const [testResults, setTestResults] = useState<string[]>([]);
+  const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
 
-  // Простая проверка админа
+  // Проверка админа
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        console.log('🔍 Простая проверка админа...');
-        
         let telegramId = player?.telegram_id;
         
         if (!telegramId) {
@@ -40,11 +80,8 @@ const AdminPage: React.FC = () => {
           return;
         }
         
-        console.log('📱 Проверяем ID:', telegramId);
-        
         if (String(telegramId) === '1222791281') {
           setIsAdmin(true);
-          console.log('✅ Админ подтвержден');
         } else {
           setError('Доступ запрещен - не админ');
           setTimeout(() => navigate('/', { replace: true }), 3000);
@@ -69,9 +106,7 @@ const AdminPage: React.FC = () => {
     setStatsError(null);
     
     try {
-      console.log('📊 Загружаем статистику...');
       const response = await axios.get(`${apiUrl}/api/admin/stats/${player.telegram_id}`);
-      console.log('✅ Статистика загружена:', response.data);
       setStats(response.data);
     } catch (err: any) {
       console.error('❌ Ошибка статистики:', err);
@@ -87,6 +122,143 @@ const AdminPage: React.FC = () => {
       loadStats();
     }
   }, [isAdmin, player]);
+
+  // 🧪 ТЕСТОВЫЕ ФУНКЦИИ
+  const runTest = async (testType: string, data?: any) => {
+    const actionKey = `test_${testType}`;
+    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      let url = '';
+      let payload = {};
+      
+      switch (testType) {
+        case 'daily_summary':
+          url = `${apiUrl}/api/test/daily-summary`;
+          payload = { telegramId: player?.telegram_id, force: true };
+          break;
+        case 'notify_stars':
+          url = `${apiUrl}/api/test/notify-stars`;
+          payload = {
+            telegramId: player?.telegram_id,
+            playerData: { telegram_id: player?.telegram_id, first_name: 'Test Admin' },
+            amount: 100
+          };
+          break;
+        case 'notify_ton':
+          url = `${apiUrl}/api/test/notify-ton`;
+          payload = {
+            telegramId: player?.telegram_id,
+            playerData: { telegram_id: player?.telegram_id, first_name: 'Test Admin' },
+            amount: 5.5,
+            transactionHash: 'test_' + Date.now()
+          };
+          break;
+        case 'notify_withdrawal':
+          url = `${apiUrl}/api/test/notify-withdrawal`;
+          payload = {
+            telegramId: player?.telegram_id,
+            playerData: { telegram_id: player?.telegram_id, first_name: 'Test Admin' },
+            amount: 10.0,
+            withdrawalId: 'test_' + Date.now()
+          };
+          break;
+        case 'simple_message':
+          url = `${apiUrl}/api/test/simple-message`;
+          payload = {
+            telegramId: player?.telegram_id,
+            message: data?.message || '🧪 Тестовое сообщение из админки!'
+          };
+          break;
+      }
+      
+      const response = await axios.post(url, payload);
+      
+      if (response.data.success) {
+        setTestResults(prev => [
+          `✅ ${testType}: ${response.data.message}`,
+          ...prev.slice(0, 9) // Показываем только последние 10
+        ]);
+      } else {
+        setTestResults(prev => [
+          `❌ ${testType}: ${response.data.error}`,
+          ...prev.slice(0, 9)
+        ]);
+      }
+      
+    } catch (err: any) {
+      console.error(`❌ Ошибка теста ${testType}:`, err);
+      setTestResults(prev => [
+        `❌ ${testType}: ${err.response?.data?.error || err.message}`,
+        ...prev.slice(0, 9)
+      ]);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
+    }
+  };
+
+  // 💰 УПРАВЛЕНИЕ БАЛАНСОМ ИГРОКА
+  const updatePlayerBalance = async (playerId: string, currency: string, operation: string, amount: number) => {
+    const actionKey = `balance_${playerId}`;
+    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      const response = await axios.post(`${apiUrl}/api/admin/update-balance/${player?.telegram_id}`, {
+        playerId,
+        currency,
+        operation,
+        amount
+      });
+      
+      if (response.data.success) {
+        setTestResults(prev => [
+          `✅ Баланс обновлен: ${playerId} ${currency} ${operation} ${amount}`,
+          ...prev.slice(0, 9)
+        ]);
+        // Обновляем статистику
+        loadStats();
+      }
+      
+    } catch (err: any) {
+      console.error('❌ Ошибка обновления баланса:', err);
+      setTestResults(prev => [
+        `❌ Баланс: ${err.response?.data?.error || err.message}`,
+        ...prev.slice(0, 9)
+      ]);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
+    }
+  };
+
+  // 🔧 ВЕРИФИКАЦИЯ ИГРОКА
+  const verifyPlayer = async (playerId: string, verified: boolean) => {
+    const actionKey = `verify_${playerId}`;
+    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
+    
+    try {
+      const response = await axios.post(`${apiUrl}/api/admin/verify-player/${player?.telegram_id}`, {
+        playerId,
+        verified
+      });
+      
+      setTestResults(prev => [
+        `✅ Игрок ${playerId} ${verified ? 'верифицирован' : 'лишен верификации'}`,
+        ...prev.slice(0, 9)
+      ]);
+      
+      // Обновляем статистику
+      loadStats();
+      
+    } catch (err: any) {
+      console.error('❌ Ошибка верификации:', err);
+      setTestResults(prev => [
+        `❌ Верификация: ${err.response?.data?.error || err.message}`,
+        ...prev.slice(0, 9)
+      ]);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
+    }
+  };
 
   // Безопасное форматирование чисел
   const safeNumber = (value: any, defaultValue: number = 0): number => {
@@ -200,8 +372,120 @@ const AdminPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Статистика */}
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* 🧪 ТЕСТОВАЯ ПАНЕЛЬ */}
+        <div style={{ marginBottom: '30px' }}>
+          <h2 style={{ color: colorStyle, marginBottom: '20px' }}>🧪 Тестовые уведомления</h2>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px',
+            marginBottom: '20px'
+          }}>
+            <button
+              onClick={() => runTest('daily_summary')}
+              disabled={actionLoading.test_daily_summary}
+              style={{
+                padding: '12px',
+                background: actionLoading.test_daily_summary ? '#666' : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+                border: 'none',
+                borderRadius: '10px',
+                color: '#fff',
+                cursor: actionLoading.test_daily_summary ? 'wait' : 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {actionLoading.test_daily_summary ? '⏳' : '📊'} Ежедневная сводка
+            </button>
+            
+            <button
+              onClick={() => runTest('notify_stars')}
+              disabled={actionLoading.test_notify_stars}
+              style={{
+                padding: '12px',
+                background: actionLoading.test_notify_stars ? '#666' : 'linear-gradient(135deg, #FFD700, #FFA500)',
+                border: 'none',
+                borderRadius: '10px',
+                color: '#000',
+                cursor: actionLoading.test_notify_stars ? 'wait' : 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {actionLoading.test_notify_stars ? '⏳' : '⭐'} Stars уведомление
+            </button>
+            
+            <button
+              onClick={() => runTest('notify_ton')}
+              disabled={actionLoading.test_notify_ton}
+              style={{
+                padding: '12px',
+                background: actionLoading.test_notify_ton ? '#666' : 'linear-gradient(135deg, #0088cc, #004466)',
+                border: 'none',
+                borderRadius: '10px',
+                color: '#fff',
+                cursor: actionLoading.test_notify_ton ? 'wait' : 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {actionLoading.test_notify_ton ? '⏳' : '💎'} TON уведомление
+            </button>
+            
+            <button
+              onClick={() => runTest('notify_withdrawal')}
+              disabled={actionLoading.test_notify_withdrawal}
+              style={{
+                padding: '12px',
+                background: actionLoading.test_notify_withdrawal ? '#666' : 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+                border: 'none',
+                borderRadius: '10px',
+                color: '#fff',
+                cursor: actionLoading.test_notify_withdrawal ? 'wait' : 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {actionLoading.test_notify_withdrawal ? '⏳' : '💸'} Заявка на вывод
+            </button>
+            
+            <button
+              onClick={() => runTest('simple_message', { message: '🎮 Привет из админки CosmoClick!' })}
+              disabled={actionLoading.test_simple_message}
+              style={{
+                padding: '12px',
+                background: actionLoading.test_simple_message ? '#666' : 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                border: 'none',
+                borderRadius: '10px',
+                color: '#fff',
+                cursor: actionLoading.test_simple_message ? 'wait' : 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              {actionLoading.test_simple_message ? '⏳' : '📱'} Простое сообщение
+            </button>
+          </div>
+          
+          {/* Результаты тестов */}
+          {testResults.length > 0 && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: `1px solid ${colorStyle}40`,
+              borderRadius: '10px',
+              padding: '15px',
+              maxHeight: '200px',
+              overflowY: 'auto'
+            }}>
+              <h4 style={{ color: colorStyle, margin: '0 0 10px 0' }}>📋 Результаты тестов:</h4>
+              {testResults.map((result, index) => (
+                <div key={index} style={{ fontSize: '0.9rem', marginBottom: '5px', opacity: 1 - (index * 0.1) }}>
+                  {result}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Статистика */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -306,10 +590,9 @@ const AdminPage: React.FC = () => {
                   💱 Обмены
                 </h3>
                 <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
-                  <div>Stars→CS: <strong>{safeNumber(stats.all_exchanges?.stars_to_cs?.total_exchanges || stats.stars_exchange?.total_exchanges)}</strong></div>
-                  <div>CCC↔CS: <strong style={{ color: '#fff' }}>{safeNumber((stats.all_exchanges?.ccc_cs?.ccc_to_cs_exchanges || 0) + (stats.all_exchanges?.ccc_cs?.cs_to_ccc_exchanges || 0))}</strong></div>
-                  <div>CS↔TON: <strong style={{ color: '#0088cc' }}>{safeNumber((stats.all_exchanges?.cs_ton?.cs_to_ton_exchanges || 0) + (stats.all_exchanges?.cs_ton?.ton_to_cs_exchanges || 0))}</strong></div>
-                  <div>За 24ч: <strong style={{ color: '#FF9800' }}>{safeNumber(stats.all_exchanges?.totals?.all_exchanges_24h || stats.stars_exchange?.exchanges_24h)}</strong></div>
+                  <div>Stars→CS: <strong>{safeNumber(stats.all_exchanges?.stars_to_cs?.total_exchanges)}</strong></div>
+                  <div>Всего обменов: <strong style={{ color: '#fff' }}>{safeNumber(stats.all_exchanges?.totals?.all_exchanges)}</strong></div>
+                  <div>За 24ч: <strong style={{ color: '#FF9800' }}>{safeNumber(stats.all_exchanges?.totals?.all_exchanges_24h)}</strong></div>
                 </div>
               </div>
 
@@ -326,8 +609,6 @@ const AdminPage: React.FC = () => {
                 <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
                   <div>Игр сыграно: <strong style={{ color: '#FF6B35' }}>{safeNumber(stats.minigames?.total_games)}</strong></div>
                   <div>Активных игроков: <strong style={{ color: '#4ECDC4' }}>{safeNumber(stats.minigames?.active_players)}</strong></div>
-                  <div>Ставок на: <strong style={{ color: '#45B7D1' }}>{safeNumber(stats.minigames?.total_bet)}</strong></div>
-                  <div>Выиграно: <strong style={{ color: '#96CEB4' }}>{safeNumber(stats.minigames?.total_won)}</strong></div>
                 </div>
               </div>
             </div>
@@ -368,10 +649,11 @@ const AdminPage: React.FC = () => {
                         <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle, fontWeight: 'bold' }}>CCC</th>
                         <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle, fontWeight: 'bold' }}>TON</th>
                         <th style={{ padding: '12px 8px', textAlign: 'center', color: colorStyle, fontWeight: 'bold' }}>Статус</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'center', color: colorStyle, fontWeight: 'bold' }}>Действия</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {stats.top_players.map((topPlayer: any, index: number) => (
+                      {stats.top_players.map((topPlayer, index) => (
                         <tr key={topPlayer.telegram_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                           <td style={{ padding: '12px 8px' }}>
                             <div style={{
@@ -402,7 +684,11 @@ const AdminPage: React.FC = () => {
                             </div>
                           </td>
                           <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                            <div style={{ color: '#FFD700', fontWeight: 'bold', fontSize: '1rem' }}>
+                            <div style={{ 
+                              color: '#FFD700', 
+                              fontWeight: 'bold', 
+                              fontSize: '1rem'
+                            }}>
                               {safeNumber(topPlayer.cs).toFixed(2)}
                             </div>
                           </td>
@@ -412,16 +698,60 @@ const AdminPage: React.FC = () => {
                             </div>
                           </td>
                           <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                            <div style={{ color: '#0088cc', fontWeight: 'bold' }}>
+                            <div style={{ 
+                              color: '#0088cc', 
+                              fontWeight: 'bold'
+                            }}>
                               {safeNumber(topPlayer.ton).toFixed(4)}
                             </div>
                           </td>
                           <td style={{ padding: '12px 8px', textAlign: 'center' }}>
                             {topPlayer.verified ? (
-                              <span style={{ color: '#4CAF50', fontSize: '1.2rem' }}>✅</span>
+                              <span style={{ 
+                                color: '#4CAF50', 
+                                fontSize: '1.2rem'
+                              }}>✅</span>
                             ) : (
-                              <span style={{ color: '#FF5722', fontSize: '1.2rem' }}>❌</span>
+                              <span style={{ 
+                                color: '#FF5722', 
+                                fontSize: '1.2rem'
+                              }}>❌</span>
                             )}
+                          </td>
+                          <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => verifyPlayer(topPlayer.telegram_id, !topPlayer.verified)}
+                                disabled={actionLoading[`verify_${topPlayer.telegram_id}`]}
+                                style={{
+                                  padding: '4px 8px',
+                                  background: topPlayer.verified ? '#ff6b6b' : '#4CAF50',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  color: '#fff',
+                                  cursor: actionLoading[`verify_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
+                                  fontSize: '0.7rem'
+                                }}
+                              >
+                                {actionLoading[`verify_${topPlayer.telegram_id}`] ? '⏳' : (topPlayer.verified ? '❌' : '✅')}
+                              </button>
+                              
+                              <button
+                                onClick={() => updatePlayerBalance(topPlayer.telegram_id, 'cs', 'add', 100)}
+                                disabled={actionLoading[`balance_${topPlayer.telegram_id}`]}
+                                style={{
+                                  padding: '4px 8px',
+                                  background: '#FFD700',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  color: '#000',
+                                  cursor: actionLoading[`balance_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
+                                  fontSize: '0.7rem'
+                                }}
+                              >
+                                {actionLoading[`balance_${topPlayer.telegram_id}`] ? '⏳' : '+100 CS'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -430,6 +760,93 @@ const AdminPage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* 💰 БЫСТРОЕ УПРАВЛЕНИЕ БАЛАНСОМ */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: `1px solid ${colorStyle}40`,
+              borderRadius: '15px',
+              padding: '25px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ color: colorStyle, marginTop: 0, marginBottom: '20px' }}>
+                💰 Быстрое управление
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                <button
+                  onClick={() => {
+                    const playerId = prompt('ID игрока:');
+                    if (playerId) updatePlayerBalance(playerId, 'cs', 'add', 1000);
+                  }}
+                  style={{
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    color: '#000',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  💰 Добавить 1000 CS
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const playerId = prompt('ID игрока:');
+                    if (playerId) updatePlayerBalance(playerId, 'ton', 'add', 5);
+                  }}
+                  style={{
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #0088cc, #004466)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  💎 Добавить 5 TON
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const playerId = prompt('ID игрока для верификации:');
+                    if (playerId) verifyPlayer(playerId, true);
+                  }}
+                  style={{
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  ✅ Верифицировать игрока
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const message = prompt('Сообщение админу:') || 'Тестовое сообщение';
+                    runTest('simple_message', { message });
+                  }}
+                  style={{
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  📱 Отправить сообщение
+                </button>
+              </div>
+            </div>
 
             {/* Информация об обновлении */}
             <div style={{
