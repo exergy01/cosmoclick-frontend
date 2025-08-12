@@ -762,91 +762,219 @@ const AdminPage: React.FC = () => {
             )}
 
             {/* 💰 БЫСТРОЕ УПРАВЛЕНИЕ БАЛАНСОМ */}
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${colorStyle}40`,
-              borderRadius: '15px',
-              padding: '25px',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{ color: colorStyle, marginTop: 0, marginBottom: '20px' }}>
-                💰 Быстрое управление
-              </h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                <button
-                  onClick={() => {
-                    const playerId = prompt('ID игрока:');
-                    if (playerId) updatePlayerBalance(playerId, 'cs', 'add', 1000);
-                  }}
-                  style={{
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    color: '#000',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  💰 Добавить 1000 CS
-                </button>
-                
-                <button
-                  onClick={() => {
-                    const playerId = prompt('ID игрока:');
-                    if (playerId) updatePlayerBalance(playerId, 'ton', 'add', 5);
-                  }}
-                  style={{
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #0088cc, #004466)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  💎 Добавить 5 TON
-                </button>
-                
-                <button
-                  onClick={() => {
-                    const playerId = prompt('ID игрока для верификации:');
-                    if (playerId) verifyPlayer(playerId, true);
-                  }}
-                  style={{
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #4CAF50, #45a049)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  ✅ Верифицировать игрока
-                </button>
-                
-                <button
-                  onClick={() => {
-                    const message = prompt('Сообщение админу:') || 'Тестовое сообщение';
-                    runTest('simple_message', { message });
-                  }}
-                  style={{
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  📱 Отправить сообщение
-                </button>
-              </div>
-            </div>
+            // ===== ЗАМЕНИТЬ СЕКЦИЮ "💰 БЫСТРОЕ УПРАВЛЕНИЕ" в AdminPage.tsx =====
+
+{/* 💰 БЫСТРОЕ УПРАВЛЕНИЕ */}
+<div style={{
+  background: 'rgba(255, 255, 255, 0.05)',
+  border: `1px solid ${colorStyle}40`,
+  borderRadius: '15px',
+  padding: '25px',
+  marginBottom: '20px'
+}}>
+  <h3 style={{ color: colorStyle, marginTop: 0, marginBottom: '20px' }}>
+    💰 Быстрое управление
+  </h3>
+  
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+    {/* Добавить CS */}
+    <button
+      onClick={() => {
+        const playerId = prompt('ID игрока:');
+        if (playerId) updatePlayerBalance(playerId, 'cs', 'add', 1000);
+      }}
+      style={{
+        padding: '12px',
+        background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        border: 'none',
+        borderRadius: '10px',
+        color: '#000',
+        cursor: 'pointer',
+        fontSize: '0.9rem'
+      }}
+    >
+      💰 Добавить 1000 CS
+    </button>
+    
+    {/* Добавить TON */}
+    <button
+      onClick={() => {
+        const playerId = prompt('ID игрока:');
+        if (playerId) updatePlayerBalance(playerId, 'ton', 'add', 5);
+      }}
+      style={{
+        padding: '12px',
+        background: 'linear-gradient(135deg, #0088cc, #004466)',
+        border: 'none',
+        borderRadius: '10px',
+        color: '#fff',
+        cursor: 'pointer',
+        fontSize: '0.9rem'
+      }}
+    >
+      💎 Добавить 5 TON
+    </button>
+    
+    {/* Верифицировать игрока */}
+    <button
+      onClick={() => {
+        const playerId = prompt('ID игрока для верификации:');
+        if (playerId) verifyPlayer(playerId, true);
+      }}
+      style={{
+        padding: '12px',
+        background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+        border: 'none',
+        borderRadius: '10px',
+        color: '#fff',
+        cursor: 'pointer',
+        fontSize: '0.9rem'
+      }}
+    >
+      ✅ Верифицировать игрока
+    </button>
+    
+    {/* НОВОЕ: Отправить сообщение игроку */}
+    <button
+      onClick={async () => {
+        const playerId = prompt('ID игрока для отправки сообщения:');
+        if (!playerId?.trim()) return;
+        
+        const message = prompt('Текст сообщения игроку:');
+        if (!message?.trim()) return;
+        
+        const actionKey = `message_${playerId}`;
+        setActionLoading(prev => ({ ...prev, [actionKey]: true }));
+        
+        try {
+          const response = await axios.post(`${apiUrl}/api/admin/send-message/${player?.telegram_id}`, {
+            playerId: playerId.trim(),
+            message: message.trim()
+          });
+          
+          if (response.data.success) {
+            setTestResults(prev => [
+              `✅ Сообщение отправлено игроку ${playerId} (${response.data.player?.first_name || 'Unknown'})`,
+              ...prev.slice(0, 9)
+            ]);
+          } else {
+            setTestResults(prev => [
+              `❌ Ошибка отправки сообщения: ${response.data.error}`,
+              ...prev.slice(0, 9)
+            ]);
+          }
+        } catch (err: any) {
+          console.error('❌ Ошибка отправки сообщения:', err);
+          setTestResults(prev => [
+            `❌ Сообщение: ${err.response?.data?.error || err.message}`,
+            ...prev.slice(0, 9)
+          ]);
+        } finally {
+          setActionLoading(prev => ({ ...prev, [actionKey]: false }));
+        }
+      }}
+      disabled={actionLoading.message_individual}
+      style={{
+        padding: '12px',
+        background: actionLoading.message_individual 
+          ? '#666' 
+          : 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+        border: 'none',
+        borderRadius: '10px',
+        color: '#fff',
+        cursor: actionLoading.message_individual ? 'wait' : 'pointer',
+        fontSize: '0.9rem'
+      }}
+    >
+      {actionLoading.message_individual ? '⏳' : '📱'} Сообщение игроку
+    </button>
+    
+    {/* НОВОЕ: Рассылка всем */}
+    <button
+      onClick={async () => {
+        const message = prompt('Текст для рассылки всем игрокам:');
+        if (!message?.trim()) return;
+        
+        const onlyVerified = confirm('Отправить только верифицированным игрокам?\n\nОК = только верифицированным\nОтмена = всем игрокам');
+        
+        if (!confirm(`Вы уверены, что хотите отправить рассылку ${onlyVerified ? 'верифицированным' : 'всем'} игрокам?\n\nТекст: "${message.slice(0, 50)}${message.length > 50 ? '...' : ''}"`)) {
+          return;
+        }
+        
+        const actionKey = 'broadcast_message';
+        setActionLoading(prev => ({ ...prev, [actionKey]: true }));
+        
+        try {
+          const response = await axios.post(`${apiUrl}/api/admin/broadcast-message/${player?.telegram_id}`, {
+            message: message.trim(),
+            onlyVerified: onlyVerified
+          });
+          
+          if (response.data.success) {
+            const stats = response.data.statistics;
+            setTestResults(prev => [
+              `✅ Рассылка завершена: отправлено ${stats.sent_count}/${stats.total_players} (${stats.success_rate}%)`,
+              ...prev.slice(0, 9)
+            ]);
+            
+            if (stats.error_count > 0) {
+              setTestResults(prev => [
+                `⚠️ Ошибок при рассылке: ${stats.error_count}`,
+                ...prev.slice(0, 9)
+              ]);
+            }
+          } else {
+            setTestResults(prev => [
+              `❌ Ошибка рассылки: ${response.data.error}`,
+              ...prev.slice(0, 9)
+            ]);
+          }
+        } catch (err: any) {
+          console.error('❌ Ошибка рассылки:', err);
+          setTestResults(prev => [
+            `❌ Рассылка: ${err.response?.data?.error || err.message}`,
+            ...prev.slice(0, 9)
+          ]);
+        } finally {
+          setActionLoading(prev => ({ ...prev, [actionKey]: false }));
+        }
+      }}
+      disabled={actionLoading.broadcast_message}
+      style={{
+        padding: '12px',
+        background: actionLoading.broadcast_message 
+          ? '#666' 
+          : 'linear-gradient(135deg, #e74c3c, #c0392b)',
+        border: 'none',
+        borderRadius: '10px',
+        color: '#fff',
+        cursor: actionLoading.broadcast_message ? 'wait' : 'pointer',
+        fontSize: '0.9rem'
+      }}
+    >
+      {actionLoading.broadcast_message ? '⏳' : '📢'} Рассылка всем
+    </button>
+    
+    {/* Кнопка тестового сообщения админу (оставляем для отладки) */}
+    <button
+      onClick={() => {
+        const message = prompt('Тестовое сообщение себе (для отладки):') || 'Тестовое сообщение админу';
+        runTest('simple_message', { message });
+      }}
+      style={{
+        padding: '12px',
+        background: 'linear-gradient(135deg, #34495e, #2c3e50)',
+        border: 'none',
+        borderRadius: '10px',
+        color: '#fff',
+        cursor: 'pointer',
+        fontSize: '0.9rem'
+      }}
+    >
+      🧪 Тест (себе)
+    </button>
+  </div>
+</div>
 
             {/* Информация об обновлении */}
             <div style={{
