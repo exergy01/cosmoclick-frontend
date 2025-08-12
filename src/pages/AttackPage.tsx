@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePlayer } from '../context/PlayerContext';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,34 @@ const AttackPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [totalPerHour, setTotalPerHour] = useState({ totalCccPerHour: 0, totalCsPerHour: 0 });
+
+  // 💡 НОВЫЙ КОД: Состояние для отслеживания кликов
+  const [clickCount, setClickCount] = useState(0);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTournamentsClick = () => {
+    setClickCount(prevCount => prevCount + 1);
+
+    // Сброс счетчика, если новый клик не последовал в течение 500ms
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    clickTimeoutRef.current = setTimeout(() => {
+      setClickCount(0);
+    }, 500);
+  };
+
+  useEffect(() => {
+    if (clickCount >= 5) {
+      setClickCount(0);
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+      // 💡 НОВЫЙ КОД: Заглушка для роута
+      console.log("Secret function triggered! Redirecting to /pvp");
+      navigate('/pvp'); 
+    }
+  }, [clickCount, navigate]);
 
   const calculateTotalPerHour = useCallback(async () => {
     if (!player || !player.drones || !player.telegram_id) return { ccc: 0, cs: 0, ton: 0 };
@@ -50,28 +78,26 @@ const AttackPage: React.FC = () => {
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
-        padding: '10px', // Базовый отступ
+        padding: '10px',
         position: 'relative',
-        boxSizing: 'border-box', // Убедимся, что padding не добавляет ширину
+        boxSizing: 'border-box',
       }}
     >
-      {/* Верхняя панель с валютами */}
       <CurrencyPanel 
         player={player}
         currentSystem={currentSystem}
         colorStyle={colorStyle}
       />
 
-      {/* Основной контент */}
       <div style={{ 
         marginTop: '80px', 
         paddingBottom: '130px',
-        flexGrow: 1, // Позволяет контенту занимать доступное пространство
+        flexGrow: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center', // Центрирование по вертикали
-        paddingLeft: '20px', // Дополнительные горизонтальные отступы
+        justifyContent: 'center',
+        paddingLeft: '20px',
         paddingRight: '20px',
         boxSizing: 'border-box',
       }}>
@@ -82,41 +108,41 @@ const AttackPage: React.FC = () => {
             fontSize: '2rem', 
             marginBottom: '30px',
             textAlign: 'center',
-            fontWeight: 'bold', // Стилизация как в ExchangePage
+            fontWeight: 'bold',
           }}>
-            ⚔️ {t('attack')}
+            ⚔️ {t('attack_page.attack')}
           </h2>
           
           <div style={{
             background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(10px)', // Добавлено как в ExchangePage
-            border: `2px solid ${colorStyle}30`, // Менее яркая рамка по умолчанию
+            backdropFilter: 'blur(10px)',
+            border: `2px solid ${colorStyle}30`,
             borderRadius: '20px',
-            padding: '40px 20px', // Адаптивный padding
+            padding: '40px 20px',
             textAlign: 'center',
             boxShadow: `0 0 30px ${colorStyle}30`,
             maxWidth: '400px',
             width: '100%',
-            boxSizing: 'border-box', // Важно для адаптивности
+            boxSizing: 'border-box',
           }}>
             <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🚧</div>
             <h3 style={{ 
               color: colorStyle, 
               marginBottom: '15px', 
               fontSize: '1.5rem',
-              fontWeight: 'bold', // Стилизация как в ExchangePage
+              fontWeight: 'bold',
             }}>
-              {t('under_construction')}
+              {t('attack_page.under_construction')}
             </h3>
             <p style={{ 
               color: '#ccc', 
               lineHeight: '1.6',
               fontSize: '1rem',
-              maxWidth: '300px', // Ограничение ширины текста для читаемости
-              margin: '0 auto 20px auto', // Центрирование и отступ
+              maxWidth: '300px',
+              margin: '0 auto 20px auto',
             }}>
-              Режим атак находится в разработке.<br/>
-              Скоро здесь появятся эпические космические сражения!
+              {t('attack_page.attack_page_text_1')}<br/>
+              {t('attack_page.attack_page_text_2')}
             </p>
             
             <div style={{ 
@@ -125,15 +151,15 @@ const AttackPage: React.FC = () => {
               background: 'rgba(255, 255, 255, 0.05)',
               borderRadius: '10px',
               border: `1px solid ${colorStyle}50`,
-              textAlign: 'left', // Выравнивание списка влево
+              textAlign: 'left',
             }}>
               <p style={{ 
                 color: colorStyle, 
                 fontWeight: 'bold', 
                 marginBottom: '10px',
-                textAlign: 'center', // Заголовок по центру
+                textAlign: 'center',
               }}>
-                🌟 Ожидайте в будущих обновлениях:
+                {t('attack_page.future_updates_title')}
               </p>
               <ul style={{ 
                 textAlign: 'left', 
@@ -143,20 +169,20 @@ const AttackPage: React.FC = () => {
                 padding: 0,
                 margin: 0,
               }}>
-                <li>🚀 PvE сражения между игроком и ботами</li>
-                <li>🚀 PvP сражения между игроками</li>
-                <li>🛡️ Защита своих ресурсов</li>
-                <li>🏆 Рейтинговая система</li>
-                <li>⚡ Специальные боевые корабли и модули</li>
-                <li>💥 Копите CS для покупок и улушений в космических баталиях</li>
-                <li>🌟 А как Вам турниры? Будут обязательно!</li>
+                <li>{t('attack_page.pve_battles')}</li>
+                <li>{t('attack_page.pvp_battles')}</li>
+                <li>{t('attack_page.resource_protection')}</li>
+                <li>{t('attack_page.rating_system')}</li>
+                <li>{t('attack_page.special_ships')}</li>
+                <li>{t('attack_page.collect_cs_for_battles')}</li>
+                {/* 💡 НОВЫЙ КОД: Элемент с обработчиком кликов, но без визуальных изменений */}
+                <li onClick={handleTournamentsClick}>{t('attack_page.tournaments')}</li>
               </ul>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Нижняя навигация */}
       <NavigationMenu colorStyle={colorStyle} />
     </div>
   );
