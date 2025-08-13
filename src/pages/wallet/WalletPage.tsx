@@ -448,8 +448,8 @@ return (
             textAlign: 'center'
           }}>
             ✅ {success}
-            {/* Показываем адрес кошелька только если кошелек уже подключен */}
-            {success.includes('уже подключен') && player?.telegram_wallet && (
+            {/* Показываем адрес кошелька если кошелек подключен (любое сообщение о подключении) */}
+            {(success.includes('подключен') || success.includes('connected')) && player?.telegram_wallet && (
               <div style={{ 
                 marginTop: '8px',
                 fontSize: '0.8rem',
@@ -461,7 +461,7 @@ return (
             )}
           </div>
         )}
-        
+                
                   {/* Основной блок кошелька */}
 {/* Основной блок кошелька */}
 <div style={{ 
