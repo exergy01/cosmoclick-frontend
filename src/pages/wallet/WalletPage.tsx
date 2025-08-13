@@ -463,7 +463,8 @@ return (
         )}
         
                   {/* Основной блок кошелька */}
-          <div style={{ 
+{/* Основной блок кошелька */}
+<div style={{ 
             margin: '20px 0', 
             padding: '25px', 
             background: 'rgba(0, 0, 0, 0.3)', 
@@ -518,10 +519,12 @@ return (
               </div>
             </div>
             
-            {/* Кнопка подключения TON Connect */}
-            <div style={{ marginBottom: '20px' }}>
-              <TonConnectButton />
-            </div>
+            {/* Кнопка подключения TON Connect - показываем только если кошелек НЕ подключен */}
+            {!wallet && !userAddress && (
+              <div style={{ marginBottom: '20px' }}>
+                <TonConnectButton />
+              </div>
+            )}
 
             {/* Кнопки действий */}
             {wallet && userAddress && (
@@ -599,7 +602,8 @@ return (
               </div>
             )}
           </div>
-{/* ПРЕМИУМ БЛОК С ДВУМЯ ПРЕДЛОЖЕНИЯМИ */}
+          
+          {/* ПРЕМИУМ БЛОК С ДВУМЯ ПРЕДЛОЖЕНИЯМИ */}
 {!premiumStatus?.forever && (
             <div style={{ 
               margin: '20px 0', 
@@ -653,7 +657,7 @@ return (
                               : 'rgba(128, 128, 128, 0.3)',
                             border: 'none',
                             borderRadius: '8px',
-                            color: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars ? '#000' : '#fff',
+                            color: '#fff',
                             cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 'not-allowed' : 'pointer',
                             fontWeight: 'bold',
                             fontSize: '0.8rem',
@@ -672,7 +676,7 @@ return (
                               : 'rgba(128, 128, 128, 0.3)',
                             border: 'none',
                             borderRadius: '8px',
-                            color: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? '#000' : '#fff',
+                            color: '#fff',
                             cursor: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? 'not-allowed' : 'pointer',
                             fontWeight: 'bold',
                             fontSize: '0.8rem',
@@ -740,7 +744,7 @@ return (
                             : 'rgba(128, 128, 128, 0.3)',
                           border: 'none',
                           borderRadius: '8px',
-                          color: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars ? '#000' : '#fff',
+                          color: '#fff',
                           cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
                           fontSize: '0.9rem',
@@ -762,7 +766,7 @@ return (
                             : 'rgba(128, 128, 128, 0.3)',
                           border: 'none',
                           borderRadius: '8px',
-                          color: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.ton) ? '#000' : '#fff',
+                          color: '#fff',
                           cursor: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton) ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
                           fontSize: '0.9rem',
@@ -786,7 +790,7 @@ return (
           )}
         </div>
       </div>
-      
+
             {/* Модалка вывода TON */}
       {showWithdrawModal && (
         <div style={{
