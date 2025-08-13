@@ -60,7 +60,7 @@ const AdminPage: React.FC = () => {
   const [statsError, setStatsError] = useState<string | null>(null);
   
   // Дополнительные состояния для функций
-  const [testResults, setTestResults] = useState<string[]>([]);
+  const [actionResults, setActionResults] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
 
   // Проверка админа
@@ -124,112 +124,6 @@ const AdminPage: React.FC = () => {
       loadStats();
     }
   }, [isAdmin, player]);
-
-  // 🧪 ТЕСТОВЫЕ ФУНКЦИИ
-  const runTest = async (testType: string, data?: any) => {
-    const actionKey = `test_${testType}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      let url = '';
-      let payload = {};
-      
-      switch (testType) {
-        case 'daily_summary':
-          url = `${apiUrl}/api/test/daily-summary`;
-          payload = { telegramId: player?.telegram_id, force: true };
-          break;
-        case 'notify_stars':
-          url = `${apiUrl}/api/test/notify-stars`;
-          payload = {
-            telegramId: player?.telegram_id,
-            playerData: { telegram_id: player?.telegram_id, first_name: 'Test Admin' },
-            amount: 100
-          };
-          break;
-        case 'notify_ton':
-          url = `${apiUrl}/api/test/notify-ton`;
-          payload = {
-            telegramId: player?.telegram_id,
-            playerData: { telegram_id: player?.telegram_id, first_name: 'Test Admin' },
-            amount: 5.5,
-            transactionHash: 'test_' + Date.now()
-          };
-          break;
-        case 'notify_withdrawal':
-          url = `${apiUrl}/api/test/notify-withdrawal`;
-          payload = {
-            telegramId: player?.telegram_id,
-            playerData: { telegram_id: player?.telegram_id, first_name: 'Test Admin' },
-            amount: 10.0,
-            withdrawalId: 'test_' + Date.now()
-          };
-          break;
-        case 'simple_message':
-          url = `${apiUrl}/api/test/simple-message`;
-          payload = {
-            telegramId: player?.telegram_id,
-            message: data?.message || '🧪 Тестовое сообщение из админки!'
-          };
-          break;
-      }
-      
-      const response = await axios.post(url, payload);
-      
-      if (response.data.success) {
-        setTestResults(prev => [
-          `✅ ${testType}: ${response.data.message}`,
-          ...prev.slice(0, 9)
-        ]);
-      } else {
-        setTestResults(prev => [
-          `❌ ${testType}: ${response.data.error}`,
-          ...prev.slice(0, 9)
-        ]);
-      }
-      
-    } catch (err: any) {
-      console.error(`❌ Ошибка теста ${testType}:`, err);
-      setTestResults(prev => [
-        `❌ ${testType}: ${err.response?.data?.error || err.message}`,
-        ...prev.slice(0, 9)
-      ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
-    }
-  };
-  // 💰 УПРАВЛЕНИЕ БАЛАНСОМ ИГРОКА
-  const updatePlayerBalance = async (playerId: string, currency: string, operation: string, amount: number) => {
-    const actionKey = `balance_${playerId}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      const response = await axios.post(`${apiUrl}/api/admin/update-balance/${player?.telegram_id}`, {
-        playerId,
-        currency,
-        operation,
-        amount
-      });
-      
-      if (response.data.success) {
-        setTestResults(prev => [
-          `✅ Баланс обновлен: ${playerId} ${currency} ${operation} ${amount}`,
-          ...prev.slice(0, 9)
-        ]);
-        loadStats();
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка обновления баланса:', err);
-      setTestResults(prev => [
-        `❌ Баланс: ${err.response?.data?.error || err.message}`,
-        ...prev.slice(0, 9)
-      ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
-    }
-  };
-
   // 🏆 НОВЫЕ ФУНКЦИИ УПРАВЛЕНИЯ ПРЕМИУМОМ
   
   // Базовая верификация (только галочка)
@@ -243,7 +137,7 @@ const AdminPage: React.FC = () => {
       });
       
       if (response.data.success) {
-        setTestResults(prev => [
+        setActionResults(prev => [
           `✅ Базовая верификация выдана: ${playerId}`,
           ...prev.slice(0, 9)
         ]);
@@ -252,7 +146,7 @@ const AdminPage: React.FC = () => {
       
     } catch (err: any) {
       console.error('❌ Ошибка базовой верификации:', err);
-      setTestResults(prev => [
+      setActionResults(prev => [
         `❌ Базовая верификация: ${err.response?.data?.error || err.message}`,
         ...prev.slice(0, 9)
       ]);
@@ -272,7 +166,7 @@ const AdminPage: React.FC = () => {
       });
       
       if (response.data.success) {
-        setTestResults(prev => [
+        setActionResults(prev => [
           `✅ Премиум 30 дней выдан: ${playerId} (+ verified)`,
           ...prev.slice(0, 9)
         ]);
@@ -281,7 +175,7 @@ const AdminPage: React.FC = () => {
       
     } catch (err: any) {
       console.error('❌ Ошибка премиум 30 дней:', err);
-      setTestResults(prev => [
+      setActionResults(prev => [
         `❌ Премиум 30 дней: ${err.response?.data?.error || err.message}`,
         ...prev.slice(0, 9)
       ]);
@@ -301,7 +195,7 @@ const AdminPage: React.FC = () => {
       });
       
       if (response.data.success) {
-        setTestResults(prev => [
+        setActionResults(prev => [
           `✅ Премиум навсегда выдан: ${playerId} (+ verified)`,
           ...prev.slice(0, 9)
         ]);
@@ -310,7 +204,7 @@ const AdminPage: React.FC = () => {
       
     } catch (err: any) {
       console.error('❌ Ошибка премиум навсегда:', err);
-      setTestResults(prev => [
+      setActionResults(prev => [
         `❌ Премиум навсегда: ${err.response?.data?.error || err.message}`,
         ...prev.slice(0, 9)
       ]);
@@ -330,7 +224,7 @@ const AdminPage: React.FC = () => {
       });
       
       if (response.data.success) {
-        setTestResults(prev => [
+        setActionResults(prev => [
           `✅ Все статусы отменены: ${playerId} (verified + премиум)`,
           ...prev.slice(0, 9)
         ]);
@@ -339,7 +233,7 @@ const AdminPage: React.FC = () => {
       
     } catch (err: any) {
       console.error('❌ Ошибка отмены статусов:', err);
-      setTestResults(prev => [
+      setActionResults(prev => [
         `❌ Отмена статусов: ${err.response?.data?.error || err.message}`,
         ...prev.slice(0, 9)
       ]);
@@ -348,26 +242,31 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // 🧪 Тестовая очистка премиума
-  const testPremiumCleanup = async () => {
-    const actionKey = 'test_cleanup';
+  // 💰 УПРАВЛЕНИЕ БАЛАНСОМ ИГРОКА
+  const updatePlayerBalance = async (playerId: string, currency: string, operation: string, amount: number) => {
+    const actionKey = `balance_${playerId}`;
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
-      const response = await axios.post(`${apiUrl}/api/admin/test-premium-cleanup/${player?.telegram_id}`);
+      const response = await axios.post(`${apiUrl}/api/admin/update-balance/${player?.telegram_id}`, {
+        playerId,
+        currency,
+        operation,
+        amount
+      });
       
       if (response.data.success) {
-        setTestResults(prev => [
-          `✅ Тестовая очистка: ${JSON.stringify(response.data.cleanup_result)}`,
+        setActionResults(prev => [
+          `✅ Баланс обновлен: ${playerId} ${currency} ${operation} ${amount}`,
           ...prev.slice(0, 9)
         ]);
         loadStats();
       }
       
     } catch (err: any) {
-      console.error('❌ Ошибка тестовой очистки:', err);
-      setTestResults(prev => [
-        `❌ Тестовая очистка: ${err.response?.data?.error || err.message}`,
+      console.error('❌ Ошибка обновления баланса:', err);
+      setActionResults(prev => [
+        `❌ Баланс: ${err.response?.data?.error || err.message}`,
         ...prev.slice(0, 9)
       ]);
     } finally {
@@ -402,7 +301,6 @@ const AdminPage: React.FC = () => {
       return { type: 'not_verified', label: '❌ Нет', color: '#FF5722' };
     }
   };
-
   // Загрузка
   if (loading) {
     return (
@@ -464,21 +362,21 @@ const AdminPage: React.FC = () => {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
       color: '#fff',
-      padding: '20px'
+      padding: '15px'
     }}>
       {/* Заголовок */}
-      <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: `2px solid ${colorStyle}`, paddingBottom: '20px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '25px', borderBottom: `2px solid ${colorStyle}`, paddingBottom: '15px' }}>
         <h1 style={{
-          fontSize: '2rem',
+          fontSize: '1.5rem',
           color: colorStyle,
           textShadow: `0 0 20px ${colorStyle}`,
           margin: '0 0 10px 0'
         }}>
-          🔧 Админ панель CosmoClick (UNIFIED)
+          🔧 Админ панель CosmoClick
         </h1>
         
         {player && (
-          <p style={{ fontSize: '1rem', color: '#aaa', margin: '0 0 15px 0' }}>
+          <p style={{ fontSize: '0.9rem', color: '#aaa', margin: '0 0 15px 0' }}>
             Добро пожаловать, {player.first_name || player.username}! ID: {player.telegram_id}
           </p>
         )}
@@ -486,13 +384,13 @@ const AdminPage: React.FC = () => {
         <button
           onClick={() => navigate('/')}
           style={{
-            padding: '10px 20px',
+            padding: '8px 16px',
             background: 'rgba(255, 255, 255, 0.1)',
             border: `2px solid ${colorStyle}`,
-            borderRadius: '10px',
+            borderRadius: '8px',
             color: '#fff',
             cursor: 'pointer',
-            fontSize: '0.9rem'
+            fontSize: '0.8rem'
           }}
         >
           ← Вернуться в игру
@@ -501,155 +399,29 @@ const AdminPage: React.FC = () => {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* 🧪 ТЕСТОВАЯ ПАНЕЛЬ */}
-        <div style={{ marginBottom: '30px' }}>
-          <h2 style={{ color: colorStyle, marginBottom: '20px' }}>🧪 Тестовые уведомления</h2>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px',
-            marginBottom: '20px'
-          }}>
-            <button
-              onClick={() => runTest('daily_summary')}
-              disabled={actionLoading.test_daily_summary}
-              style={{
-                padding: '12px',
-                background: actionLoading.test_daily_summary ? '#666' : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
-                border: 'none',
-                borderRadius: '10px',
-                color: '#fff',
-                cursor: actionLoading.test_daily_summary ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              {actionLoading.test_daily_summary ? '⏳' : '📊'} Ежедневная сводка
-            </button>
-            
-            <button
-              onClick={() => runTest('notify_stars')}
-              disabled={actionLoading.test_notify_stars}
-              style={{
-                padding: '12px',
-                background: actionLoading.test_notify_stars ? '#666' : 'linear-gradient(135deg, #FFD700, #FFA500)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#000',
-                cursor: actionLoading.test_notify_stars ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              {actionLoading.test_notify_stars ? '⏳' : '⭐'} Stars уведомление
-            </button>
-            
-            <button
-              onClick={() => runTest('notify_ton')}
-              disabled={actionLoading.test_notify_ton}
-              style={{
-                padding: '12px',
-                background: actionLoading.test_notify_ton ? '#666' : 'linear-gradient(135deg, #0088cc, #004466)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#fff',
-                cursor: actionLoading.test_notify_ton ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              {actionLoading.test_notify_ton ? '⏳' : '💎'} TON уведомление
-            </button>
-            
-            <button
-              onClick={() => runTest('notify_withdrawal')}
-              disabled={actionLoading.test_notify_withdrawal}
-              style={{
-                padding: '12px',
-                background: actionLoading.test_notify_withdrawal ? '#666' : 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#fff',
-                cursor: actionLoading.test_notify_withdrawal ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              {actionLoading.test_notify_withdrawal ? '⏳' : '💸'} Заявка на вывод
-            </button>
-            
-            <button
-              onClick={() => runTest('simple_message', { message: '🎮 Привет из админки CosmoClick!' })}
-              disabled={actionLoading.test_simple_message}
-              style={{
-                padding: '12px',
-                background: actionLoading.test_simple_message ? '#666' : 'linear-gradient(135deg, #9b59b6, #8e44ad)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#fff',
-                cursor: actionLoading.test_simple_message ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              {actionLoading.test_simple_message ? '⏳' : '📱'} Простое сообщение
-            </button>
-            
-            {/* 🧪 НОВАЯ КНОПКА: Тестовая очистка премиума */}
-            <button
-              onClick={testPremiumCleanup}
-              disabled={actionLoading.test_cleanup}
-              style={{
-                padding: '12px',
-                background: actionLoading.test_cleanup ? '#666' : 'linear-gradient(135deg, #e74c3c, #c0392b)',
-                border: 'none',
-                borderRadius: '10px',
-                color: '#fff',
-                cursor: actionLoading.test_cleanup ? 'wait' : 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              {actionLoading.test_cleanup ? '⏳' : '🧹'} Тест очистки премиума
-            </button>
-          </div>
-          
-          {/* Результаты тестов */}
-          {testResults.length > 0 && (
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: `1px solid ${colorStyle}40`,
-              borderRadius: '10px',
-              padding: '15px',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
-              <h4 style={{ color: colorStyle, margin: '0 0 10px 0' }}>📋 Результаты тестов:</h4>
-              {testResults.map((result, index) => (
-                <div key={index} style={{ fontSize: '0.9rem', marginBottom: '5px', opacity: 1 - (index * 0.1) }}>
-                  {result}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Статистика */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px'
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '10px'
         }}>
-          <h2 style={{ color: colorStyle, margin: 0 }}>📊 Статистика системы</h2>
+          <h2 style={{ color: colorStyle, margin: 0, fontSize: '1.2rem' }}>📊 Статистика системы</h2>
           <button
             onClick={loadStats}
             disabled={statsLoading}
             style={{
-              padding: '10px 20px',
+              padding: '8px 16px',
               background: statsLoading 
                 ? 'rgba(255, 255, 255, 0.1)' 
                 : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
               border: 'none',
-              borderRadius: '10px',
+              borderRadius: '8px',
               color: '#fff',
               cursor: statsLoading ? 'wait' : 'pointer',
-              fontSize: '0.9rem'
+              fontSize: '0.8rem'
             }}
           >
             {statsLoading ? '⏳ Загрузка...' : '🔄 Обновить статистику'}
@@ -662,15 +434,15 @@ const AdminPage: React.FC = () => {
             background: 'rgba(255, 0, 0, 0.1)',
             border: '2px solid #ff4444',
             borderRadius: '10px',
-            padding: '20px',
+            padding: '15px',
             marginBottom: '20px',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
-            <div style={{ color: '#ff6666', fontWeight: 'bold', marginBottom: '10px' }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>⚠️</div>
+            <div style={{ color: '#ff6666', fontWeight: 'bold', marginBottom: '8px' }}>
               Ошибка загрузки статистики
             </div>
-            <div style={{ color: '#aaa', fontSize: '0.9rem' }}>
+            <div style={{ color: '#aaa', fontSize: '0.8rem' }}>
               {statsError}
             </div>
           </div>
@@ -682,22 +454,22 @@ const AdminPage: React.FC = () => {
             {/* Карточки статистики */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '20px',
-              marginBottom: '30px'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '15px',
+              marginBottom: '25px'
             }}>
               
               {/* Статистика игроков */}
               <div style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: `1px solid ${colorStyle}40`,
-                borderRadius: '12px',
-                padding: '20px'
+                borderRadius: '10px',
+                padding: '15px'
               }}>
-                <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: colorStyle, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1rem' }}>
                   👥 Игроки
                 </h3>
-                <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'grid', gap: '6px', fontSize: '0.8rem' }}>
                   <div>Всего: <strong>{safeNumber(stats.players?.total_players)}</strong></div>
                   <div>Верифицированных: <strong style={{ color: '#4CAF50' }}>{safeNumber(stats.players?.verified_players)}</strong></div>
                   <div>Активны 24ч: <strong style={{ color: '#FF9800' }}>{safeNumber(stats.players?.active_24h)}</strong></div>
@@ -709,13 +481,13 @@ const AdminPage: React.FC = () => {
               <div style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: `1px solid ${colorStyle}40`,
-                borderRadius: '12px',
-                padding: '20px'
+                borderRadius: '10px',
+                padding: '15px'
               }}>
-                <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: colorStyle, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1rem' }}>
                   💰 Валюты
                 </h3>
-                <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'grid', gap: '6px', fontSize: '0.8rem' }}>
                   <div>CCC: <strong>{safeNumber(stats.currencies?.total_ccc).toFixed(2)}</strong></div>
                   <div>CS: <strong style={{ color: '#FFD700' }}>{safeNumber(stats.currencies?.total_cs).toFixed(2)}</strong></div>
                   <div>TON: <strong style={{ color: '#0088cc' }}>{safeNumber(stats.currencies?.total_ton).toFixed(4)}</strong></div>
@@ -727,13 +499,13 @@ const AdminPage: React.FC = () => {
               <div style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: `1px solid ${colorStyle}40`,
-                borderRadius: '12px',
-                padding: '20px'
+                borderRadius: '10px',
+                padding: '15px'
               }}>
-                <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: colorStyle, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1rem' }}>
                   💱 Обмены
                 </h3>
-                <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'grid', gap: '6px', fontSize: '0.8rem' }}>
                   <div>Stars→CS: <strong>{safeNumber(stats.all_exchanges?.stars_to_cs?.total_exchanges)}</strong></div>
                   <div>Всего обменов: <strong style={{ color: '#fff' }}>{safeNumber(stats.all_exchanges?.totals?.all_exchanges)}</strong></div>
                   <div>За 24ч: <strong style={{ color: '#FF9800' }}>{safeNumber(stats.all_exchanges?.totals?.all_exchanges_24h)}</strong></div>
@@ -744,25 +516,25 @@ const AdminPage: React.FC = () => {
               <div style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: `1px solid ${colorStyle}40`,
-                borderRadius: '12px',
-                padding: '20px'
+                borderRadius: '10px',
+                padding: '15px'
               }}>
-                <h3 style={{ color: colorStyle, margin: '0 0 15px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ color: colorStyle, margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1rem' }}>
                   🎮 Мини-игры
                 </h3>
-                <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem' }}>
+                <div style={{ display: 'grid', gap: '6px', fontSize: '0.8rem' }}>
                   <div>Игр сыграно: <strong style={{ color: '#FF6B35' }}>{safeNumber(stats.minigames?.total_games)}</strong></div>
                   <div>Активных игроков: <strong style={{ color: '#4ECDC4' }}>{safeNumber(stats.minigames?.active_players)}</strong></div>
                 </div>
               </div>
             </div>
-            {/* 🏆 ТОП-10 игроков с НОВЫМИ кнопками управления */}
+            {/* 🏆 ТОП-10 игроков в КАРТОЧНОМ формате */}
             {stats.top_players && stats.top_players.length > 0 && (
               <div style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 border: `1px solid ${colorStyle}40`,
-                borderRadius: '15px',
-                padding: '25px',
+                borderRadius: '12px',
+                padding: '20px',
                 marginBottom: '20px'
               }}>
                 <h3 style={{ 
@@ -771,207 +543,201 @@ const AdminPage: React.FC = () => {
                   marginBottom: '20px',
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '10px',
-                  fontSize: '1.3rem'
+                  gap: '8px',
+                  fontSize: '1.2rem'
                 }}>
                   🏆 ТОП-10 игроков (UNIFIED система)
                 </h3>
                 
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ 
-                    width: '100%', 
-                    borderCollapse: 'collapse', 
-                    fontSize: '0.9rem',
-                    minWidth: '900px'
-                  }}>
-                    <thead>
-                      <tr style={{ borderBottom: `2px solid ${colorStyle}40` }}>
-                        <th style={{ padding: '12px 8px', textAlign: 'left', color: colorStyle, fontWeight: 'bold' }}>#</th>
-                        <th style={{ padding: '12px 8px', textAlign: 'left', color: colorStyle, fontWeight: 'bold' }}>Игрок</th>
-                        <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle, fontWeight: 'bold' }}>CS</th>
-                        <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle, fontWeight: 'bold' }}>CCC</th>
-                        <th style={{ padding: '12px 8px', textAlign: 'right', color: colorStyle, fontWeight: 'bold' }}>TON</th>
-                        <th style={{ padding: '12px 8px', textAlign: 'center', color: colorStyle, fontWeight: 'bold' }}>Статус</th>
-                        <th style={{ padding: '12px 8px', textAlign: 'center', color: colorStyle, fontWeight: 'bold' }}>🔧 Управление</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stats.top_players.map((topPlayer, index) => {
-                        const verificationType = getPlayerVerificationType(topPlayer);
+                {/* Сетка карточек игроков */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: '15px'
+                }}>
+                  {stats.top_players.map((topPlayer, index) => {
+                    const verificationType = getPlayerVerificationType(topPlayer);
+                    
+                    return (
+                      <div 
+                        key={topPlayer.telegram_id}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: `1px solid ${index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : colorStyle}40`,
+                          borderRadius: '10px',
+                          padding: '15px',
+                          position: 'relative'
+                        }}
+                      >
+                        {/* Номер места */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          width: '30px',
+                          height: '30px',
+                          borderRadius: '50%',
+                          background: index < 3 
+                            ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] 
+                            : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.9rem',
+                          fontWeight: 'bold',
+                          color: index < 3 ? '#000' : '#fff'
+                        }}>
+                          {index + 1}
+                        </div>
                         
-                        return (
-                          <tr 
-                            key={topPlayer.telegram_id} 
-                            style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+                        {/* Информация об игроке */}
+                        <div style={{ marginBottom: '12px', paddingRight: '40px' }}>
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            marginBottom: '4px', 
+                            fontSize: '1rem',
+                            color: '#fff'
+                          }}>
+                            {topPlayer.first_name || topPlayer.username || 'Аноним'}
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.8rem', 
+                            color: '#aaa'
+                          }}>
+                            ID: {topPlayer.telegram_id}
+                          </div>
+                        </div>
+                        
+                        {/* Балансы */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr 1fr',
+                          gap: '8px',
+                          marginBottom: '12px',
+                          fontSize: '0.8rem'
+                        }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                              {safeNumber(topPlayer.cs).toFixed(2)}
+                            </div>
+                            <div style={{ color: '#aaa', fontSize: '0.7rem' }}>CS</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: 'bold' }}>
+                              {safeNumber(topPlayer.ccc).toFixed(2)}
+                            </div>
+                            <div style={{ color: '#aaa', fontSize: '0.7rem' }}>CCC</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ color: '#0088cc', fontWeight: 'bold' }}>
+                              {safeNumber(topPlayer.ton).toFixed(4)}
+                            </div>
+                            <div style={{ color: '#aaa', fontSize: '0.7rem' }}>TON</div>
+                          </div>
+                        </div>
+                        
+                        {/* Статус верификации */}
+                        <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+                          <div style={{
+                            fontSize: '0.7rem',
+                            padding: '4px 8px',
+                            borderRadius: '12px',
+                            background: verificationType.color + '20',
+                            border: `1px solid ${verificationType.color}60`,
+                            color: verificationType.color,
+                            fontWeight: 'bold',
+                            display: 'inline-block'
+                          }}>
+                            {verificationType.label}
+                          </div>
+                        </div>
+                        
+                        {/* Кнопки управления */}
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: '1fr 1fr 1fr 1fr', 
+                          gap: '4px'
+                        }}>
+                          
+                          {/* Базовая верификация */}
+                          <button
+                            onClick={() => grantBasicVerification(topPlayer.telegram_id)}
+                            disabled={actionLoading[`basic_verify_${topPlayer.telegram_id}`]}
+                            style={{
+                              padding: '6px 4px',
+                              background: actionLoading[`basic_verify_${topPlayer.telegram_id}`] ? '#666' : '#4CAF50',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              cursor: actionLoading[`basic_verify_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
+                              fontSize: '0.6rem',
+                              fontWeight: 'bold'
+                            }}
+                            title="Базовая верификация (только галочка)"
                           >
-                            <td style={{ padding: '12px 8px' }}>
-                              <div style={{
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '50%',
-                                background: index < 3 
-                                  ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] 
-                                  : `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.8rem',
-                                fontWeight: 'bold',
-                                color: index < 3 ? '#000' : '#fff'
-                              }}>
-                                {index + 1}
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 8px' }}>
-                              <div>
-                                <div style={{ fontWeight: 'bold', marginBottom: '2px', fontSize: '0.95rem' }}>
-                                  {topPlayer.first_name || topPlayer.username || 'Аноним'}
-                                </div>
-                                <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                                  ID: {topPlayer.telegram_id}
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                              <div style={{ 
-                                color: '#FFD700', 
-                                fontWeight: 'bold', 
-                                fontSize: '1rem'
-                              }}>
-                                {safeNumber(topPlayer.cs).toFixed(2)}
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                              <div style={{ fontWeight: 'bold' }}>
-                                {safeNumber(topPlayer.ccc).toFixed(2)}
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                              <div style={{ 
-                                color: '#0088cc', 
-                                fontWeight: 'bold'
-                              }}>
-                                {safeNumber(topPlayer.ton).toFixed(4)}
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                              <div style={{
-                                fontSize: '0.7rem',
-                                padding: '4px 8px',
-                                borderRadius: '12px',
-                                background: verificationType.color + '20',
-                                border: `1px solid ${verificationType.color}60`,
-                                color: verificationType.color,
-                                fontWeight: 'bold'
-                              }}>
-                                {verificationType.label}
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                              {/* 🔥 НОВЫЕ КНОПКИ UNIFIED УПРАВЛЕНИЯ */}
-                              <div style={{ display: 'flex', gap: '3px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                                
-                                {/* Базовая верификация */}
-                                <button
-                                  onClick={() => grantBasicVerification(topPlayer.telegram_id)}
-                                  disabled={actionLoading[`basic_verify_${topPlayer.telegram_id}`]}
-                                  style={{
-                                    padding: '3px 6px',
-                                    background: actionLoading[`basic_verify_${topPlayer.telegram_id}`] ? '#666' : '#4CAF50',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    color: '#fff',
-                                    cursor: actionLoading[`basic_verify_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
-                                    fontSize: '0.6rem',
-                                    minWidth: '35px'
-                                  }}
-                                  title="Базовая верификация (только галочка)"
-                                >
-                                  {actionLoading[`basic_verify_${topPlayer.telegram_id}`] ? '⏳' : '✅'}
-                                </button>
-                                
-                                {/* Премиум 30 дней */}
-                                <button
-                                  onClick={() => grantPremium30Days(topPlayer.telegram_id)}
-                                  disabled={actionLoading[`premium30_${topPlayer.telegram_id}`]}
-                                  style={{
-                                    padding: '3px 6px',
-                                    background: actionLoading[`premium30_${topPlayer.telegram_id}`] ? '#666' : '#FF6B35',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    color: '#fff',
-                                    cursor: actionLoading[`premium30_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
-                                    fontSize: '0.6rem',
-                                    minWidth: '35px'
-                                  }}
-                                  title="Премиум 30 дней + verified"
-                                >
-                                  {actionLoading[`premium30_${topPlayer.telegram_id}`] ? '⏳' : '👑'}
-                                </button>
-                                
-                                {/* Премиум навсегда */}
-                                <button
-                                  onClick={() => grantPremiumForever(topPlayer.telegram_id)}
-                                  disabled={actionLoading[`premium_forever_${topPlayer.telegram_id}`]}
-                                  style={{
-                                    padding: '3px 6px',
-                                    background: actionLoading[`premium_forever_${topPlayer.telegram_id}`] ? '#666' : '#FFD700',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    color: '#000',
-                                    cursor: actionLoading[`premium_forever_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
-                                    fontSize: '0.6rem',
-                                    minWidth: '35px'
-                                  }}
-                                  title="Премиум навсегда + verified"
-                                >
-                                  {actionLoading[`premium_forever_${topPlayer.telegram_id}`] ? '⏳' : '🏆'}
-                                </button>
-                                
-                                {/* Отменить всё */}
-                                <button
-                                  onClick={() => revokeAllPremium(topPlayer.telegram_id)}
-                                  disabled={actionLoading[`revoke_all_${topPlayer.telegram_id}`]}
-                                  style={{
-                                    padding: '3px 6px',
-                                    background: actionLoading[`revoke_all_${topPlayer.telegram_id}`] ? '#666' : '#e74c3c',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    color: '#fff',
-                                    cursor: actionLoading[`revoke_all_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
-                                    fontSize: '0.6rem',
-                                    minWidth: '35px'
-                                  }}
-                                  title="Отменить все статусы"
-                                >
-                                  {actionLoading[`revoke_all_${topPlayer.telegram_id}`] ? '⏳' : '❌'}
-                                </button>
-                                
-                                {/* +100 CS (быстрая премия) */}
-                                <button
-                                  onClick={() => updatePlayerBalance(topPlayer.telegram_id, 'cs', 'add', 100)}
-                                  disabled={actionLoading[`balance_${topPlayer.telegram_id}`]}
-                                  style={{
-                                    padding: '3px 6px',
-                                    background: actionLoading[`balance_${topPlayer.telegram_id}`] ? '#666' : '#9b59b6',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    color: '#fff',
-                                    cursor: actionLoading[`balance_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
-                                    fontSize: '0.6rem',
-                                    minWidth: '35px'
-                                  }}
-                                  title="Добавить 100 CS"
-                                >
-                                  {actionLoading[`balance_${topPlayer.telegram_id}`] ? '⏳' : '+💰'}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            {actionLoading[`basic_verify_${topPlayer.telegram_id}`] ? '⏳' : '✅'}
+                          </button>
+                          
+                          {/* Премиум 30 дней */}
+                          <button
+                            onClick={() => grantPremium30Days(topPlayer.telegram_id)}
+                            disabled={actionLoading[`premium30_${topPlayer.telegram_id}`]}
+                            style={{
+                              padding: '6px 4px',
+                              background: actionLoading[`premium30_${topPlayer.telegram_id}`] ? '#666' : '#FF6B35',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              cursor: actionLoading[`premium30_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
+                              fontSize: '0.6rem',
+                              fontWeight: 'bold'
+                            }}
+                            title="Премиум 30 дней + verified"
+                          >
+                            {actionLoading[`premium30_${topPlayer.telegram_id}`] ? '⏳' : '👑'}
+                          </button>
+                          
+                          {/* Премиум навсегда */}
+                          <button
+                            onClick={() => grantPremiumForever(topPlayer.telegram_id)}
+                            disabled={actionLoading[`premium_forever_${topPlayer.telegram_id}`]}
+                            style={{
+                              padding: '6px 4px',
+                              background: actionLoading[`premium_forever_${topPlayer.telegram_id}`] ? '#666' : '#FFD700',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#000',
+                              cursor: actionLoading[`premium_forever_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
+                              fontSize: '0.6rem',
+                              fontWeight: 'bold'
+                            }}
+                            title="Премиум навсегда + verified"
+                          >
+                            {actionLoading[`premium_forever_${topPlayer.telegram_id}`] ? '⏳' : '🏆'}
+                          </button>
+                          
+                          {/* Отменить всё */}
+                          <button
+                            onClick={() => revokeAllPremium(topPlayer.telegram_id)}
+                            disabled={actionLoading[`revoke_all_${topPlayer.telegram_id}`]}
+                            style={{
+                              padding: '6px 4px',
+                              background: actionLoading[`revoke_all_${topPlayer.telegram_id}`] ? '#666' : '#e74c3c',
+                              border: 'none',
+                              borderRadius: '6px',
+                              color: '#fff',
+                              cursor: actionLoading[`revoke_all_${topPlayer.telegram_id}`] ? 'wait' : 'pointer',
+                              fontSize: '0.6rem',
+                              fontWeight: 'bold'
+                            }}
+                            title="Отменить все статусы"
+                          >
+                            {actionLoading[`revoke_all_${topPlayer.telegram_id}`] ? '⏳' : '❌'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 
                 {/* Легенда кнопок */}
@@ -980,15 +746,14 @@ const AdminPage: React.FC = () => {
                   padding: '10px',
                   background: 'rgba(255, 255, 255, 0.03)',
                   borderRadius: '8px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.7rem',
                   color: '#aaa'
                 }}>
                   <strong style={{ color: colorStyle }}>Легенда:</strong> 
-                  <span style={{ color: '#4CAF50', marginLeft: '8px' }}>✅ Базовая верификация</span> |
-                  <span style={{ color: '#FF6B35', marginLeft: '8px' }}>👑 Премиум 30д</span> |
-                  <span style={{ color: '#FFD700', marginLeft: '8px' }}>🏆 Премиум ∞</span> |
-                  <span style={{ color: '#e74c3c', marginLeft: '8px' }}>❌ Отменить всё</span> |
-                  <span style={{ color: '#9b59b6', marginLeft: '8px' }}>+💰 +100 CS</span>
+                  <span style={{ color: '#4CAF50', marginLeft: '6px' }}>✅ Базовая верификация</span> |
+                  <span style={{ color: '#FF6B35', marginLeft: '6px' }}>👑 Премиум 30д</span> |
+                  <span style={{ color: '#FFD700', marginLeft: '6px' }}>🏆 Премиум ∞</span> |
+                  <span style={{ color: '#e74c3c', marginLeft: '6px' }}>❌ Отменить всё</span>
                 </div>
               </div>
             )}
@@ -996,15 +761,15 @@ const AdminPage: React.FC = () => {
             <div style={{
               background: 'rgba(255, 255, 255, 0.05)',
               border: `1px solid ${colorStyle}40`,
-              borderRadius: '15px',
-              padding: '25px',
+              borderRadius: '12px',
+              padding: '20px',
               marginBottom: '20px'
             }}>
-              <h3 style={{ color: colorStyle, marginTop: 0, marginBottom: '20px' }}>
+              <h3 style={{ color: colorStyle, marginTop: 0, marginBottom: '15px', fontSize: '1.1rem' }}>
                 💰 Быстрое управление (UNIFIED система)
               </h3>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                 
                 {/* Базовая верификация */}
                 <button
@@ -1013,13 +778,13 @@ const AdminPage: React.FC = () => {
                     if (playerId) grantBasicVerification(playerId);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: 'linear-gradient(135deg, #4CAF50, #45a049)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#fff',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   ✅ Базовая верификация
@@ -1032,13 +797,13 @@ const AdminPage: React.FC = () => {
                     if (playerId) grantPremium30Days(playerId);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: 'linear-gradient(135deg, #FF6B35, #e55a2b)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#fff',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   👑 Премиум 30 дней
@@ -1051,13 +816,13 @@ const AdminPage: React.FC = () => {
                     if (playerId) grantPremiumForever(playerId);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: 'linear-gradient(135deg, #FFD700, #ddb800)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#000',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   🏆 Премиум навсегда
@@ -1072,13 +837,13 @@ const AdminPage: React.FC = () => {
                     }
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#fff',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   ❌ Отменить всё
@@ -1091,13 +856,13 @@ const AdminPage: React.FC = () => {
                     if (playerId) updatePlayerBalance(playerId, 'cs', 'add', 1000);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#000',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   💰 Добавить 1000 CS
@@ -1110,13 +875,13 @@ const AdminPage: React.FC = () => {
                     if (playerId) updatePlayerBalance(playerId, 'ton', 'add', 5);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: 'linear-gradient(135deg, #0088cc, #004466)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#fff',
                     cursor: 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   💎 Добавить 5 TON
@@ -1141,19 +906,19 @@ const AdminPage: React.FC = () => {
                       });
                       
                       if (response.data.success) {
-                        setTestResults(prev => [
+                        setActionResults(prev => [
                           `✅ Сообщение отправлено игроку ${playerId} (${response.data.player?.first_name || 'Unknown'})`,
                           ...prev.slice(0, 9)
                         ]);
                       } else {
-                        setTestResults(prev => [
+                        setActionResults(prev => [
                           `❌ Ошибка отправки сообщения: ${response.data.error}`,
                           ...prev.slice(0, 9)
                         ]);
                       }
                     } catch (err: any) {
                       console.error('❌ Ошибка отправки сообщения:', err);
-                      setTestResults(prev => [
+                      setActionResults(prev => [
                         `❌ Сообщение: ${err.response?.data?.error || err.message}`,
                         ...prev.slice(0, 9)
                       ]);
@@ -1163,15 +928,15 @@ const AdminPage: React.FC = () => {
                   }}
                   disabled={actionLoading.message_individual}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: actionLoading.message_individual 
                       ? '#666' 
                       : 'linear-gradient(135deg, #9b59b6, #8e44ad)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#fff',
                     cursor: actionLoading.message_individual ? 'wait' : 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   {actionLoading.message_individual ? '⏳' : '📱'} Сообщение игроку
@@ -1200,26 +965,26 @@ const AdminPage: React.FC = () => {
                       
                       if (response.data.success) {
                         const stats = response.data.statistics;
-                        setTestResults(prev => [
+                        setActionResults(prev => [
                           `✅ Рассылка завершена: отправлено ${stats.sent_count}/${stats.total_players} (${stats.success_rate}%)`,
                           ...prev.slice(0, 9)
                         ]);
                         
                         if (stats.error_count > 0) {
-                          setTestResults(prev => [
+                          setActionResults(prev => [
                             `⚠️ Ошибок при рассылке: ${stats.error_count}`,
                             ...prev.slice(0, 9)
                           ]);
                         }
                       } else {
-                        setTestResults(prev => [
+                        setActionResults(prev => [
                           `❌ Ошибка рассылки: ${response.data.error}`,
                           ...prev.slice(0, 9)
                         ]);
                       }
                     } catch (err: any) {
                       console.error('❌ Ошибка рассылки:', err);
-                      setTestResults(prev => [
+                      setActionResults(prev => [
                         `❌ Рассылка: ${err.response?.data?.error || err.message}`,
                         ...prev.slice(0, 9)
                       ]);
@@ -1229,40 +994,41 @@ const AdminPage: React.FC = () => {
                   }}
                   disabled={actionLoading.broadcast_message}
                   style={{
-                    padding: '12px',
+                    padding: '10px',
                     background: actionLoading.broadcast_message 
                       ? '#666' 
                       : 'linear-gradient(135deg, #e74c3c, #c0392b)',
                     border: 'none',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     color: '#fff',
                     cursor: actionLoading.broadcast_message ? 'wait' : 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >
                   {actionLoading.broadcast_message ? '⏳' : '📢'} Рассылка всем
                 </button>
-                
-                {/* Кнопка тестового сообщения админу */}
-                <button
-                  onClick={() => {
-                    const message = prompt('Тестовое сообщение себе (для отладки):') || 'Тестовое сообщение админу';
-                    runTest('simple_message', { message });
-                  }}
-                  style={{
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #34495e, #2c3e50)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  🧪 Тест (себе)
-                </button>
               </div>
             </div>
+
+            {/* Результаты действий */}
+            {actionResults.length > 0 && (
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: `1px solid ${colorStyle}40`,
+                borderRadius: '10px',
+                padding: '15px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{ color: colorStyle, margin: '0 0 10px 0', fontSize: '1rem' }}>📋 Результаты действий:</h4>
+                <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                  {actionResults.map((result, index) => (
+                    <div key={index} style={{ fontSize: '0.8rem', marginBottom: '4px', opacity: 1 - (index * 0.1) }}>
+                      {result}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Информация об обновлении UNIFIED системы */}
             <div style={{
@@ -1272,13 +1038,13 @@ const AdminPage: React.FC = () => {
               border: `1px solid #4CAF5040`,
               borderRadius: '10px',
               textAlign: 'center',
-              fontSize: '0.9rem'
+              fontSize: '0.8rem'
             }}>
               <div style={{ color: '#4CAF50', marginBottom: '5px' }}>✅ UNIFIED система верификации активна!</div>
               <div style={{ color: '#aaa' }}>
                 Данные обновлены: {new Date().toLocaleString('ru-RU')}
               </div>
-              <div style={{ color: '#666', fontSize: '0.8rem', marginTop: '8px' }}>
+              <div style={{ color: '#666', fontSize: '0.7rem', marginTop: '8px' }}>
                 🔥 <strong>Новая логика:</strong><br/>
                 • <span style={{ color: '#4CAF50' }}>✅ Базовая верификация</span> = только галочка в профиле<br/>
                 • <span style={{ color: '#FF6B35' }}>👑 Премиум 30д</span> = verified + нет рекламы 30 дней<br/>
