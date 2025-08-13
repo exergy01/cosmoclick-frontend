@@ -39,6 +39,11 @@ const PREMIUM_PACKAGES = {
   }
 };
 
+// Функция для сокращения адреса кошелька
+const formatWalletAddress = (address: string) => {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-6)}`;
+};
 const WalletPage: React.FC = () => {
   const { t } = useTranslation();
   const { player, currentSystem, setPlayer, refreshPlayer } = usePlayer();
@@ -96,7 +101,6 @@ const WalletPage: React.FC = () => {
     const balance = parseFloat(player?.ton || '0');
     return Math.max(0, balance - 0.01);
   }, [player?.ton]);
-
   // Проверка премиум статуса
   const checkPremiumStatus = async () => {
     try {
@@ -109,17 +113,6 @@ const WalletPage: React.FC = () => {
     } catch (err) {
       console.error('Ошибка проверки премиум статуса:', err);
     }
-  };
-
-  // Функция копирования адреса
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setSuccess('Адрес скопирован в буфер обмена!');
-      setTimeout(() => setSuccess(null), 2000);
-    }).catch(() => {
-      setError('Ошибка копирования адреса');
-      setTimeout(() => setError(null), 2000);
-    });
   };
 
   // useEffect хуки
@@ -181,7 +174,6 @@ const WalletPage: React.FC = () => {
       setError(t('wallet.disconnect_error'));
     }
   };
-
   // Покупка премиума за Stars
   const handlePremiumPurchaseStars = async (packageType: 'NO_ADS_30_DAYS' | 'NO_ADS_FOREVER') => {
     const amount = PREMIUM_PACKAGES[packageType].stars;
@@ -256,7 +248,6 @@ const WalletPage: React.FC = () => {
       setIsProcessing(false);
     }
   };
-
   // Обработчики
   const handleStarsDeposit = async () => {
     const inputAmount = parseInt(starsAmount);
@@ -377,7 +368,6 @@ const WalletPage: React.FC = () => {
       </div>
     );
   }
-
   // Основной рендер
   return (
     <div style={{
@@ -457,20 +447,19 @@ const WalletPage: React.FC = () => {
               textAlign: 'center'
             }}>
               ✅ {success}
-              {/* Отображение адреса кошелька под сообщением о подключении */}
-              {success === t('wallet.wallet_already_connected') && player?.telegram_wallet && (
-                <div style={{
-                  marginTop: '10px',
+              {/* Показываем адрес кошелька только если кошелек уже подключен */}
+              {success.includes('уже подключен') && player?.telegram_wallet && (
+                <div style={{ 
+                  marginTop: '8px',
                   fontSize: '0.8rem',
-                  color: '#ccc',
-                  wordBreak: 'break-all'
+                  color: '#aaa',
+                  fontFamily: 'monospace'
                 }}>
-                  {player.telegram_wallet}
+                  📱 {formatWalletAddress(player.telegram_wallet)}
                 </div>
               )}
             </div>
           )}
-
           {/* Основной блок кошелька */}
           <div style={{ 
             margin: '20px 0', 
@@ -607,54 +596,7 @@ const WalletPage: React.FC = () => {
                 >🔌 {t('wallet.disconnect_wallet')}</button>
               </div>
             )}
-
-            {/* Адрес кошелька с возможностью копирования (если подключен) */}
-            {wallet && userAddress && (
-              <div style={{
-                marginTop: '20px',
-                padding: '15px',
-                background: 'rgba(0, 0, 0, 0.2)',
-                borderRadius: '10px',
-                border: `1px solid ${colorStyle}40`
-              }}>
-                <div style={{ color: '#ccc', fontSize: '0.8rem', marginBottom: '8px' }}>
-                  Адрес кошелька:
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{
-                    flex: 1,
-                    fontSize: '0.8rem',
-                    color: colorStyle,
-                    wordBreak: 'break-all',
-                    minWidth: '200px'
-                  }}>
-                    {userAddress}
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(userAddress)}
-                    style={{
-                      padding: '8px 12px',
-                      background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
-                      border: `1px solid ${colorStyle}`,
-                      borderRadius: '8px',
-                      color: colorStyle,
-                      cursor: 'pointer',
-                      fontSize: '0.8rem',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    📋 Копировать
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
-
           {/* ПРЕМИУМ БЛОК С ДВУМЯ ПРЕДЛОЖЕНИЯМИ */}
           {!premiumStatus?.forever && (
             <div style={{ 
@@ -676,6 +618,72 @@ const WalletPage: React.FC = () => {
                 flexDirection: 'column', 
                 gap: '15px'
               }}>
+                {/* Предложение на 30 дней */}
+                {!premiumStatus?.active && (
+                  <div style={{
+                    padding: '20px',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    borderRadius: '12px',
+                    border: '1px solid #FFD700'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '15px'
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                          🚫 Без рекламы на 30 дней
+                        </div>
+                        <div style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '3px' }}>
+                          Отключить всю рекламу на месяц
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => handlePremiumPurchaseStars('NO_ADS_30_DAYS')}
+                          disabled={isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars}
+                          style={{
+                            padding: '8px 14px',
+                            background: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars
+                              ? 'linear-gradient(135deg, #FFD700, #FFA500)'
+                              : 'rgba(128, 128, 128, 0.3)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 'not-allowed' : 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 0.5 : 1
+                          }}
+                        >
+                          ⭐ {PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars}
+                        </button>
+                        <button
+                          onClick={() => handlePremiumPurchaseTON('NO_ADS_30_DAYS')}
+                          disabled={isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton}
+                          style={{
+                            padding: '8px 14px',
+                            background: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton)
+                              ? 'linear-gradient(135deg, #0088CC, #0066AA)'
+                              : 'rgba(128, 128, 128, 0.3)',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            cursor: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? 'not-allowed' : 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            opacity: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? 0.5 : 1
+                          }}
+                        >
+                          💎 {PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton} TON
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Предложение навсегда */}
                 <div style={{
                   padding: '20px',
@@ -703,13 +711,12 @@ const WalletPage: React.FC = () => {
 
                   <div style={{ 
                     display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
                     flexDirection: 'column',
+                    alignItems: 'center',
                     gap: '15px',
                     marginTop: '10px'
                   }}>
-                    <div style={{ textAlign: 'center', width: '100%' }}>
+                    <div style={{ textAlign: 'center' }}>
                       <div style={{ color: '#FFD700', fontSize: '1.2rem', fontWeight: 'bold' }}>
                         👑 Без рекламы НАВСЕГДА
                       </div>
@@ -725,7 +732,7 @@ const WalletPage: React.FC = () => {
                         onClick={() => handlePremiumPurchaseStars('NO_ADS_FOREVER')}
                         disabled={isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars}
                         style={{
-                          padding: '12px 18px',
+                          padding: '10px 16px',
                           background: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars
                             ? 'linear-gradient(135deg, #FFD700, #FFA500)'
                             : 'rgba(128, 128, 128, 0.3)',
@@ -734,7 +741,7 @@ const WalletPage: React.FC = () => {
                           color: '#fff',
                           cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '1rem',
+                          fontSize: '0.9rem',
                           opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 0.5 : 1,
                           boxShadow: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars 
                             ? '0 0 15px rgba(255, 215, 0, 0.4)' 
@@ -747,7 +754,7 @@ const WalletPage: React.FC = () => {
                         onClick={() => handlePremiumPurchaseTON('NO_ADS_FOREVER')}
                         disabled={isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton}
                         style={{
-                          padding: '12px 18px',
+                          padding: '10px 16px',
                           background: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.ton)
                             ? 'linear-gradient(135deg, #0088CC, #0066AA)'
                             : 'rgba(128, 128, 128, 0.3)',
@@ -756,7 +763,7 @@ const WalletPage: React.FC = () => {
                           color: '#fff',
                           cursor: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton) ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '1rem',
+                          fontSize: '0.9rem',
                           opacity: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton) ? 0.5 : 1,
                           boxShadow: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.ton)
                             ? '0 0 15px rgba(0, 136, 204, 0.4)'
@@ -777,7 +784,6 @@ const WalletPage: React.FC = () => {
           )}
         </div>
       </div>
-
       {/* Модалка вывода TON */}
       {showWithdrawModal && (
         <div style={{
