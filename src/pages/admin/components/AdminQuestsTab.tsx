@@ -1,4 +1,4 @@
-// pages/admin/components/AdminQuestsTab.tsx - С РЕАЛЬНЫМИ API ВЫЗОВАМИ
+// pages/admin/components/AdminQuestsTab.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ без синтаксических ошибок
 import React, { useState } from 'react';
 import { adminApiService } from '../services/adminApi';
 
@@ -248,7 +248,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
           ⚡ Действия с заданиями (LIVE API)
         </h3>
         
-        {/* Кнопка для установки тестового ID */}
+        {/* Диагностические кнопки */}
         <div style={{ marginBottom: '15px' }}>
           <button
             onClick={() => {
@@ -317,6 +317,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
           </span>
         </div>
         
+        {/* Основные кнопки управления квестами */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -601,13 +602,13 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         fontSize: '0.85rem'
       }}>
         <div style={{ color: '#4CAF50', marginBottom: '8px', fontWeight: 'bold' }}>
-          🚀 LIVE API подключен успешно!
+          🚀 LIVE API подключен с мобильной диагностикой!
         </div>
         <div style={{ color: '#aaa', lineHeight: '1.4' }}>
-          Теперь кнопки работают с реальным backend API. Полное управление квестами: создание, статистика, удаление
+          Глобальное управление квестами: создание, статистика, удаление. Квесты создаются для всех игроков
         </div>
         <div style={{ color: '#666', fontSize: '0.75rem', marginTop: '8px' }}>
-          ✅ /quests/list | ✅ /quests/create | ✅ /quests/delete | ✅ Статистика
+          ✅ /quests/list | ✅ /quests/create | ✅ /quests/delete | ✅ Статистика | 🧪 Мобильная диагностика
         </div>
       </div>
     </div>
