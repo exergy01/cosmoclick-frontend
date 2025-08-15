@@ -1,21 +1,45 @@
-// pages/admin/AdminPage.tsx - БЕЗОПАСНАЯ ВЕРСИЯ
+// pages/admin/AdminPage.tsx - ПРАВИЛЬНАЯ ВЕРСИЯ - использует готовые компоненты
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../context/NewPlayerContext';
 import { useAdminAuth } from './hooks/useAdminAuth';
+
+// Импортируем ГОТОВЫЕ компоненты
 import LoadingScreen from './components/LoadingScreen';
 import ErrorScreen from './components/ErrorScreen';
+import AdminStatsTab from './components/AdminStatsTab';
+
+// Типы для вкладок
+type AdminTabType = 'stats' | 'players' | 'quests' | 'management';
 
 const AdminPage: React.FC = () => {
   const { player } = useNewPlayer();
   const navigate = useNavigate();
   const { isAdmin, loading, error } = useAdminAuth();
+  const [activeTab, setActiveTab] = useState<AdminTabType>('stats');
   
   const colorStyle = player?.color || '#00f0ff';
 
+  // Конфигурация вкладок
+  const tabs = [
+    { key: 'stats' as const, label: 'Статистика', icon: '📊' },
+    { key: 'players' as const, label: 'Игроки', icon: '👥' },
+    { key: 'quests' as const, label: 'Задания', icon: '📋' },
+    { key: 'management' as const, label: 'Управление', icon: '⚙️' }
+  ];
+
   // Обработчики
+  const handleTabChange = (tab: AdminTabType) => {
+    setActiveTab(tab);
+  };
+
   const handleBackClick = () => {
     navigate('/', { replace: true });
+  };
+
+  const handlePlayerClick = (playerId: string) => {
+    setActiveTab('players');
+    // TODO: передать playerId в PlayerTab для открытия деталей
   };
 
   // Состояния загрузки
@@ -33,7 +57,64 @@ const AdminPage: React.FC = () => {
     );
   }
 
-  // Главный интерфейс (пока простой)
+  // Рендер содержимого активной вкладки
+  const renderActiveTabContent = () => {
+    switch (activeTab) {
+      case 'stats':
+        return (
+          <AdminStatsTab 
+            colorStyle={colorStyle}
+            onPlayerClick={handlePlayerClick}
+          />
+        );
+      case 'players':
+        return (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${colorStyle}40`,
+            borderRadius: '15px',
+            padding: '40px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
+            <h3 style={{ color: colorStyle, marginBottom: '15px' }}>Управление игроками</h3>
+            <p style={{ color: '#aaa' }}>Компонент AdminPlayersTab будет добавлен следующим</p>
+          </div>
+        );
+      case 'quests':
+        return (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${colorStyle}40`,
+            borderRadius: '15px',
+            padding: '40px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📋</div>
+            <h3 style={{ color: colorStyle, marginBottom: '15px' }}>Управление заданиями</h3>
+            <p style={{ color: '#aaa' }}>Компонент AdminQuestsTab будет добавлен следующим</p>
+          </div>
+        );
+      case 'management':
+        return (
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${colorStyle}40`,
+            borderRadius: '15px',
+            padding: '40px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚙️</div>
+            <h3 style={{ color: colorStyle, marginBottom: '15px' }}>Системное управление</h3>
+            <p style={{ color: '#aaa' }}>Дополнительные компоненты управления</p>
+          </div>
+        );
+      default:
+        return <AdminStatsTab colorStyle={colorStyle} onPlayerClick={handlePlayerClick} />;
+    }
+  };
+
+  // Главный интерфейс
   return (
     <div style={{
       minHeight: '100vh',
@@ -84,69 +165,81 @@ const AdminPage: React.FC = () => {
             transition: 'all 0.3s ease',
             backdropFilter: 'blur(10px)'
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = `${colorStyle}20`;
-            e.currentTarget.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-            e.currentTarget.style.transform = 'scale(1)';
-          }}
         >
           ← Вернуться в игру
         </button>
       </div>
 
-      {/* Основной контент */}
+      {/* Навигация по вкладкам */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        marginBottom: '30px',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            style={{
+              padding: '12px 24px',
+              background: activeTab === tab.key 
+                ? `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)` 
+                : 'rgba(255, 255, 255, 0.1)',
+              border: `2px solid ${activeTab === tab.key ? colorStyle : 'transparent'}`,
+              borderRadius: '15px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: activeTab === tab.key ? 'bold' : 'normal',
+              boxShadow: activeTab === tab.key ? `0 0 20px ${colorStyle}40` : 'none',
+              transition: 'all 0.3s ease',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== tab.key) {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== tab.key) {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Контент активной вкладки */}
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.05)',
-          border: `1px solid ${colorStyle}40`,
-          borderRadius: '15px',
-          padding: '40px',
-          textAlign: 'center',
-          backdropFilter: 'blur(10px)'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🎛️</div>
-          <h2 style={{ 
-            color: colorStyle, 
-            marginBottom: '15px',
-            fontSize: '1.5rem'
-          }}>
-            Система управления активна!
-          </h2>
-          <p style={{ color: '#aaa', fontSize: '1rem', lineHeight: '1.6' }}>
-            Админ панель загружена успешно. Все основные компоненты работают корректно.
-            <br />
-            Модульная архитектура готова к использованию.
-          </p>
-          
-          {/* Статус системы */}
-          <div style={{
-            marginTop: '30px',
-            padding: '20px',
-            background: 'rgba(76, 175, 80, 0.1)',
-            border: '1px solid #4CAF5040',
-            borderRadius: '10px'
-          }}>
-            <div style={{ color: '#4CAF50', fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '10px' }}>
-              ✅ Статус системы: Все компоненты загружены
-            </div>
-            <div style={{ color: '#aaa', fontSize: '0.9rem' }}>
-              • LoadingScreen - ✅ Работает<br/>
-              • ErrorScreen - ✅ Работает<br/>
-              • useAdminAuth - ✅ Работает<br/>
-              • Авторизация - ✅ Прошла успешно<br/>
-            </div>
-          </div>
-          
-          <div style={{
-            marginTop: '20px',
-            fontSize: '0.8rem',
-            color: '#666'
-          }}>
-            Обновлено: {new Date().toLocaleString('ru-RU')} | Версия: v2.0-safe
-          </div>
+        {renderActiveTabContent()}
+      </div>
+
+      {/* Статус системы */}
+      <div style={{
+        marginTop: '30px',
+        padding: '15px',
+        background: 'rgba(76, 175, 80, 0.1)',
+        border: '1px solid #4CAF5040',
+        borderRadius: '10px',
+        textAlign: 'center',
+        fontSize: '0.9rem'
+      }}>
+        <div style={{ color: '#4CAF50', marginBottom: '5px' }}>
+          ✅ Модульная архитектура активна! Используем готовые компоненты.
+        </div>
+        <div style={{ color: '#aaa' }}>
+          Активная вкладка: {tabs.find(t => t.key === activeTab)?.icon} {tabs.find(t => t.key === activeTab)?.label} | 
+          Обновлено: {new Date().toLocaleString('ru-RU')}
         </div>
       </div>
     </div>
