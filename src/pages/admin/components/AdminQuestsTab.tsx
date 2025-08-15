@@ -42,6 +42,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     // 1. Из localStorage
     const savedId = localStorage.getItem('telegramId');
     if (savedId?.trim()) {
+      console.log('✅ ID из localStorage:', savedId.trim());
       return savedId.trim();
     }
     
@@ -50,12 +51,14 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     if (webApp?.initDataUnsafe?.user?.id) {
       const webAppId = String(webApp.initDataUnsafe.user.id);
       localStorage.setItem('telegramId', webAppId);
+      console.log('✅ ID из WebApp:', webAppId);
       return webAppId;
     }
     
     // 3. Тестовый админский ID (для разработки)
     const testId = '1222791281';
     localStorage.setItem('telegramId', testId);
+    console.log('✅ Использован тестовый ID:', testId);
     return testId;
   };
 
@@ -71,7 +74,8 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         return;
       }
       
-      addResult(`Загружаем список квестов для ID: ${telegramId}...`, 'info');
+      console.log('🔍 Отправляем запрос с админ ID:', telegramId);
+      addResult(`Загружаем список квестов (админ проверка: ${telegramId})...`, 'info');
       
       const response = await adminApiService.getQuestsList(telegramId);
       setQuestsData(response);
@@ -117,7 +121,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         return;
       }
       
-      addResult(`Создаем тестовый квест для ID: ${telegramId}...`, 'info');
+      addResult(`Создаем ГЛОБАЛЬНЫЙ квест (админ проверка: ${telegramId})...`, 'info');
       
       const response = await adminApiService.createTestQuest(telegramId);
       
@@ -147,7 +151,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         return;
       }
       
-      addResult(`Собираем статистику квестов для ID: ${telegramId}...`, 'info');
+      addResult(`Собираем статистику ВСЕХ квестов (админ проверка: ${telegramId})...`, 'info');
       
       const response = await adminApiService.getQuestsStatistics(telegramId);
       
@@ -195,7 +199,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         return;
       }
       
-      addResult(`Ищем и удаляем тестовые квесты для ID: ${telegramId}...`, 'info');
+      addResult(`Ищем и удаляем ВСЕ тестовые квесты (админ проверка: ${telegramId})...`, 'info');
       
       const response = await adminApiService.bulkDeleteTestQuests(telegramId);
       
@@ -243,6 +247,32 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         }}>
           ⚡ Действия с заданиями (LIVE API)
         </h3>
+        
+        {/* Кнопка для установки тестового ID */}
+        <div style={{ marginBottom: '15px' }}>
+          <button
+            onClick={() => {
+              localStorage.setItem('telegramId', '1222791281');
+              addResult('🔧 Установлен тестовый админский ID: 1222791281', 'success');
+            }}
+            style={{
+              padding: '8px 16px',
+              background: 'linear-gradient(135deg, #FF5722, #E64A19)',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              marginRight: '10px'
+            }}
+          >
+            🔧 Установить тестовый ID
+          </button>
+          <span style={{ fontSize: '0.75rem', color: '#aaa' }}>
+            Текущий ID: {localStorage.getItem('telegramId') || 'не установлен'}
+          </span>
+        </div>
         
         <div style={{
           display: 'grid',
@@ -347,7 +377,8 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
           fontSize: '0.8rem',
           color: '#aaa'
         }}>
-          🚀 <strong>LIVE режим:</strong> Кнопки теперь подключены к реальному API backend
+          🚀 <strong>LIVE режим:</strong> Кнопки подключены к реальному API backend<br/>
+          📱 <strong>Мобильная диагностика:</strong> Если ошибки с ID - нажмите "🔧 Установить тестовый ID"
         </div>
       </div>
 
