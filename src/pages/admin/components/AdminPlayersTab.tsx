@@ -11,6 +11,11 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
   const [actionResults, setActionResults] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
 
+  // Загружаем статистику при монтировании компонента
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
+
   // Безопасное форматирование чисел
   const safeNumber = (value: any, defaultValue: number = 0): number => {
     try {
@@ -174,7 +179,19 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
       </div>
 
       {/* ТОП игроков */}
-      {stats?.top_players && stats.top_players.length > 0 && (
+      {loading ? (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: `1px solid ${colorStyle}40`,
+          borderRadius: '12px',
+          padding: '20px',
+          textAlign: 'center',
+          marginBottom: '25px'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⏳</div>
+          <div style={{ color: '#aaa' }}>Загружаем ТОП игроков...</div>
+        </div>
+      ) : stats?.top_players && stats.top_players.length > 0 ? (
         <div>
           <h3 style={{ 
             color: colorStyle, 
@@ -281,6 +298,35 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
               );
             })}
           </div>
+        </div>
+      ) : (
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: `1px solid ${colorStyle}40`,
+          borderRadius: '12px',
+          padding: '20px',
+          textAlign: 'center',
+          marginBottom: '25px'
+        }}>
+          <div style={{ fontSize: '2rem', marginBottom: '10px' }}>👥</div>
+          <h3 style={{ color: colorStyle, marginBottom: '15px' }}>ТОП игроков не найден</h3>
+          <p style={{ color: '#aaa', marginBottom: '15px' }}>
+            {stats ? 'В системе пока нет игроков с достаточным количеством CS' : 'Статистика не загружена'}
+          </p>
+          <button
+            onClick={refresh}
+            style={{
+              padding: '10px 20px',
+              background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}88)`,
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            🔄 Обновить данные
+          </button>
         </div>
       )}
 

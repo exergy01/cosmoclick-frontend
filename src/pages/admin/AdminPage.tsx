@@ -9,6 +9,7 @@ import LoadingScreen from './components/LoadingScreen';
 import ErrorScreen from './components/ErrorScreen';
 import AdminStatsTab from './components/AdminStatsTab';
 import AdminPlayersTab from './components/AdminPlayersTab';
+import AdminQuestsTab from './components/AdminQuestsTab';
 
 // Типы для вкладок
 type AdminTabType = 'stats' | 'players' | 'quests' | 'management';
@@ -74,21 +75,14 @@ const AdminPage: React.FC = () => {
             colorStyle={colorStyle}
           />
         );
-      case 'quests':
-        return (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: `1px solid ${colorStyle}40`,
-            borderRadius: '15px',
-            padding: '40px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📋</div>
-            <h3 style={{ color: colorStyle, marginBottom: '15px' }}>Управление заданиями</h3>
-            <p style={{ color: '#aaa' }}>Компонент AdminQuestsTab будет добавлен следующим</p>
-          </div>
-        );
-      case 'management':
+        case 'quests':
+          return (
+            <AdminQuestsTab 
+              colorStyle={colorStyle}
+            />
+          );
+          
+        case 'management':
         return (
           <div style={{
             background: 'rgba(255, 255, 255, 0.05)',
