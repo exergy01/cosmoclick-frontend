@@ -269,8 +269,51 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
           >
             🔧 Установить тестовый ID
           </button>
+          
+          <button
+            onClick={async () => {
+              try {
+                addResult('🧪 Тестируем прямой вызов API...', 'info');
+                
+                const apiUrl = process.env.NODE_ENV === 'production'
+                  ? 'https://cosmoclick-backend.onrender.com'
+                  : 'http://localhost:5000';
+                
+                const response = await fetch(`${apiUrl}/api/admin/check/1222791281`);
+                const data = await response.json();
+                
+                addResult(`🧪 Ответ /check: ${JSON.stringify(data)}`, data.isAdmin ? 'success' : 'error');
+                
+                if (data.isAdmin) {
+                  // Если админ проверка прошла, пробуем квесты
+                  const questsResponse = await fetch(`${apiUrl}/api/admin/quests/list/1222791281`);
+                  const questsData = await questsResponse.json();
+                  
+                  addResult(`🧪 Ответ /quests: ${questsResponse.status} ${questsResponse.statusText}`, 'info');
+                  addResult(`🧪 Данные: ${JSON.stringify(questsData).slice(0, 100)}...`, 'info');
+                }
+                
+              } catch (error: any) {
+                addResult(`🧪 Ошибка теста: ${error.message}`, 'error');
+              }
+            }}
+            style={{
+              padding: '8px 16px',
+              background: 'linear-gradient(135deg, #9C27B0, #7B1FA2)',
+              border: 'none',
+              borderRadius: '6px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              marginRight: '10px'
+            }}
+          >
+            🧪 Тест API
+          </button>
+          
           <span style={{ fontSize: '0.75rem', color: '#aaa' }}>
-            Текущий ID: {localStorage.getItem('telegramId') || 'не установлен'}
+            ID: {localStorage.getItem('telegramId') || 'не установлен'}
           </span>
         </div>
         
