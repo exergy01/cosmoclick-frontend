@@ -1,4 +1,4 @@
-// pages/admin/services/adminApi.ts - ОБНОВЛЕННАЯ ВЕРСИЯ с новыми типами
+// pages/admin/services/adminApi.ts - ДОПОЛНЕНО функциями для квестов
 import axios from 'axios';
 import type {
   AdminStats,
@@ -130,50 +130,6 @@ adminApi.interceptors.response.use(
   (response) => {
     console.log(`✅ Admin API ответ: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url || ''}`);
     console.log('📦 Данные ответа (первые 500 символов):', JSON.stringify(response.data).slice(0, 500) + '...');
-    
-    // 🆕 Дополнительная проверка структуры ответа для статистики
-    if (response.config.url?.includes('/stats/')) {
-      const data = response.data as AdminStats;
-      console.log('📊 Анализ структуры статистики:', {
-        hasPlayers: !!data.players,
-        hasCurrencies: !!data.currencies,
-        hasStarsExchange: !!data.stars_exchange,
-        hasAllExchanges: !!data.all_exchanges, // НОВОЕ
-        hasMinigames: !!data.minigames, // НОВОЕ  
-        hasDebug: !!data.debug, // НОВОЕ
-        topPlayersCount: data.top_players?.length || 0,
-        timestamp: data.timestamp
-      });
-      
-      // Проверяем новые поля
-      if (data.all_exchanges) {
-        console.log('🔄 Детали all_exchanges:', {
-          starsToCs: data.all_exchanges.stars_to_cs?.total_exchanges || 0,
-          cccCs: (data.all_exchanges.ccc_cs?.ccc_to_cs_exchanges || 0) + (data.all_exchanges.ccc_cs?.cs_to_ccc_exchanges || 0),
-          csTon: (data.all_exchanges.cs_ton?.cs_to_ton_exchanges || 0) + (data.all_exchanges.cs_ton?.ton_to_cs_exchanges || 0),
-          totalExchanges: data.all_exchanges.totals?.all_exchanges || 0
-        });
-      }
-      
-      if (data.minigames) {
-        console.log('🎮 Детали minigames:', {
-          totalGames: data.minigames.total_games || 0,
-          activePlayers: data.minigames.active_players || 0,
-          totalBet: data.minigames.total_bet || 0,
-          totalWon: data.minigames.total_won || 0
-        });
-      }
-      
-      if (data.debug) {
-        console.log('🔧 Детали debug:', {
-          activityField: data.debug.activity_field_used,
-          reasonValuesFound: data.debug.reason_values_found,
-          topReasons: data.debug.top_reasons?.slice(0, 3),
-          tablesChecked: data.debug.tables_checked
-        });
-      }
-    }
-    
     return response;
   },
   (error) => {
@@ -215,30 +171,18 @@ export const adminApiService = {
     }
   },
 
-  // 🆕 ОБНОВЛЕННАЯ загрузка статистики с поддержкой новых полей
+  // Загрузка статистики
   async getStats(telegramId?: string): Promise<AdminStats> {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('📊 Загружаем статистику с новыми полями. ID:', id);
+      console.log('📊 Загружаем статистику. ID:', id);
       console.log('🔗 URL будет:', `${API_URL}/api/admin/stats/${encodeURIComponent(id)}`);
       
       const response = await adminApi.get(`/stats/${encodeURIComponent(id)}`);
       const stats = response.data as AdminStats;
       
       console.log('✅ Статистика загружена успешно. Размер данных:', JSON.stringify(stats).length);
-      
-      // 🆕 Валидация новых полей
-      if (!stats.all_exchanges) {
-        console.warn('⚠️ Поле all_exchanges отсутствует в ответе backend');
-      }
-      if (!stats.minigames) {
-        console.warn('⚠️ Поле minigames отсутствует в ответе backend');
-      }
-      if (!stats.debug) {
-        console.warn('⚠️ Поле debug отсутствует в ответе backend');
-      }
-      
       return stats;
     } catch (error) {
       console.error('❌ Ошибка загрузки статистики:', error);
@@ -372,6 +316,250 @@ export const adminApiService = {
       console.error('❌ Ошибка снятия блокировки:', error);
       throw error;
     }
+  },
+
+  // 🆕 ФУНКЦИИ ДЛЯ УПРАВЛЕНИЯ КВЕСТАМИ
+  
+  // Получить список всех квестов
+  async getQuestsList(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      console.log('📋 Загружаем список квестов. ID:', id);
+      const response = await adminApi.get(`/quests/list/${encodeURIComponent(id)}`);
+      
+      console.log('✅ Список квестов загружен:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки списка квестов:', error);
+      throw error;
+    }
+  },
+
+  // Получить детали конкретного квеста
+  async getQuestDetails(telegramId?: string, questKey?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      if (!questKey) {
+        throw new Error('Ключ квеста не указан');
+      }
+      
+      console.log('📝 Загружаем детали квеста. ID:', id, 'Quest Key:', questKey);
+      const response = await adminApi.get(`/quests/get/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`);
+      
+      console.log('✅ Детали квеста загружены:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки деталей квеста:', error);
+      throw error;
+    }
+  },
+
+  // Создать новый квест
+  async createQuest(telegramId?: string, questData?: any): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      if (!questData) {
+        throw new Error('Данные квеста не предоставлены');
+      }
+      
+      console.log('🧪 Создаем новый квест. ID:', id, 'данные:', questData);
+      const response = await adminApi.post(`/quests/create/${encodeURIComponent(id)}`, questData);
+      
+      console.log('✅ Квест создан:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка создания квеста:', error);
+      throw error;
+    }
+  },
+
+  // Обновить квест
+  async updateQuest(telegramId?: string, questKey?: string, questData?: any): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      if (!questKey || !questData) {
+        throw new Error('Ключ квеста и данные обязательны');
+      }
+      
+      console.log('✏️ Обновляем квест. ID:', id, 'Quest Key:', questKey);
+      const response = await adminApi.put(`/quests/update/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`, questData);
+      
+      console.log('✅ Квест обновлен:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка обновления квеста:', error);
+      throw error;
+    }
+  },
+
+  // Удалить квест
+  async deleteQuest(telegramId?: string, questKey?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      if (!questKey) {
+        throw new Error('Ключ квеста не указан');
+      }
+      
+      console.log('🗑️ Удаляем квест. ID:', id, 'Quest Key:', questKey);
+      const response = await adminApi.delete(`/quests/delete/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`);
+      
+      console.log('✅ Квест удален:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка удаления квеста:', error);
+      throw error;
+    }
+  },
+
+  // Переключить активность квеста
+  async toggleQuestStatus(telegramId?: string, questKey?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      if (!questKey) {
+        throw new Error('Ключ квеста не указан');
+      }
+      
+      console.log('🔄 Переключаем статус квеста. ID:', id, 'Quest Key:', questKey);
+      const response = await adminApi.post(`/quests/toggle-status/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`);
+      
+      console.log('✅ Статус квеста изменен:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка изменения статуса квеста:', error);
+      throw error;
+    }
+  },
+
+  // Создать тестовый квест (упрощенная версия для кнопки)
+  async createTestQuest(telegramId?: string): Promise<any> {
+    const timestamp = Date.now();
+    const testQuestData = {
+      quest_key: `test_quest_${timestamp}`,
+      quest_type: 'partner_link',
+      reward_cs: 100,
+      quest_data: {
+        url: 'https://example.com',
+        timer_seconds: 30
+      },
+      target_languages: ['ru', 'en'],
+      sort_order: 999,
+      translations: {
+        ru: {
+          quest_name: `Тестовое задание ${new Date().toLocaleTimeString()}`,
+          description: 'Это тестовое задание, созданное из админ-панели'
+        },
+        en: {
+          quest_name: `Test Quest ${new Date().toLocaleTimeString()}`,
+          description: 'This is a test quest created from admin panel'
+        }
+      }
+    };
+
+    return await this.createQuest(telegramId, testQuestData);
+  },
+
+  // Получить статистику по квестам (сборная функция)
+  async getQuestsStatistics(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      console.log('📊 Собираем статистику по квестам. ID:', id);
+      
+      // Получаем список квестов
+      const questsList = await this.getQuestsList(id);
+      
+      // Формируем статистику
+      const stats = {
+        total_quests: questsList.total_quests || 0,
+        active_quests: questsList.active_quests || 0,
+        inactive_quests: questsList.inactive_quests || 0,
+        quests: questsList.quests || [],
+        summary: {
+          total_completions: 0,
+          unique_players: 0,
+          total_rewards_given: 0
+        }
+      };
+
+      // Подсчитываем суммарную статистику
+      if (questsList.quests) {
+        stats.summary.total_completions = questsList.quests.reduce(
+          (sum: number, quest: any) => sum + (quest.stats?.total_completions || 0), 0
+        );
+        stats.summary.unique_players = questsList.quests.reduce(
+          (sum: number, quest: any) => sum + (quest.stats?.unique_players || 0), 0
+        );
+        stats.summary.total_rewards_given = questsList.quests.reduce(
+          (sum: number, quest: any) => sum + (quest.reward_cs * (quest.stats?.total_completions || 0)), 0
+        );
+      }
+      
+      console.log('✅ Статистика квестов собрана:', stats);
+      return stats;
+    } catch (error) {
+      console.error('❌ Ошибка получения статистики квестов:', error);
+      throw error;
+    }
+  },
+
+  // Массовое удаление тестовых квестов
+  async bulkDeleteTestQuests(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+      
+      console.log('🧹 Запускаем массовое удаление тестовых квестов. ID:', id);
+      
+      // Получаем список всех квестов
+      const questsList = await this.getQuestsList(id);
+      
+      if (!questsList.quests || questsList.quests.length === 0) {
+        return { message: 'Нет квестов для удаления', deleted_count: 0 };
+      }
+      
+      // Ищем тестовые квесты (начинающиеся с test_)
+      const testQuests = questsList.quests.filter((quest: any) => 
+        quest.quest_key && quest.quest_key.startsWith('test_')
+      );
+      
+      if (testQuests.length === 0) {
+        return { message: 'Тестовые квесты не найдены', deleted_count: 0 };
+      }
+      
+      console.log(`🎯 Найдено ${testQuests.length} тестовых квестов для удаления`);
+      
+      // Удаляем каждый тестовый квест
+      const results = [];
+      for (const quest of testQuests) {
+        try {
+          await this.deleteQuest(id, quest.quest_key);
+          results.push({ quest_key: quest.quest_key, status: 'deleted' });
+          console.log(`✅ Удален тестовый квест: ${quest.quest_key}`);
+        } catch (deleteError) {
+          results.push({ quest_key: quest.quest_key, status: 'error', error: deleteError });
+          console.error(`❌ Ошибка удаления ${quest.quest_key}:`, deleteError);
+        }
+      }
+      
+      const deletedCount = results.filter(r => r.status === 'deleted').length;
+      
+      console.log(`🧹 Массовое удаление завершено. Удалено: ${deletedCount}/${testQuests.length}`);
+      
+      return {
+        message: `Удаление завершено: ${deletedCount}/${testQuests.length}`,
+        deleted_count: deletedCount,
+        total_found: testQuests.length,
+        results: results
+      };
+    } catch (error) {
+      console.error('❌ Ошибка массового удаления:', error);
+      throw error;
+    }
   }
 };
 
@@ -426,66 +614,6 @@ export const setTestAdminId = (): void => {
     console.log('🧪 Установлен тестовый админский ID:', adminId);
   } catch (error) {
     console.error('❌ Ошибка установки тестового ID:', error);
-  }
-};
-
-// 🆕 ОБНОВЛЕННАЯ функция для отладочного тестирования API с новыми полями
-export const testAdminApi = async (): Promise<void> => {
-  console.log('🧪 === ТЕСТИРОВАНИЕ ADMIN API С НОВЫМИ ПОЛЯМИ ===');
-  
-  try {
-    const id = forceGetTelegramId();
-    console.log('1. Получен ID для тестирования:', id);
-    
-    // Тест проверки админа
-    console.log('2. Тестируем проверку админа...');
-    const authResult = await adminApiService.checkAdminStatus(id);
-    console.log('✅ Результат проверки админа:', authResult);
-    
-    if (authResult.isAdmin) {
-      // Тест загрузки статистики
-      console.log('3. Тестируем загрузку статистики с новыми полями...');
-      const statsResult = await adminApiService.getStats(id);
-      console.log('✅ Результат загрузки статистики:', {
-        totalPlayers: statsResult.players?.total_players,
-        active24h: statsResult.players?.active_24h,
-        totalCS: statsResult.currencies?.total_cs,
-        topPlayersCount: statsResult.top_players?.length,
-        // 🆕 Новые поля
-        hasAllExchanges: !!statsResult.all_exchanges,
-        totalExchanges: statsResult.all_exchanges?.totals?.all_exchanges,
-        cccCsExchanges: (statsResult.all_exchanges?.ccc_cs?.ccc_to_cs_exchanges || 0) + (statsResult.all_exchanges?.ccc_cs?.cs_to_ccc_exchanges || 0),
-        hasMinigames: !!statsResult.minigames,
-        totalGames: statsResult.minigames?.total_games,
-        hasDebug: !!statsResult.debug,
-        activityField: statsResult.debug?.activity_field_used,
-        reasonValues: statsResult.debug?.reason_values_found
-      });
-      
-      // Детальная проверка новых полей
-      if (statsResult.all_exchanges) {
-        console.log('✅ all_exchanges поле присутствует');
-      } else {
-        console.error('❌ all_exchanges поле отсутствует!');
-      }
-      
-      if (statsResult.minigames) {
-        console.log('✅ minigames поле присутствует');
-      } else {
-        console.error('❌ minigames поле отсутствует!');
-      }
-      
-      if (statsResult.debug) {
-        console.log('✅ debug поле присутствует');
-      } else {
-        console.error('❌ debug поле отсутствует!');
-      }
-      
-    } else {
-      console.log('❌ Не является админом, статистику не загружаем');
-    }
-  } catch (error) {
-    console.error('❌ Ошибка тестирования API:', error);
   }
 };
 
