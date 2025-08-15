@@ -1,21 +1,13 @@
-// pages/admin/components/AdminPlayersTab.tsx
-import React, { useState, useEffect } from 'react';
+// pages/admin/components/AdminPlayersTab.tsx - ПРОСТАЯ РАБОЧАЯ ВЕРСИЯ
+import React, { useState } from 'react';
 import { useAdminStats } from '../hooks/useAdminStats';
-import AdminTopPlayersTable from './AdminTopPlayersTable';
-import PlayerActionsPanel from './PlayerActionsPanel';
-import PlayerBalanceManager from './PlayerBalanceManager';
-import axios from 'axios';
-
-const apiUrl = process.env.NODE_ENV === 'production'
-  ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
 
 interface AdminPlayersTabProps {
   colorStyle: string;
 }
 
 const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
-  const { stats, loading: statsLoading, refresh } = useAdminStats();
+  const { stats, loading, refresh } = useAdminStats();
   const [actionResults, setActionResults] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
 
@@ -47,158 +39,14 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
     }
   };
 
-  // Функции управления верификацией
-  const grantBasicVerification = async (playerId: string) => {
-    const actionKey = `basic_verify_${playerId}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      // Получаем telegram_id из localStorage или других источников
-      const adminId = localStorage.getItem('telegramId') || '1222791281';
-      
-      const response = await axios.post(`${apiUrl}/api/admin/grant-basic-verification/${adminId}`, {
-        playerId
-      });
-      
-      if (response.data.success) {
-        setActionResults(prev => [
-          `✅ Базовая верификация выдана: ${playerId}`,
-          ...prev.slice(0, 9)
-        ]);
-        refresh(); // Обновляем статистику
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка базовой верификации:', err);
+  // Быстрые действия (пока заглушки)
+  const handleQuickAction = (action: string) => {
+    const playerId = prompt(`🆔 ID игрока для действия "${action}":`);
+    if (playerId?.trim()) {
       setActionResults(prev => [
-        `❌ Базовая верификация: ${err.response?.data?.error || err.message}`,
+        `🔄 Действие "${action}" для игрока ${playerId} - в разработке`,
         ...prev.slice(0, 9)
       ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
-    }
-  };
-
-  const grantPremium30Days = async (playerId: string) => {
-    const actionKey = `premium30_${playerId}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      const adminId = localStorage.getItem('telegramId') || '1222791281';
-      
-      const response = await axios.post(`${apiUrl}/api/admin/grant-premium-30days/${adminId}`, {
-        playerId
-      });
-      
-      if (response.data.success) {
-        setActionResults(prev => [
-          `✅ Премиум 30 дней выдан: ${playerId} (+ verified)`,
-          ...prev.slice(0, 9)
-        ]);
-        refresh();
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка премиум 30 дней:', err);
-      setActionResults(prev => [
-        `❌ Премиум 30 дней: ${err.response?.data?.error || err.message}`,
-        ...prev.slice(0, 9)
-      ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
-    }
-  };
-
-  const grantPremiumForever = async (playerId: string) => {
-    const actionKey = `premium_forever_${playerId}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      const adminId = localStorage.getItem('telegramId') || '1222791281';
-      
-      const response = await axios.post(`${apiUrl}/api/admin/grant-premium-forever/${adminId}`, {
-        playerId
-      });
-      
-      if (response.data.success) {
-        setActionResults(prev => [
-          `✅ Премиум навсегда выдан: ${playerId} (+ verified)`,
-          ...prev.slice(0, 9)
-        ]);
-        refresh();
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка премиум навсегда:', err);
-      setActionResults(prev => [
-        `❌ Премиум навсегда: ${err.response?.data?.error || err.message}`,
-        ...prev.slice(0, 9)
-      ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
-    }
-  };
-
-  const revokeAllPremium = async (playerId: string) => {
-    const actionKey = `revoke_all_${playerId}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      const adminId = localStorage.getItem('telegramId') || '1222791281';
-      
-      const response = await axios.post(`${apiUrl}/api/admin/revoke-premium/${adminId}`, {
-        playerId
-      });
-      
-      if (response.data.success) {
-        setActionResults(prev => [
-          `✅ Все статусы отменены: ${playerId} (verified + премиум)`,
-          ...prev.slice(0, 9)
-        ]);
-        refresh();
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка отмены статусов:', err);
-      setActionResults(prev => [
-        `❌ Отмена статусов: ${err.response?.data?.error || err.message}`,
-        ...prev.slice(0, 9)
-      ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
-    }
-  };
-
-  const updatePlayerBalance = async (playerId: string, currency: string, operation: string, amount: number) => {
-    const actionKey = `balance_${playerId}`;
-    setActionLoading(prev => ({ ...prev, [actionKey]: true }));
-    
-    try {
-      const adminId = localStorage.getItem('telegramId') || '1222791281';
-      
-      const response = await axios.post(`${apiUrl}/api/admin/update-balance/${adminId}`, {
-        playerId,
-        currency,
-        operation,
-        amount
-      });
-      
-      if (response.data.success) {
-        setActionResults(prev => [
-          `✅ Баланс обновлен: ${playerId} ${currency} ${operation} ${amount}`,
-          ...prev.slice(0, 9)
-        ]);
-        refresh();
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Ошибка обновления баланса:', err);
-      setActionResults(prev => [
-        `❌ Баланс: ${err.response?.data?.error || err.message}`,
-        ...prev.slice(0, 9)
-      ]);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [actionKey]: false }));
     }
   };
 
@@ -214,30 +62,126 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
       </h2>
 
       {/* Панель быстрых действий */}
-      <PlayerActionsPanel
-        colorStyle={colorStyle}
-        onBasicVerification={grantBasicVerification}
-        onPremium30Days={grantPremium30Days}
-        onPremiumForever={grantPremiumForever}
-        onRevokeAll={revokeAllPremium}
-        onUpdateBalance={updatePlayerBalance}
-      />
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: `1px solid ${colorStyle}40`,
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '25px'
+      }}>
+        <h3 style={{ 
+          color: colorStyle, 
+          marginTop: 0, 
+          marginBottom: '15px', 
+          fontSize: '1.1rem' 
+        }}>
+          ⚡ Быстрые действия
+        </h3>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '10px'
+        }}>
+          
+          <button
+            onClick={() => handleQuickAction('Базовая верификация')}
+            style={{
+              padding: '12px',
+              background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            ✅ Базовая верификация
+          </button>
+          
+          <button
+            onClick={() => handleQuickAction('Премиум 30 дней')}
+            style={{
+              padding: '12px',
+              background: 'linear-gradient(135deg, #FF6B35, #e55a2b)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            👑 Премиум 30 дней
+          </button>
+          
+          <button
+            onClick={() => handleQuickAction('Премиум навсегда')}
+            style={{
+              padding: '12px',
+              background: 'linear-gradient(135deg, #FFD700, #ddb800)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#000',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            🏆 Премиум навсегда
+          </button>
+          
+          <button
+            onClick={() => handleQuickAction('+1000 CS')}
+            style={{
+              padding: '12px',
+              background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#000',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            💰 +1000 CS
+          </button>
+        </div>
+        
+        <div style={{
+          marginTop: '15px',
+          padding: '10px',
+          background: `${colorStyle}10`,
+          borderRadius: '8px',
+          fontSize: '0.8rem',
+          color: '#aaa'
+        }}>
+          💡 <strong>Совет:</strong> Функции пока в режиме заглушек - будут подключены к API следующими
+        </div>
+      </div>
 
-      {/* Менеджер баланса */}
-      <PlayerBalanceManager
-        colorStyle={colorStyle}
-        onUpdateBalance={updatePlayerBalance}
-      />
-
-      {/* ТОП игроков с управлением */}
+      {/* ТОП игроков */}
       {stats?.top_players && stats.top_players.length > 0 && (
-        <div style={{ marginTop: '30px' }}>
+        <div>
           <h3 style={{ 
             color: colorStyle, 
             marginBottom: '20px', 
             fontSize: '1.2rem' 
           }}>
-            🏆 ТОП-10 игроков (управление):
+            🏆 ТОП-10 игроков:
           </h3>
           
           <div style={{
@@ -319,7 +263,7 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
                   </div>
                   
                   {/* Статус */}
-                  <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+                  <div style={{ textAlign: 'center' }}>
                     <div style={{
                       fontSize: '0.7rem',
                       padding: '4px 8px',
@@ -332,85 +276,6 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
                     }}>
                       {verificationType.label}
                     </div>
-                  </div>
-                  
-                  {/* Кнопки управления */}
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '1fr 1fr 1fr 1fr', 
-                    gap: '4px'
-                  }}>
-                    <button
-                      onClick={() => grantBasicVerification(player.telegram_id)}
-                      disabled={actionLoading[`basic_verify_${player.telegram_id}`]}
-                      style={{
-                        padding: '6px 4px',
-                        background: actionLoading[`basic_verify_${player.telegram_id}`] ? '#666' : '#4CAF50',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: '#fff',
-                        cursor: actionLoading[`basic_verify_${player.telegram_id}`] ? 'wait' : 'pointer',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold'
-                      }}
-                      title="Базовая верификация"
-                    >
-                      {actionLoading[`basic_verify_${player.telegram_id}`] ? '⏳' : '✅'}
-                    </button>
-                    
-                    <button
-                      onClick={() => grantPremium30Days(player.telegram_id)}
-                      disabled={actionLoading[`premium30_${player.telegram_id}`]}
-                      style={{
-                        padding: '6px 4px',
-                        background: actionLoading[`premium30_${player.telegram_id}`] ? '#666' : '#FF6B35',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: '#fff',
-                        cursor: actionLoading[`premium30_${player.telegram_id}`] ? 'wait' : 'pointer',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold'
-                      }}
-                      title="Премиум 30 дней"
-                    >
-                      {actionLoading[`premium30_${player.telegram_id}`] ? '⏳' : '👑'}
-                    </button>
-                    
-                    <button
-                      onClick={() => grantPremiumForever(player.telegram_id)}
-                      disabled={actionLoading[`premium_forever_${player.telegram_id}`]}
-                      style={{
-                        padding: '6px 4px',
-                        background: actionLoading[`premium_forever_${player.telegram_id}`] ? '#666' : '#FFD700',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: '#000',
-                        cursor: actionLoading[`premium_forever_${player.telegram_id}`] ? 'wait' : 'pointer',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold'
-                      }}
-                      title="Премиум навсегда"
-                    >
-                      {actionLoading[`premium_forever_${player.telegram_id}`] ? '⏳' : '🏆'}
-                    </button>
-                    
-                    <button
-                      onClick={() => revokeAllPremium(player.telegram_id)}
-                      disabled={actionLoading[`revoke_all_${player.telegram_id}`]}
-                      style={{
-                        padding: '6px 4px',
-                        background: actionLoading[`revoke_all_${player.telegram_id}`] ? '#666' : '#e74c3c',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: '#fff',
-                        cursor: actionLoading[`revoke_all_${player.telegram_id}`] ? 'wait' : 'pointer',
-                        fontSize: '0.7rem',
-                        fontWeight: 'bold'
-                      }}
-                      title="Отменить всё"
-                    >
-                      {actionLoading[`revoke_all_${player.telegram_id}`] ? '⏳' : '❌'}
-                    </button>
                   </div>
                 </div>
               );
@@ -452,6 +317,26 @@ const AdminPlayersTab: React.FC<AdminPlayersTabProps> = ({ colorStyle }) => {
           </div>
         </div>
       )}
+
+      {/* Информация о компоненте */}
+      <div style={{
+        marginTop: '25px',
+        padding: '15px',
+        background: 'rgba(76, 175, 80, 0.1)',
+        border: '1px solid #4CAF5040',
+        borderRadius: '10px',
+        textAlign: 'center',
+        fontSize: '0.9rem'
+      }}>
+        <div style={{ color: '#4CAF50', marginBottom: '5px' }}>
+          ✅ AdminPlayersTab загружен успешно!
+        </div>
+        <div style={{ color: '#aaa' }}>
+          ТОП игроков: {stats?.top_players?.length || 0} | 
+          Быстрые действия: 4 | 
+          API подключение: В разработке
+        </div>
+      </div>
     </div>
   );
 };

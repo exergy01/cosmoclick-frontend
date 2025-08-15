@@ -8,6 +8,7 @@ import { useAdminAuth } from './hooks/useAdminAuth';
 import LoadingScreen from './components/LoadingScreen';
 import ErrorScreen from './components/ErrorScreen';
 import AdminStatsTab from './components/AdminStatsTab';
+import AdminPlayersTab from './components/AdminPlayersTab';
 
 // Типы для вкладок
 type AdminTabType = 'stats' | 'players' | 'quests' | 'management';
@@ -69,17 +70,9 @@ const AdminPage: React.FC = () => {
         );
       case 'players':
         return (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: `1px solid ${colorStyle}40`,
-            borderRadius: '15px',
-            padding: '40px',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
-            <h3 style={{ color: colorStyle, marginBottom: '15px' }}>Управление игроками</h3>
-            <p style={{ color: '#aaa' }}>Компонент AdminPlayersTab будет добавлен следующим</p>
-          </div>
+          <AdminPlayersTab 
+            colorStyle={colorStyle}
+          />
         );
       case 'quests':
         return (
