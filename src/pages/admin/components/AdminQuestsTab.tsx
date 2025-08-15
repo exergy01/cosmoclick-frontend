@@ -11,6 +11,22 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
   const [actionLoading, setActionLoading] = useState<{[key: string]: boolean}>({});
   const [questsData, setQuestsData] = useState<any>(null);
 
+  // Дебаг информация при загрузке компонента
+  React.useEffect(() => {
+    const savedId = localStorage.getItem('telegramId');
+    const webApp = (window as any)?.Telegram?.WebApp;
+    const webAppId = webApp?.initDataUnsafe?.user?.id;
+    
+    console.log('🔍 AdminQuestsTab - проверка ID источников:', {
+      savedId,
+      webAppId,
+      hasWebApp: !!webApp,
+      hasUser: !!webApp?.initDataUnsafe?.user
+    });
+    
+    addResult(`ID источники: localStorage=${savedId}, webApp=${webAppId}`, 'info');
+  }, []);
+
   // Функция для добавления результата
   const addResult = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : '🔄';
@@ -21,15 +37,43 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     ]);
   };
 
+  // Функция получения Telegram ID из localStorage или WebApp
+  const getTelegramId = (): string | null => {
+    // 1. Из localStorage
+    const savedId = localStorage.getItem('telegramId');
+    if (savedId?.trim()) {
+      return savedId.trim();
+    }
+    
+    // 2. Из Telegram WebApp
+    const webApp = (window as any)?.Telegram?.WebApp;
+    if (webApp?.initDataUnsafe?.user?.id) {
+      const webAppId = String(webApp.initDataUnsafe.user.id);
+      localStorage.setItem('telegramId', webAppId);
+      return webAppId;
+    }
+    
+    // 3. Тестовый админский ID (для разработки)
+    const testId = '1222791281';
+    localStorage.setItem('telegramId', testId);
+    return testId;
+  };
+
   // Загрузить список квестов
   const handleLoadQuestsList = async () => {
     const actionKey = 'load_quests_list';
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
-      addResult('Загружаем список квестов...', 'info');
+      const telegramId = getTelegramId();
+      if (!telegramId) {
+        addResult('Ошибка: не удалось получить Telegram ID', 'error');
+        return;
+      }
       
-      const response = await adminApiService.getQuestsList();
+      addResult(`Загружаем список квестов для ID: ${telegramId}...`, 'info');
+      
+      const response = await adminApiService.getQuestsList(telegramId);
       setQuestsData(response);
       
       addResult(
@@ -67,9 +111,15 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
-      addResult('Создаем тестовый квест...', 'info');
+      const telegramId = getTelegramId();
+      if (!telegramId) {
+        addResult('Ошибка: не удалось получить Telegram ID', 'error');
+        return;
+      }
       
-      const response = await adminApiService.createTestQuest();
+      addResult(`Создаем тестовый квест для ID: ${telegramId}...`, 'info');
+      
+      const response = await adminApiService.createTestQuest(telegramId);
       
       addResult(
         `Тестовый квест создан: ${response.quest?.quest_key || 'unknown'} ` +
@@ -91,9 +141,15 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
-      addResult('Собираем статистику квестов...', 'info');
+      const telegramId = getTelegramId();
+      if (!telegramId) {
+        addResult('Ошибка: не удалось получить Telegram ID', 'error');
+        return;
+      }
       
-      const response = await adminApiService.getQuestsStatistics();
+      addResult(`Собираем статистику квестов для ID: ${telegramId}...`, 'info');
+      
+      const response = await adminApiService.getQuestsStatistics(telegramId);
       
       addResult(
         `Статистика загружена: ${response.total_quests || 0} квестов, ` +
@@ -121,6 +177,12 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     setActionLoading(prev => ({ ...prev, [actionKey]: true }));
     
     try {
+      const telegramId = getTelegramId();
+      if (!telegramId) {
+        addResult('Ошибка: не удалось получить Telegram ID', 'error');
+        return;
+      }
+      
       // Подтверждение перед удалением
       const confirmed = window.confirm(
         '⚠️ Удалить ВСЕ тестовые квесты?\n\n' +
@@ -133,9 +195,9 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         return;
       }
       
-      addResult('Ищем и удаляем тестовые квесты...', 'info');
+      addResult(`Ищем и удаляем тестовые квесты для ID: ${telegramId}...`, 'info');
       
-      const response = await adminApiService.bulkDeleteTestQuests();
+      const response = await adminApiService.bulkDeleteTestQuests(telegramId);
       
       if (response.deleted_count > 0) {
         addResult(
