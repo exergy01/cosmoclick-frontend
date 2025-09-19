@@ -142,7 +142,7 @@ const PremiumOfferModal = React.memo(({
               🚫 {t('premium.no_ads_30_days', 'Без рекламы на 30 дней')}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
-              {t('premium.price_30_days', '💎 50 TON или ⭐ 500 Stars')}
+              {t('premium.price_30_days', '💎 1 TON или ⭐ 150 Stars')}
             </div>
           </div>
           
@@ -170,10 +170,10 @@ const PremiumOfferModal = React.memo(({
               👑 {t('premium.no_ads_forever', 'Без рекламы навсегда')}
             </div>
             <div style={{ fontSize: '0.9rem', color: '#FFD700', marginTop: '5px' }}>
-              {t('premium.price_forever', '💎 150 TON или ⭐ 1500 Stars')}
+              {t('premium.price_forever', '💎 10 TON или ⭐ 1500 Stars')}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#90EE90', marginTop: '3px' }}>
-              💰 {t('premium.savings_info', 'Экономия 67% в год!')}
+              💰 {t('premium.savings_info', 'Экономия!')}
             </div>
           </div>
         </div>
