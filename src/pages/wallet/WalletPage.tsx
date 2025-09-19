@@ -1,5 +1,4 @@
-// src/pages/wallet/WalletPage.tsx - С КНОПКОЙ ПРОВЕРКИ ДЕПОЗИТОВ
-
+// src/pages/wallet/WalletPage.tsx - ПОЛНАЯ ВЕРСИЯ С КНОПКОЙ ОБНОВЛЕНИЯ БАЛАНСА
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
 import { 
@@ -20,7 +19,7 @@ import { TONDepositModal } from './components/TONDepositModal';
 import { useStarsPayment } from './hooks/useStarsPayment';
 import { useTONDeposit } from './hooks/useTONDeposit';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 // Официальные пакеты Stars от Telegram
 const VALID_STARS_AMOUNTS = [100, 150, 250, 350, 500, 750, 1000, 1500, 2500, 5000, 10000, 25000, 50000, 100000, 150000];
@@ -67,6 +66,7 @@ const WalletPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [premiumStatus, setPremiumStatus] = useState<any>(null);
+  const [isCheckingDeposits, setIsCheckingDeposits] = useState(false);
 
   const colorStyle = player?.color || '#00f0ff';
 
@@ -85,17 +85,14 @@ const WalletPage: React.FC = () => {
     }
   });
 
-  const { 
-    sendDepositTransaction, 
-    checkDeposit,
-    isProcessing: isTONProcessing,
-    isChecking 
-  } = useTONDeposit({
+  const { sendDepositTransaction, isProcessing: isTONProcessing } = useTONDeposit({
     playerId: player?.telegram_id,
     onSuccess: (message: string) => {
       setSuccess(message);
+      setDepositAmount('');
+      setShowDepositModal(false);
       setError(null);
-      setTimeout(() => refreshPlayer(), 2000);
+      setTimeout(() => refreshPlayer(), 3000);
     },
     onError: (errorMessage: string) => {
       setError(errorMessage);
@@ -106,6 +103,122 @@ const WalletPage: React.FC = () => {
     const balance = parseFloat(player?.ton || '0');
     return Math.max(0, balance - 0.01);
   }, [player?.ton]);
+
+  // УЛУЧШЕННАЯ ФУНКЦИЯ - ПРОВЕРКА ДЕПОЗИТОВ
+  const checkPendingDeposits = async () => {
+    if (!player?.telegram_id) {
+      setError('Игрок не найден');
+      return;
+    }
+
+    setIsCheckingDeposits(true);
+    setError(null);
+
+    try {
+      console.log('🔍 Запуск универсальной проверки депозитов для игрока:', player.telegram_id);
+      
+      // 1️⃣ БЫСТРАЯ ПРОВЕРКА ПОСЛЕДНИХ ДЕПОЗИТОВ (если кошелек подключен)
+      if (userAddress) {
+        console.log('⚡ Сначала быстрая проверка последних депозитов...');
+        
+        try {
+          const quickResponse = await axios.post(`${API_URL}/api/wallet/check-recent-deposits`, {
+            player_id: player.telegram_id,
+            sender_address: userAddress,
+            minutes_back: 30 // Последние 30 минут
+          });
+          
+          if (quickResponse.data.success && quickResponse.data.deposits_found > 0) {
+            console.log(`✅ Быстрая проверка: найдено ${quickResponse.data.deposits_found} депозитов`);
+            setSuccess(`🎉 Найдено и зачислено ${quickResponse.data.deposits_found} недавних депозитов (${quickResponse.data.total_amount} TON)!`);
+            await refreshPlayer();
+            return; // Если нашли депозиты быстро, не делаем полную проверку
+          }
+        } catch (quickError) {
+          console.log('⚠️ Быстрая проверка не удалась, переходим к полной');
+        }
+      }
+      
+      // 2️⃣ ПОЛНАЯ УНИВЕРСАЛЬНАЯ ПРОВЕРКА
+      console.log('🔍 Запуск полной универсальной проверки...');
+      
+      const fullResponse = await axios.post(`${API_URL}/api/wallet/check-all-deposits`, {
+        player_id: player.telegram_id,
+        sender_address: userAddress // Опционально, если кошелек подключен
+      });
+      
+      if (fullResponse.data.success) {
+        if (fullResponse.data.deposits_found > 0) {
+          const { deposits_found, total_amount } = fullResponse.data;
+          setSuccess(`🎉 Найдено и зачислено ${deposits_found} депозитов на общую сумму ${total_amount} TON!`);
+          await refreshPlayer();
+          
+          // Дополнительная информация о депозитах
+          if (fullResponse.data.deposits && fullResponse.data.deposits.length > 0) {
+            console.log('📋 Обработанные депозиты:');
+            fullResponse.data.deposits.forEach((dep: any, index: number) => {
+              console.log(`  ${index + 1}. ${dep.amount} TON (${dep.hash})`);
+            });
+          }
+        } else {
+          setSuccess('✅ Проверка завершена. Новых депозитов не обнаружено.');
+          
+          // Подсказка пользователю
+          if (userAddress) {
+            setTimeout(() => {
+              setSuccess(`💡 Если вы недавно отправили TON, подождите 1-2 минуты и попробуйте снова.`);
+            }, 2000);
+          }
+        }
+      } else {
+        setError(fullResponse.data.error || 'Ошибка проверки депозитов');
+      }
+
+    } catch (err: any) {
+      console.error('❌ Ошибка проверки депозитов:', err);
+      
+      let errorMessage = 'Ошибка проверки депозитов. ';
+      
+      if (err.response?.status === 500) {
+        errorMessage += 'Проблема на сервере, попробуйте позже.';
+      } else if (err.code === 'NETWORK_ERROR') {
+        errorMessage += 'Проблема с сетью, проверьте соединение.';
+      } else if (err.message?.includes('timeout')) {
+        errorMessage += 'Превышено время ожидания, попробуйте еще раз.';
+      } else {
+        errorMessage += 'Попробуйте еще раз через минуту.';
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsCheckingDeposits(false);
+    }
+  };
+
+  // ДОПОЛНИТЕЛЬНАЯ ФУНКЦИЯ - АВТОМАТИЧЕСКАЯ ПРОВЕРКА ПРИ ЗАГРУЗКЕ
+  const checkDepositsOnLoad = async () => {
+    // Проверяем депозиты автоматически при загрузке страницы (только быстрая проверка)
+    if (!player?.telegram_id || !userAddress) return;
+    
+    try {
+      console.log('🔄 Автоматическая проверка при загрузке...');
+      
+      const response = await axios.post(`${API_URL}/api/wallet/check-recent-deposits`, {
+        player_id: player.telegram_id,
+        sender_address: userAddress,
+        minutes_back: 10 // Только последние 10 минут
+      });
+      
+      if (response.data.success && response.data.deposits_found > 0) {
+        setSuccess(`🔄 Автоматически найден ${response.data.deposits_found} новый депозит!`);
+        await refreshPlayer();
+      }
+      
+    } catch (err) {
+      // Не показываем ошибки автоматической проверки
+      console.log('⚠️ Автоматическая проверка не удалась (это нормально)');
+    }
+  };
 
   // Проверка премиум статуса
   const checkPremiumStatus = async () => {
@@ -140,12 +253,19 @@ const WalletPage: React.FC = () => {
     }
   }, [player?.telegram_id]);
 
+  // Автоматическая проверка при подключении кошелька
+  useEffect(() => {
+    if (userAddress && player?.telegram_id && connectionRestored) {
+      setTimeout(() => checkDepositsOnLoad(), 2000);
+    }
+  }, [userAddress, player?.telegram_id, connectionRestored]);
+
   // Синхронизация кошелька с бэкендом
   const syncWalletWithBackend = async () => {
     try {
       if (!userAddress || !player?.telegram_id) return;
       if (player.telegram_wallet === userAddress) {
-        setSuccess(t('wallet.wallet_already_connected'));
+        setSuccess(t('wallet.wallet_already_connected') || 'Кошелек уже подключен');
         return;
       }
 
@@ -157,11 +277,11 @@ const WalletPage: React.FC = () => {
 
       if (response.data.success) {
         await refreshPlayer();
-        setSuccess(t('wallet.wallet_connected'));
+        setSuccess(t('wallet.wallet_connected') || 'Кошелек подключен');
         setError(null);
       }
     } catch (err: any) {
-      const errorMsg = t('wallet.connection_error');
+      const errorMsg = t('wallet.connection_error') || 'Ошибка подключения кошелька';
       setError(errorMsg);
     }
   };
@@ -174,10 +294,10 @@ const WalletPage: React.FC = () => {
         telegram_id: player?.telegram_id
       });
       await refreshPlayer();
-      setSuccess(t('wallet.wallet_disconnected'));
+      setSuccess(t('wallet.wallet_disconnected') || 'Кошелек отключен');
       setError(null);
     } catch (err: any) {
-      setError(t('wallet.disconnect_error'));
+      setError(t('wallet.disconnect_error') || 'Ошибка отключения кошелька');
     }
   };
 
@@ -261,12 +381,12 @@ const WalletPage: React.FC = () => {
     const inputAmount = parseInt(starsAmount);
     
     if (!inputAmount || inputAmount < 100) {
-      setError(t('wallet.errors.invalid_stars_amount', { min: 100, max: 150000 }));
+      setError('Минимальная сумма: 100 Stars, максимальная: 150000 Stars');
       return;
     }
 
     if (inputAmount > 150000) {
-      setError(t('wallet.errors.invalid_stars_amount', { min: 100, max: 150000 }));
+      setError('Минимальная сумма: 100 Stars, максимальная: 150000 Stars');
       return;
     }
 
@@ -278,40 +398,21 @@ const WalletPage: React.FC = () => {
     const amount = parseFloat(depositAmount);
     
     if (!amount || amount < 0.01) {
-      setError(t('wallet.errors.invalid_ton_amount', { min: 0.01, max: 100 }));
+      setError('Минимальная сумма: 0.01 TON');
       return;
     }
     
     try {
       await sendDepositTransaction(amount);
-      setDepositAmount(''); // Очищаем поле после отправки
-      setShowDepositModal(false);
     } catch (err: any) {
-      setError(t('wallet.errors.transaction_error'));
-    }
-  };
-
-  // Ручная проверка депозита
-  const handleCheckDeposit = async () => {
-    const amount = parseFloat(depositAmount);
-    
-    if (!amount || amount < 0.01) {
-      setError('Введите сумму для проверки');
-      return;
-    }
-    
-    setError(null);
-    const success = await checkDeposit(amount);
-    
-    if (success) {
-      await refreshPlayer(); // Обновляем данные игрока
+      setError('Ошибка транзакции');
     }
   };
 
   // Вывод TON
   const handleWithdraw = async () => {
     if (!tonConnectUI || !userAddress) {
-      setError(t('wallet.first_connect_wallet'));
+      setError('Сначала подключите кошелек');
       return;
     }
 
@@ -319,7 +420,7 @@ const WalletPage: React.FC = () => {
     const playerBalance = parseFloat(player?.ton || '0');
 
     if (isNaN(amount) || amount < 0.1 || amount > playerBalance) {
-      setError(t('wallet.invalid_amount'));
+      setError('Неверная сумма вывода');
       return;
     }
 
@@ -354,12 +455,12 @@ const WalletPage: React.FC = () => {
         wallet_address: userAddress
       });
 
-      setSuccess(t('wallet.success.withdrawal_completed'));
+      setSuccess('Вывод успешно выполнен');
       setWithdrawAmount('');
       setShowWithdrawModal(false);
       await refreshPlayer();
     } catch (err: any) {
-      setError(err.message?.includes('declined') ? t('wallet.errors.transaction_declined') : t('wallet.errors.withdrawal_error'));
+      setError(err.message?.includes('declined') ? 'Транзакция отклонена пользователем' : 'Ошибка вывода средств');
     } finally {
       setIsProcessing(false);
     }
@@ -390,7 +491,7 @@ const WalletPage: React.FC = () => {
         justifyContent: 'center'
       }}>
         <div style={{ color: colorStyle, fontSize: '1.2rem' }}>
-          {t('wallet.loading_ton_connect')}
+          Загрузка TON Connect...
         </div>
       </div>
     );
@@ -431,7 +532,7 @@ const WalletPage: React.FC = () => {
             fontSize: '2rem', 
             marginBottom: '30px' 
           }}>
-            💳 {t('wallet.title')}
+            💳 Кошелек
           </h2>
 
           {/* Премиум статус (если есть) */}
@@ -475,6 +576,7 @@ const WalletPage: React.FC = () => {
               textAlign: 'center'
             }}>
               ✅ {success}
+              {/* Показываем адрес кошелька если кошелек подключен */}
               {(success.includes('подключен') || success.includes('connected')) && player?.telegram_wallet && (
                 <div style={{ 
                   marginTop: '8px',
@@ -487,7 +589,7 @@ const WalletPage: React.FC = () => {
               )}
             </div>
           )}
-                          
+          
           {/* Основной блок кошелька */}
           <div style={{ 
             margin: '20px 0', 
@@ -501,7 +603,7 @@ const WalletPage: React.FC = () => {
               marginBottom: '20px', 
               fontSize: '1.3rem',
               textAlign: 'center'
-            }}>💰 {t('wallet.balance_title')}</h3>
+            }}>💰 Баланс</h3>
             
             {/* КОМПАКТНЫЕ БАЛАНСЫ В ОДНОМ РЯДУ */}
             <div style={{ 
@@ -553,7 +655,7 @@ const WalletPage: React.FC = () => {
 
             {/* Кнопки действий */}
             {wallet && userAddress && (
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
                     setShowDepositModal(true);
@@ -561,16 +663,16 @@ const WalletPage: React.FC = () => {
                     setSuccess(null);
                   }}
                   style={{
-                    padding: '10px 12px',
+                    padding: '12px 16px',
                     background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     color: '#fff',
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '0.9rem'
                   }}
-                >💰 {t('wallet.deposit_ton')}</button>
+                >💰 Пополнить TON</button>
 
                 <button
                   onClick={() => {
@@ -579,40 +681,36 @@ const WalletPage: React.FC = () => {
                     setSuccess(null);
                   }}
                   style={{
-                    padding: '10px 12px',
+                    padding: '12px 16px',
                     background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     color: '#fff',
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '0.9rem'
                   }}
-                >⭐ {t('wallet.buy_stars')}</button>
+                >⭐ Купить Stars</button>
 
-                {/* НОВАЯ КНОПКА ПРОВЕРКИ ДЕПОЗИТА */}
+                {/* НОВАЯ КНОПКА ОБНОВЛЕНИЯ БАЛАНСА */}
                 <button
-                  onClick={() => {
-                    setError(null);
-                    setSuccess(null);
-                    checkDeposit(0.01); // Проверяем любые депозиты
-                  }}
-                  disabled={isChecking}
+                  onClick={checkPendingDeposits}
+                  disabled={isCheckingDeposits}
                   style={{
-                    padding: '10px 12px',
-                    background: isChecking 
-                      ? 'rgba(128, 128, 128, 0.3)'
-                      : `linear-gradient(135deg, #28a745, #20c997)`,
-                    border: `2px solid ${isChecking ? '#666' : '#28a745'}`,
-                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    background: isCheckingDeposits 
+                      ? 'rgba(128, 128, 128, 0.5)' 
+                      : `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
+                    border: `2px solid ${colorStyle}`,
+                    borderRadius: '12px',
                     color: '#fff',
-                    cursor: isChecking ? 'not-allowed' : 'pointer',
+                    cursor: isCheckingDeposits ? 'not-allowed' : 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem',
-                    opacity: isChecking ? 0.7 : 1
+                    fontSize: '0.9rem',
+                    opacity: isCheckingDeposits ? 0.7 : 1
                   }}
                 >
-                  {isChecking ? '🔄 Проверяем...' : '🔍 Проверить зачисление'}
+                  {isCheckingDeposits ? '🔄 Проверяем...' : '🔍 Обновить баланс'}
                 </button>
                 
                 <button
@@ -623,32 +721,47 @@ const WalletPage: React.FC = () => {
                   }}
                   disabled={parseFloat(player?.ton || '0') <= 0.1}
                   style={{
-                    padding: '10px 12px',
+                    padding: '12px 16px',
                     background: parseFloat(player?.ton || '0') > 0.1 
                       ? `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`
                       : 'rgba(128, 128, 128, 0.3)',
                     border: `2px solid ${parseFloat(player?.ton || '0') > 0.1 ? colorStyle : '#666'}`,
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     color: '#fff',
                     cursor: parseFloat(player?.ton || '0') > 0.1 ? 'pointer' : 'not-allowed',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '0.9rem'
                   }}
-                >💸 {t('wallet.withdraw_ton')}</button>
+                >💸 Вывести TON</button>
                 
                 <button
                   onClick={handleDisconnect}
                   style={{
-                    padding: '10px 12px',
+                    padding: '12px 16px',
                     background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '10px',
+                    borderRadius: '12px',
                     color: colorStyle,
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '0.9rem'
                   }}
-                >🔌 {t('wallet.disconnect_wallet')}</button>
+                >🔌 Отключить кошелек</button>
+              </div>
+            )}
+
+            {/* ПОДСКАЗКА О КНОПКЕ ОБНОВЛЕНИЯ */}
+            {wallet && userAddress && (
+              <div style={{
+                marginTop: '15px',
+                padding: '10px',
+                background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.1)`,
+                border: `1px solid ${colorStyle}`,
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                color: '#ccc'
+              }}>
+                💡 После пополнения TON нажмите "Обновить баланс" для зачисления средств
               </div>
             )}
           </div>
@@ -853,7 +966,7 @@ const WalletPage: React.FC = () => {
             border: `2px solid ${colorStyle}`, maxWidth: '400px', width: '100%'
           }}>
             <h2 style={{ color: colorStyle, marginBottom: '20px', textAlign: 'center' }}>
-              💸 {t('wallet.withdraw_modal.title')}
+              💸 Вывод TON
             </h2>
             
             <div style={{ marginBottom: '20px' }}>
@@ -868,7 +981,7 @@ const WalletPage: React.FC = () => {
                 }}
               />
               <p style={{ color: '#888', fontSize: '0.8rem', marginTop: '5px' }}>
-                {t('wallet.withdraw_modal.available_amount', { amount: maxWithdrawAmount.toFixed(8) })}
+                Доступно для вывода: {maxWithdrawAmount.toFixed(8)} TON
               </p>
             </div>
 
@@ -883,7 +996,7 @@ const WalletPage: React.FC = () => {
                   opacity: (isProcessing || !withdrawAmount || parseFloat(withdrawAmount) < 0.1) ? 0.5 : 1
                 }}
               >
-                {isProcessing ? `🔄 ${t('wallet.processing')}` : `✅ ${t('wallet.confirm')}`}
+                {isProcessing ? '🔄 Обработка...' : '✅ Подтвердить'}
               </button>
               
               <button
@@ -892,7 +1005,7 @@ const WalletPage: React.FC = () => {
                   flex: 1, padding: '15px', background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
                   border: `2px solid ${colorStyle}`, borderRadius: '10px', color: colorStyle, cursor: 'pointer'
                 }}
-              >❌ {t('wallet.cancel')}</button>
+              >❌ Отмена</button>
             </div>
           </div>
         </div>
