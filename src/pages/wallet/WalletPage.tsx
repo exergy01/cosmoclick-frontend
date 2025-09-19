@@ -1,4 +1,5 @@
-// src/pages/wallet/WalletPage.tsx - С ПРЕМИУМ ФУНКЦИЯМИ
+// src/pages/wallet/WalletPage.tsx - С КНОПКОЙ ПРОВЕРКИ ДЕПОЗИТОВ
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
 import { 
@@ -44,6 +45,7 @@ const formatWalletAddress = (address: string) => {
   if (!address) return '';
   return `${address.slice(0, 6)}...${address.slice(-6)}`;
 };
+
 const WalletPage: React.FC = () => {
   const { t } = useTranslation();
   const { player, currentSystem, setPlayer, refreshPlayer } = usePlayer();
@@ -83,14 +85,17 @@ const WalletPage: React.FC = () => {
     }
   });
 
-  const { sendDepositTransaction, isProcessing: isTONProcessing } = useTONDeposit({
+  const { 
+    sendDepositTransaction, 
+    checkDeposit,
+    isProcessing: isTONProcessing,
+    isChecking 
+  } = useTONDeposit({
     playerId: player?.telegram_id,
     onSuccess: (message: string) => {
       setSuccess(message);
-      setDepositAmount('');
-      setShowDepositModal(false);
       setError(null);
-      setTimeout(() => refreshPlayer(), 3000);
+      setTimeout(() => refreshPlayer(), 2000);
     },
     onError: (errorMessage: string) => {
       setError(errorMessage);
@@ -101,6 +106,7 @@ const WalletPage: React.FC = () => {
     const balance = parseFloat(player?.ton || '0');
     return Math.max(0, balance - 0.01);
   }, [player?.ton]);
+
   // Проверка премиум статуса
   const checkPremiumStatus = async () => {
     try {
@@ -174,6 +180,7 @@ const WalletPage: React.FC = () => {
       setError(t('wallet.disconnect_error'));
     }
   };
+
   // Покупка премиума за Stars
   const handlePremiumPurchaseStars = async (packageType: 'NO_ADS_30_DAYS' | 'NO_ADS_FOREVER') => {
     const amount = PREMIUM_PACKAGES[packageType].stars;
@@ -248,6 +255,7 @@ const WalletPage: React.FC = () => {
       setIsProcessing(false);
     }
   };
+
   // Обработчики
   const handleStarsDeposit = async () => {
     const inputAmount = parseInt(starsAmount);
@@ -276,8 +284,27 @@ const WalletPage: React.FC = () => {
     
     try {
       await sendDepositTransaction(amount);
+      setDepositAmount(''); // Очищаем поле после отправки
+      setShowDepositModal(false);
     } catch (err: any) {
       setError(t('wallet.errors.transaction_error'));
+    }
+  };
+
+  // Ручная проверка депозита
+  const handleCheckDeposit = async () => {
+    const amount = parseFloat(depositAmount);
+    
+    if (!amount || amount < 0.01) {
+      setError('Введите сумму для проверки');
+      return;
+    }
+    
+    setError(null);
+    const success = await checkDeposit(amount);
+    
+    if (success) {
+      await refreshPlayer(); // Обновляем данные игрока
     }
   };
 
@@ -368,103 +395,101 @@ const WalletPage: React.FC = () => {
       </div>
     );
   }
+
   // Основной рендер
-// Основной рендер
-return (
-  <div style={{
-    backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
-    backgroundSize: 'cover',
-    minHeight: '100vh',
-    color: '#fff',
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '10px'
-  }}>
-    {/* Стили для убирания стрелочек в input */}
-    <style>
-      {`
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type="number"] {
-          -moz-appearance: textfield;
-        }
-      `}
-    </style>
+  return (
+    <div style={{
+      backgroundImage: `url(/assets/cosmo-bg-${currentSystem}.png)`,
+      backgroundSize: 'cover',
+      minHeight: '100vh',
+      color: '#fff',
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '10px'
+    }}>
+      {/* Стили для убирания стрелочек в input */}
+      <style>
+        {`
+          input[type="number"]::-webkit-outer-spin-button,
+          input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          input[type="number"] {
+            -moz-appearance: textfield;
+          }
+        `}
+      </style>
 
-    <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
+      <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
 
-    <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
-      <div style={{ flex: 1, padding: '10px', textAlign: 'center' }}>
-        <h2 style={{ 
-          color: colorStyle, 
-          textShadow: `0 0 10px ${colorStyle}`, 
-          fontSize: '2rem', 
-          marginBottom: '30px' 
-        }}>
-          💳 {t('wallet.title')}
-        </h2>
-
-        {/* Премиум статус (если есть) */}
-        {getPremiumStatusText() && (
-          <div style={{
-            margin: '20px 0',
-            padding: '15px',
-            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1))',
-            border: '2px solid #FFD700',
-            borderRadius: '15px',
-            color: '#FFD700',
-            textAlign: 'center',
-            fontSize: '1.1rem',
-            fontWeight: 'bold'
+      <div style={{ marginTop: '80px', paddingBottom: '130px' }}>
+        <div style={{ flex: 1, padding: '10px', textAlign: 'center' }}>
+          <h2 style={{ 
+            color: colorStyle, 
+            textShadow: `0 0 10px ${colorStyle}`, 
+            fontSize: '2rem', 
+            marginBottom: '30px' 
           }}>
-            {getPremiumStatusText()}
-          </div>
-        )}
+            💳 {t('wallet.title')}
+          </h2>
 
-        {/* Сообщения об ошибках и успехе */}
-        {error && (
+          {/* Премиум статус (если есть) */}
+          {getPremiumStatusText() && (
+            <div style={{
+              margin: '20px 0',
+              padding: '15px',
+              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.1))',
+              border: '2px solid #FFD700',
+              borderRadius: '15px',
+              color: '#FFD700',
+              textAlign: 'center',
+              fontSize: '1.1rem',
+              fontWeight: 'bold'
+            }}>
+              {getPremiumStatusText()}
+            </div>
+          )}
+
+          {/* Сообщения об ошибках и успехе */}
+          {error && (
+            <div style={{ 
+              margin: '20px 0', 
+              padding: '15px', 
+              background: 'rgba(239, 68, 68, 0.15)', 
+              border: `1px solid ${colorStyle}`, 
+              borderRadius: '15px',
+              color: colorStyle,
+              textAlign: 'center'
+            }}>⚠️ {error}</div>
+          )}
+          
+          {success && (
+            <div style={{ 
+              margin: '20px 0', 
+              padding: '15px', 
+              background: 'rgba(34, 197, 94, 0.15)', 
+              border: `1px solid ${colorStyle}`, 
+              borderRadius: '15px',
+              color: colorStyle,
+              textAlign: 'center'
+            }}>
+              ✅ {success}
+              {(success.includes('подключен') || success.includes('connected')) && player?.telegram_wallet && (
+                <div style={{ 
+                  marginTop: '8px',
+                  fontSize: '0.8rem',
+                  color: '#aaa',
+                  fontFamily: 'monospace'
+                }}>
+                  📱 {formatWalletAddress(player.telegram_wallet)}
+                </div>
+              )}
+            </div>
+          )}
+                          
+          {/* Основной блок кошелька */}
           <div style={{ 
-            margin: '20px 0', 
-            padding: '15px', 
-            background: 'rgba(239, 68, 68, 0.15)', 
-            border: `1px solid ${colorStyle}`, 
-            borderRadius: '15px',
-            color: colorStyle,
-            textAlign: 'center'
-          }}>⚠️ {error}</div>
-        )}
-        
-        {success && (
-          <div style={{ 
-            margin: '20px 0', 
-            padding: '15px', 
-            background: 'rgba(34, 197, 94, 0.15)', 
-            border: `1px solid ${colorStyle}`, 
-            borderRadius: '15px',
-            color: colorStyle,
-            textAlign: 'center'
-          }}>
-            ✅ {success}
-            {/* Показываем адрес кошелька если кошелек подключен (любое сообщение о подключении) */}
-            {(success.includes('подключен') || success.includes('connected')) && player?.telegram_wallet && (
-              <div style={{ 
-                marginTop: '8px',
-                fontSize: '0.8rem',
-                color: '#aaa',
-                fontFamily: 'monospace'
-              }}>
-                📱 {formatWalletAddress(player.telegram_wallet)}
-              </div>
-            )}
-          </div>
-        )}
-                
-                  {/* Основной блок кошелька */}
-{/* Основной блок кошелька */}
-<div style={{ 
             margin: '20px 0', 
             padding: '25px', 
             background: 'rgba(0, 0, 0, 0.3)', 
@@ -528,7 +553,7 @@ return (
 
             {/* Кнопки действий */}
             {wallet && userAddress && (
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
                     setShowDepositModal(true);
@@ -536,14 +561,14 @@ return (
                     setSuccess(null);
                   }}
                   style={{
-                    padding: '12px 16px',
+                    padding: '10px 12px',
                     background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     color: '#fff',
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >💰 {t('wallet.deposit_ton')}</button>
 
@@ -554,16 +579,41 @@ return (
                     setSuccess(null);
                   }}
                   style={{
-                    padding: '12px 16px',
+                    padding: '10px 12px',
                     background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     color: '#fff',
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >⭐ {t('wallet.buy_stars')}</button>
+
+                {/* НОВАЯ КНОПКА ПРОВЕРКИ ДЕПОЗИТА */}
+                <button
+                  onClick={() => {
+                    setError(null);
+                    setSuccess(null);
+                    checkDeposit(0.01); // Проверяем любые депозиты
+                  }}
+                  disabled={isChecking}
+                  style={{
+                    padding: '10px 12px',
+                    background: isChecking 
+                      ? 'rgba(128, 128, 128, 0.3)'
+                      : `linear-gradient(135deg, #28a745, #20c997)`,
+                    border: `2px solid ${isChecking ? '#666' : '#28a745'}`,
+                    borderRadius: '10px',
+                    color: '#fff',
+                    cursor: isChecking ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '0.8rem',
+                    opacity: isChecking ? 0.7 : 1
+                  }}
+                >
+                  {isChecking ? '🔄 Проверяем...' : '🔍 Проверить зачисление'}
+                </button>
                 
                 <button
                   onClick={() => {
@@ -573,30 +623,30 @@ return (
                   }}
                   disabled={parseFloat(player?.ton || '0') <= 0.1}
                   style={{
-                    padding: '12px 16px',
+                    padding: '10px 12px',
                     background: parseFloat(player?.ton || '0') > 0.1 
                       ? `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`
                       : 'rgba(128, 128, 128, 0.3)',
                     border: `2px solid ${parseFloat(player?.ton || '0') > 0.1 ? colorStyle : '#666'}`,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     color: '#fff',
                     cursor: parseFloat(player?.ton || '0') > 0.1 ? 'pointer' : 'not-allowed',
                     fontWeight: 'bold',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >💸 {t('wallet.withdraw_ton')}</button>
                 
                 <button
                   onClick={handleDisconnect}
                   style={{
-                    padding: '12px 16px',
+                    padding: '10px 12px',
                     background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     color: colorStyle,
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.9rem'
+                    fontSize: '0.8rem'
                   }}
                 >🔌 {t('wallet.disconnect_wallet')}</button>
               </div>
@@ -604,7 +654,7 @@ return (
           </div>
           
           {/* ПРЕМИУМ БЛОК С ДВУМЯ ПРЕДЛОЖЕНИЯМИ */}
-{!premiumStatus?.forever && (
+          {!premiumStatus?.forever && (
             <div style={{ 
               margin: '20px 0', 
               padding: '25px', 
@@ -791,7 +841,7 @@ return (
         </div>
       </div>
 
-            {/* Модалка вывода TON */}
+      {/* Модалка вывода TON */}
       {showWithdrawModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
