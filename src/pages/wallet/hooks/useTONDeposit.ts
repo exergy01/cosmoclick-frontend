@@ -59,33 +59,31 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       
       // Отправляем транзакцию
       const result = await tonConnectUI.sendTransaction(transaction);
+
+      onSuccess?.(`Транзакция отправлена! Проверяем зачисление...`);
       
-      const shortHash = result.boc?.slice(0, 10) || 'unknown';
-      onSuccess?.(`Транзакция отправлена! Hash: ${shortHash}... Средства поступят в течение 1-2 минут.`);
-      
-      // НОВОЕ: Через 90 секунд проверяем зачисление по адресу отправителя
-      setTimeout(async () => {
-        try {
-          console.log('Проверяем зачисление депозита...');
-          
-          const checkResponse = await axios.post(`${API_URL}/api/wallet/check-deposit-by-address`, {
-            player_id: playerId,
-            expected_amount: amount,
-            sender_address: userAddress, // адрес кошелька игрока
-            game_wallet: gameWalletAddress
-          });
-          
-          if (checkResponse.data.success) {
-            console.log('Депозит автоматически зачислен!');
-          } else {
-            console.log('Депозит пока не найден');
-          }
-          
-        } catch (checkError: any) {
-          console.log('Ошибка проверки депозита:', checkError.message);
+      // УБИРАЕМ setTimeout - делаем немедленную проверку
+      try {
+        console.log('Запускаем немедленную проверку депозита...');
+        
+        const checkResponse = await axios.post(`${API_URL}/api/wallet/check-deposit-by-address`, {
+          player_id: playerId,
+          expected_amount: amount,
+          sender_address: userAddress,
+          game_wallet: gameWalletAddress
+        });
+        
+        if (checkResponse.data.success) {
+          onSuccess?.(`Средства зачислены на баланс!`);
+        } else {
+          onSuccess?.(`Транзакция отправлена. Зачисление может занять 1-2 минуты.`);
         }
-      }, 90000); // 90 секунд - больше времени на подтверждение в блокчейне
-      
+        
+      } catch (checkError: any) {
+        console.log('Ошибка проверки депозита:', checkError.message);
+        onSuccess?.(`Транзакция отправлена. Проверьте баланс через минуту.`);
+      }
+            
       return true;
 
     } catch (err: any) {
