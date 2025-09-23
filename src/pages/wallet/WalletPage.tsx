@@ -148,6 +148,7 @@ const WalletPage: React.FC = () => {
 
     setIsCheckingDeposits(true);
     setError(null);
+    setSuccess('Проверяем депозиты через рабочий API...');
 
     try {
       console.log('Запуск универсальной проверки депозитов для игрока:', player.telegram_id);
@@ -185,7 +186,7 @@ const WalletPage: React.FC = () => {
       if (universalResponse.data.success) {
         if (universalResponse.data.deposits_found > 0) {
           const { deposits_found, total_amount } = universalResponse.data;
-          setSuccess(`Найдено и зачислено ${deposits_found} депозитов на общую сумму ${total_amount} TON!`);
+          setSuccess(`✅ УСПЕХ! Найдено и зачислено ${deposits_found} депозитов на общую сумму ${total_amount} TON!`);
           await refreshPlayer();
         } else {
           setSuccess('Проверка завершена. Новых депозитов не обнаружено.');
@@ -573,6 +574,10 @@ const WalletPage: React.FC = () => {
               Текущий баланс TON: {parseFloat(player?.ton || '0').toFixed(8)}
               <br />
               Подключенный кошелек: {player?.telegram_wallet ? formatWalletAddress(player.telegram_wallet) : 'не подключен'}
+              <br />
+              <span style={{ color: '#90EE90' }}>
+                ✅ ИСПРАВЛЕНО: Теперь используется рабочий tonapi.io API вместо сломанного TON Center
+              </span>
             </div>
           )}
 
@@ -821,7 +826,7 @@ const WalletPage: React.FC = () => {
               fontSize: '0.8rem',
               color: '#ccc'
             }}>
-              После пополнения TON нажмите "Обновить баланс" для зачисления средств
+              После пополнения TON нажмите "Обновить баланс" для зачисления средств. Теперь используется надежный API!
             </div>
           </div>
           
