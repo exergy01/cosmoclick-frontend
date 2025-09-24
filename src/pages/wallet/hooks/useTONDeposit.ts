@@ -1,9 +1,6 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// src/pages/wallet/hooks/useTONDeposit.ts - ОКОНЧАТЕЛЬНО ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 interface UseTONDepositProps {
   playerId?: string;
@@ -17,23 +14,35 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
   const userAddress = useTonAddress();
 
   const sendDepositTransaction = async (amount: number): Promise<boolean> => {
+    console.log('Starting TON deposit transaction:', { amount, userAddress, playerId });
+
     // Валидация
-    if (!tonConnectUI || !userAddress) {
-      onError?.('Сначала подключите кошелек');
+    if (!tonConnectUI) {
+      console.error('TON Connect UI not available');
+      onError?.('TON Connect не инициализирован');
+      return false;
+    }
+
+    if (!userAddress) {
+      console.error('User address not available');
+      onError?.('Сначала подключите кошелек TON');
       return false;
     }
 
     if (!playerId) {
-      onError?.('Player ID не найден');
+      console.error('Player ID not provided');
+      onError?.('ID игрока не найден');
       return false;
     }
 
     if (isNaN(amount) || amount <= 0) {
+      console.error('Invalid amount:', amount);
       onError?.('Неверная сумма');
       return false;
     }
 
     if (amount < 0.01) {
+      console.error('Amount too small:', amount);
       onError?.('Минимальная сумма пополнения: 0.01 TON');
       return false;
     }
@@ -44,73 +53,54 @@ export const useTONDeposit = ({ playerId, onSuccess, onError }: UseTONDepositPro
       const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
       const nanoAmount = Math.floor(amount * 1_000_000_000);
 
-      console.log('Отправляем TON транзакцию:', {
-        amount: amount,
-        nanoAmount: nanoAmount,
+      console.log('Preparing transaction:', {
         from: userAddress,
         to: gameWalletAddress,
-        playerId: playerId
+        amount: amount,
+        nanoAmount: nanoAmount
       });
 
-      // ПРОСТАЯ ТРАНЗАКЦИЯ БЕЗ payload
+      // Создаем простую транзакцию
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
         messages: [
           {
             address: gameWalletAddress,
             amount: nanoAmount.toString()
-            // Убираем payload для простоты
           }
         ]
       };
       
-      // Отправляем транзакцию
+      console.log('Sending transaction through TON Connect:', transaction);
+      
+      // Отправляем транзакцию через TON Connect
       const result = await tonConnectUI.sendTransaction(transaction);
       
-      console.log('Транзакция отправлена:', result);
+      console.log('Transaction sent successfully:', result);
       
-      // СРАЗУ СООБЩАЕМ ОБ УСПЕХЕ И ПРЕДЛАГАЕМ ОБНОВИТЬ
-      onSuccess?.(`Транзакция отправлена! Нажмите "Обновить баланс" через 1-2 минуты для зачисления средств.`);
+      // Сообщаем об успехе
+      onSuccess?.('Транзакция отправлена успешно! Нажмите "Обновить баланс" через 1-2 минуты для зачисления.');
       
-      // ДОПОЛНИТЕЛЬНО: попробуем автоматически проверить через 5 секунд
-      setTimeout(async () => {
-        try {
-          console.log('Автоматическая проверка депозита...');
-          
-          const checkResponse = await axios.post(`${API_URL}/api/wallet/ton-deposits/check-deposits`, {
-            player_id: playerId,
-            sender_address: userAddress
-          });
-          
-          if (checkResponse.data.success && checkResponse.data.deposits_found > 0) {
-            console.log('Депозит найден и зачислен автоматически!');
-            onSuccess?.(`Депозит найден и зачислен автоматически! Баланс обновлен.`);
-          } else {
-            console.log('Автоматическая проверка: депозит еще не найден');
-          }
-          
-        } catch (checkError: any) {
-          console.log('Автоматическая проверка не удалась (это нормально):', checkError.message);
-        }
-      }, 5000);
-            
       return true;
 
     } catch (err: any) {
-      console.error('Ошибка отправки транзакции:', err);
+      console.error('TON deposit transaction error:', err);
       
       let errorMessage = 'Ошибка отправки транзакции';
       
-      if (err.message?.includes('User declined') || err.message?.includes('declined')) {
-        errorMessage = 'Вы отклонили транзакцию';
+      // Обработка различных типов ошибок
+      if (err.message?.includes('User declined') || err.message?.includes('declined') || err.message?.includes('rejected')) {
+        errorMessage = 'Транзакция была отклонена';
       } else if (err.message?.includes('Insufficient') || err.message?.includes('insufficient')) {
         errorMessage = 'Недостаточно TON в кошельке';
       } else if (err.message?.includes('Network') || err.message?.includes('network')) {
         errorMessage = 'Ошибка сети, попробуйте еще раз';
       } else if (err.message?.includes('timeout')) {
-        errorMessage = 'Превышено время ожидания, попробуйте еще раз';
+        errorMessage = 'Превышено время ожидания';
       } else if (err.message?.includes('connection')) {
         errorMessage = 'Проблема с подключением к кошельку';
+      } else if (err.message?.includes('not connected')) {
+        errorMessage = 'Кошелек не подключен';
       }
       
       onError?.(errorMessage);
