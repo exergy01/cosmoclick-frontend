@@ -1,6 +1,5 @@
-// src/pages/wallet/components/TONDepositModal.tsx
+// src/pages/wallet/components/TONDepositModal.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
 interface TONDepositModalProps {
   isOpen: boolean;
@@ -21,8 +20,6 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
   isProcessing,
   colorStyle
 }) => {
-  const { t } = useTranslation();
-
   if (!isOpen) return null;
 
   return (
@@ -69,12 +66,12 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
           textShadow: `0 0 10px ${colorStyle}`,
           fontSize: '1.5rem'
         }}>
-          💰 {t('wallet.ton_modal.title')}
+          Пополнить TON
         </h2>
         
         <div style={{ marginBottom: '20px' }}>
           <label style={{ color: '#ccc', display: 'block', marginBottom: '10px' }}>
-            {t('wallet.ton_modal.amount_label')}
+            Сумма для пополнения:
           </label>
           <input
             type="number"
@@ -92,20 +89,21 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
               borderRadius: '10px',
               color: '#fff',
               fontSize: '1.1rem',
-              opacity: isProcessing ? 0.7 : 1
+              opacity: isProcessing ? 0.7 : 1,
+              boxSizing: 'border-box'
             }}
           />
           <p style={{ color: '#888', fontSize: '0.8rem', marginTop: '5px' }}>
-            {t('wallet.ton_modal.min_amount', { amount: '0.01' })}
+            Минимальная сумма: 0.01 TON
           </p>
         </div>
 
         <div style={{ marginBottom: '15px', textAlign: 'center' }}>
           <p style={{ color: colorStyle, fontSize: '1rem' }}>
-            💎 {t('wallet.ton_modal.to_deposit', { amount: parseFloat(depositAmount || '0').toFixed(4) })}
+            К пополнению: {parseFloat(depositAmount || '0').toFixed(4)} TON
           </p>
           <p style={{ color: '#888', fontSize: '0.8rem' }}>
-            {t('wallet.ton_modal.send_to_game_wallet')}
+            Отправится на игровой кошелек
           </p>
         </div>
 
@@ -126,7 +124,7 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
               transition: 'all 0.3s ease'
             }}
           >
-            {isProcessing ? `🔄 ${t('wallet.ton_modal.sending')}` : `✅ ${t('wallet.ton_modal.deposit_button')}`}
+            {isProcessing ? 'Отправка...' : 'Отправить TON'}
           </button>
           
           <button
@@ -145,7 +143,7 @@ export const TONDepositModal: React.FC<TONDepositModalProps> = ({
               transition: 'all 0.3s ease'
             }}
           >
-            ❌ {t('wallet.cancel')}
+            Отмена
           </button>
         </div>
       </div>
