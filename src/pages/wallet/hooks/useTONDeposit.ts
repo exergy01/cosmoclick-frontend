@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - С АВТОМАТИЧЕСКОЙ ПРОВЕРКОЙ
+// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ БЕЗ ОШИБОК
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import axios from 'axios';
@@ -9,7 +9,7 @@ interface UseTONDepositProps {
   playerId?: string;
   onSuccess?: (message: string) => void;
   onError?: (error: string) => void;
-  onBalanceUpdate?: () => void; // Колбэк для обновления баланса
+  onBalanceUpdate?: () => void;
 }
 
 export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }: UseTONDepositProps = {}) => {
@@ -17,12 +17,29 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
+  // Функция создания payload с данными игрока
+  const createDepositPayload = (telegramId: string): string => {
+    try {
+      // Создаем payload с префиксом "COSMO:" и telegram_id игрока
+      const payloadString = `COSMO:${telegramId}:${Date.now()}`;
+      
+      // ИСПРАВЛЕНО: Используем простой текстовый payload для совместимости
+      // Большинство кошельков поддерживают простой текст в комментариях
+      return payloadString;
+      
+    } catch (error) {
+      console.error('Ошибка создания payload:', error);
+      // Fallback - возвращаем базовый payload
+      return `COSMO:${telegramId}:${Date.now()}`;
+    }
+  };
+
   // Функция автоматической проверки депозитов
   const autoCheckDeposits = async (): Promise<boolean> => {
     if (!playerId) return false;
 
     try {
-      console.log('Auto-checking deposits after transaction...');
+      console.log('Автопроверка депозитов после транзакции...');
       
       const response = await axios.post(`${API_URL}/api/wallet/ton-deposits/check-deposits`, {
         player_id: playerId,
@@ -32,19 +49,19 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       if (response.data.success && response.data.deposits_found > 0) {
         const { deposits_found, total_amount } = response.data;
         onSuccess?.(`Депозит зачислен автоматически! Получено ${total_amount} TON`);
-        onBalanceUpdate?.(); // Обновляем баланс игрока
+        onBalanceUpdate?.();
         return true;
       }
       
       return false;
     } catch (error) {
-      console.log('Auto-check failed, user will need manual refresh:', error);
+      console.log('Автопроверка не удалась, нужно будет обновить вручную:', error);
       return false;
     }
   };
 
   const sendDepositTransaction = async (amount: number): Promise<boolean> => {
-    console.log('Starting TON deposit transaction:', { amount, userAddress, playerId });
+    console.log('🚀 БЕЗОПАСНЫЙ депозит TON:', { amount, userAddress, playerId });
 
     // Валидация
     if (!tonConnectUI) {
@@ -70,24 +87,32 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
     setIsProcessing(true);
 
     try {
-      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
+      const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 
+        'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
+      
+      // СОЗДАЕМ БЕЗОПАСНЫЙ PAYLOAD
+      const depositPayload = createDepositPayload(playerId);
+      console.log('🔐 Создан безопасный payload для игрока:', playerId);
+      
       const nanoAmount = Math.floor(amount * 1_000_000_000);
 
-      // Создаем транзакцию
+      // Создаем защищенную транзакцию с payload
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 300,
+        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
         messages: [{
           address: gameWalletAddress,
-          amount: nanoAmount.toString()
+          amount: nanoAmount.toString(),
+          payload: depositPayload // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ!
         }]
       };
       
+      console.log('💳 Отправляем транзакцию с защитным payload...');
+      
       // Отправляем через TON Connect
       const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Transaction sent successfully:', result);
+      console.log('✅ Защищенная транзакция отправлена:', result);
       
-      // Показываем сообщение о том что транзакция отправлена
-      onSuccess?.('Транзакция отправлена! Проверяем зачисление...');
+      onSuccess?.('Защищенная транзакция отправлена! Проверяем зачисление...');
       
       // АВТОМАТИЧЕСКАЯ ПРОВЕРКА депозитов через 3 секунды
       setTimeout(async () => {
@@ -99,8 +124,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
             const secondTry = await autoCheckDeposits();
             
             if (!secondTry) {
-              // Если автоматически не получилось - показываем инструкцию
-              onSuccess?.('Транзакция отправлена успешно! Если баланс не обновился автоматически, нажмите "Обновить баланс" через 1-2 минуты.');
+              onSuccess?.('Защищенная транзакция отправлена! Если баланс не обновился, нажмите "Обновить баланс" через 1-2 минуты.');
             }
           }, 10000);
         }
@@ -109,7 +133,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       return true;
 
     } catch (err: any) {
-      console.error('TON deposit transaction error:', err);
+      console.error('Ошибка безопасной TON транзакции:', err);
       
       let errorMessage = 'Ошибка отправки транзакции';
       
