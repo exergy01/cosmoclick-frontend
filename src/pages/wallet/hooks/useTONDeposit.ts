@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ БЕЗ ОШИБОК
+// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ С ПРАВИЛЬНЫМ PAYLOAD
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import axios from 'axios';
@@ -17,20 +17,34 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
-  // Функция создания payload с данными игрока
+  // Функция создания правильного payload для TON комментария
   const createDepositPayload = (telegramId: string): string => {
     try {
-      // Создаем payload с префиксом "COSMO:" и telegram_id игрока
-      const payloadString = `COSMO:${telegramId}:${Date.now()}`;
+      // Создаем текстовый комментарий
+      const comment = `COSMO:${telegramId}:${Date.now()}`;
       
-      // ИСПРАВЛЕНО: Используем простой текстовый payload для совместимости
-      // Большинство кошельков поддерживают простой текст в комментариях
-      return payloadString;
+      // Конвертируем в правильный формат для TON Connect
+      // Используем простой base64 для текстового комментария
+      const commentBytes = new TextEncoder().encode(comment);
+      
+      // Создаем правильную структуру payload для комментария
+      // Формат: 4 байта (0x00000000) + текст
+      const payload = new Uint8Array(4 + commentBytes.length);
+      payload.set([0, 0, 0, 0], 0); // 4 нулевых байта в начале
+      payload.set(commentBytes, 4); // текст комментария
+      
+      // Конвертируем в base64
+      let binary = '';
+      payload.forEach(byte => {
+        binary += String.fromCharCode(byte);
+      });
+      
+      return btoa(binary);
       
     } catch (error) {
       console.error('Ошибка создания payload:', error);
-      // Fallback - возвращаем базовый payload
-      return `COSMO:${telegramId}:${Date.now()}`;
+      // Fallback - отправляем без payload
+      return '';
     }
   };
 
@@ -90,19 +104,20 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       const gameWalletAddress = process.env.REACT_APP_GAME_WALLET_ADDRESS || 
         'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
       
-      // СОЗДАЕМ БЕЗОПАСНЫЙ PAYLOAD
+      // СОЗДАЕМ ПРАВИЛЬНЫЙ PAYLOAD
       const depositPayload = createDepositPayload(playerId);
       console.log('🔐 Создан безопасный payload для игрока:', playerId);
       
       const nanoAmount = Math.floor(amount * 1_000_000_000);
 
-      // Создаем защищенную транзакцию с payload
+      // Создаем защищенную транзакцию с правильным payload
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
         messages: [{
           address: gameWalletAddress,
           amount: nanoAmount.toString(),
-          payload: depositPayload // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ!
+          // ИСПРАВЛЕНО: Добавляем payload только если он создался успешно
+          ...(depositPayload && { payload: depositPayload })
         }]
       };
       
@@ -149,6 +164,8 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
         errorMessage = 'Проблема с подключением к кошельку';
       } else if (err.message?.includes('not connected')) {
         errorMessage = 'Кошелек не подключен';
+      } else if (err.message?.includes('Payload is invalid') || err.message?.includes('Invalid magic')) {
+        errorMessage = 'Ошибка формата транзакции, попробуйте еще раз';
       }
       
       onError?.(errorMessage);
