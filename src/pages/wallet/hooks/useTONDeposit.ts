@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ С ПРАВИЛЬНЫМ PAYLOAD
+// src/pages/wallet/hooks/useTONDeposit.ts - ПРАВИЛЬНЫЙ ФОРМАТ PAYLOAD
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import axios from 'axios';
@@ -17,33 +17,45 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
   const [tonConnectUI] = useTonConnectUI();
   const userAddress = useTonAddress();
 
-  // Функция создания правильного payload для TON комментария
+  // Функция создания ПРАВИЛЬНОГО payload для TON комментария
   const createDepositPayload = (telegramId: string): string => {
     try {
       // Создаем текстовый комментарий
       const comment = `COSMO:${telegramId}:${Date.now()}`;
       
-      // Конвертируем в правильный формат для TON Connect
-      // Используем простой base64 для текстового комментария
-      const commentBytes = new TextEncoder().encode(comment);
+      // Конвертируем текст в UTF-8 байты
+      const textEncoder = new TextEncoder();
+      const textBytes = textEncoder.encode(comment);
       
-      // Создаем правильную структуру payload для комментария
-      // Формат: 4 байта (0x00000000) + текст
-      const payload = new Uint8Array(4 + commentBytes.length);
-      payload.set([0, 0, 0, 0], 0); // 4 нулевых байта в начале
-      payload.set(commentBytes, 4); // текст комментария
+      // Создаем правильную структуру для текстового комментария в TON:
+      // - Первые 4 байта: 0x00000000 (magic для текстового комментария)
+      // - Далее: UTF-8 текст комментария
+      const totalLength = 4 + textBytes.length;
+      const payload = new Uint8Array(totalLength);
+      
+      // Устанавливаем magic number для текстового комментария (все нули)
+      payload[0] = 0x00;
+      payload[1] = 0x00;
+      payload[2] = 0x00;
+      payload[3] = 0x00;
+      
+      // Копируем текст комментария
+      payload.set(textBytes, 4);
       
       // Конвертируем в base64
       let binary = '';
-      payload.forEach(byte => {
-        binary += String.fromCharCode(byte);
-      });
+      for (let i = 0; i < payload.length; i++) {
+        binary += String.fromCharCode(payload[i]);
+      }
       
-      return btoa(binary);
+      const base64Payload = btoa(binary);
+      console.log('Создан payload:', comment, 'Base64 длина:', base64Payload.length);
+      
+      return base64Payload;
       
     } catch (error) {
       console.error('Ошибка создания payload:', error);
-      // Fallback - отправляем без payload
+      // Возвращаем null чтобы отправить без payload
       return '';
     }
   };
@@ -106,28 +118,41 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       
       // СОЗДАЕМ ПРАВИЛЬНЫЙ PAYLOAD
       const depositPayload = createDepositPayload(playerId);
-      console.log('🔐 Создан безопасный payload для игрока:', playerId);
+      console.log('🔐 Создан правильный payload для игрока:', playerId);
       
       const nanoAmount = Math.floor(amount * 1_000_000_000);
 
-      // Создаем защищенную транзакцию с правильным payload
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
-        messages: [{
-          address: gameWalletAddress,
-          amount: nanoAmount.toString(),
-          // ИСПРАВЛЕНО: Добавляем payload только если он создался успешно
-          ...(depositPayload && { payload: depositPayload })
-        }]
-      };
+      // Создаем транзакцию
+      let transaction;
       
-      console.log('💳 Отправляем транзакцию с защитным payload...');
+      if (depositPayload) {
+        // С payload
+        transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 300,
+          messages: [{
+            address: gameWalletAddress,
+            amount: nanoAmount.toString(),
+            payload: depositPayload
+          }]
+        };
+        console.log('💳 Отправляем транзакцию С защитным payload...');
+      } else {
+        // Без payload (fallback)
+        transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 300,
+          messages: [{
+            address: gameWalletAddress,
+            amount: nanoAmount.toString()
+          }]
+        };
+        console.log('💳 Отправляем транзакцию БЕЗ payload (fallback)...');
+      }
       
       // Отправляем через TON Connect
       const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('✅ Защищенная транзакция отправлена:', result);
+      console.log('✅ Транзакция отправлена успешно:', result);
       
-      onSuccess?.('Защищенная транзакция отправлена! Проверяем зачисление...');
+      onSuccess?.('Транзакция отправлена! Проверяем зачисление...');
       
       // АВТОМАТИЧЕСКАЯ ПРОВЕРКА депозитов через 3 секунды
       setTimeout(async () => {
@@ -139,7 +164,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
             const secondTry = await autoCheckDeposits();
             
             if (!secondTry) {
-              onSuccess?.('Защищенная транзакция отправлена! Если баланс не обновился, нажмите "Обновить баланс" через 1-2 минуты.');
+              onSuccess?.('Транзакция отправлена! Нажмите "Обновить баланс" через 1-2 минуты.');
             }
           }, 10000);
         }
@@ -148,7 +173,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       return true;
 
     } catch (err: any) {
-      console.error('Ошибка безопасной TON транзакции:', err);
+      console.error('Ошибка TON транзакции:', err);
       
       let errorMessage = 'Ошибка отправки транзакции';
       
@@ -165,7 +190,30 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       } else if (err.message?.includes('not connected')) {
         errorMessage = 'Кошелек не подключен';
       } else if (err.message?.includes('Payload is invalid') || err.message?.includes('Invalid magic')) {
-        errorMessage = 'Ошибка формата транзакции, попробуйте еще раз';
+        // Если payload не работает - пробуем без него
+        console.log('Payload не поддерживается, пробуем без него...');
+        
+        try {
+          const simpleTransaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 300,
+            messages: [{
+              address: process.env.REACT_APP_GAME_WALLET_ADDRESS || 'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60',
+              amount: Math.floor(amount * 1_000_000_000).toString()
+            }]
+          };
+          
+          const simpleResult = await tonConnectUI.sendTransaction(simpleTransaction);
+          console.log('✅ Простая транзакция БЕЗ payload отправлена:', simpleResult);
+          
+          onSuccess?.('Транзакция отправлена! (без защитного кода) Нажмите "Обновить баланс" через 1-2 минуты.');
+          
+          // Автопроверка и для простой транзакции
+          setTimeout(() => autoCheckDeposits(), 3000);
+          
+          return true;
+        } catch (simpleErr) {
+          errorMessage = 'Ошибка транзакции даже без payload';
+        }
       }
       
       onError?.(errorMessage);
