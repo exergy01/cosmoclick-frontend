@@ -1,4 +1,4 @@
-// src/pages/wallet/WalletPage.tsx - ЧАСТЬ 1: Импорты, константы и интерфейсы
+// src/pages/wallet/WalletPage.tsx - ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
 import { 
@@ -65,7 +65,7 @@ const formatWalletAddress = (address: string) => {
   if (!address) return '';
   return `${address.slice(0, 6)}...${address.slice(-6)}`;
 };
-// src/pages/wallet/WalletPage.tsx - ЧАСТЬ 2: Основной компонент и состояния
+
 const WalletPage: React.FC = () => {
   const { t } = useTranslation();
   const { player, currentSystem, setPlayer, refreshPlayer } = usePlayer();
@@ -113,6 +113,7 @@ const WalletPage: React.FC = () => {
     }
   });
 
+  // ОБНОВЛЕННЫЙ хук с автоматической проверкой
   const { sendDepositTransaction, isProcessing: isTONProcessing } = useTONDeposit({
     playerId: player?.telegram_id,
     onSuccess: (message: string) => {
@@ -120,10 +121,12 @@ const WalletPage: React.FC = () => {
       setDepositAmount('');
       setShowDepositModal(false);
       setError(null);
-      setTimeout(() => refreshPlayer(), 3000);
     },
     onError: (errorMessage: string) => {
       setError(errorMessage);
+    },
+    onBalanceUpdate: () => {
+      refreshPlayer(); // Обновляем данные игрока при автоматическом зачислении
     }
   });
 
@@ -131,7 +134,6 @@ const WalletPage: React.FC = () => {
     const balance = parseFloat(player?.ton || '0');
     return Math.max(0, balance - 0.01);
   }, [player?.ton]);
-  // src/pages/wallet/WalletPage.tsx - ЧАСТЬ 3: Функции для работы с депозитами и кошельком
 
   // УПРОЩЕННАЯ функция загрузки истории транзакций
   const loadTransactionHistory = async () => {
@@ -211,10 +213,9 @@ const WalletPage: React.FC = () => {
     try {
       console.log('Запускаем проверку депозитов для игрока:', player.telegram_id);
       
-      // ИСПРАВЛЕНО: используем новый endpoint
       const response = await axios.post(`${API_URL}/api/wallet/ton-deposits/check-deposits`, {
         player_id: player.telegram_id,
-        sender_address: userAddress // опционально
+        sender_address: userAddress
       });
       
       if (response.data.success) {
@@ -225,7 +226,6 @@ const WalletPage: React.FC = () => {
         } else {
           setSuccess('Проверка завершена. Новых депозитов не найдено.');
           
-          // Показываем подсказку
           setTimeout(() => {
             setSuccess('Если вы недавно отправили TON, подождите 1-2 минуты и попробуйте снова. Для диагностики нажмите "Диагностика".');
           }, 2000);
@@ -255,7 +255,7 @@ const WalletPage: React.FC = () => {
     }
   };
 
-  // АВТОМАТИЧЕСКАЯ проверка при загрузке (упрощенная)
+  // АВТОМАТИЧЕСКАЯ проверка при загрузке
   const autoCheckDeposits = async () => {
     if (!player?.telegram_id) return;
     
@@ -330,7 +330,6 @@ const WalletPage: React.FC = () => {
       setError('Ошибка отключения кошелька');
     }
   };
-  // src/pages/wallet/WalletPage.tsx - ЧАСТЬ 4: Функции для премиума и обработчики событий
 
   // Premium purchase functions
   const handlePremiumPurchaseStars = async (packageType: 'NO_ADS_30_DAYS' | 'NO_ADS_FOREVER') => {
@@ -509,7 +508,6 @@ const WalletPage: React.FC = () => {
     }
     return null;
   };
-  // src/pages/wallet/WalletPage.tsx - ЧАСТЬ 5: useEffect хуки и начало рендеринга
 
   // useEffect hooks
   useEffect(() => {
@@ -530,7 +528,7 @@ const WalletPage: React.FC = () => {
     }
   }, [player?.telegram_id]);
 
-  // ИСПРАВЛЕНО: автопроверка при подключении кошелька
+  // Автопроверка при подключении кошелька
   useEffect(() => {
     if (player?.telegram_id && connectionRestored) {
       setTimeout(() => autoCheckDeposits(), 2000);
@@ -612,7 +610,7 @@ const WalletPage: React.FC = () => {
               Подключенный кошелек: {player?.telegram_wallet ? formatWalletAddress(player.telegram_wallet) : 'не подключен'}
               <br />
               <span style={{ color: '#90EE90' }}>
-                ИСПРАВЛЕНО: Теперь используется рабочий TONAPI вместо сломанного TON Center
+                ✅ ИСПРАВЛЕНО: Теперь используется рабочий TONAPI + автоматическое зачисление
               </span>
             </div>
           )}
@@ -671,7 +669,6 @@ const WalletPage: React.FC = () => {
               )}
             </div>
           )}
-          // src/pages/wallet/WalletPage.tsx - ЧАСТЬ 6: Основной блок кошелька
           
           {/* Main wallet block */}
           <div style={{ 
@@ -736,8 +733,14 @@ const WalletPage: React.FC = () => {
               </div>
             )}
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {/* УВЕЛИЧЕННЫЕ Action buttons */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              justifyContent: 'center', 
+              flexWrap: 'wrap',
+              marginBottom: '15px'
+            }}>
               <button
                 onClick={() => {
                   setShowDepositModal(true);
@@ -745,14 +748,16 @@ const WalletPage: React.FC = () => {
                   setSuccess(null);
                 }}
                 style={{
-                  padding: '10px 12px',
+                  padding: '15px 18px',
                   background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                   border: `2px solid ${colorStyle}`,
-                  borderRadius: '12px',
+                  borderRadius: '15px',
                   color: '#fff',
                   cursor: 'pointer',
                   fontWeight: 'bold',
-                  fontSize: '0.8rem'
+                  fontSize: '1rem',
+                  minWidth: '140px',
+                  minHeight: '50px'
                 }}
               >Пополнить TON</button>
 
@@ -763,14 +768,16 @@ const WalletPage: React.FC = () => {
                   setSuccess(null);
                 }}
                 style={{
-                  padding: '10px 12px',
+                  padding: '15px 18px',
                   background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                   border: `2px solid ${colorStyle}`,
-                  borderRadius: '12px',
+                  borderRadius: '15px',
                   color: '#fff',
                   cursor: 'pointer',
                   fontWeight: 'bold',
-                  fontSize: '0.8rem'
+                  fontSize: '1rem',
+                  minWidth: '140px',
+                  minHeight: '50px'
                 }}
               >Купить Stars</button>
 
@@ -779,17 +786,19 @@ const WalletPage: React.FC = () => {
                 onClick={checkPendingDeposits}
                 disabled={isCheckingDeposits}
                 style={{
-                  padding: '10px 12px',
+                  padding: '15px 18px',
                   background: isCheckingDeposits 
                     ? 'rgba(128, 128, 128, 0.5)' 
                     : `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                   border: `2px solid ${colorStyle}`,
-                  borderRadius: '12px',
+                  borderRadius: '15px',
                   color: '#fff',
                   cursor: isCheckingDeposits ? 'not-allowed' : 'pointer',
                   fontWeight: 'bold',
-                  fontSize: '0.8rem',
-                  opacity: isCheckingDeposits ? 0.7 : 1
+                  fontSize: '1rem',
+                  opacity: isCheckingDeposits ? 0.7 : 1,
+                  minWidth: '160px',
+                  minHeight: '50px'
                 }}
               >
                 {isCheckingDeposits ? 'Проверяем...' : 'Обновить баланс'}
@@ -802,14 +811,16 @@ const WalletPage: React.FC = () => {
                   loadTransactionHistory();
                 }}
                 style={{
-                  padding: '10px 12px',
+                  padding: '15px 18px',
                   background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
                   border: `2px solid ${colorStyle}`,
-                  borderRadius: '12px',
+                  borderRadius: '15px',
                   color: '#fff',
                   cursor: 'pointer',
                   fontWeight: 'bold',
-                  fontSize: '0.8rem'
+                  fontSize: '1rem',
+                  minWidth: '120px',
+                  minHeight: '50px'
                 }}
               >
                 История
@@ -821,14 +832,16 @@ const WalletPage: React.FC = () => {
                   onClick={runDebugDeposits}
                   disabled={isCheckingDeposits}
                   style={{
-                    padding: '10px 12px',
+                    padding: '15px 18px',
                     background: 'linear-gradient(135deg, #ff4444, #cc0000)',
                     border: '2px solid #ff4444',
-                    borderRadius: '12px',
+                    borderRadius: '15px',
                     color: '#fff',
                     cursor: isCheckingDeposits ? 'not-allowed' : 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '1rem',
+                    minWidth: '140px',
+                    minHeight: '50px'
                   }}
                 >
                   Диагностика
@@ -843,16 +856,18 @@ const WalletPage: React.FC = () => {
                 }}
                 disabled={parseFloat(player?.ton || '0') <= 0.1}
                 style={{
-                  padding: '10px 12px',
+                  padding: '15px 18px',
                   background: parseFloat(player?.ton || '0') > 0.1 
                     ? `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`
                     : 'rgba(128, 128, 128, 0.3)',
                   border: `2px solid ${parseFloat(player?.ton || '0') > 0.1 ? colorStyle : '#666'}`,
-                  borderRadius: '12px',
+                  borderRadius: '15px',
                   color: '#fff',
                   cursor: parseFloat(player?.ton || '0') > 0.1 ? 'pointer' : 'not-allowed',
                   fontWeight: 'bold',
-                  fontSize: '0.8rem'
+                  fontSize: '1rem',
+                  minWidth: '140px',
+                  minHeight: '50px'
                 }}
               >Вывести TON</button>
               
@@ -860,14 +875,16 @@ const WalletPage: React.FC = () => {
                 <button
                   onClick={handleDisconnect}
                   style={{
-                    padding: '10px 12px',
+                    padding: '15px 18px',
                     background: `rgba(${colorStyle.slice(1).match(/.{2}/g)?.map((hex: string) => parseInt(hex, 16)).join(', ')}, 0.2)`,
                     border: `2px solid ${colorStyle}`,
-                    borderRadius: '12px',
+                    borderRadius: '15px',
                     color: colorStyle,
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    fontSize: '0.8rem'
+                    fontSize: '1rem',
+                    minWidth: '120px',
+                    minHeight: '50px'
                   }}
                 >Отключить</button>
               )}
@@ -883,13 +900,12 @@ const WalletPage: React.FC = () => {
               fontSize: '0.8rem',
               color: '#ccc'
             }}>
-              После отправки TON нажмите "Обновить баланс" для зачисления средств. 
-              Система теперь использует надежный TONAPI вместо сломанного TON Center.
+              После отправки TON система автоматически попытается зачислить средства. 
+              Если не сработало сразу - нажмите "Обновить баланс".
             </div>
           </div>
-          // src/pages/wallet/WalletPage.tsx - ЧАСТЬ 7: Блок премиума
           
-          {/* PREMIUM BLOCK */}
+          {/* PREMIUM BLOCK - УВЕЛИЧЕННЫЕ КНОПКИ */}
           {!premiumStatus?.forever && (
             <div style={{ 
               margin: '20px 0', 
@@ -913,41 +929,43 @@ const WalletPage: React.FC = () => {
                 {/* 30 days offer */}
                 {!premiumStatus?.active && (
                   <div style={{
-                    padding: '20px',
+                    padding: '25px',
                     background: 'rgba(0, 0, 0, 0.3)',
-                    borderRadius: '12px',
+                    borderRadius: '15px',
                     border: '1px solid #FFD700'
                   }}>
                     <div style={{ 
                       display: 'flex', 
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '15px'
+                      gap: '20px'
                     }}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ color: '#FFD700', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                        <div style={{ color: '#FFD700', fontSize: '1.2rem', fontWeight: 'bold' }}>
                           Реклама отключена на 30 дней
                         </div>
-                        <div style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '3px' }}>
+                        <div style={{ color: '#ccc', fontSize: '0.9rem', marginTop: '5px' }}>
                           Отключить всю рекламу на месяц
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => handlePremiumPurchaseStars('NO_ADS_30_DAYS')}
                           disabled={isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars}
                           style={{
-                            padding: '8px 14px',
+                            padding: '12px 18px',
                             background: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars
                               ? 'linear-gradient(135deg, #FFD700, #FFA500)'
                               : 'rgba(128, 128, 128, 0.3)',
                             border: 'none',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             color: '#fff',
                             cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 'not-allowed' : 'pointer',
                             fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 0.5 : 1
+                            fontSize: '1rem',
+                            opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 0.5 : 1,
+                            minWidth: '140px',
+                            minHeight: '48px'
                           }}
                         >
                           {PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars} Stars
@@ -956,17 +974,19 @@ const WalletPage: React.FC = () => {
                           onClick={() => handlePremiumPurchaseTON('NO_ADS_30_DAYS')}
                           disabled={isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton}
                           style={{
-                            padding: '8px 14px',
+                            padding: '12px 18px',
                             background: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton)
                               ? 'linear-gradient(135deg, #0088CC, #0066AA)'
                               : 'rgba(128, 128, 128, 0.3)',
                             border: 'none',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             color: '#fff',
                             cursor: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? 'not-allowed' : 'pointer',
                             fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            opacity: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? 0.5 : 1
+                            fontSize: '1rem',
+                            opacity: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton) ? 0.5 : 1,
+                            minWidth: '120px',
+                            minHeight: '48px'
                           }}
                         >
                           {PREMIUM_PACKAGES.NO_ADS_30_DAYS.ton} TON
@@ -978,9 +998,9 @@ const WalletPage: React.FC = () => {
                 
                 {/* Forever offer */}
                 <div style={{
-                  padding: '20px',
+                  padding: '25px',
                   background: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '12px',
+                  borderRadius: '15px',
                   border: '2px solid #FFD700',
                   position: 'relative'
                 }}>
@@ -991,9 +1011,9 @@ const WalletPage: React.FC = () => {
                     transform: 'translateX(-50%)',
                     background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                     color: '#000',
-                    padding: '5px 15px',
-                    borderRadius: '15px',
-                    fontSize: '0.7rem',
+                    padding: '6px 18px',
+                    borderRadius: '18px',
+                    fontSize: '0.8rem',
                     fontWeight: 'bold',
                     boxShadow: '0 2px 10px rgba(255, 215, 0, 0.3)'
                   }}>
@@ -1004,39 +1024,41 @@ const WalletPage: React.FC = () => {
                     display: 'flex', 
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '15px',
-                    marginTop: '10px'
+                    gap: '20px',
+                    marginTop: '15px'
                   }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ color: '#FFD700', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                      <div style={{ color: '#FFD700', fontSize: '1.3rem', fontWeight: 'bold' }}>
                         Реклама отключена НАВСЕГДА
                       </div>
-                      <div style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '3px' }}>
+                      <div style={{ color: '#ccc', fontSize: '0.9rem', marginTop: '5px' }}>
                         Отключить всю рекламу раз и навсегда
                       </div>
-                      <div style={{ color: '#90EE90', fontSize: '0.7rem', marginTop: '5px' }}>
+                      <div style={{ color: '#90EE90', fontSize: '0.8rem', marginTop: '8px' }}>
                         Экономия до 90% по сравнению с ежемесячными платежами
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
                       <button
                         onClick={() => handlePremiumPurchaseStars('NO_ADS_FOREVER')}
                         disabled={isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars}
                         style={{
-                          padding: '10px 16px',
+                          padding: '15px 20px',
                           background: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars
                             ? 'linear-gradient(135deg, #FFD700, #FFA500)'
                             : 'rgba(128, 128, 128, 0.3)',
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: '15px',
                           color: '#fff',
                           cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '0.9rem',
+                          fontSize: '1.1rem',
                           opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 0.5 : 1,
                           boxShadow: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars 
                             ? '0 0 15px rgba(255, 215, 0, 0.4)' 
-                            : 'none'
+                            : 'none',
+                          minWidth: '160px',
+                          minHeight: '55px'
                         }}
                       >
                         {PREMIUM_PACKAGES.NO_ADS_FOREVER.stars} Stars
@@ -1045,20 +1067,22 @@ const WalletPage: React.FC = () => {
                         onClick={() => handlePremiumPurchaseTON('NO_ADS_FOREVER')}
                         disabled={isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton}
                         style={{
-                          padding: '10px 16px',
+                          padding: '15px 20px',
                           background: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.ton)
                             ? 'linear-gradient(135deg, #0088CC, #0066AA)'
                             : 'rgba(128, 128, 128, 0.3)',
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: '15px',
                           color: '#fff',
                           cursor: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton) ? 'not-allowed' : 'pointer',
                           fontWeight: 'bold',
-                          fontSize: '0.9rem',
+                          fontSize: '1.1rem',
                           opacity: (isProcessing || !wallet || !userAddress || parseFloat(player?.ton || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.ton) ? 0.5 : 1,
                           boxShadow: (wallet && userAddress && parseFloat(player?.ton || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.ton)
                             ? '0 0 15px rgba(0, 136, 204, 0.4)'
-                            : 'none'
+                            : 'none',
+                          minWidth: '140px',
+                          minHeight: '55px'
                         }}
                       >
                         {PREMIUM_PACKAGES.NO_ADS_FOREVER.ton} TON
@@ -1075,7 +1099,6 @@ const WalletPage: React.FC = () => {
           )}
         </div>
       </div>
-      // src/pages/wallet/WalletPage.tsx - ЧАСТЬ 8: Модали и завершение компонента
 
       {/* MODALS */}
       
