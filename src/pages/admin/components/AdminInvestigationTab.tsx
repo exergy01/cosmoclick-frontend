@@ -1,6 +1,6 @@
 // pages/admin/components/AdminInvestigationTab.tsx - Комплексное расследование
 import React, { useState } from 'react';
-import { adminApi } from '../services/adminApi';
+import { adminApiService as adminApi } from '../services/adminApi';
 
 interface AdminInvestigationTabProps {
   colorStyle: string;

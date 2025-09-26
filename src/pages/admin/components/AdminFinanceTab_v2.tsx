@@ -1,6 +1,6 @@
 // pages/admin/components/AdminFinanceTab_v2.tsx - Расширенное финансовое управление
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../services/adminApi';
+import { adminApiService as adminApi } from '../services/adminApi';
 
 interface AdminFinanceTabProps {
   colorStyle: string;
