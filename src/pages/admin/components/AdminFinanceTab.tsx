@@ -1,6 +1,6 @@
 // pages/admin/components/AdminFinanceTab.tsx
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../services/adminApi';
+import { adminApiService as adminApi } from '../services/adminApi';
 
 interface AdminFinanceTabProps {
   colorStyle: string;
