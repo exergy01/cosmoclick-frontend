@@ -46,8 +46,8 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
     try {
       console.log('Sending request to create Stars invoice...');
       
-      // ИСПРАВЛЕНО: Используем legacy endpoint который должен работать
-      const response = await axios.post(`${API_URL}/api/wallet/create-stars-invoice`, {
+      // ИСПРАВЛЕНО: Правильный endpoint после реорганизации
+      const response = await axios.post(`${API_URL}/api/wallet/stars-payments/create-invoice`, {
         telegram_id: playerId,
         amount: amount,
         description: `Пополнение CosmoClick на ${amount} Stars`
@@ -59,26 +59,32 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
         console.log('Invoice created successfully:', response.data.invoice_url);
         
         // Используем правильный Telegram WebApp API для открытия ссылки
-        let telegramUrl = response.data.invoice_url;
+        const invoiceUrl = response.data.invoice_url;
         
-        // Убедимся, что ссылка в правильном формате для Telegram
-        if (!telegramUrl.startsWith('t.me') && !telegramUrl.startsWith('https://t.me')) {
-          telegramUrl = telegramUrl.replace(/^https?:\/\//, 'https://t.me/');
-        }
+        console.log('Opening Telegram invoice link:', invoiceUrl);
         
-        console.log('Opening Telegram link:', telegramUrl);
-        
-        // Используем Telegram WebApp API вместо window.open
-        if ((window as any).Telegram?.WebApp?.openTelegramLink) {
-          console.log('Using Telegram WebApp API...');
-          (window as any).Telegram.WebApp.openTelegramLink(telegramUrl);
+        // Используем Telegram WebApp API
+        if ((window as any).Telegram?.WebApp?.openInvoice) {
+          console.log('Using Telegram WebApp.openInvoice...');
+          (window as any).Telegram.WebApp.openInvoice(invoiceUrl, (status: string) => {
+            console.log('Invoice status:', status);
+            if (status === 'paid') {
+              onSuccess?.('Оплата прошла успешно! Баланс обновлен');
+            } else if (status === 'cancelled') {
+              onError?.('Оплата отменена');
+            } else if (status === 'failed') {
+              onError?.('Ошибка оплаты');
+            }
+          });
+        } else if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+          console.log('Using Telegram WebApp.openTelegramLink...');
+          (window as any).Telegram.WebApp.openTelegramLink(invoiceUrl);
+          onSuccess?.('Счет создан! Откройте ссылку для оплаты');
         } else {
           console.log('Fallback to window.open...');
-          // Fallback для тестирования вне Telegram
-          window.open(telegramUrl, '_blank');
+          window.open(invoiceUrl, '_blank');
+          onSuccess?.('Счет создан! Откройте ссылку для оплаты');
         }
-        
-        onSuccess?.('Счет создан! Откройте ссылку для оплаты');
         
         return true;
       } else {
@@ -93,10 +99,12 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
       
       if (err.response?.data?.error) {
         errorMessage = `Ошибка: ${err.response.data.error}`;
+      } else if (err.response?.data?.details) {
+        errorMessage = `Детали: ${err.response.data.details}`;
       } else if (err.response?.status === 404) {
-        errorMessage = 'API endpoint не найден';
+        errorMessage = 'API endpoint не найден. Проверьте роутинг на сервере';
       } else if (err.response?.status === 500) {
-        errorMessage = 'Ошибка сервера';
+        errorMessage = 'Ошибка сервера. Проверьте логи backend';
       } else if (err.code === 'NETWORK_ERROR') {
         errorMessage = 'Ошибка сети';
       } else if (err.message) {
