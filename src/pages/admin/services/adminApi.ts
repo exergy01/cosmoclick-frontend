@@ -633,6 +633,232 @@ export const adminApiService = {
       console.error('❌ Ошибка обновления курса TON:', error);
       throw error;
     }
+  },
+
+  // 🆕 СИСТЕМА ПОДТВЕРЖДЕНИЯ ВЫВОДОВ
+
+  // Получить ожидающие выводы
+  async getPendingWithdrawals(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('💸 Загружаем ожидающие выводы. ID:', id);
+      const response = await adminApi.get(`/withdrawals/pending?admin_id=${encodeURIComponent(id)}`);
+
+      console.log('✅ Ожидающие выводы загружены:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки выводов:', error);
+      throw error;
+    }
+  },
+
+  // Подтвердить или отклонить вывод
+  async approveWithdrawal(withdrawalId: number, action: 'approve' | 'reject', reason?: string, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log(`✅ ${action} вывода ${withdrawalId}. Admin ID:`, id);
+      const response = await adminApi.post('/withdrawals/approve', {
+        admin_id: id,
+        withdrawal_id: withdrawalId,
+        action: action,
+        reason: reason
+      });
+
+      console.log('✅ Вывод обработан:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка обработки вывода:', error);
+      throw error;
+    }
+  },
+
+  // 🆕 ПОИСК ПОТЕРЯННЫХ ДЕПОЗИТОВ
+
+  // Получить потерянные депозиты
+  async getOrphanedDeposits(minAmount = 0, timeHours = 24, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🔍 Загружаем потерянные депозиты. ID:', id);
+      const response = await adminApi.get(`/deposits/orphaned?admin_id=${encodeURIComponent(id)}&min_amount=${minAmount}&time_hours=${timeHours}`);
+
+      console.log('✅ Потерянные депозиты загружены:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки потерянных депозитов:', error);
+      throw error;
+    }
+  },
+
+  // Расследовать депозит
+  async investigateDeposit(depositId: number, searchParams = {}, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🕵️ Расследуем депозит. Admin ID:', id, 'Deposit ID:', depositId);
+      const response = await adminApi.post('/deposits/investigate', {
+        admin_id: id,
+        deposit_id: depositId,
+        search_params: searchParams
+      });
+
+      console.log('✅ Расследование завершено:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка расследования:', error);
+      throw error;
+    }
+  },
+
+  // 🆕 СИСТЕМА АЛЕРТОВ
+
+  // Получить критические уведомления
+  async getCriticalAlerts(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🚨 Загружаем критические алерты. ID:', id);
+      const response = await adminApi.get(`/alerts/critical?admin_id=${encodeURIComponent(id)}`);
+
+      console.log('✅ Алерты загружены:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки алертов:', error);
+      throw error;
+    }
+  },
+
+  // 🆕 АНАЛИТИКА
+
+  // Получить ежедневную финансовую статистику
+  async getDailyFinanceStats(days = 30, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('📈 Загружаем ежедневную статистику. ID:', id);
+      const response = await adminApi.get(`/analytics/daily-finance?admin_id=${encodeURIComponent(id)}&days=${days}`);
+
+      console.log('✅ Статистика загружена:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки статистики:', error);
+      throw error;
+    }
+  },
+
+  // Получить топ игроков
+  async getTopPlayers(period = 30, limit = 50, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('👑 Загружаем топ игроков. ID:', id);
+      const response = await adminApi.get(`/analytics/top-players?admin_id=${encodeURIComponent(id)}&period=${period}&limit=${limit}`);
+
+      console.log('✅ Топ игроков загружен:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки топа игроков:', error);
+      throw error;
+    }
+  },
+
+  // Получить подозрительные паттерны
+  async getSuspiciousPatterns(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🔍 Загружаем подозрительные паттерны. ID:', id);
+      const response = await adminApi.get(`/analytics/suspicious-patterns?admin_id=${encodeURIComponent(id)}`);
+
+      console.log('✅ Паттерны загружены:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки паттернов:', error);
+      throw error;
+    }
+  },
+
+  // 🆕 РАССЛЕДОВАНИЯ
+
+  // Универсальный поиск
+  async universalSearch(query: string, searchType = 'all', telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🔍 Универсальный поиск. ID:', id, 'запрос:', query);
+      const response = await adminApi.post('/investigation/search', {
+        admin_id: id,
+        query: query,
+        search_type: searchType
+      });
+
+      console.log('✅ Поиск завершен:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка поиска:', error);
+      throw error;
+    }
+  },
+
+  // Анализ игрока
+  async analyzePlayer(playerId: string, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('📊 Анализируем игрока. Admin ID:', id, 'Player ID:', playerId);
+      const response = await adminApi.get(`/investigation/player-analysis/${encodeURIComponent(playerId)}?admin_id=${encodeURIComponent(id)}`);
+
+      console.log('✅ Анализ игрока завершен:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка анализа игрока:', error);
+      throw error;
+    }
+  },
+
+  // Анализ связей между игроками
+  async analyzeConnections(playerIds: string[], analysisDepth = 2, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🔗 Анализируем связи. Admin ID:', id, 'игроки:', playerIds);
+      const response = await adminApi.post('/investigation/connection-analysis', {
+        admin_id: id,
+        player_ids: playerIds,
+        analysis_depth: analysisDepth
+      });
+
+      console.log('✅ Анализ связей завершен:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка анализа связей:', error);
+      throw error;
+    }
+  },
+
+  // Создать отчет о подозрительной активности
+  async reportSuspiciousActivity(playerId: string, activityType: string, description: string, riskLevel = 'medium', details = {}, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('🚨 Создаем отчет о подозрительной активности. Admin ID:', id);
+      const response = await adminApi.post('/investigation/report-suspicious', {
+        admin_id: id,
+        telegram_id: playerId,
+        activity_type: activityType,
+        description: description,
+        risk_level: riskLevel,
+        details: details
+      });
+
+      console.log('✅ Отчет создан:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка создания отчета:', error);
+      throw error;
+    }
   }
 };
 
