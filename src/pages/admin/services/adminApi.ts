@@ -560,6 +560,79 @@ export const adminApiService = {
       console.error('❌ Ошибка массового удаления:', error);
       throw error;
     }
+  },
+
+  // 🆕 TON DEPOSIT MANAGEMENT FUNCTIONS
+
+  // Получить список TON депозитов
+  async getTONDeposits(status: string = 'unidentified', telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('💎 Загружаем TON депозиты. ID:', id, 'статус:', status);
+      const response = await adminApi.get(`/ton-deposits?status=${status}&admin_id=${encodeURIComponent(id)}`);
+
+      console.log('✅ TON депозиты загружены:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки TON депозитов:', error);
+      throw error;
+    }
+  },
+
+  // Получить статистику TON
+  async getTONStats(telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('📊 Загружаем статистику TON. ID:', id);
+      const response = await adminApi.get(`/ton-stats?admin_id=${encodeURIComponent(id)}`);
+
+      console.log('✅ Статистика TON загружена:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки статистики TON:', error);
+      throw error;
+    }
+  },
+
+  // Обработать неопознанный депозит
+  async processTONDeposit(depositId: number, playerId: string, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('⚡ Обрабатываем TON депозит. Admin ID:', id, 'Deposit ID:', depositId, 'Player ID:', playerId);
+      const response = await adminApi.post(`/process-ton-deposit`, {
+        admin_id: id,
+        deposit_id: depositId,
+        player_id: playerId
+      });
+
+      console.log('✅ TON депозит обработан:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка обработки TON депозита:', error);
+      throw error;
+    }
+  },
+
+  // Обновить курс TON вручную
+  async updateTONRate(newRate: number, telegramId?: string): Promise<any> {
+    try {
+      const id = telegramId || forceGetTelegramId();
+
+      console.log('💱 Обновляем курс TON. Admin ID:', id, 'новый курс:', newRate);
+      const response = await adminApi.post(`/update-ton-rate/${encodeURIComponent(id)}`, {
+        new_rate: newRate,
+        source: 'manual_admin'
+      });
+
+      console.log('✅ Курс TON обновлен:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ Ошибка обновления курса TON:', error);
+      throw error;
+    }
   }
 };
 
