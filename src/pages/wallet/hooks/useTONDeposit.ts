@@ -1,4 +1,4 @@
-// src/pages/wallet/hooks/useTONDeposit.ts - СИСТЕМА С ВРЕМЕННЫМ ОКНОМ
+// src/pages/wallet/hooks/useTONDeposit.ts - СИСТЕМА С ВРЕМЕННЫМ ОКНОМ И ОТСЛЕЖИВАНИЕМ СТАТУСОВ
 import { useState } from 'react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import axios from 'axios';
@@ -29,6 +29,20 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       console.log('✅ Зарегистрирован ожидаемый депозит');
     } catch (error) {
       console.error('Ошибка регистрации ожидаемого депозита:', error);
+    }
+  };
+
+  // НОВОЕ: Функция обновления статуса депозита
+  const updateDepositStatus = async (amount: number, status: string) => {
+    try {
+      await axios.post(`${API_URL}/api/wallet/ton-deposits/update-deposit-status`, {
+        player_id: playerId,
+        amount: amount,
+        status: status
+      });
+      console.log(`✅ Статус депозита обновлен: ${status}`);
+    } catch (error) {
+      console.error('Ошибка обновления статуса депозита:', error);
     }
   };
 
@@ -89,6 +103,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
         'UQCOZZx-3RSxIVS2QFcuMBwDUZPWgh8FhRT7I6Qo_pqT-h60';
       
       // РЕГИСТРИРУЕМ ОЖИДАЕМЫЙ ДЕПОЗИТ ПЕРЕД ОТПРАВКОЙ
+      // Это также создаст запись в ton_deposits со статусом 'pending'
       await registerExpectedDeposit(amount, userAddress);
       
       const nanoAmount = Math.floor(amount * 1_000_000_000);
@@ -139,9 +154,11 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       console.error('Ошибка TON транзакции:', err);
       
       let errorMessage = 'Ошибка отправки транзакции';
+      let status = 'failed';
       
       if (err.message?.includes('User declined') || err.message?.includes('declined') || err.message?.includes('rejected')) {
         errorMessage = 'Транзакция была отклонена';
+        status = 'cancelled';
       } else if (err.message?.includes('Insufficient') || err.message?.includes('insufficient')) {
         errorMessage = 'Недостаточно TON в кошельке';
       } else if (err.message?.includes('Network') || err.message?.includes('network')) {
@@ -155,6 +172,9 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       } else if (err.message?.includes('No tx found')) {
         errorMessage = 'Ошибка отправки через кошелек, попробуйте еще раз';
       }
+      
+      // НОВОЕ: Обновляем статус депозита на 'cancelled' или 'failed'
+      await updateDepositStatus(amount, status);
       
       onError?.(errorMessage);
       return false;

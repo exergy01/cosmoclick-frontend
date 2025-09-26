@@ -66,8 +66,23 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
         // Используем Telegram WebApp API
         if ((window as any).Telegram?.WebApp?.openInvoice) {
           console.log('Using Telegram WebApp.openInvoice...');
-          (window as any).Telegram.WebApp.openInvoice(invoiceUrl, (status: string) => {
+          (window as any).Telegram.WebApp.openInvoice(invoiceUrl, async (status: string) => {
             console.log('Invoice status:', status);
+            
+            // Отправляем статус на backend для записи в базу
+            if (status === 'cancelled' || status === 'failed') {
+              try {
+                await axios.post(`${API_URL}/api/wallet/stars-payments/cancel-invoice`, {
+                  telegram_id: playerId,
+                  amount: amount,
+                  status: status
+                });
+                console.log('Invoice cancellation recorded');
+              } catch (err) {
+                console.error('Failed to record cancellation:', err);
+              }
+            }
+            
             if (status === 'paid') {
               onSuccess?.('Оплата прошла успешно! Баланс обновлен');
             } else if (status === 'cancelled') {
