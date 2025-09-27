@@ -29,10 +29,14 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
 
   const handleClaim = async () => {
     setClaiming(true);
+    console.log(`🎁 Попытка получить бонус для ${telegramId}`);
+
     try {
       const response = await axios.post(`${API_URL}/api/daily-bonus/claim/${telegramId}`);
+      console.log('🎁 Ответ сервера:', response.data);
 
       if (response.data.success) {
+        console.log(`✅ Бонус получен: ${response.data.bonus_amount} CCC`);
         setClaimed(true);
         onBonusClaimed(response.data.bonus_amount);
 
@@ -40,9 +44,13 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
         setTimeout(() => {
           onClose();
         }, 2000);
+      } else {
+        // Обрабатываем ошибку с сервера
+        console.error('❌ Ошибка сервера:', response.data.error);
+        setClaiming(false);
       }
-    } catch (error) {
-      console.error('Error claiming bonus:', error);
+    } catch (error: any) {
+      console.error('❌ Ошибка запроса:', error.response?.data || error.message);
       setClaiming(false);
     }
   };
