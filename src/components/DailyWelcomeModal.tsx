@@ -29,10 +29,22 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
 
   const handleClaim = async () => {
     setClaiming(true);
+    const requestUrl = `${API_URL}/api/daily-bonus/claim/${telegramId}`;
     console.log(`🎁 Попытка получить бонус для ${telegramId}`);
+    console.log(`🔗 URL запроса: ${requestUrl}`);
+
+    // Сначала тестируем GET запрос статуса
+    try {
+      const statusResponse = await axios.get(`${API_URL}/api/daily-bonus/status/${telegramId}`);
+      console.log(`📊 Статус работает:`, statusResponse.data);
+    } catch (statusError) {
+      console.error(`❌ Ошибка статуса:`, statusError);
+    }
 
     try {
-      const response = await axios.post(`${API_URL}/api/daily-bonus/claim/${telegramId}`);
+      const response = await axios.post(requestUrl, {}, {
+        timeout: 10000 // 10 секунд таймаут
+      });
       console.log('🎁 Ответ сервера:', response.data);
 
       if (response.data.success) {
