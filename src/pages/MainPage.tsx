@@ -17,8 +17,7 @@ import { premiumAdService, PremiumAdResult } from '../services/premiumAwareAdSer
 // Импортируем новый чистый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
 import ToastNotification from '../components/ToastNotification';
-import DailyBonusModal from '../components/DailyBonusModal';
-import DailyBonusButton from '../components/DailyBonusButton';
+import DailyWelcomeModal from '../components/DailyWelcomeModal';
 
 interface Item {
   id: number;
@@ -267,7 +266,10 @@ const MainPage: React.FC = () => {
   
   // Добавляем состояние для тостов
   const [toasts, setToasts] = useState<any[]>([]);
-  const [showDailyBonusModal, setShowDailyBonusModal] = useState(false);
+
+  // Состояние для ежедневного приветствия
+  const [showDailyWelcome, setShowDailyWelcome] = useState(false);
+  const [dailyBonusDay, setDailyBonusDay] = useState(1);
   const nextToastId = React.useRef(0);
 
   // Дополнительные состояния
@@ -295,13 +297,6 @@ const MainPage: React.FC = () => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
 
-  // Обработчик получения ежедневного бонуса
-  const handleDailyBonusClaimed = useCallback((amount: number) => {
-    // Обновляем данные игрока
-    refreshPlayer();
-    // Показываем уведомление
-    addToast(`🎁 Получено ${amount} CCC за ежедневный бонус!`, 'success', 4000);
-  }, [refreshPlayer, addToast]);
   
   // MainPage.tsx - ЧАСТЬ 3 из 6 - useEffect ХУКИ
 
@@ -359,6 +354,28 @@ const MainPage: React.FC = () => {
     };
     
     checkAdminStatus();
+  }, [player?.telegram_id]);
+
+  // Проверяем ежедневные бонусы при загрузке игрока
+  useEffect(() => {
+    const checkDailyBonus = async () => {
+      if (!player?.telegram_id) return;
+
+      try {
+        const response = await axios.get(`${API_URL}/api/daily-bonus/status/${player.telegram_id}`);
+        const bonusData = response.data;
+
+        // Показываем приветственное окно только если можно забрать бонус
+        if (bonusData.can_claim) {
+          setDailyBonusDay(bonusData.next_day);
+          setShowDailyWelcome(true);
+        }
+      } catch (error) {
+        console.error('Error checking daily bonus:', error);
+      }
+    };
+
+    checkDailyBonus();
   }, [player?.telegram_id]);
 
   useEffect(() => {
@@ -580,6 +597,17 @@ const MainPage: React.FC = () => {
     }
   }, [targetSystem, refreshPlayer, setCurrentSystem]);
 
+  // 🎁 ОБРАБОТЧИКИ ЕЖЕДНЕВНОГО ПРИВЕТСТВИЯ
+  const handleDailyBonusClaimed = useCallback(async (amount: number) => {
+    // Обновляем игрока после получения бонуса
+    await refreshPlayer();
+    addToast(`🎁 Получено ${amount} CCC!`, 'success');
+  }, [refreshPlayer, addToast]);
+
+  const handleCloseDailyWelcome = useCallback(() => {
+    setShowDailyWelcome(false);
+  }, []);
+
   const handleUnlockCancel = useCallback(() => {
     setShowUnlockModal(false);
     setTargetSystem(null);
@@ -656,23 +684,7 @@ const MainPage: React.FC = () => {
         flexDirection: 'column'
       }}>
       
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '10px',
-          marginBottom: '10px'
-        }}>
-          <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
-
-          {player && (
-            <DailyBonusButton
-              telegramId={player.telegram_id}
-              playerColor={colorStyle}
-              onClick={() => setShowDailyBonusModal(true)}
-            />
-          )}
-        </div>
+        <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
 
         {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
         {premiumStatus?.hasPremium && (
@@ -879,10 +891,20 @@ const MainPage: React.FC = () => {
 </div>
 
       {/* 👑 ОПТИМИЗИРОВАННОЕ ПРЕМИУМ ПРЕДЛОЖЕНИЕ */}
-      <PremiumOfferModal 
+      <PremiumOfferModal
         isVisible={showPremiumOffer}
         onClose={handleClosePremiumOffer}
         onBuyPremium={handleBuyPremium}
+      />
+
+      {/* 🎁 ЕЖЕДНЕВНОЕ ПРИВЕТСТВИЕ */}
+      <DailyWelcomeModal
+        isOpen={showDailyWelcome}
+        onClose={handleCloseDailyWelcome}
+        onBonusClaimed={handleDailyBonusClaimed}
+        playerColor={colorStyle}
+        telegramId={player?.telegram_id || ''}
+        currentDay={dailyBonusDay}
       />
 
       <style>
@@ -914,16 +936,6 @@ const MainPage: React.FC = () => {
         />
       )}
 
-      {/* Модалка ежедневных бонусов */}
-      {player && (
-        <DailyBonusModal
-          isOpen={showDailyBonusModal}
-          onClose={() => setShowDailyBonusModal(false)}
-          onBonusClaimed={handleDailyBonusClaimed}
-          playerColor={colorStyle}
-          telegramId={player.telegram_id}
-        />
-      )}
     </div>
   );
 };
