@@ -17,6 +17,8 @@ import { premiumAdService, PremiumAdResult } from '../services/premiumAwareAdSer
 // Импортируем новый чистый счетчик
 import { useCleanCounter } from '../hooks/useCleanCounter';
 import ToastNotification from '../components/ToastNotification';
+import DailyBonusModal from '../components/DailyBonusModal';
+import DailyBonusButton from '../components/DailyBonusButton';
 
 interface Item {
   id: number;
@@ -265,6 +267,7 @@ const MainPage: React.FC = () => {
   
   // Добавляем состояние для тостов
   const [toasts, setToasts] = useState<any[]>([]);
+  const [showDailyBonusModal, setShowDailyBonusModal] = useState(false);
   const nextToastId = React.useRef(0);
 
   // Дополнительные состояния
@@ -291,6 +294,14 @@ const MainPage: React.FC = () => {
   const removeToast = useCallback((id: number) => {
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
+
+  // Обработчик получения ежедневного бонуса
+  const handleDailyBonusClaimed = useCallback((amount: number) => {
+    // Обновляем данные игрока
+    refreshPlayer();
+    // Показываем уведомление
+    addToast(`🎁 Получено ${amount} CCC за ежедневный бонус!`, 'success', 4000);
+  }, [refreshPlayer, addToast]);
   
   // MainPage.tsx - ЧАСТЬ 3 из 6 - useEffect ХУКИ
 
@@ -645,7 +656,23 @@ const MainPage: React.FC = () => {
         flexDirection: 'column'
       }}>
       
-        <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '10px',
+          marginBottom: '10px'
+        }}>
+          <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
+
+          {player && (
+            <DailyBonusButton
+              telegramId={player.telegram_id}
+              playerColor={colorStyle}
+              onClick={() => setShowDailyBonusModal(true)}
+            />
+          )}
+        </div>
 
         {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
         {premiumStatus?.hasPremium && (
@@ -884,6 +911,17 @@ const MainPage: React.FC = () => {
           systemId={targetSystem}
           onUnlock={handleUnlockSuccess}
           onCancel={handleUnlockCancel}
+        />
+      )}
+
+      {/* Модалка ежедневных бонусов */}
+      {player && (
+        <DailyBonusModal
+          isOpen={showDailyBonusModal}
+          onClose={() => setShowDailyBonusModal(false)}
+          onBonusClaimed={handleDailyBonusClaimed}
+          playerColor={colorStyle}
+          telegramId={player.telegram_id}
         />
       )}
     </div>
