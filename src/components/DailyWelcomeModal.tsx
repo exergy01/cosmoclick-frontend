@@ -2,6 +2,64 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+// Функция для создания звука успеха
+const playSuccessSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    // Создаем приятный звук монетки/успеха
+    const duration = 0.3; // 300ms
+    const oscillator1 = audioContext.createOscillator();
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    // Частоты для приятного звука
+    oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+
+    oscillator1.type = 'sine';
+    oscillator2.type = 'sine';
+
+    // Настройка громкости с плавным затуханием
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+    // Подключение узлов
+    oscillator1.connect(gainNode);
+    oscillator2.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Воспроизведение
+    oscillator1.start(audioContext.currentTime);
+    oscillator2.start(audioContext.currentTime);
+    oscillator1.stop(audioContext.currentTime + duration);
+    oscillator2.stop(audioContext.currentTime + duration);
+
+    console.log('🔊 Звук успеха воспроизведен');
+  } catch (error) {
+    console.log('🔇 Звук недоступен:', error);
+  }
+};
+
+// Функция для вибрации через Telegram WebApp
+const triggerHapticFeedback = () => {
+  try {
+    // Telegram WebApp API для вибрации
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      console.log('📳 Вибрация через Telegram WebApp');
+    } else if (navigator.vibrate) {
+      // Резервный вариант для обычных браузеров
+      navigator.vibrate([100, 50, 100]); // Двойная вибрация
+      console.log('📳 Вибрация через Navigator API');
+    } else {
+      console.log('📳 Вибрация недоступна');
+    }
+  } catch (error) {
+    console.log('📳 Ошибка вибрации:', error);
+  }
+};
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 interface DailyWelcomeModalProps {
@@ -29,6 +87,9 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
 
   const handleClaim = async () => {
     setClaiming(true);
+
+    // 🎉 МГНОВЕННАЯ ВИБРАЦИЯ при клике для лучшего UX
+    triggerHapticFeedback();
     const requestUrl = `${API_URL}/api/daily-bonus/claim/${telegramId}`;
     console.log(`🎁 Попытка получить бонус для ${telegramId}`);
     console.log(`🔗 URL запроса: ${requestUrl}`);
@@ -49,6 +110,13 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
 
       if (response.data.success) {
         console.log(`✅ Бонус получен: ${response.data.bonus_amount} CCC`);
+
+        // 🎉 ДОБАВЛЯЕМ ЗВУК И ВИБРАЦИЮ
+        triggerHapticFeedback(); // Вибрация
+        setTimeout(() => {
+          playSuccessSound(); // Звук с небольшой задержкой для лучшего эффекта
+        }, 100);
+
         setClaimed(true);
         onBonusClaimed(response.data.bonus_amount);
 
@@ -238,7 +306,9 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
               fontWeight: 'bold',
               cursor: claiming ? 'wait' : 'pointer',
               boxShadow: `0 5px 15px ${playerColor}40`,
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              transform: claiming ? 'scale(0.95)' : 'scale(1)', // Анимация нажатия
+              opacity: claiming ? 0.8 : 1
             }}
           >
             {claiming ? '⏳ Получение...' : `🎁 Получить ${todayReward} CCC`}
