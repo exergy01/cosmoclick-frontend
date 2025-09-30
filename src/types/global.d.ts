@@ -49,23 +49,25 @@ export interface ShopItem {
   description?: string;
 }
 
-interface TelegramWebApp {
-  initDataUnsafe?: {
-    user?: {
-      id?: number;
-      language_code?: string;
+declare global {
+  interface TelegramWebApp {
+    initDataUnsafe?: {
+      user?: {
+        id?: number;
+        language_code?: string;
+      };
     };
-  };
-  ready?: () => void;
-  HapticFeedback?: {
-    impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
-    notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
-    selectionChanged: () => void;
-  };
-}
+    ready?: () => void;
+    HapticFeedback?: {
+      impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
+      notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+      selectionChanged: () => void;
+    };
+  }
 
-interface Window {
-  Telegram?: {
-    WebApp?: TelegramWebApp;
-  };
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp;
+    };
+  }
 }
