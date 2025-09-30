@@ -19,6 +19,9 @@ import { useCleanCounter } from '../hooks/useCleanCounter';
 import ToastNotification from '../components/ToastNotification';
 import DailyWelcomeModal from '../components/DailyWelcomeModal';
 
+// 🎉 ЗВУК И ВИБРАЦИЯ для сбора ресурсов
+import { triggerSuccessFeedback } from '../utils/feedbackUtils';
+
 interface Item {
   id: number;
   system: number;
@@ -470,6 +473,9 @@ const MainPage: React.FC = () => {
       const result = await safeCollect(collectParams);
 
       if (result) {
+        // 🎉 МГНОВЕННАЯ ВИБРАЦИЯ И ЗВУК при успешном сборе
+        await triggerSuccessFeedback();
+
         resetCleanCounter(currentSystem);
         addToast(`${t('collected')} ${currentValue.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`, 'success');
       }

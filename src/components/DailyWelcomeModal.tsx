@@ -2,102 +2,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { triggerSuccessFeedback } from '../utils/feedbackUtils';
 
-// Функция для создания звука звона монетки
-const playSuccessSound = async () => {
-  try {
-    // Проверяем поддержку AudioContext
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) {
-      console.log('🔇 AudioContext не поддерживается');
-      return;
-    }
-
-    const audioContext = new AudioContextClass();
-
-    // Проверяем состояние контекста
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
-
-    // 🪙 ЗВОН МОНЕТКИ: несколько быстрых звонков с разными частотами
-    const coinSounds = [
-      { freq: 800, time: 0 },       // Первый звон
-      { freq: 1000, time: 0.08 },   // Второй звон
-      { freq: 1200, time: 0.16 },   // Третий звон
-      { freq: 900, time: 0.24 }     // Финальный звон
-    ];
-
-    coinSounds.forEach(({ freq, time }) => {
-      // Создаем отдельный осциллятор для каждого звона
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      // Настройки для звона монетки
-      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + time);
-      oscillator.type = 'sine';
-
-      // Быстрое затухание для эффекта "звона"
-      const startTime = audioContext.currentTime + time;
-      const duration = 0.15;
-
-      gainNode.gain.setValueAtTime(0.2, startTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-
-      // Подключение
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      // Воспроизведение
-      oscillator.start(startTime);
-      oscillator.stop(startTime + duration);
-    });
-
-    console.log('🪙 Звон монетки воспроизведен');
-  } catch (error) {
-    console.log('🔇 Звук недоступен:', error);
-  }
-};
-
-// Функция для сильной вибрации через Telegram WebApp
-const triggerHapticFeedback = () => {
-  try {
-    console.log('📳 Попытка вибрации...');
-    console.log('📳 window.Telegram:', !!window.Telegram);
-    console.log('📳 WebApp:', !!window.Telegram?.WebApp);
-
-    // Используем type assertion для обхода TypeScript проблемы
-    const telegramWebApp = window.Telegram?.WebApp as any;
-    console.log('📳 HapticFeedback:', !!telegramWebApp?.HapticFeedback);
-
-    // Telegram WebApp API для вибрации
-    if (telegramWebApp?.HapticFeedback) {
-      // 💪 УСИЛЕННАЯ ВИБРАЦИЯ: используем 'heavy' вместо 'medium'
-      telegramWebApp.HapticFeedback.impactOccurred('heavy');
-      console.log('📳 Сильная вибрация через Telegram WebApp');
-
-      // 🎉 ДОПОЛНИТЕЛЬНАЯ НОТИФИКАЦИЯ УСПЕХА
-      setTimeout(() => {
-        telegramWebApp.HapticFeedback.notificationOccurred('success');
-        console.log('📳 Нотификация успеха');
-      }, 150);
-
-      return;
-    }
-
-    // Резервный вариант для обычных браузеров - более мощная вибрация
-    if ('vibrate' in navigator) {
-      // 💥 МОЩНАЯ ВИБРАЦИЯ: длинные импульсы с паузами
-      const vibrated = navigator.vibrate([200, 100, 200, 100, 300]);
-      console.log('📳 Мощная вибрация через Navigator API:', vibrated);
-      return;
-    }
-
-    console.log('📳 Вибрация недоступна');
-  } catch (error) {
-    console.log('📳 Ошибка вибрации:', error);
-  }
-};
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -129,7 +35,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
     setClaiming(true);
 
     // 🎉 МГНОВЕННАЯ ВИБРАЦИЯ при клике для лучшего UX
-    triggerHapticFeedback();
+    await triggerSuccessFeedback();
     const requestUrl = `${API_URL}/api/daily-bonus/claim/${telegramId}`;
     console.log(`🎁 Попытка получить бонус для ${telegramId}`);
     console.log(`🔗 URL запроса: ${requestUrl}`);
@@ -152,10 +58,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
         console.log(`✅ Бонус получен: ${response.data.bonus_amount} CCC`);
 
         // 🎉 ДОБАВЛЯЕМ ЗВУК И ВИБРАЦИЮ
-        triggerHapticFeedback(); // Вибрация
-        setTimeout(async () => {
-          await playSuccessSound(); // Звук с небольшой задержкой для лучшего эффекта
-        }, 100);
+        await triggerSuccessFeedback();
 
         setClaimed(true);
         onBonusClaimed(response.data.bonus_amount);
