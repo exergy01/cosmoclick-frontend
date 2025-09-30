@@ -1,11 +1,24 @@
 // components/DailyWelcomeModal.tsx - Простое приветственное окно с календарем
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 // Функция для создания звука успеха
-const playSuccessSound = () => {
+const playSuccessSound = async () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // Проверяем поддержку AudioContext
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) {
+      console.log('🔇 AudioContext не поддерживается');
+      return;
+    }
+
+    const audioContext = new AudioContextClass();
+
+    // Проверяем состояние контекста
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
 
     // Создаем приятный звук монетки/успеха
     const duration = 0.3; // 300ms
@@ -21,7 +34,7 @@ const playSuccessSound = () => {
     oscillator2.type = 'sine';
 
     // Настройка громкости с плавным затуханием
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Уменьшил громкость
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
 
     // Подключение узлов
@@ -44,17 +57,26 @@ const playSuccessSound = () => {
 // Функция для вибрации через Telegram WebApp
 const triggerHapticFeedback = () => {
   try {
+    console.log('📳 Попытка вибрации...');
+    console.log('📳 window.Telegram:', !!window.Telegram);
+    console.log('📳 WebApp:', !!window.Telegram?.WebApp);
+    console.log('📳 HapticFeedback:', !!window.Telegram?.WebApp?.HapticFeedback);
+
     // Telegram WebApp API для вибрации
     if (window.Telegram?.WebApp?.HapticFeedback) {
       window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
       console.log('📳 Вибрация через Telegram WebApp');
-    } else if (navigator.vibrate) {
-      // Резервный вариант для обычных браузеров
-      navigator.vibrate([100, 50, 100]); // Двойная вибрация
-      console.log('📳 Вибрация через Navigator API');
-    } else {
-      console.log('📳 Вибрация недоступна');
+      return;
     }
+
+    // Резервный вариант для обычных браузеров
+    if ('vibrate' in navigator) {
+      const vibrated = navigator.vibrate([100, 50, 100]); // Двойная вибрация
+      console.log('📳 Вибрация через Navigator API:', vibrated);
+      return;
+    }
+
+    console.log('📳 Вибрация недоступна');
   } catch (error) {
     console.log('📳 Ошибка вибрации:', error);
   }
@@ -82,6 +104,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
   telegramId,
   currentDay
 }) => {
+  const { t } = useTranslation();
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
 
@@ -113,8 +136,8 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
 
         // 🎉 ДОБАВЛЯЕМ ЗВУК И ВИБРАЦИЮ
         triggerHapticFeedback(); // Вибрация
-        setTimeout(() => {
-          playSuccessSound(); // Звук с небольшой задержкой для лучшего эффекта
+        setTimeout(async () => {
+          await playSuccessSound(); // Звук с небольшой задержкой для лучшего эффекта
         }, 100);
 
         setClaimed(true);
@@ -170,7 +193,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
           fontSize: '1.8rem',
           textShadow: `0 0 10px ${playerColor}`
         }}>
-          🎁 Ежедневная награда
+          {t('daily_welcome.title')}
         </h2>
 
         <p style={{
@@ -178,7 +201,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
           margin: '0 0 25px 0',
           fontSize: '0.9rem'
         }}>
-          Добро пожаловать! Получи свою награду дня {currentDay}
+          {t('daily_welcome.welcome_message', { day: currentDay })}
         </p>
 
         {/* Календарь */}
@@ -221,7 +244,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
                     color: '#aaa',
                     marginBottom: '5px'
                   }}>
-                    День {day}
+                    {t('daily_welcome.day_label', { day })}
                   </div>
                   <div style={{
                     fontSize: '1rem',
@@ -267,7 +290,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
               color: '#aaa',
               marginBottom: '8px'
             }}>
-              День 7 - Большая награда!
+              {t('daily_welcome.day_7_special')}
             </div>
             <div style={{
               fontSize: '1.5rem',
@@ -311,7 +334,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
               opacity: claiming ? 0.8 : 1
             }}
           >
-            {claiming ? '⏳ Получение...' : `🎁 Получить ${todayReward} CCC`}
+            {claiming ? t('daily_welcome.claiming') : t('daily_welcome.claim_button', { amount: todayReward })}
           </button>
         ) : (
           <div style={{
@@ -324,7 +347,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
             fontSize: '1.2rem',
             fontWeight: 'bold'
           }}>
-            ✅ Награда получена! Увидимся завтра!
+            {t('daily_welcome.claimed_success')}
           </div>
         )}
 
@@ -334,7 +357,7 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
           fontSize: '0.8rem',
           margin: '15px 0 0 0'
         }}>
-          Заходи каждый день, чтобы не сбросить прогресс!
+          {t('daily_welcome.daily_reminder')}
         </p>
       </div>
     </div>

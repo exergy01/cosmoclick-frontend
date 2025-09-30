@@ -82,7 +82,7 @@ const QuestsPage: React.FC = () => {
   // 🆕 ОБНОВЛЕННАЯ функция просмотра рекламы (без изменений в логике)
   const watchAd = useCallback(async () => {
     if (!player?.telegram_id) {
-      addNotification('Ошибка: игрок не найден', 'error');
+      addNotification(t('quest_errors.player_not_found'), 'error');
       return;
     }
     
@@ -104,25 +104,25 @@ const QuestsPage: React.FC = () => {
             // 🆕 Перезагружаем задания после просмотра рекламы
             loadQuests();
           } else {
-            throw new Error(response.data.error || 'Ошибка сервера');
+            throw new Error(response.data.error || t('quest_errors.server_error'));
           }
         } catch (error: any) {
           console.error('❌ Ошибка обработки награды:', error);
           addNotification(
-            error.response?.data?.error || 'Ошибка получения награды', 
+            error.response?.data?.error || t('quest_errors.reward_error'), 
             'error'
           );
         }
       } else {
         console.log('❌ Реклама не была успешно просмотрена:', result);
         addNotification(
-          result.error || 'Реклама была пропущена или произошла ошибка', 
+          result.error || t('quest_errors.ad_skipped'), 
           'warning'
         );
       }
     } catch (error: any) {
       console.error('❌ Критическая ошибка рекламы:', error);
-      addNotification('Реклама недоступна', 'error');
+      addNotification(t('quest_errors.ad_unavailable'), 'error');
     }
   }, [player?.telegram_id, refreshPlayer, addNotification, t]);
 
@@ -230,11 +230,11 @@ const QuestsPage: React.FC = () => {
         setLinkTimers(prev => ({ ...prev, [questId]: 30 }));
         console.log(`✅ Клик по ссылке задания ${questId} зарегистрирован`);
       } else {
-        addNotification('Ошибка регистрации клика', 'error');
+        addNotification(t('quest_errors.link_click_error'), 'error');
       }
     } catch (error: any) {
       console.error('Ошибка обработки клика по ссылке:', error);
-      addNotification('Ошибка обработки клика', 'error');
+      addNotification(t('quest_errors.click_processing_error'), 'error');
     }
   };
 
@@ -261,14 +261,14 @@ const QuestsPage: React.FC = () => {
           'success'
         );
       } else {
-        addNotification(response.data.error || t('quest_completion_error') || 'Неизвестная ошибка при выполнении задания.', 'error');
+        addNotification(response.data.error || t('quest_completion_error') || t('quest_errors.completion_unknown_error'), 'error');
       }
     } catch (error: any) {
       console.error('Ошибка выполнения задания:', error);
-      const errorMessage = error.response?.data?.error || t('quest_completion_error') || 'Ошибка выполнения задания';
+      const errorMessage = error.response?.data?.error || t('quest_completion_error') || t('quest_errors.completion_error');
       
       if (errorMessage.includes('timer not completed')) {
-        addNotification('Подождите еще немного перед получением награды', 'warning');
+        addNotification(t('quest_errors.timer_wait_message'), 'warning');
         setLinkTimers(prev => ({ ...prev, [questId]: 10 }));
       } else {
         addNotification(errorMessage, 'error');

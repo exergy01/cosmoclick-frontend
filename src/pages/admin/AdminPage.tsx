@@ -1,6 +1,7 @@
 // pages/admin/AdminPage.tsx - ПРАВИЛЬНАЯ ВЕРСИЯ - использует готовые компоненты
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useNewPlayer } from '../../context/NewPlayerContext';
 import { useAdminAuth } from './hooks/useAdminAuth';
 
@@ -17,6 +18,7 @@ import AdminInvestigationTab from './components/AdminInvestigationTab';
 type AdminTabType = 'stats' | 'players' | 'quests' | 'finance' | 'investigation' | 'management';
 
 const AdminPage: React.FC = () => {
+  const { t } = useTranslation();
   const { player } = useNewPlayer();
   const navigate = useNavigate();
   const { isAdmin, loading, error } = useAdminAuth();
@@ -26,12 +28,12 @@ const AdminPage: React.FC = () => {
 
   // Конфигурация вкладок
   const tabs = [
-    { key: 'stats' as const, label: 'Статистика', icon: '📊' },
-    { key: 'players' as const, label: 'Игроки', icon: '👥' },
-    { key: 'quests' as const, label: 'Задания', icon: '📋' },
-    { key: 'finance' as const, label: 'Финансы', icon: '🏦' },
-    { key: 'investigation' as const, label: 'Расследования', icon: '🕵️' },
-    { key: 'management' as const, label: 'Управление', icon: '⚙️' }
+    { key: 'stats' as const, label: t('admin.tabs.stats'), icon: '📊' },
+    { key: 'players' as const, label: t('admin.tabs.players'), icon: '👥' },
+    { key: 'quests' as const, label: t('admin.tabs.quests'), icon: '📋' },
+    { key: 'finance' as const, label: t('admin.tabs.finance'), icon: '🏦' },
+    { key: 'investigation' as const, label: t('admin.tabs.investigation'), icon: '🕵️' },
+    { key: 'management' as const, label: t('admin.tabs.management'), icon: '⚙️' }
   ];
 
   // Обработчики
@@ -56,8 +58,8 @@ const AdminPage: React.FC = () => {
   // Состояние ошибки или отсутствие прав
   if (error || !isAdmin) {
     return (
-      <ErrorScreen 
-        error={error || 'Доступ запрещен'} 
+      <ErrorScreen
+        error={error || t('admin.access_denied')}
         onBackClick={handleBackClick}
       />
     );
@@ -158,7 +160,7 @@ const AdminPage: React.FC = () => {
             backdropFilter: 'blur(10px)'
           }}
         >
-          ← Вернуться в игру
+          {t('admin.back_to_game')}
         </button>
       </div>
 

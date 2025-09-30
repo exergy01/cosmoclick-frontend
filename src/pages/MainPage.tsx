@@ -686,31 +686,6 @@ const MainPage: React.FC = () => {
       
         <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
 
-        {/* 👑 НЕБОЛЬШОЙ ПРЕМИУМ ИНДИКАТОР */}
-        {premiumStatus?.hasPremium && (
-          <div style={{
-            position: 'fixed',
-            top: '75px',
-            right: '15px',
-            background: 'rgba(255, 215, 0, 0.8)',
-            color: '#000',
-            padding: '4px 8px',
-            borderRadius: '8px',
-            fontSize: '0.7rem',
-            fontWeight: 'bold',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px'
-          }}>
-            👑
-            {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
-              <span style={{ fontSize: '0.6rem' }}>
-                {premiumStatus.daysLeft}д
-              </span>
-            )}
-          </div>
-        )}
 
         <div style={{ marginTop: '100px', flex: 1 }}>
           
@@ -858,7 +833,7 @@ const MainPage: React.FC = () => {
                   e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
                 }}
               >
-                🔧 Админ панель
+                {t('admin.admin_panel')}
               </button>
             </div>
           )}

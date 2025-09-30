@@ -17,6 +17,8 @@ export interface Player {
   verified: boolean;
   ad_views: number;
   last_ad_reset: string | null;
+  premium_no_ads_until?: string | null;
+  premium_no_ads_forever?: boolean;
 }
 
 export interface Exchange {

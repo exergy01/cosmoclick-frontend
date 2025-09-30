@@ -678,5 +678,43 @@
   "shop_cargo_4_2": "Research module",
   "shop_cargo_4_3": "Science station",
   "shop_cargo_4_4": "Experimental center",
-  "shop_cargo_4_5": "Knowledge institute"
+  "shop_cargo_4_5": "Knowledge institute",
+
+  "daily_welcome": {
+    "title": "🎁 Daily Reward",
+    "welcome_message": "Welcome! Claim your day {{day}} reward",
+    "day_label": "Day {{day}}",
+    "day_7_special": "Day 7 - Big Reward!",
+    "claiming": "⏳ Claiming...",
+    "claim_button": "🎁 Claim {{amount}} CCC",
+    "claimed_success": "✅ Reward claimed! See you tomorrow!",
+    "daily_reminder": "Come back every day to keep your streak!"
+  },
+
+  "admin": {
+    "tabs": {
+      "stats": "Statistics",
+      "players": "Players",
+      "quests": "Quests",
+      "finance": "Finance",
+      "investigation": "Investigation",
+      "management": "Management"
+    },
+    "access_denied": "Access denied",
+    "back_to_game": "← Back to game",
+    "admin_panel": "🔧 Admin Panel"
+  },
+
+  "quest_errors": {
+    "player_not_found": "Error: player not found",
+    "server_error": "Server error",
+    "reward_error": "Error getting reward",
+    "ad_skipped": "Ad was skipped or an error occurred",
+    "ad_unavailable": "Ad unavailable",
+    "link_click_error": "Error registering click",
+    "click_processing_error": "Error processing click",
+    "completion_unknown_error": "Unknown error while completing quest",
+    "completion_error": "Error completing quest",
+    "timer_wait_message": "Please wait a bit more before claiming reward"
+  }
 }

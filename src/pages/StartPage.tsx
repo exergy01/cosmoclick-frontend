@@ -251,8 +251,8 @@ const StartPage: React.FC = () => {
             fontSize: '14px',
           }}>
             {dataLoaded ?
-              t('loading_complete') || 'Готово!' :
-              t('loading') || 'Загрузка...'
+              t('loading_complete') :
+              t('loading')
             } {Math.round(Math.min(progress, 100))}%
           </p>
         </div>
@@ -293,7 +293,7 @@ const StartPage: React.FC = () => {
                 fontSize: '20px',
                 margin: '0 0 15px 0',
               }}>
-                🚀 {t('welcome_to_cosmoclick') || 'Добро пожаловать в CosmoClick!'}
+                🚀 {t('welcome_to_cosmoclick')}
               </h2>
 
               <div style={{ 
@@ -303,7 +303,7 @@ const StartPage: React.FC = () => {
                 marginBottom: '20px' 
               }}>
                 <p style={{ marginBottom: '12px' }}>
-                  🌟 <strong>{t('game_description') || 'CosmoClick - это космическая игра-кликер, где вы:'}</strong>
+                  🌟 <strong>{t('game_description')}</strong>
                 </p>
 
                 <ul style={{ 
@@ -365,7 +365,7 @@ const StartPage: React.FC = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                🚀 {t('start_game') || 'Начать игру!'}
+                🚀 {t('start_game')}
               </button>
             </div>
           </div>

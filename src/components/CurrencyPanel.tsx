@@ -51,6 +51,36 @@ const CurrencyPanel: React.FC<CurrencyPanelProps> = ({ player, currentSystem, co
   const cccPerHour = cccSpeedPerSecond * 3600;
   const csPerHour = csSpeedPerSecond * 3600;
 
+  // 👑 Проверяем премиум статус игрока
+  const premiumStatus = useMemo(() => {
+    if (!player) return { hasPremium: false };
+
+    // Проверяем постоянный премиум
+    if (player.premium_no_ads_forever) {
+      return {
+        hasPremium: true,
+        type: 'forever'
+      };
+    }
+
+    // Проверяем временный премиум
+    if (player.premium_no_ads_until) {
+      const now = new Date();
+      const premiumUntil = new Date(player.premium_no_ads_until);
+
+      if (premiumUntil > now) {
+        const daysLeft = Math.ceil((premiumUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          hasPremium: true,
+          type: 'temporary',
+          daysLeft: daysLeft
+        };
+      }
+    }
+
+    return { hasPremium: false };
+  }, [player?.premium_no_ads_forever, player?.premium_no_ads_until]);
+
   return (
     <div style={{ 
       width: '93%', 
@@ -74,7 +104,33 @@ const CurrencyPanel: React.FC<CurrencyPanelProps> = ({ player, currentSystem, co
           📈 <strong>CS {t('per_hour')}: {csPerHour.toFixed(2)} </strong>
         </p>
       </div>
-      <div style={{ textAlign: 'right' }}>
+      <div style={{ textAlign: 'right', position: 'relative' }}>
+        {/* 👑 КОРОНА VIP СТАТУСА */}
+        {premiumStatus?.hasPremium && (
+          <div style={{
+            position: 'absolute',
+            top: '-5px',
+            right: '-5px',
+            fontSize: '1.2rem',
+            textShadow: '0 0 10px #FFD700',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2px',
+            zIndex: 10
+          }}>
+            👑
+            {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
+              <span style={{
+                fontSize: '0.6rem',
+                color: '#FFD700',
+                fontWeight: 'bold'
+              }}>
+                {premiumStatus.daysLeft}д
+              </span>
+            )}
+          </div>
+        )}
+
         {/* 🎨 СИММЕТРИЧНО: один <p> с <br/> как слева */}
         <p style={{ fontSize: '1rem' }}>
           ✨ CS: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}<br/>
