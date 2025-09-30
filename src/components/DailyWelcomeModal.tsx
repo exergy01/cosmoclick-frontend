@@ -60,11 +60,14 @@ const triggerHapticFeedback = () => {
     console.log('📳 Попытка вибрации...');
     console.log('📳 window.Telegram:', !!window.Telegram);
     console.log('📳 WebApp:', !!window.Telegram?.WebApp);
-    console.log('📳 HapticFeedback:', !!window.Telegram?.WebApp?.HapticFeedback);
+
+    // Используем type assertion для обхода TypeScript проблемы
+    const telegramWebApp = window.Telegram?.WebApp as any;
+    console.log('📳 HapticFeedback:', !!telegramWebApp?.HapticFeedback);
 
     // Telegram WebApp API для вибрации
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    if (telegramWebApp?.HapticFeedback) {
+      telegramWebApp.HapticFeedback.impactOccurred('medium');
       console.log('📳 Вибрация через Telegram WebApp');
       return;
     }
