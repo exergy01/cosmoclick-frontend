@@ -50,12 +50,13 @@ export interface ShopItem {
 }
 
 interface TelegramWebApp {
-  initDataUnsafe: {
+  initDataUnsafe?: {
     user?: {
       id?: number;
       language_code?: string;
     };
   };
+  ready?: () => void;
   HapticFeedback?: {
     impactOccurred: (style: 'light' | 'medium' | 'heavy') => void;
     notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
