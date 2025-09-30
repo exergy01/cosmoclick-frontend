@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 
-// Функция для создания звука успеха
+// Функция для создания звука звона монетки
 const playSuccessSound = async () => {
   try {
     // Проверяем поддержку AudioContext
@@ -20,41 +20,46 @@ const playSuccessSound = async () => {
       await audioContext.resume();
     }
 
-    // Создаем приятный звук монетки/успеха
-    const duration = 0.3; // 300ms
-    const oscillator1 = audioContext.createOscillator();
-    const oscillator2 = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    // 🪙 ЗВОН МОНЕТКИ: несколько быстрых звонков с разными частотами
+    const coinSounds = [
+      { freq: 800, time: 0 },       // Первый звон
+      { freq: 1000, time: 0.08 },   // Второй звон
+      { freq: 1200, time: 0.16 },   // Третий звон
+      { freq: 900, time: 0.24 }     // Финальный звон
+    ];
 
-    // Частоты для приятного звука
-    oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-    oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+    coinSounds.forEach(({ freq, time }) => {
+      // Создаем отдельный осциллятор для каждого звона
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
 
-    oscillator1.type = 'sine';
-    oscillator2.type = 'sine';
+      // Настройки для звона монетки
+      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + time);
+      oscillator.type = 'sine';
 
-    // Настройка громкости с плавным затуханием
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Уменьшил громкость
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+      // Быстрое затухание для эффекта "звона"
+      const startTime = audioContext.currentTime + time;
+      const duration = 0.15;
 
-    // Подключение узлов
-    oscillator1.connect(gainNode);
-    oscillator2.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+      gainNode.gain.setValueAtTime(0.2, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
 
-    // Воспроизведение
-    oscillator1.start(audioContext.currentTime);
-    oscillator2.start(audioContext.currentTime);
-    oscillator1.stop(audioContext.currentTime + duration);
-    oscillator2.stop(audioContext.currentTime + duration);
+      // Подключение
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
-    console.log('🔊 Звук успеха воспроизведен');
+      // Воспроизведение
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    });
+
+    console.log('🪙 Звон монетки воспроизведен');
   } catch (error) {
     console.log('🔇 Звук недоступен:', error);
   }
 };
 
-// Функция для вибрации через Telegram WebApp
+// Функция для сильной вибрации через Telegram WebApp
 const triggerHapticFeedback = () => {
   try {
     console.log('📳 Попытка вибрации...');
@@ -67,15 +72,24 @@ const triggerHapticFeedback = () => {
 
     // Telegram WebApp API для вибрации
     if (telegramWebApp?.HapticFeedback) {
-      telegramWebApp.HapticFeedback.impactOccurred('medium');
-      console.log('📳 Вибрация через Telegram WebApp');
+      // 💪 УСИЛЕННАЯ ВИБРАЦИЯ: используем 'heavy' вместо 'medium'
+      telegramWebApp.HapticFeedback.impactOccurred('heavy');
+      console.log('📳 Сильная вибрация через Telegram WebApp');
+
+      // 🎉 ДОПОЛНИТЕЛЬНАЯ НОТИФИКАЦИЯ УСПЕХА
+      setTimeout(() => {
+        telegramWebApp.HapticFeedback.notificationOccurred('success');
+        console.log('📳 Нотификация успеха');
+      }, 150);
+
       return;
     }
 
-    // Резервный вариант для обычных браузеров
+    // Резервный вариант для обычных браузеров - более мощная вибрация
     if ('vibrate' in navigator) {
-      const vibrated = navigator.vibrate([100, 50, 100]); // Двойная вибрация
-      console.log('📳 Вибрация через Navigator API:', vibrated);
+      // 💥 МОЩНАЯ ВИБРАЦИЯ: длинные импульсы с паузами
+      const vibrated = navigator.vibrate([200, 100, 200, 100, 300]);
+      console.log('📳 Мощная вибрация через Navigator API:', vibrated);
       return;
     }
 
