@@ -8,13 +8,19 @@ import NavigationMenu from '../components/NavigationMenu';
 
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+  : 'http://localhost:5002';
 
 const AlphabetPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { player, currentSystem, setPlayer, refreshPlayer } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Состояние звука (получаем из localStorage)
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('cosmoclick_sound_enabled');
+    return saved !== 'false'; // По умолчанию звук включен
+  });
 
   const changeLanguage = async (lng: string) => {
     try {
@@ -42,6 +48,12 @@ const AlphabetPage: React.FC = () => {
     } catch (err) {
       console.error('AlphabetPage: Failed to set color:', err);
     }
+  };
+
+  const toggleSound = () => {
+    const newSoundState = !soundEnabled;
+    setSoundEnabled(newSoundState);
+    localStorage.setItem('cosmoclick_sound_enabled', newSoundState.toString());
   };
 
   const colorStyle = player?.color || '#00f0ff';
@@ -88,7 +100,13 @@ const AlphabetPage: React.FC = () => {
             boxShadow: `0 0 20px ${colorStyle}30`
           }}>
             <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>{t('language')}</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: '10px',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}>
               {[
                 { code: 'en', name: t('en'), flag: '🇺🇸' },
                 { code: 'ru', name: t('ru'), flag: '🇷🇺' },
@@ -143,7 +161,13 @@ const AlphabetPage: React.FC = () => {
             boxShadow: `0 0 20px ${colorStyle}30`
           }}>
             <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>{t('theme_color')}</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '10px',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}>
               {[
                 { color: '#00f0ff', name: t('cyber_blue') },
                 { color: '#bf00ff', name: t('neon_purple') },
@@ -187,12 +211,67 @@ const AlphabetPage: React.FC = () => {
               ))}
             </div>
           </div>
-          
-          <div style={{ 
-            margin: '20px 0', 
-            padding: '20px', 
-            background: 'rgba(0, 0, 0, 0.3)', 
-            border: `1px solid ${colorStyle}`, 
+
+          <div style={{
+            margin: '20px 0',
+            padding: '20px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: `1px solid ${colorStyle}`,
+            borderRadius: '15px',
+            boxShadow: `0 0 20px ${colorStyle}30`
+          }}>
+            <h3 style={{ color: colorStyle, marginBottom: '15px', fontSize: '1.5rem' }}>🔊 Настройки звука</h3>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '15px'
+            }}>
+              <span style={{ color: '#ccc', fontSize: '1.1rem' }}>
+                {soundEnabled ? '🔊 Звук включен' : '🔇 Звук выключен'}
+              </span>
+              <button
+                onClick={toggleSound}
+                style={{
+                  padding: '12px 24px',
+                  background: soundEnabled ?
+                    `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)` :
+                    'rgba(255, 0, 0, 0.3)',
+                  boxShadow: soundEnabled ?
+                    `0 0 25px ${colorStyle}, inset 0 0 15px ${colorStyle}30` :
+                    '0 0 25px #ff0000, inset 0 0 15px rgba(255, 0, 0, 0.3)',
+                  color: '#fff',
+                  border: soundEnabled ? `2px solid ${colorStyle}` : '2px solid #ff0000',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  textShadow: soundEnabled ? `0 0 10px ${colorStyle}` : '0 0 10px #ff0000'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = soundEnabled ?
+                    `0 0 30px ${colorStyle}` :
+                    '0 0 30px #ff0000';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = soundEnabled ?
+                    `0 0 25px ${colorStyle}, inset 0 0 15px ${colorStyle}30` :
+                    '0 0 25px #ff0000, inset 0 0 15px rgba(255, 0, 0, 0.3)';
+                }}
+              >
+                {soundEnabled ? '🔊 Выключить звук' : '🔇 Включить звук'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{
+            margin: '20px 0',
+            padding: '20px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: `1px solid ${colorStyle}`,
             borderRadius: '15px',
             boxShadow: `0 0 20px ${colorStyle}30`
           }}>

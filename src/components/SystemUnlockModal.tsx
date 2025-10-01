@@ -126,7 +126,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
     setLoading(true);
     
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
 
       console.log('🔥 Запрос расчета планов для суммы:', customAmount);
       console.log('🔥 API URL:', `${API_URL}/api/ton/calculate/${customAmount}`);
@@ -184,7 +184,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         planType 
       });
       
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
         
       console.log('🔥 ОТПРАВЛЯЕМ ЗАПРОС НА:', `${API_URL}/api/ton/stake`);
       

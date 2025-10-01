@@ -7,7 +7,7 @@ import NavigationMenu from '../components/NavigationMenu';
 
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+  : 'http://localhost:5002';
 
 const ReferralsPage: React.FC = () => {
   const { t } = useTranslation();

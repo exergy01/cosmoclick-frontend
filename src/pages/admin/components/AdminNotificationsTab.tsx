@@ -4,7 +4,7 @@ import axios from 'axios';
 
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+  : 'http://localhost:5002';
 
 interface AdminNotificationsTabProps {
   colorStyle: string;

@@ -9,7 +9,7 @@ import {
 
 const API_BASE = process.env.NODE_ENV === 'production' 
   ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5000';
+  : 'http://localhost:5002';
 
 class GalacticSlotsApiService {
   // ИСПРАВЛЕНО: Правильный роут

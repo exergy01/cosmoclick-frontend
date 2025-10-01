@@ -8,12 +8,18 @@ import NavigationMenu from '../components/NavigationMenu';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+// Отладочные Telegram ID
+const DEBUG_TELEGRAM_IDS = [2097930691, 850758749, 1222791281, 123456789];
+
 const AttackPage: React.FC = () => {
   const { t } = useTranslation();
   const { player, currentSystem } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
   const [totalPerHour, setTotalPerHour] = useState({ totalCccPerHour: 0, totalCsPerHour: 0 });
+
+  // Проверяем является ли пользователь отладочным
+  const isDebugUser = player?.telegram_id && DEBUG_TELEGRAM_IDS.includes(Number(player.telegram_id));
 
   // 💡 НОВЫЙ КОД: Состояние для отслеживания кликов
   const [clickCount, setClickCount] = useState(0);
@@ -102,17 +108,46 @@ const AttackPage: React.FC = () => {
         boxSizing: 'border-box',
       }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', width: '100%' }}>
-          <h2 style={{ 
-            color: colorStyle, 
-            textShadow: `0 0 10px ${colorStyle}`, 
-            fontSize: '2rem', 
+          <h2 style={{
+            color: colorStyle,
+            textShadow: `0 0 10px ${colorStyle}`,
+            fontSize: '2rem',
             marginBottom: '30px',
             textAlign: 'center',
             fontWeight: 'bold',
           }}>
             ⚔️ {t('attack_page.attack')}
           </h2>
-          
+
+          {isDebugUser && (
+            <button
+              onClick={() => navigate('/games/cosmic-fleet')}
+              style={{
+                background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}80)`,
+                border: `2px solid ${colorStyle}`,
+                borderRadius: '15px',
+                padding: '20px 40px',
+                color: '#fff',
+                fontSize: '1.3rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: `0 5px 20px ${colorStyle}60`,
+                transition: 'all 0.3s ease',
+                marginBottom: '30px',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = `0 8px 30px ${colorStyle}80`;
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = `0 5px 20px ${colorStyle}60`;
+              }}
+            >
+              🚀 Cosmic Fleet Commander
+            </button>
+          )}
+
           <div style={{
             background: 'rgba(0, 0, 0, 0.7)',
             backdropFilter: 'blur(10px)',
