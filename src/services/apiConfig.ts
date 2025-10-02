@@ -1,7 +1,7 @@
 // Базовая конфигурация для всех API запросов
 import axios from 'axios';
 
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+export const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 // Утилита для повторных запросов
 export const fetchWithRetry = async (
