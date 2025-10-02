@@ -121,6 +121,19 @@ class CosmicFleetApi {
     return response.data;
   }
 
+  async battleBot(telegramId: number, difficulty: string = 'medium', adaptive: boolean = true): Promise<any> {
+    const response = await axios.post(
+      `${API_URL}/api/cosmic-fleet/battles/bot`,
+      {
+        telegramId,
+        difficulty,
+        adaptive
+      },
+      { headers: this.getAuthHeaders(telegramId) }
+    );
+    return response.data;
+  }
+
   async getLuminiosBalance(telegramId: number): Promise<number> {
     const response = await axios.get(
       `${API_URL}/api/luminios/balance/${telegramId}`,
@@ -140,6 +153,29 @@ class CosmicFleetApi {
   async getLeaderboard(): Promise<CosmicFleetPlayer[]> {
     const response = await axios.get(`${API_URL}/api/cosmic-fleet/leaderboard`);
     return response.data;
+  }
+
+  async getFormation(telegramId: number): Promise<{ ships: Ship[]; maxSlots: number }> {
+    const response = await axios.get(
+      `${API_URL}/api/cosmic-fleet/formation/${telegramId}`,
+      { headers: this.getAuthHeaders(telegramId) }
+    );
+    return {
+      ships: response.data.ships || [],
+      maxSlots: response.data.max_slots || 5
+    };
+  }
+
+  async setFormation(telegramId: number, shipIds: (string | null)[]): Promise<boolean> {
+    const response = await axios.post(
+      `${API_URL}/api/cosmic-fleet/formation/set`,
+      {
+        telegramId,
+        shipIds
+      },
+      { headers: this.getAuthHeaders(telegramId) }
+    );
+    return response.data.success;
   }
 }
 

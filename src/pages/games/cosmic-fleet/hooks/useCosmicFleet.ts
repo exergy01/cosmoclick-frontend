@@ -11,6 +11,7 @@ interface UseCosmicFleetProps {
 interface UseCosmicFleetReturn {
   player: CosmicFleetPlayer | null;
   fleet: Ship[];
+  formation: Ship[];  // 🔥 НОВОЕ: корабли в formation
   luminiosBalance: number;
   csBalance: number;
   loading: boolean;
@@ -21,7 +22,9 @@ interface UseCosmicFleetReturn {
   purchaseShip: (template: ShipTemplate) => Promise<boolean>;
   repairShip: (shipId: string) => Promise<boolean>;
   battlePvE: (shipId: string) => Promise<BattleResult | null>;
+  battleBot: (difficulty?: string, adaptive?: boolean) => Promise<any>;  // 🔥 НОВОЕ: адаптивный бой с ботом
   refreshData: () => Promise<void>;
+  setFormation: (shipIds: (string | null)[]) => Promise<boolean>;  // 🔥 НОВОЕ
 }
 
 export const useCosmicFleet = ({
@@ -30,6 +33,7 @@ export const useCosmicFleet = ({
 }: UseCosmicFleetProps): UseCosmicFleetReturn => {
   const [player, setPlayer] = useState<CosmicFleetPlayer | null>(null);
   const [fleet, setFleet] = useState<Ship[]>([]);
+  const [formation, setFormation] = useState<Ship[]>([]);  // 🔥 НОВОЕ
   const [luminiosBalance, setLuminiosBalance] = useState(0);
   const [csBalance, setCsBalance] = useState(initialCsBalance);
   const [loading, setLoading] = useState(true);
@@ -38,15 +42,17 @@ export const useCosmicFleet = ({
   const loadPlayerData = useCallback(async () => {
     try {
       setError(null);
-      const [playerData, fleetData, luminiosData] = await Promise.all([
+      const [playerData, fleetData, luminiosData, formationData] = await Promise.all([
         cosmicFleetApi.getPlayer(telegramId),
         cosmicFleetApi.getFleet(telegramId),
-        cosmicFleetApi.getLuminiosBalance(telegramId)
+        cosmicFleetApi.getLuminiosBalance(telegramId),
+        cosmicFleetApi.getFormation(telegramId)  // 🔥 НОВОЕ: загрузка formation
       ]);
 
       setPlayer(playerData);
       setFleet(fleetData);
       setLuminiosBalance(luminiosData);
+      setFormation(formationData.ships);  // 🔥 НОВОЕ
     } catch (err: any) {
       console.error('Failed to load cosmic fleet data:', err);
       setError(err.message || 'Ошибка загрузки данных');
@@ -143,6 +149,58 @@ export const useCosmicFleet = ({
     }
   }, [telegramId, player]);
 
+  const updateFormation = useCallback(async (shipIds: (string | null)[]): Promise<boolean> => {
+    try {
+      const success = await cosmicFleetApi.setFormation(telegramId, shipIds);
+      if (success) {
+        // Перезагружаем formation
+        const formationData = await cosmicFleetApi.getFormation(telegramId);
+        setFormation(formationData.ships);
+      }
+      return success;
+    } catch (err: any) {
+      console.error('Set formation failed:', err);
+      setError(err.message || 'Ошибка обновления formation');
+      return false;
+    }
+  }, [telegramId]);
+
+  const battleBotAdaptive = useCallback(async (difficulty: string = 'medium', adaptive: boolean = true): Promise<any> => {
+    try {
+      const response = await cosmicFleetApi.battleBot(telegramId, difficulty, adaptive);
+
+      if (response.success) {
+        // Обновляем HP кораблей после боя
+        const updatedFleet = fleet.map(ship => {
+          const battleShip = response.playerFleet.find((s: any) => s.id === ship.id);
+          return battleShip ? { ...ship, health: battleShip.hp } : ship;
+        });
+        setFleet(updatedFleet);
+
+        // Обновляем баланс Luminios
+        if (response.reward_luminios > 0) {
+          setLuminiosBalance(prev => prev + response.reward_luminios);
+        }
+
+        // Обновляем статистику
+        if (player) {
+          setPlayer(prev => prev ? {
+            ...prev,
+            wins: prev.wins + (response.result === 'win' ? 1 : 0),
+            losses: prev.losses + (response.result === 'loss' ? 1 : 0)
+          } : prev);
+        }
+
+        return response;
+      }
+      return null;
+    } catch (err: any) {
+      console.error('Battle with bot failed:', err);
+      setError(err.message || 'Ошибка боя с ботом');
+      return null;
+    }
+  }, [telegramId, fleet, player]);
+
   useEffect(() => {
     if (telegramId) {
       loadPlayerData();
@@ -157,6 +215,7 @@ export const useCosmicFleet = ({
   return {
     player,
     fleet,
+    formation,  // 🔥 НОВОЕ: корабли в formation
     luminiosBalance,
     csBalance,
     loading,
@@ -165,6 +224,8 @@ export const useCosmicFleet = ({
     purchaseShip,
     repairShip,
     battlePvE,
-    refreshData
+    battleBot: battleBotAdaptive,  // 🔥 НОВОЕ: адаптивный бой с ботом
+    refreshData,
+    setFormation: updateFormation  // 🔥 НОВОЕ: установка formation
   };
 };

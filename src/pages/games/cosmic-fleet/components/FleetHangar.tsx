@@ -6,13 +6,17 @@ interface FleetHangarProps {
   onSelectShip: (ship: Ship) => void;
   selectedShipId?: string;
   onRepairShip?: (shipId: string) => Promise<boolean>;
+  onAddToFormation?: (shipId: string) => void;
+  formationShipIds?: string[];
 }
 
 const FleetHangar: React.FC<FleetHangarProps> = ({
   ships,
   onSelectShip,
   selectedShipId,
-  onRepairShip
+  onRepairShip,
+  onAddToFormation,
+  formationShipIds = []
 }) => {
   const [repairingShips, setRepairingShips] = useState<Set<string>>(new Set());
 
@@ -110,6 +114,7 @@ const FleetHangar: React.FC<FleetHangarProps> = ({
           const isSelected = ship.id === selectedShipId;
           const isRepairing = repairingShips.has(ship.id);
           const needsRepair = ship.health < ship.maxHealth;
+          const isInFormation = formationShipIds.includes(ship.id);
 
           return (
             <div
@@ -230,33 +235,78 @@ const FleetHangar: React.FC<FleetHangarProps> = ({
                 </div>
               </div>
 
-              {/* Кнопка ремонта */}
-              {needsRepair && onRepairShip && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRepair(ship);
-                  }}
-                  disabled={isRepairing}
-                  style={{
-                    width: '100%',
-                    background: isRepairing
-                      ? 'rgba(255, 170, 0, 0.3)'
-                      : 'linear-gradient(135deg, #ffaa00, #ff8800)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '10px',
-                    color: '#fff',
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    cursor: isRepairing ? 'wait' : 'pointer',
-                    transition: 'all 0.3s ease',
-                    transform: isRepairing ? 'scale(0.95)' : 'scale(1)'
-                  }}
-                >
-                  {isRepairing ? '🔧 Ремонтируем...' : '🔧 Ремонт'}
-                </button>
-              )}
+              {/* Кнопки действий */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {/* Кнопка ремонта */}
+                {needsRepair && onRepairShip && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRepair(ship);
+                    }}
+                    disabled={isRepairing}
+                    style={{
+                      flex: 1,
+                      background: isRepairing
+                        ? 'rgba(255, 170, 0, 0.3)'
+                        : 'linear-gradient(135deg, #ffaa00, #ff8800)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      color: '#fff',
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
+                      cursor: isRepairing ? 'wait' : 'pointer',
+                      transition: 'all 0.3s ease',
+                      transform: isRepairing ? 'scale(0.95)' : 'scale(1)'
+                    }}
+                  >
+                    {isRepairing ? '🔧 Ремонтируем...' : '🔧 Ремонт'}
+                  </button>
+                )}
+
+                {/* Кнопка добавить в формацию */}
+                {onAddToFormation && (
+                  isInFormation ? (
+                    <div style={{
+                      flex: needsRepair ? 1 : 'auto',
+                      width: needsRepair ? 'auto' : '100%',
+                      background: 'rgba(0, 240, 255, 0.2)',
+                      border: '1px solid #00f0ff',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      color: '#00f0ff',
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
+                      textAlign: 'center'
+                    }}>
+                      ✓ В формации
+                    </div>
+                  ) : formationShipIds.length < 5 ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToFormation(ship.id);
+                      }}
+                      style={{
+                        flex: needsRepair ? 1 : 'auto',
+                        width: needsRepair ? 'auto' : '100%',
+                        background: 'linear-gradient(135deg, #00f0ff, #0088ff)',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '10px',
+                        color: '#fff',
+                        fontSize: '0.9rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      + В формацию
+                    </button>
+                  ) : null
+                )}
+              </div>
             </div>
           );
         })}

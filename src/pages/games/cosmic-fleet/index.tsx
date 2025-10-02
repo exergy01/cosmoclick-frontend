@@ -5,6 +5,7 @@ import LuminiosWallet from './components/LuminiosWallet';
 import FleetHangar from './components/FleetHangar';
 import ShipShop from './components/ShipShop';
 import BattleScreen from './components/BattleScreen';
+import BattleRewards from './components/BattleRewards';
 import { useCosmicFleet } from './hooks/useCosmicFleet';
 import { Ship } from './types/ships';
 
@@ -15,6 +16,8 @@ const CosmicFleetGame: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('hangar');
   const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
   const [showBattle, setShowBattle] = useState(false);
+  const [battleResult, setBattleResult] = useState<any>(null);
+  const [showRewards, setShowRewards] = useState(false);
 
   const cosmicFleet = useCosmicFleet({
     telegramId: player?.telegram_id || 0,
@@ -23,6 +26,7 @@ const CosmicFleetGame: React.FC = () => {
 
   const {
     fleet,
+    formation,  // 🔥 НОВОЕ: корабли в formation
     luminiosBalance,
     csBalance,
     loading,
@@ -30,22 +34,74 @@ const CosmicFleetGame: React.FC = () => {
     exchangeCSToLuminios,
     purchaseShip,
     repairShip,
-    battlePvE
+    battlePvE,
+    battleBot,  // 🔥 НОВОЕ: адаптивный бой с ботом
+    setFormation  // 🔥 НОВОЕ: управление формацией
   } = cosmicFleet;
 
   const handleSelectShip = (ship: Ship) => {
     setSelectedShip(ship);
   };
 
-  const handleStartBattle = () => {
-    if (selectedShip && selectedShip.health > 0) {
-      setShowBattle(true);
+  const handleStartBattle = async () => {
+    if (formation.length === 0) {
+      alert('⚠️ Нужно сформировать флот перед боем!');
+      return;
+    }
+
+    // Проверка что хотя бы один корабль жив
+    const aliveShips = formation.filter(ship => ship.health > 0);
+    if (aliveShips.length === 0) {
+      alert('⚠️ Все корабли повреждены! Требуется ремонт.');
+      return;
+    }
+
+    setShowBattle(true);
+
+    // Небольшая задержка для показа анимации боя
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Запускаем адаптивный бой
+    const result = await battleBot('medium', true);
+
+    if (result) {
+      console.log('🎯 Результат боя:', result);
+      setBattleResult(result);
+      setShowBattle(false);
+      setShowRewards(true);
     }
   };
 
   const handleBattleComplete = async (result: any) => {
     setShowBattle(false);
     // Данные уже обновлены в хуке useCosmicFleet
+  };
+
+  const handleCloseRewards = () => {
+    setShowRewards(false);
+    setBattleResult(null);
+  };
+
+  const handleRetryBattle = () => {
+    setShowRewards(false);
+    setBattleResult(null);
+    handleStartBattle();
+  };
+
+  const handleAddToFormation = async (shipId: string) => {
+    // Получаем текущие ID кораблей в formation
+    const currentFormationIds = formation.map(s => s.id);
+
+    // Если корабль уже в formation, удаляем
+    if (currentFormationIds.includes(shipId)) {
+      const newFormationIds = currentFormationIds.filter(id => id !== shipId);
+      await setFormation(newFormationIds);
+    } else {
+      // Добавляем корабль
+      if (currentFormationIds.length < 5) {
+        await setFormation([...currentFormationIds, shipId]);
+      }
+    }
   };
 
   if (loading) {
@@ -169,8 +225,8 @@ const CosmicFleetGame: React.FC = () => {
             ))}
           </div>
 
-          {/* Кнопки действий (если корабль выбран) */}
-          {selectedShip && activeTab === 'hangar' && (
+          {/* Кнопка боя (всегда видна в ангаре) */}
+          {activeTab === 'hangar' && (
             <div style={{
               display: 'flex',
               justifyContent: 'center',
@@ -185,18 +241,18 @@ const CosmicFleetGame: React.FC = () => {
                 textAlign: 'center'
               }}>
                 <div style={{ color: '#00f0ff', fontSize: '0.9rem', marginBottom: '5px' }}>
-                  Выбран корабль
+                  Флот готов к бою
                 </div>
                 <div style={{ color: '#fff', fontWeight: 'bold' }}>
-                  {selectedShip.name}
+                  {formation.length} {formation.length === 1 ? 'корабль' : 'кораблей'}
                 </div>
               </div>
 
               <button
                 onClick={handleStartBattle}
-                disabled={selectedShip.health <= 0}
+                disabled={formation.length === 0 || formation.filter(s => s.health > 0).length === 0}
                 style={{
-                  background: selectedShip.health > 0
+                  background: (formation.length > 0 && formation.filter(s => s.health > 0).length > 0)
                     ? 'linear-gradient(135deg, #ff4444, #cc0000)'
                     : 'rgba(255, 68, 68, 0.3)',
                   border: 'none',
@@ -205,14 +261,14 @@ const CosmicFleetGame: React.FC = () => {
                   color: '#fff',
                   fontSize: '1.1rem',
                   fontWeight: 'bold',
-                  cursor: selectedShip.health > 0 ? 'pointer' : 'not-allowed',
-                  boxShadow: selectedShip.health > 0
+                  cursor: (formation.length > 0 && formation.filter(s => s.health > 0).length > 0) ? 'pointer' : 'not-allowed',
+                  boxShadow: (formation.length > 0 && formation.filter(s => s.health > 0).length > 0)
                     ? '0 5px 15px rgba(255, 68, 68, 0.4)'
                     : 'none',
                   transition: 'all 0.3s ease'
                 }}
               >
-                {selectedShip.health > 0 ? '⚔️ В бой!' : '🔧 Требует ремонта'}
+                {formation.length === 0 ? '⚠️ Нет флота' : (formation.filter(s => s.health > 0).length === 0 ? '🔧 Ремонт' : '⚔️ В бой!')}
               </button>
             </div>
           )}
@@ -228,12 +284,70 @@ const CosmicFleetGame: React.FC = () => {
             )}
 
             {activeTab === 'hangar' && (
-              <FleetHangar
-                ships={fleet}
-                onSelectShip={handleSelectShip}
-                selectedShipId={selectedShip?.id}
-                onRepairShip={repairShip}
-              />
+              <>
+                {/* Текущая формация */}
+                {formation.length > 0 && (
+                  <div style={{
+                    background: 'rgba(0, 240, 255, 0.1)',
+                    borderRadius: '20px',
+                    padding: '20px',
+                    border: '2px solid #00f0ff',
+                    marginBottom: '20px'
+                  }}>
+                    <h3 style={{ color: '#00f0ff', marginBottom: '15px' }}>⚔️ Боевая формация ({formation.length}/5)</h3>
+                    <div style={{
+                      display: 'flex',
+                      gap: '10px',
+                      flexWrap: 'wrap'
+                    }}>
+                      {formation.map(ship => (
+                        <div key={ship.id} style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '10px',
+                          padding: '10px 15px',
+                          border: '1px solid #00f0ff',
+                          position: 'relative'
+                        }}>
+                          <button
+                            onClick={() => handleAddToFormation(ship.id)}
+                            style={{
+                              position: 'absolute',
+                              top: '-8px',
+                              right: '-8px',
+                              background: '#ff4444',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '20px',
+                              height: '20px',
+                              color: '#fff',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            ×
+                          </button>
+                          <div style={{ color: '#fff', fontWeight: 'bold' }}>{ship.name}</div>
+                          <div style={{ color: '#aaa', fontSize: '0.8rem' }}>
+                            ❤️ {ship.health}/{ship.maxHealth}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <FleetHangar
+                  ships={fleet}
+                  onSelectShip={handleSelectShip}
+                  selectedShipId={selectedShip?.id}
+                  onRepairShip={repairShip}
+                  onAddToFormation={handleAddToFormation}
+                  formationShipIds={formation.map(s => s.id)}
+                />
+              </>
             )}
 
             {activeTab === 'shop' && (
@@ -377,7 +491,7 @@ const CosmicFleetGame: React.FC = () => {
               ×
             </button>
             <BattleScreen
-              playerFleet={[selectedShip]}
+              playerFleet={formation.length > 0 ? formation : (selectedShip ? [selectedShip] : [])}
               enemyFleet={[
                 {
                   id: 1,
@@ -388,9 +502,20 @@ const CosmicFleetGame: React.FC = () => {
                 }
               ]}
               onBattleEnd={handleBattleComplete}
-              telegramId={player?.telegram_id?.toString() || ''}
             />
           </div>
+        )}
+
+        {/* Модальное окно наград */}
+        {showRewards && battleResult && (
+          <BattleRewards
+            result={battleResult.result}
+            luminiosReward={battleResult.reward_luminios || 0}
+            stats={battleResult.stats}
+            rounds={battleResult.rounds}
+            onClose={handleCloseRewards}
+            onRetry={handleRetryBattle}
+          />
         )}
       </div>
     </AccessControl>
