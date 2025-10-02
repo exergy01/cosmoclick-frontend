@@ -4,7 +4,7 @@ import AccessControl from './components/AccessControl';
 import LuminiosWallet from './components/LuminiosWallet';
 import FleetHangar from './components/FleetHangar';
 import ShipShop from './components/ShipShop';
-import BattleSystemEnhanced from './components/BattleSystemEnhanced';
+import BattleOriginal from './components/BattleOriginal';
 import { useCosmicFleet } from './hooks/useCosmicFleet';
 import { Ship } from './types/ships';
 
@@ -345,7 +345,7 @@ const CosmicFleetGame: React.FC = () => {
 
         {/* Модальное окно боя */}
         {showBattle && selectedShip && (
-          <BattleSystemEnhanced
+          <BattleOriginal
             playerShip={selectedShip}
             onBattleComplete={handleBattleComplete}
             onClose={() => setShowBattle(false)}

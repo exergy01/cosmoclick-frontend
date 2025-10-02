@@ -24,38 +24,46 @@
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(2px 2px at 20% 30%, white, transparent),
-    radial-gradient(2px 2px at 60% 70%, white, transparent),
-    radial-gradient(1px 1px at 50% 50%, white, transparent),
-    radial-gradient(1px 1px at 80% 10%, white, transparent),
-    radial-gradient(2px 2px at 90% 60%, white, transparent),
-    radial-gradient(1px 1px at 33% 80%, white, transparent),
-    radial-gradient(1px 1px at 70% 20%, white, transparent),
-    radial-gradient(2px 2px at 15% 60%, white, transparent),
-    radial-gradient(1px 1px at 45% 85%, white, transparent),
-    radial-gradient(2px 2px at 75% 40%, white, transparent),
-    linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,0.9) 0px, transparent 2px),
+    radial-gradient(circle at 80% 80%, rgba(255,255,255,0.9) 0px, transparent 2px),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0px, transparent 1px),
+    radial-gradient(circle at 90% 10%, rgba(255,255,255,0.9) 0px, transparent 2px),
+    radial-gradient(circle at 30% 60%, rgba(255,255,255,0.7) 0px, transparent 1px),
+    radial-gradient(circle at 70% 30%, rgba(255,255,255,0.9) 0px, transparent 2px),
+    radial-gradient(circle at 40% 90%, rgba(255,255,255,0.8) 0px, transparent 1px),
+    radial-gradient(circle at 15% 45%, rgba(255,255,255,0.9) 0px, transparent 2px),
+    radial-gradient(circle at 60% 15%, rgba(255,255,255,0.7) 0px, transparent 1px),
+    radial-gradient(circle at 85% 55%, rgba(255,255,255,0.9) 0px, transparent 2px),
+    radial-gradient(circle at 25% 75%, rgba(200,200,255,0.6) 0px, transparent 1px),
+    radial-gradient(circle at 95% 25%, rgba(200,200,255,0.6) 0px, transparent 1px),
+    radial-gradient(circle at 45% 40%, rgba(255,200,200,0.5) 0px, transparent 1px),
+    radial-gradient(circle at 55% 70%, rgba(200,255,200,0.5) 0px, transparent 1px),
+    linear-gradient(180deg, #0a0a1a 0%, #000510 50%, #000000 100%);
   background-size:
-    200% 200%,
     250% 250%,
     300% 300%,
-    150% 150%,
-    180% 180%,
-    220% 220%,
-    260% 260%,
-    190% 190%,
+    350% 350%,
+    200% 200%,
+    280% 280%,
+    320% 320%,
+    360% 360%,
     240% 240%,
-    170% 170%,
+    300% 300%,
+    220% 220%,
+    400% 400%,
+    380% 380%,
+    420% 420%,
+    360% 360%,
     100% 100%;
-  animation: starsMove 100s linear infinite;
+  animation: starsMove 200s linear infinite;
 }
 
 @keyframes starsMove {
   0% {
-    background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+    background-position: 0 0;
   }
   100% {
-    background-position: -100px -50px, 80px -60px, -50px 40px, 60px -30px, -80px 50px, 40px -70px, -60px 30px, 70px -40px, -90px 60px, 50px -80px, 0 0;
+    background-position: -1000px -500px;
   }
 }
 
@@ -164,35 +172,100 @@
   font-size: 0.85rem;
 }
 
+/* Визуальные корабли на экране */
+.battle-ships {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.visual-ship {
+  position: absolute;
+  font-size: 8rem;
+  transition: all 0.3s ease;
+  animation: shipFloat 6s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+}
+
+.visual-ship.player {
+  left: 10%;
+  bottom: 30%;
+  transform: rotate(-10deg);
+}
+
+.visual-ship.enemy {
+  right: 10%;
+  top: 20%;
+  transform: rotate(170deg);
+  animation-delay: -3s;
+  filter: drop-shadow(0 0 20px rgba(255, 100, 100, 0.8));
+}
+
+@keyframes shipFloat {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-15px) translateX(8px);
+  }
+  50% {
+    transform: translateY(-5px) translateX(15px);
+  }
+  75% {
+    transform: translateY(-10px) translateX(8px);
+  }
+}
+
+.visual-ship.attacking {
+  animation: shipAttack 0.5s ease-out;
+}
+
+@keyframes shipAttack {
+  0% {
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) translateX(30px) scale(1.2);
+  }
+  100% {
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+}
+
 /* Лазерный луч */
 .laser-beam {
   position: absolute;
-  height: 4px;
+  height: 6px;
   background: linear-gradient(90deg,
     transparent,
-    rgba(255, 0, 0, 0.8),
-    rgba(255, 100, 100, 1),
-    rgba(255, 0, 0, 0.8),
+    rgba(255, 255, 0, 0.3),
+    rgba(255, 255, 0, 1),
+    rgba(255, 150, 0, 1),
+    rgba(255, 255, 0, 0.3),
     transparent
   );
-  box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
-  z-index: 5;
-  animation: laserFire 0.5s linear;
+  box-shadow: 0 0 15px #ffff00, 0 0 30px #ff8800, 0 0 45px #ffff00;
+  z-index: 6;
+  animation: laserFire 0.6s ease-out;
   transform-origin: left center;
 }
 
 .laser-beam.to-enemy {
-  left: 20%;
-  top: 35%;
-  width: 60%;
-  transform: rotate(-5deg);
+  left: 18%;
+  bottom: 38%;
+  width: 65%;
+  transform: rotate(-15deg);
 }
 
 .laser-beam.to-player {
-  left: 80%;
-  top: 35%;
-  width: 60%;
-  transform: rotate(185deg);
+  right: 18%;
+  top: 28%;
+  width: 65%;
+  transform: rotate(-15deg) scaleX(-1);
 }
 
 @keyframes laserFire {
