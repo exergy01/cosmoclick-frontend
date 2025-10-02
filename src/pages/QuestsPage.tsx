@@ -388,10 +388,6 @@ const QuestsPage: React.FC = () => {
                         <div style={{ textAlign: 'left', flex: 1 }}>
                           <h4 style={{ color: colorStyle, marginBottom: '8px', fontSize: '1.1rem' }}>
                             {quest.quest_name}
-                            {/* 🆕 Показываем язык перевода (временно для тестирования) */}
-                            <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '8px' }}>
-                              ({quest.used_language})
-                            </span>
                           </h4>
                           <p style={{ color: '#ccc', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.4' }}>
                             {quest.description}
@@ -399,12 +395,6 @@ const QuestsPage: React.FC = () => {
                           <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
                             🎁 {t('reward')}: {Number(quest.reward_cs).toLocaleString()} CS
                           </p>
-                          {/* 🆕 Показываем ограничения по языкам (временно для тестирования) */}
-                          {quest.target_languages && (
-                            <p style={{ color: '#888', margin: '4px 0 0 0', fontSize: '0.7rem' }}>
-                              Языки: {quest.target_languages.join(', ')}
-                            </p>
-                          )}
                         </div>
                         
                         {/* КНОПКИ УПРАВЛЕНИЯ (логика без изменений) */}
@@ -544,9 +534,6 @@ const QuestsPage: React.FC = () => {
                         <div style={{ textAlign: 'left', flex: 1 }}>
                           <h4 style={{ color: '#ffa500', marginBottom: '8px', fontSize: '1.1rem' }}>
                             {quest.quest_name}
-                            <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '8px' }}>
-                              ({quest.used_language})
-                            </span>
                           </h4>
                           <p style={{ color: '#ccc', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.4' }}>
                             {quest.description}
@@ -739,26 +726,20 @@ const QuestsPage: React.FC = () => {
             }}>
               ℹ️ {t('information') || 'Информация'}
             </h4>
-            <div style={{ 
-              color: '#ccc', 
-              fontSize: '0.9rem', 
+            <div style={{
+              color: '#ccc',
+              fontSize: '0.9rem',
               lineHeight: '1.6',
-              textAlign: 'left' 
+              textAlign: 'left'
             }}>
               <div style={{ marginBottom: '8px' }}>
                 • {t('timer_info') || 'После клика "Перейти" подождите пока появится кнопка "Получить"'}
               </div>
               <div style={{ marginBottom: '8px' }}>
-                • {t('ads_limit_info') || 'Реклама заданий: лимит 5 раз в день (отдельно от игровой рекламы)'}
-              </div>
-              <div style={{ marginBottom: '8px' }}>
-                • {t('server_save_info') || 'Прогресс заданий сохраняется автоматически'}
+                • {t('ads_limit_info') || 'Ежедневные рекламные задания: лимит 5 раз в день (отдельно от игровой рекламы)'}
               </div>
               <div style={{ marginBottom: '8px' }}>
                 • {t('manual_check_info') || 'Задания с ручной проверкой требуют подтверждения администратора'}
-              </div>
-              <div>
-                • 🆕 Мультиязычные задания: автоматический выбор вашего языка
               </div>
             </div>
           </div>
