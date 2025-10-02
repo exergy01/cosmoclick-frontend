@@ -34,7 +34,7 @@ interface BattleScreenProps {
   playerFleet: any[];
   enemyFleet: any[];
   onBattleEnd: (result: { winner: string; rewards: any }) => void;
-  telegramId: string;
+  telegramId?: string;
 }
 
 const BattleScreen: React.FC<BattleScreenProps> = ({ playerFleet, enemyFleet, onBattleEnd, telegramId }) => {
@@ -114,13 +114,14 @@ const BattleScreen: React.FC<BattleScreenProps> = ({ playerFleet, enemyFleet, on
     if (battleState.winner) {
       // Вызываем API для начисления наград
       try {
-        const response = await fetch('http://localhost:5000/api/cosmic-fleet/battles/bot', {
+        const apiUrl = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
+        const response = await fetch(`${apiUrl}/api/cosmic-fleet/battles/bot`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            telegramId: telegramId,
+            telegramId: telegramId || '',
             difficulty: 'easy',
             result: battleState.winner === 'player' ? 'win' : 'loss'
           })
