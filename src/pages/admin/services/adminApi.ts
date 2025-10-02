@@ -12,7 +12,7 @@ import type {
   AdminApiError
 } from '../types';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 // Создаем экземпляр axios с базовой конфигурацией
 const adminApi = axios.create({

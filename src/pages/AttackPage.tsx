@@ -6,7 +6,7 @@ import axios from 'axios';
 import CurrencyPanel from '../components/CurrencyPanel';
 import NavigationMenu from '../components/NavigationMenu';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 // Отладочные Telegram ID
 const DEBUG_TELEGRAM_IDS = [2097930691, 850758749, 1222791281, 123456789];

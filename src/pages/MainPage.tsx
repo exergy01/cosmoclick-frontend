@@ -49,7 +49,7 @@ interface ShopButton {
   amount?: string;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 // MainPage.tsx - ЧАСТЬ 2 из 6 - ИСПРАВЛЕННЫЙ PremiumOfferModal
 
 // 👑 ИСПРАВЛЕННЫЙ КОМПОНЕНТ ПРЕМИУМ ПРЕДЛОЖЕНИЯ

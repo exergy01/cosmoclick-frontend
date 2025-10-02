@@ -4,7 +4,7 @@ import { shopApi } from '../services';
 import { getTelegramId } from '../utils/telegram';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 export const useShopOperations = () => {
   const [loading, setLoading] = useState(false);

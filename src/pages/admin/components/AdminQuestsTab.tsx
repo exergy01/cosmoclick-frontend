@@ -277,7 +277,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
                 
                 const apiUrl = process.env.NODE_ENV === 'production'
                   ? 'https://cosmoclick-backend.onrender.com'
-                  : 'http://localhost:5002';
+                  : 'https://cosmoclick-backend.onrender.com';
                 
                 const response = await fetch(`${apiUrl}/api/admin/check/1222791281`);
                 const data = await response.json();

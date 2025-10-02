@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const apiUrl = process.env.NODE_ENV === 'production'
   ? 'https://cosmoclick-backend.onrender.com'
-  : 'http://localhost:5002';
+  : 'https://cosmoclick-backend.onrender.com';
 
 interface PlayerStats {
   // Основная статистика

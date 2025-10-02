@@ -5,7 +5,7 @@ import { useNewPlayer } from '../context/NewPlayerContext';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 const StartPage: React.FC = () => {
   const { player, loading, error, setError, fetchInitialData, setPlayer } = useNewPlayer();

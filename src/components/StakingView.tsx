@@ -33,7 +33,7 @@ interface StakingViewProps {
   refreshTrigger?: number;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 const StakingView: React.FC<StakingViewProps> = ({ 
   player, 

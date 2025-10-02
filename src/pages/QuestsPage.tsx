@@ -10,7 +10,7 @@ import NavigationMenu from '../components/NavigationMenu';
 import { adService } from '../services/adsgramService';
 import ToastNotification from '../components/ToastNotification'; 
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
 
 interface QuestLinkState {
