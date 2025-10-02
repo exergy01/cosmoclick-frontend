@@ -4,7 +4,7 @@ import AccessControl from './components/AccessControl';
 import LuminiosWallet from './components/LuminiosWallet';
 import FleetHangar from './components/FleetHangar';
 import ShipShop from './components/ShipShop';
-import BattleOriginal from './components/BattleOriginal';
+import BattleScreen from './components/BattleScreen';
 import { useCosmicFleet } from './hooks/useCosmicFleet';
 import { Ship } from './types/ships';
 
@@ -345,11 +345,52 @@ const CosmicFleetGame: React.FC = () => {
 
         {/* Модальное окно боя */}
         {showBattle && selectedShip && (
-          <BattleOriginal
-            playerShip={selectedShip}
-            onBattleComplete={handleBattleComplete}
-            onClose={() => setShowBattle(false)}
-          />
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 9999,
+            background: '#000'
+          }}>
+            <button
+              onClick={() => setShowBattle(false)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: 10000,
+                background: 'rgba(255, 0, 0, 0.7)',
+                border: '2px solid #fff',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                color: '#fff',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ×
+            </button>
+            <BattleScreen
+              playerFleet={[selectedShip]}
+              enemyFleet={[
+                {
+                  id: 1,
+                  name: 'Вражеский корабль',
+                  type: 'cruiser',
+                  health: 100,
+                  maxHealth: 100
+                }
+              ]}
+              onBattleEnd={handleBattleComplete}
+              telegramId={player?.telegram_id?.toString() || ''}
+            />
+          </div>
         )}
       </div>
     </AccessControl>
