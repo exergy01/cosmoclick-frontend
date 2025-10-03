@@ -526,38 +526,267 @@ const GalacticEmpire: React.FC = () => {
         </div>
       </div>
 
-      {/* Заголовок */}
-      <h1 style={{
-        textAlign: 'center',
-        marginBottom: '20px',
-        marginTop: '60px',
-        background: `linear-gradient(135deg, ${raceColor}, #c77dff)`,
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        fontSize: '2rem',
-        fontWeight: 'bold'
-      }}>
-        🌌 Galactic Empire v2.0
-      </h1>
-
       {/* Контент */}
-      <div style={{ padding: '0', marginBottom: '100px' }}>
+      <div style={{ padding: '0', marginBottom: '100px', marginTop: '80px' }}>
+
+        {/* Статистика */}
         <div style={{
-          background: 'rgba(0, 0, 0, 0.3)',
-          border: `2px solid ${raceColor}`,
-          borderRadius: '15px',
-          padding: '20px',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '15px',
+          marginBottom: '25px'
+        }}>
+          {/* Мои корабли */}
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: `2px solid ${raceColor}40`,
+            borderRadius: '12px',
+            padding: '15px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: '5px' }}>
+              {lang === 'ru' ? 'Мои корабли' : 'My Ships'}
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: raceColor }}>
+              0
+            </div>
+          </div>
+
+          {/* Побед / Поражений */}
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.3)',
+            border: `2px solid ${raceColor}40`,
+            borderRadius: '12px',
+            padding: '15px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: '5px' }}>
+              {lang === 'ru' ? 'Побед / Поражений' : 'Wins / Losses'}
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#4ECDC4' }}>
+              0 / 0
+            </div>
+          </div>
+        </div>
+
+        {/* Первая строка: Верфь / Ангар */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '15px',
+          marginBottom: '15px'
+        }}>
+          <button
+            onClick={() => navigate('/games/galactic-empire/shop')}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>🚀</span>
+            <span>{lang === 'ru' ? 'Верфь' : 'Shipyard'}</span>
+          </button>
+
+          <button
+            onClick={() => alert('Hangar coming soon!')}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>🏭</span>
+            <span>{lang === 'ru' ? 'Ангар' : 'Hangar'}</span>
+          </button>
+        </div>
+
+        {/* Вторая строка: Формация / Инвентарь */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '15px',
+          marginBottom: '15px'
+        }}>
+          <button
+            onClick={() => alert('Formation system coming soon!')}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>🎖️</span>
+            <span>{lang === 'ru' ? 'Формация' : 'Formation'}</span>
+          </button>
+
+          <button
+            onClick={() => alert('Inventory coming soon!')}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>🎁</span>
+            <span>{lang === 'ru' ? 'Инвентарь' : 'Inventory'}</span>
+          </button>
+        </div>
+
+        {/* Третья строка: Статистика / Смена расы */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '15px',
           marginBottom: '20px'
         }}>
-          <h2 style={{ color: raceColor, marginBottom: '15px' }}>
-            {lang === 'ru' ? 'Информация о расе' : 'Race Information'}
-          </h2>
-          <p style={{ color: '#ccc', fontSize: '1rem' }}>
-            {lang === 'ru' ? 'Раса' : 'Race'}: <span style={{ color: raceColor, fontWeight: 'bold' }}>{raceData?.race}</span>
-          </p>
-          <p style={{ color: '#999', fontSize: '0.9rem', marginTop: '10px' }}>
-            {lang === 'ru' ? 'В разработке...' : 'Under development...'}
-          </p>
+          <button
+            onClick={() => alert('Statistics coming soon!')}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>📊</span>
+            <span>{lang === 'ru' ? 'Статистика' : 'Statistics'}</span>
+          </button>
+
+          <button
+            onClick={async () => {
+              const confirmed = window.confirm(
+                lang === 'ru'
+                  ? 'Вы уверены? Весь прогресс в Galactic Empire будет потерян!'
+                  : 'Are you sure? All progress in Galactic Empire will be lost!'
+              );
+              if (confirmed) {
+                try {
+                  await axios.delete(`${API_URL}/api/galactic-empire/player/${player.telegram_id}`);
+                  setShowRaceSelection(true);
+                  setEmpireData(null);
+                } catch (error) {
+                  console.error('Failed to reset race:', error);
+                  alert(lang === 'ru' ? 'Ошибка сброса расы' : 'Failed to reset race');
+                }
+              }
+            }}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>🔄</span>
+            <span>{lang === 'ru' ? 'Сменить расу' : 'Change Race'}</span>
+          </button>
         </div>
 
         {/* Кнопка смены расы */}
