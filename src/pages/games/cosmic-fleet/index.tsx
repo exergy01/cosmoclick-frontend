@@ -89,18 +89,30 @@ const CosmicFleetGame: React.FC = () => {
   };
 
   const handleAddToFormation = async (shipId: string) => {
-    // Получаем текущие ID кораблей в formation
-    const currentFormationIds = formation.map(s => s.id);
+    try {
+      // Получаем текущие ID кораблей в formation
+      const currentFormationIds = formation.map(s => s.id);
 
-    // Если корабль уже в formation, удаляем
-    if (currentFormationIds.includes(shipId)) {
-      const newFormationIds = currentFormationIds.filter(id => id !== shipId);
-      await setFormation(newFormationIds);
-    } else {
-      // Добавляем корабль
-      if (currentFormationIds.length < 5) {
-        await setFormation([...currentFormationIds, shipId]);
+      // Если корабль уже в formation, удаляем
+      if (currentFormationIds.includes(shipId)) {
+        const newFormationIds = currentFormationIds.filter(id => id !== shipId);
+        await setFormation(newFormationIds);
+        return;
       }
+
+      // Получаем max_slots с сервера (по умолчанию 3)
+      const maxSlots = cosmicFleet.maxFormationSlots || 3;
+
+      // Проверяем лимит
+      if (currentFormationIds.length >= maxSlots) {
+        alert(`Максимум ${maxSlots} кораблей в формации! Разблокируйте дополнительные слоты.`);
+        return;
+      }
+
+      // Добавляем корабль
+      await setFormation([...currentFormationIds, shipId]);
+    } catch (error) {
+      console.error('Ошибка при изменении формации:', error);
     }
   };
 
@@ -294,7 +306,7 @@ const CosmicFleetGame: React.FC = () => {
                     border: '2px solid #00f0ff',
                     marginBottom: '20px'
                   }}>
-                    <h3 style={{ color: '#00f0ff', marginBottom: '15px' }}>⚔️ Боевая формация ({formation.length}/5)</h3>
+                    <h3 style={{ color: '#00f0ff', marginBottom: '15px' }}>⚔️ Боевая формация ({formation.length}/{cosmicFleet.maxFormationSlots || 3})</h3>
                     <div style={{
                       display: 'flex',
                       gap: '10px',

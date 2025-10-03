@@ -12,6 +12,7 @@ interface UseCosmicFleetReturn {
   player: CosmicFleetPlayer | null;
   fleet: Ship[];
   formation: Ship[];  // 🔥 НОВОЕ: корабли в formation
+  maxFormationSlots: number;  // 🔥 НОВОЕ: макс слотов в формации
   luminiosBalance: number;
   csBalance: number;
   loading: boolean;
@@ -33,7 +34,8 @@ export const useCosmicFleet = ({
 }: UseCosmicFleetProps): UseCosmicFleetReturn => {
   const [player, setPlayer] = useState<CosmicFleetPlayer | null>(null);
   const [fleet, setFleet] = useState<Ship[]>([]);
-  const [formation, setFormation] = useState<Ship[]>([]);  // 🔥 НОВОЕ
+  const [formation, setFormationState] = useState<Ship[]>([]);  // 🔥 НОВОЕ
+  const [maxFormationSlots, setMaxFormationSlots] = useState<number>(3);  // 🔥 НОВОЕ
   const [luminiosBalance, setLuminiosBalance] = useState(0);
   const [csBalance, setCsBalance] = useState(initialCsBalance);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,8 @@ export const useCosmicFleet = ({
       setPlayer(playerData);
       setFleet(fleetData);
       setLuminiosBalance(luminiosData);
-      setFormation(formationData.ships);  // 🔥 НОВОЕ
+      setFormationState(formationData.ships);  // 🔥 НОВОЕ
+      setMaxFormationSlots(formationData.maxSlots || 3);  // 🔥 НОВОЕ
     } catch (err: any) {
       console.error('Failed to load cosmic fleet data:', err);
       setError(err.message || 'Ошибка загрузки данных');
@@ -155,7 +158,8 @@ export const useCosmicFleet = ({
       if (success) {
         // Перезагружаем formation
         const formationData = await cosmicFleetApi.getFormation(telegramId);
-        setFormation(formationData.ships);
+        setFormationState(formationData.ships);
+        setMaxFormationSlots(formationData.maxSlots || 3);
       }
       return success;
     } catch (err: any) {
@@ -216,6 +220,7 @@ export const useCosmicFleet = ({
     player,
     fleet,
     formation,  // 🔥 НОВОЕ: корабли в formation
+    maxFormationSlots,  // 🔥 НОВОЕ: макс слотов
     luminiosBalance,
     csBalance,
     loading,
