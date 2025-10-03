@@ -314,41 +314,69 @@ const CosmicFleetGame: React.FC = () => {
                       gap: '10px',
                       flexWrap: 'wrap'
                     }}>
-                      {formation.map(ship => (
-                        <div key={ship.id} style={{
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          borderRadius: '10px',
-                          padding: '10px 15px',
-                          border: '1px solid #00f0ff',
-                          position: 'relative'
-                        }}>
-                          <button
-                            onClick={() => handleAddToFormation(ship.id)}
-                            style={{
-                              position: 'absolute',
-                              top: '-8px',
-                              right: '-8px',
-                              background: '#ff4444',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '20px',
-                              height: '20px',
-                              color: '#fff',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            ×
-                          </button>
-                          <div style={{ color: '#fff', fontWeight: 'bold' }}>{ship.name}</div>
-                          <div style={{ color: '#aaa', fontSize: '0.8rem' }}>
-                            ❤️ {ship.health}/{ship.maxHealth}
+                      {formation.map(ship => {
+                        const needsRepair = ship.health < ship.maxHealth;
+                        const healthPercent = (ship.health / ship.maxHealth) * 100;
+                        const healthColor = healthPercent > 70 ? '#44ff44' : healthPercent > 30 ? '#ffaa00' : '#ff4444';
+
+                        return (
+                          <div key={ship.id} style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: '10px',
+                            padding: '10px 15px',
+                            border: '1px solid #00f0ff',
+                            position: 'relative',
+                            minWidth: '150px'
+                          }}>
+                            <button
+                              onClick={() => handleAddToFormation(ship.id)}
+                              style={{
+                                position: 'absolute',
+                                top: '-8px',
+                                right: '-8px',
+                                background: '#ff4444',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '20px',
+                                height: '20px',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              ×
+                            </button>
+                            <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: '5px' }}>{ship.name}</div>
+                            <div style={{ color: healthColor, fontSize: '0.8rem', marginBottom: '8px' }}>
+                              ❤️ {ship.health}/{ship.maxHealth}
+                            </div>
+                            {needsRepair && (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await repairShip(ship.id);
+                                }}
+                                style={{
+                                  background: 'linear-gradient(135deg, #ffaa00, #ff8800)',
+                                  border: 'none',
+                                  borderRadius: '5px',
+                                  padding: '4px 8px',
+                                  color: '#fff',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  width: '100%'
+                                }}
+                              >
+                                🔧 Ремонт
+                              </button>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
