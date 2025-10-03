@@ -60,11 +60,11 @@ const CosmicFleetGame: React.FC = () => {
 
     setShowBattle(true);
 
-    // Небольшая задержка для показа анимации боя
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
     // Запускаем адаптивный бой
     const result = await battleBot('medium', true);
+
+    // Минимальная задержка чтобы увидеть анимацию
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     if (result) {
       console.log('🎯 Результат боя:', result);
@@ -354,7 +354,7 @@ const CosmicFleetGame: React.FC = () => {
                 )}
 
                 <FleetHangar
-                  ships={fleet}
+                  ships={fleet.filter(ship => !formation.map(s => s.id).includes(ship.id))}
                   onSelectShip={handleSelectShip}
                   selectedShipId={selectedShip?.id}
                   onRepairShip={repairShip}

@@ -176,10 +176,17 @@ export const useCosmicFleet = ({
       if (response.success) {
         // Обновляем HP кораблей после боя
         const updatedFleet = fleet.map(ship => {
-          const battleShip = response.playerFleet.find((s: any) => s.id === ship.id);
+          const battleShip = response.playerFleet.find((s: any) => s.id.toString() === ship.id.toString());
           return battleShip ? { ...ship, health: battleShip.hp } : ship;
         });
         setFleet(updatedFleet);
+
+        // Также обновляем формацию с новыми HP
+        const updatedFormation = formation.map(ship => {
+          const updated = updatedFleet.find(s => s.id === ship.id);
+          return updated || ship;
+        });
+        setFormationState(updatedFormation);
 
         // Обновляем баланс Luminios
         if (response.reward_luminios > 0) {
@@ -203,7 +210,7 @@ export const useCosmicFleet = ({
       setError(err.message || 'Ошибка боя с ботом');
       return null;
     }
-  }, [telegramId, fleet, player]);
+  }, [telegramId, fleet, player, formation]);
 
   useEffect(() => {
     if (telegramId) {
