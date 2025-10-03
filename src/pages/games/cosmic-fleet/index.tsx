@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNewPlayer } from '../../../context/NewPlayerContext';
 import AccessControl from './components/AccessControl';
 import LuminiosWallet from './components/LuminiosWallet';
@@ -12,6 +13,7 @@ import { Ship } from './types/ships';
 type ActiveTab = 'hangar' | 'shop' | 'wallet';
 
 const CosmicFleetGame: React.FC = () => {
+  const navigate = useNavigate();
   const { player } = useNewPlayer();
   const [activeTab, setActiveTab] = useState<ActiveTab>('hangar');
   const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
@@ -438,7 +440,7 @@ const CosmicFleetGame: React.FC = () => {
             paddingBottom: '20px'
           }}>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => navigate('/')}
               style={{
                 background: 'linear-gradient(135deg, #8a2be2, #6a0dad)',
                 border: '2px solid #8a2be2',
@@ -470,7 +472,7 @@ const CosmicFleetGame: React.FC = () => {
         </div>
 
         {/* Модальное окно боя */}
-        {showBattle && selectedShip && (
+        {showBattle && (selectedShip || formation.length > 0) && (
           <div style={{
             position: 'fixed',
             top: 0,

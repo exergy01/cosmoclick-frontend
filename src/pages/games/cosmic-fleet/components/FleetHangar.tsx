@@ -123,17 +123,23 @@ const FleetHangar: React.FC<FleetHangarProps> = ({
               style={{
                 background: isSelected
                   ? `linear-gradient(135deg, ${classInfo.color}22, ${classInfo.color}11)`
-                  : 'rgba(255, 255, 255, 0.05)',
+                  : isInFormation
+                    ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 240, 255, 0.05))'
+                    : 'rgba(255, 255, 255, 0.05)',
                 border: isSelected
                   ? `2px solid ${classInfo.color}`
-                  : '2px solid #444',
+                  : isInFormation
+                    ? '2px solid #00f0ff'
+                    : '2px solid #444',
                 borderRadius: '15px',
                 padding: '20px',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 boxShadow: isSelected
                   ? `0 0 20px ${classInfo.color}40`
-                  : 'none'
+                  : isInFormation
+                    ? '0 0 15px rgba(0, 240, 255, 0.3)'
+                    : 'none'
               }}
             >
               <div style={{
