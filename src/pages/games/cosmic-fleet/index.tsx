@@ -79,9 +79,11 @@ const CosmicFleetGame: React.FC = () => {
     // Данные уже обновлены в хуке useCosmicFleet
   };
 
-  const handleCloseRewards = () => {
+  const handleCloseRewards = async () => {
     setShowRewards(false);
     setBattleResult(null);
+    // Перезагружаем данные с сервера чтобы синхронизировать HP
+    await refreshData();
   };
 
   const handleRetryBattle = () => {
