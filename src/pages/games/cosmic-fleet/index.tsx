@@ -5,12 +5,13 @@ import AccessControl from './components/AccessControl';
 import LuminiosWallet from './components/LuminiosWallet';
 import FleetHangar from './components/FleetHangar';
 import ShipShop from './components/ShipShop';
-import BattleScreen from './components/BattleScreen';
+import BattleReplay from './components/BattleReplay';
 import BattleRewards from './components/BattleRewards';
+import BattleHistory from './components/BattleHistory';
 import { useCosmicFleet } from './hooks/useCosmicFleet';
 import { Ship } from './types/ships';
 
-type ActiveTab = 'hangar' | 'shop' | 'wallet';
+type ActiveTab = 'hangar' | 'shop' | 'wallet' | 'history';
 
 const CosmicFleetGame: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ const CosmicFleetGame: React.FC = () => {
   const [showBattle, setShowBattle] = useState(false);
   const [battleResult, setBattleResult] = useState<any>(null);
   const [showRewards, setShowRewards] = useState(false);
+  const [replayBattleId, setReplayBattleId] = useState<number | null>(null);
 
   const cosmicFleet = useCosmicFleet({
     telegramId: player?.telegram_id || 0,
@@ -58,32 +60,26 @@ const CosmicFleetGame: React.FC = () => {
       return;
     }
 
-    setShowBattle(true);
-
     // Запускаем адаптивный бой
     const result = await battleBot('medium', true);
-
-    // Минимальная задержка чтобы увидеть анимацию
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     if (result) {
       console.log('🎯 Результат боя:', result);
       setBattleResult(result);
-      setShowBattle(false);
-      setShowRewards(true);
+      setShowBattle(true);  // Показываем replay
     }
   };
 
-  const handleBattleComplete = async (result: any) => {
+  const handleBattleComplete = async () => {
     setShowBattle(false);
-    // Данные уже обновлены в хуке useCosmicFleet
+    setShowRewards(true);
   };
 
   const handleCloseRewards = async () => {
     setShowRewards(false);
     setBattleResult(null);
     // Перезагружаем данные с сервера чтобы синхронизировать HP
-    await refreshData();
+    await cosmicFleet.refreshData();
   };
 
   const handleRetryBattle = () => {
@@ -117,6 +113,41 @@ const CosmicFleetGame: React.FC = () => {
       await setFormation([...currentFormationIds, shipId]);
     } catch (error) {
       console.error('Ошибка при изменении формации:', error);
+    }
+  };
+
+  const handleReplayFromHistory = async (battleId: number) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/api/cosmic-fleet/battle/replay/${battleId}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to load battle replay');
+      }
+
+      const battleData = await response.json();
+
+      // Конвертируем данные из БД в формат для BattleReplay
+      const replayData = {
+        battleLog: battleData.battle_log,
+        playerFleet: battleData.player_fleet,
+        enemyFleet: battleData.opponent_fleet,
+        result: battleData.result,
+        stats: {
+          playerDamageDealt: battleData.damage_dealt,
+          playerDamageReceived: battleData.damage_received,
+          playerShipsLost: battleData.ships_lost,
+          isPerfectWin: battleData.is_perfect_win
+        },
+        reward_luminios: battleData.reward_luminios
+      };
+
+      setBattleResult(replayData);
+      setShowBattle(true);
+    } catch (error) {
+      console.error('Error loading replay:', error);
+      alert('Ошибка загрузки повтора боя');
     }
   };
 
@@ -214,7 +245,8 @@ const CosmicFleetGame: React.FC = () => {
             {[
               { id: 'wallet' as ActiveTab, label: '💎 Кошелек', emoji: '💎' },
               { id: 'hangar' as ActiveTab, label: '🚢 Ангар', emoji: '🚢' },
-              { id: 'shop' as ActiveTab, label: '🛒 Верфь', emoji: '🛒' }
+              { id: 'shop' as ActiveTab, label: '🛒 Верфь', emoji: '🛒' },
+              { id: 'history' as ActiveTab, label: '📜 История', emoji: '📜' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -400,6 +432,13 @@ const CosmicFleetGame: React.FC = () => {
                 onPurchaseShip={purchaseShip}
               />
             )}
+
+            {activeTab === 'history' && (
+              <BattleHistory
+                telegramId={player?.telegram_id || 0}
+                onReplay={handleReplayFromHistory}
+              />
+            )}
           </div>
 
           {/* Статистика внизу */}
@@ -501,53 +540,14 @@ const CosmicFleetGame: React.FC = () => {
           </div>
         </div>
 
-        {/* Модальное окно боя */}
-        {showBattle && (selectedShip || formation.length > 0) && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 9999,
-            background: '#000'
-          }}>
-            <button
-              onClick={() => setShowBattle(false)}
-              style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                zIndex: 10000,
-                background: 'rgba(255, 0, 0, 0.7)',
-                border: '2px solid #fff',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                color: '#fff',
-                fontSize: '1.5rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ×
-            </button>
-            <BattleScreen
-              playerFleet={formation.length > 0 ? formation : (selectedShip ? [selectedShip] : [])}
-              enemyFleet={[
-                {
-                  id: 1,
-                  name: 'Вражеский корабль',
-                  type: 'cruiser',
-                  health: 100,
-                  maxHealth: 100
-                }
-              ]}
-              onBattleEnd={handleBattleComplete}
-            />
-          </div>
+        {/* Модальное окно боя - replay */}
+        {showBattle && battleResult && (
+          <BattleReplay
+            battleLog={battleResult.battleLog}
+            playerFleet={battleResult.playerFleet}
+            enemyFleet={battleResult.enemyFleet}
+            onComplete={handleBattleComplete}
+          />
         )}
 
         {/* Модальное окно наград */}

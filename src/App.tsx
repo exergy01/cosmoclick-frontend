@@ -22,6 +22,7 @@ import TapperGame from './pages/games/TapperGame';
 import CosmicShellsGame from './pages/games/cosmic-shells';
 import GalacticSlotsGame from './pages/games/galactic-slots';
 import CosmicFleetGame from './pages/games/cosmic-fleet';
+import GalacticEmpireGame from './pages/games/galactic-empire';
 
 // 🔥 Новые импорты для локализации
 import { useTranslation } from 'react-i18next';
@@ -238,6 +239,7 @@ const AppContent: React.FC = () => {
         <Route path="/games/cosmic-shells" element={<CosmicShellsGame />} />
         <Route path="/games/galactic-slots" element={<GalacticSlotsGame />} />
         <Route path="/games/cosmic-fleet" element={<CosmicFleetGame />} />
+        <Route path="/games/galactic-empire" element={<GalacticEmpireGame />} />
       </Routes>
     </Suspense>
   );

@@ -120,32 +120,74 @@ const AttackPage: React.FC = () => {
           </h2>
 
           {isDebugUser && (
-            <button
-              onClick={() => navigate('/games/cosmic-fleet')}
-              style={{
-                background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}80)`,
-                border: `2px solid ${colorStyle}`,
-                borderRadius: '15px',
-                padding: '20px 40px',
-                color: '#fff',
-                fontSize: '1.3rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                boxShadow: `0 5px 20px ${colorStyle}60`,
-                transition: 'all 0.3s ease',
-                marginBottom: '30px',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.boxShadow = `0 8px 30px ${colorStyle}80`;
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = `0 5px 20px ${colorStyle}60`;
-              }}
-            >
-              🚀 Cosmic Fleet Commander
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px', width: '100%', maxWidth: '400px' }}>
+              <button
+                onClick={() => navigate('/games/cosmic-fleet')}
+                style={{
+                  background: `linear-gradient(135deg, ${colorStyle}, ${colorStyle}80)`,
+                  border: `2px solid ${colorStyle}`,
+                  borderRadius: '15px',
+                  padding: '20px 40px',
+                  color: '#fff',
+                  fontSize: '1.3rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: `0 5px 20px ${colorStyle}60`,
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = `0 8px 30px ${colorStyle}80`;
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = `0 5px 20px ${colorStyle}60`;
+                }}
+              >
+                🚀 Cosmic Fleet Commander
+              </button>
+
+              <button
+                onClick={() => navigate('/games/galactic-empire')}
+                style={{
+                  background: 'linear-gradient(135deg, #9d4edd, #7b2cbf)',
+                  border: '2px solid #c77dff',
+                  borderRadius: '15px',
+                  padding: '20px 40px',
+                  color: '#fff',
+                  fontSize: '1.3rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 5px 20px rgba(157, 78, 221, 0.6)',
+                  transition: 'all 0.3s ease',
+                  position: 'relative',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = '0 8px 30px rgba(157, 78, 221, 0.8)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 5px 20px rgba(157, 78, 221, 0.6)';
+                }}
+              >
+                🌌 Galactic Empire v2.0
+                <span style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '10px',
+                  background: '#ff006e',
+                  color: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 10px rgba(255, 0, 110, 0.6)',
+                }}>
+                  BETA
+                </span>
+              </button>
+            </div>
           )}
 
           <div style={{
