@@ -259,15 +259,25 @@ const ShipShop: React.FC = () => {
             flexDirection: 'column',
             gap: '8px'
           }}>
-            {filteredShips.map(ship => {
+            {filteredShips.map((ship, index) => {
               const shipColor = classColors[ship.class] || '#fff';
               const isSelected = selectedShip?.id === ship.id;
 
+              // Проверяем нужен ли разделитель перед премиум кораблями
+              const prevShip = index > 0 ? filteredShips[index - 1] : null;
+              const showDivider = ship.class === 'premium' && prevShip?.class !== 'premium';
+
               return (
-                <div
-                  key={ship.id}
-                  onClick={() => setSelectedShip(ship)}
-                  style={{
+                <React.Fragment key={ship.id}>
+                  {showDivider && (
+                    <div style={{
+                      gridColumn: '1 / -1',
+                      height: '20px'
+                    }} />
+                  )}
+                  <div
+                    onClick={() => setSelectedShip(ship)}
+                    style={{
                     background: isSelected
                       ? `linear-gradient(135deg, ${shipColor}30, rgba(0, 0, 0, 0.5))`
                       : 'rgba(255, 255, 255, 0.05)',
@@ -295,6 +305,7 @@ const ShipShop: React.FC = () => {
                     {t[ship.class as keyof typeof t]} • Tier {ship.tier}
                   </div>
                 </div>
+                </React.Fragment>
               );
             })}
 

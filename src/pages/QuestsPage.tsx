@@ -1,4 +1,4 @@
-// src/pages/QuestsPage.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ для V2 API
+// src/pages/QuestsPage.tsx - ОБНОВЛЕННАЯ ВЕРСИЯ с новым дизайном (Вариант №1)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useNewPlayer } from '../context/NewPlayerContext';
@@ -19,7 +19,6 @@ interface QuestLinkState {
   can_claim: boolean;
 }
 
-// 🆕 НОВЫЙ интерфейс для V2 API
 interface QuestDataV2 {
   quest_id: number;
   quest_key: string;
@@ -49,7 +48,6 @@ const QuestsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 🆕 ОБНОВЛЕННЫЕ состояния для V2
   const [quests, setQuests] = useState<QuestDataV2[]>([]);
   const [loading, setLoading] = useState(true);
   const [linkTimers, setLinkTimers] = useState<{[key: number]: number}>({});
@@ -73,13 +71,12 @@ const QuestsPage: React.FC = () => {
       try {
         await adService.initialize(ADSGRAM_BLOCK_ID);
       } catch (error) {
-        console.error('❌ Ошибка инициализации adService:', error);
+        console.error('Ошибка инициализации adService:', error);
       }
     };
     initializeAdService();
   }, []);
 
-  // 🆕 ОБНОВЛЕННАЯ функция просмотра рекламы (без изменений в логике)
   const watchAd = useCallback(async () => {
     if (!player?.telegram_id) {
       addNotification(t('quest_errors.player_not_found'), 'error');
@@ -87,10 +84,10 @@ const QuestsPage: React.FC = () => {
     }
     
     try {
-      console.log('🎬 Запуск рекламы для заданий...');
+      console.log('Запуск рекламы для заданий...');
       const result = await adService.showRewardedAd();
       if (result.success) {
-        console.log('🎉 Реклама успешно просмотрена:', result);
+        console.log('Реклама успешно просмотрена:', result);
         try {
           const response = await axios.post(`${API_URL}/api/quests/watch_ad`, {
             telegramId: player.telegram_id
@@ -98,48 +95,44 @@ const QuestsPage: React.FC = () => {
           if (response.data.success) {
             await refreshPlayer();
             addNotification(
-              t('quest_ad_reward') || '🎉 Получено 10 CCC за просмотр рекламы!', 
+              t('quest_ad_reward') || 'Получено 10 CCC за просмотр рекламы!', 
               'success'
             );
-            // 🆕 Перезагружаем задания после просмотра рекламы
             loadQuests();
           } else {
             throw new Error(response.data.error || t('quest_errors.server_error'));
           }
         } catch (error: any) {
-          console.error('❌ Ошибка обработки награды:', error);
+          console.error('Ошибка обработки награды:', error);
           addNotification(
             error.response?.data?.error || t('quest_errors.reward_error'), 
             'error'
           );
         }
       } else {
-        console.log('❌ Реклама не была успешно просмотрена:', result);
+        console.log('Реклама не была успешно просмотрена:', result);
         addNotification(
           result.error || t('quest_errors.ad_skipped'), 
           'warning'
         );
       }
     } catch (error: any) {
-      console.error('❌ Критическая ошибка рекламы:', error);
+      console.error('Критическая ошибка рекламы:', error);
       addNotification(t('quest_errors.ad_unavailable'), 'error');
     }
   }, [player?.telegram_id, refreshPlayer, addNotification, t]);
 
-  // 🆕 НОВАЯ функция загрузки заданий через V2 API
   const loadQuests = useCallback(async () => {
     if (!player?.telegram_id) return;
     
     try {
       setLoading(true);
       
-      // Определяем язык пользователя
       const currentLanguage = i18n.language || player.registration_language || 'en';
       setUserLanguage(currentLanguage);
       
-      console.log(`🆕 Загружаем задания V2 для игрока ${player.telegram_id}, язык: ${currentLanguage}`);
+      console.log(`Загружаем задания V2 для игрока ${player.telegram_id}, язык: ${currentLanguage}`);
       
-      // 🆕 Используем V2 API
       const response = await axios.get(`${API_URL}/api/quests/v2/${player.telegram_id}?force_language=${currentLanguage}`);
       
       if (response.data.success) {
@@ -147,10 +140,9 @@ const QuestsPage: React.FC = () => {
         setQuestStats(response.data.stats);
         setUserLanguage(response.data.user_language);
         
-        console.log(`🆕 V2: Загружено ${response.data.quests.length} заданий`);
-        console.log(`📊 V2: Статистика:`, response.data.stats);
+        console.log(`V2: Загружено ${response.data.quests.length} заданий`);
+        console.log(`Статистика:`, response.data.stats);
         
-        // Восстанавливаем состояния таймеров из контекста игрока
         if (player.quest_link_states) {
           const newTimers: {[key: number]: number} = {};
           
@@ -180,14 +172,13 @@ const QuestsPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('❌ Ошибка загрузки заданий V2:', error);
+      console.error('Ошибка загрузки заданий V2:', error);
       addNotification(t('quests_load_error') || 'Ошибка загрузки заданий.', 'error');
     } finally {
       setLoading(false);
     }
   }, [player?.telegram_id, player?.quest_link_states, i18n.language, player?.registration_language, addNotification, t]);
 
-  // Таймер обновления локальных состояний (без изменений)
   useEffect(() => {
     const interval = setInterval(() => {
       setLinkTimers(prev => {
@@ -215,7 +206,6 @@ const QuestsPage: React.FC = () => {
     loadQuests();
   }, [loadQuests]);
 
-  // Обработка клика по ссылке (без изменений в логике)
   const handleLinkClick = async (questId: number, url: string) => {
     if (!player?.telegram_id) return;
     
@@ -228,7 +218,7 @@ const QuestsPage: React.FC = () => {
       if (response.data.success) {
         window.open(url, '_blank');
         setLinkTimers(prev => ({ ...prev, [questId]: 30 }));
-        console.log(`✅ Клик по ссылке задания ${questId} зарегистрирован`);
+        console.log(`Клик по ссылке задания ${questId} зарегистрирован`);
       } else {
         addNotification(t('quest_errors.link_click_error'), 'error');
       }
@@ -238,7 +228,6 @@ const QuestsPage: React.FC = () => {
     }
   };
 
-  // Завершение задания (без изменений в логике)
   const completeQuest = async (questId: number) => {
     if (!player?.telegram_id || completingQuest) return;
     try {
@@ -257,7 +246,7 @@ const QuestsPage: React.FC = () => {
         setLinkTimers(prev => ({ ...prev, [questId]: -1 }));
         addNotification(
           t('quest_reward_received', { reward: Number(response.data.reward_cs).toLocaleString() }) || 
-          `🎉 Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`, 
+          `Получено ${Number(response.data.reward_cs).toLocaleString()} CS!`, 
           'success'
         );
       } else {
@@ -278,7 +267,6 @@ const QuestsPage: React.FC = () => {
     }
   };
 
-  // 🆕 ОБНОВЛЕННАЯ логика фильтрации заданий
   const basicQuests = quests.filter(q => 
     !q.completed && (q.quest_type === 'referral' || q.quest_type === 'partner_link')
   ).sort((a, b) => {
@@ -289,6 +277,174 @@ const QuestsPage: React.FC = () => {
 
   const manualQuests = quests.filter(q => !q.completed && q.quest_type === 'manual_check');
   const hasCompletedAllQuests = basicQuests.length === 0 && manualQuests.length === 0;
+
+  // Функция рендера кнопки в новом стиле
+  const renderQuestButton = (quest: QuestDataV2) => {
+    if (quest.quest_type === 'partner_link') {
+      const timerValue = linkTimers[quest.quest_id];
+      const isTimerRunning = timerValue > 0;
+      const canClaim = timerValue === 0;
+      const isCompleted = timerValue === -1 || quest.completed;
+
+      if (!isTimerRunning && !canClaim && !isCompleted) {
+        return (
+          <button
+            onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
+            style={{
+              padding: '8px 20px',
+              background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
+              border: `1px solid ${colorStyle}`,
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              transition: 'all 0.2s ease',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {t('go_to_link') || 'Перейти'}
+          </button>
+        );
+      }
+      
+      if (isTimerRunning) {
+        return (
+          <div style={{
+            padding: '8px 20px',
+            background: 'rgba(255, 165, 0, 0.2)',
+            border: '1px solid #ffa500',
+            borderRadius: '8px',
+            color: '#ffa500',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            whiteSpace: 'nowrap'
+          }}>
+            {t('checking_progress') || 'Проверяем...'}
+          </div>
+        );
+      }
+      
+      if (canClaim && !isCompleted) {
+        return (
+          <button
+            onClick={() => completeQuest(quest.quest_id)}
+            disabled={completingQuest === quest.quest_id}
+            style={{
+              padding: '8px 20px',
+              background: completingQuest === quest.quest_id 
+                ? 'rgba(128, 128, 128, 0.2)' 
+                : 'linear-gradient(135deg, #00ff0040, #00ff0080)',
+              border: `1px solid ${completingQuest === quest.quest_id ? '#888' : '#00ff00'}`,
+              borderRadius: '8px',
+              color: completingQuest === quest.quest_id ? '#888' : '#fff',
+              cursor: completingQuest === quest.quest_id ? 'not-allowed' : 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {completingQuest === quest.quest_id 
+              ? (t('claiming') || 'Получение...') 
+              : (t('claim_reward') || 'Получить')
+            }
+          </button>
+        );
+      }
+      
+      if (isCompleted) {
+        return (
+          <div style={{
+            padding: '8px 20px',
+            background: 'rgba(0, 255, 0, 0.2)',
+            border: '1px solid #00ff00',
+            borderRadius: '8px',
+            color: '#00ff00',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            whiteSpace: 'nowrap'
+          }}>
+            {t('completed') || 'Выполнено'}
+          </div>
+        );
+      }
+    } else {
+      return (
+        <div style={{
+          padding: '8px 20px',
+          background: 'rgba(255, 165, 0, 0.2)',
+          border: '1px solid #ffa500',
+          borderRadius: '8px',
+          color: '#ffa500',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          {t('in_progress') || 'В процессе'}
+        </div>
+      );
+    }
+  };
+
+  // Функция рендера кнопки рекламы
+  const renderAdButton = (index: number) => {
+    const isCompleted = (player?.quest_ad_views || 0) > index;
+    const isAvailable = (player?.quest_ad_views || 0) === index;
+
+    if (isCompleted) {
+      return (
+        <div style={{
+          padding: '8px 20px',
+          background: 'rgba(0, 255, 0, 0.2)',
+          border: '1px solid #00ff00',
+          borderRadius: '8px',
+          color: '#00ff00',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          {t('completed') || 'Выполнено'}
+        </div>
+      );
+    }
+
+    if (isAvailable) {
+      return (
+        <button
+          onClick={watchAd}
+          style={{
+            padding: '8px 20px',
+            background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
+            border: `1px solid ${colorStyle}`,
+            borderRadius: '8px',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {t('watch') || 'Смотреть'}
+        </button>
+      );
+    }
+
+    return (
+      <div style={{
+        padding: '8px 20px',
+        background: 'rgba(128, 128, 128, 0.2)',
+        border: '1px solid #888',
+        borderRadius: '8px',
+        color: '#888',
+        fontSize: '0.85rem',
+        fontWeight: '600',
+        whiteSpace: 'nowrap'
+      }}>
+        {t('locked') || 'Заблокировано'}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -340,25 +496,10 @@ const QuestsPage: React.FC = () => {
               textAlign: 'center',
               padding: '50px'
             }}>
-              ⏳ {t('loading_quests') || 'Загружаем задания...'}
+              {t('loading_quests') || 'Загружаем задания...'}
             </div>
           ) : (
             <>
-              {/* 🆕 ИНФОРМАЦИЯ О V2 СИСТЕМЕ (временно для тестирования) */}
-              {questStats && (
-                <div style={{
-                  marginBottom: '20px',
-                  padding: '10px',
-                  background: 'rgba(0, 255, 0, 0.1)',
-                  border: '1px solid #00ff00',
-                  borderRadius: '8px',
-                  fontSize: '0.8rem'
-                }}>
-                  <div>🆕 V2 API | Язык: {userLanguage} | Заданий: {questStats.total_quests}</div>
-                  <div>Выполнено: {questStats.completed_quests} | Доступно: {questStats.available_quests}</div>
-                </div>
-              )}
-
               {/* ОСНОВНЫЕ ЗАДАНИЯ */}
               {basicQuests.length > 0 && (
                 <div style={{ marginBottom: '30px' }}>
@@ -368,137 +509,60 @@ const QuestsPage: React.FC = () => {
                     marginBottom: '20px',
                     textShadow: `0 0 10px ${colorStyle}`
                   }}>
-                    📋 {t('main_quests') || 'Основные задания'}
+                    {t('main_quests') || 'Основные задания'}
                   </h3>
                   {basicQuests.map(quest => (
                     <div
-                      key={quest.quest_key} // 🆕 Используем quest_key вместо quest_id
+                      key={quest.quest_key}
                       style={{
-                        margin: '15px auto',
-                        padding: '20px',
+                        margin: '0 auto 12px',
+                        padding: '16px',
                         maxWidth: '500px',
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: `2px solid ${colorStyle}`,
-                        borderRadius: '15px',
-                        boxShadow: `0 0 20px ${colorStyle}30`,
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: `1px solid ${colorStyle}40`,
+                        borderRadius: '12px',
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ textAlign: 'left', flex: 1 }}>
-                          <h4 style={{ color: colorStyle, marginBottom: '8px', fontSize: '1.1rem' }}>
-                            {quest.quest_name}
-                          </h4>
-                          <p style={{ color: '#ccc', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                            {quest.description}
-                          </p>
-                          <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
-                            🎁 {t('reward')}: {Number(quest.reward_cs).toLocaleString()} CS
-                          </p>
-                        </div>
-                        
-                        {/* КНОПКИ УПРАВЛЕНИЯ (логика без изменений) */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '140px' }}>
-                          {quest.quest_type === 'partner_link' ? (
-                            (() => {
-                              const timerValue = linkTimers[quest.quest_id];
-                              const isTimerRunning = timerValue > 0;
-                              const canClaim = timerValue === 0;
-                              const isCompleted = timerValue === -1 || quest.completed;
+                      {/* Верхняя часть - название и описание */}
+                      <div style={{ marginBottom: '12px' }}>
+                        <h4 style={{
+                          color: colorStyle,
+                          margin: '0 0 6px 0',
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          lineHeight: '1.3',
+                          textAlign: 'left'
+                        }}>
+                          {quest.quest_name}
+                        </h4>
+                        <p style={{
+                          color: '#a0a0a0',
+                          margin: 0,
+                          fontSize: '0.85rem',
+                          lineHeight: '1.4',
+                          textAlign: 'left'
+                        }}>
+                          {quest.description}
+                        </p>
+                      </div>
 
-                              return (
-                                <>
-                                  {!isTimerRunning && !canClaim && !isCompleted && (
-                                    <button
-                                      onClick={() => handleLinkClick(quest.quest_id, quest.quest_data?.url)}
-                                      style={{
-                                        padding: '10px 15px',
-                                        background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
-                                        border: `2px solid ${colorStyle}`,
-                                        borderRadius: '12px',
-                                        boxShadow: `0 0 15px ${colorStyle}50`,
-                                        color: '#fff',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        fontWeight: 'bold',
-                                        fontSize: '0.9rem'
-                                      }}
-                                    >
-                                      🔗 {t('go_to_link') || 'Перейти'}
-                                    </button>
-                                  )}
-                                  
-                                  {isTimerRunning && (
-                                    <div style={{
-                                      padding: '10px 15px',
-                                      borderRadius: '12px',
-                                      background: 'rgba(255, 165, 0, 0.3)',
-                                      border: '2px solid #ffa500',
-                                      fontSize: '0.9rem',
-                                      color: '#ffa500',
-                                      textAlign: 'center',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      ⏳ {t('checking_progress') || 'Проверяем...'}
-                                    </div>
-                                  )}
-                                  
-                                  {canClaim && !isCompleted && (
-                                    <button
-                                      onClick={() => completeQuest(quest.quest_id)}
-                                      disabled={completingQuest === quest.quest_id}
-                                      style={{
-                                        padding: '10px 15px',
-                                        background: completingQuest === quest.quest_id 
-                                          ? 'rgba(128, 128, 128, 0.5)' 
-                                          : 'linear-gradient(135deg, #00ff0040, #00ff0080)',
-                                        border: `2px solid ${completingQuest === quest.quest_id ? '#888' : '#00ff00'}`,
-                                        borderRadius: '12px',
-                                        color: '#fff',
-                                        cursor: completingQuest === quest.quest_id ? 'not-allowed' : 'pointer',
-                                        fontWeight: 'bold',
-                                        fontSize: '0.9rem'
-                                      }}
-                                    >
-                                      {completingQuest === quest.quest_id 
-                                        ? `⏳ ${t('claiming') || 'Получение...'}` 
-                                        : `🎁 ${t('claim_reward') || 'Получить'}`
-                                      }
-                                    </button>
-                                  )}
-                                  
-                                  {isCompleted && (
-                                    <div style={{
-                                      padding: '10px 15px',
-                                      borderRadius: '12px',
-                                      background: 'rgba(0, 255, 0, 0.3)',
-                                      border: '2px solid #00ff00',
-                                      fontSize: '0.9rem',
-                                      color: '#00ff00',
-                                      textAlign: 'center',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      ✅ {t('completed') || 'Выполнено'}
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            })()
-                          ) : (
-                            <div style={{
-                              padding: '10px 15px',
-                              borderRadius: '12px',
-                              background: 'rgba(255, 165, 0, 0.3)',
-                              border: '2px solid #ffa500',
-                              fontSize: '0.9rem',
-                              fontWeight: 'bold',
-                              color: '#ffa500',
-                              textAlign: 'center'
-                            }}>
-                              ⏳ {t('in_progress') || 'В процессе'}
-                            </div>
-                          )}
+                      {/* Нижняя часть - награда слева, кнопка справа */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: '12px',
+                        borderTop: `1px solid ${colorStyle}20`
+                      }}>
+                        <div style={{
+                          color: '#90EE90',
+                          fontSize: '0.9rem',
+                          fontWeight: '600'
+                        }}>
+                          +{Number(quest.reward_cs).toLocaleString()} CS
                         </div>
+                        {renderQuestButton(quest)}
                       </div>
                     </div>
                   ))}
@@ -514,52 +578,79 @@ const QuestsPage: React.FC = () => {
                     marginBottom: '20px',
                     textShadow: `0 0 10px ${colorStyle}`
                   }}>
-                    📝 {t('manual_check_quests') || 'Задания с проверкой'}
+                    {t('manual_check_quests') || 'Задания с проверкой'}
                   </h3>
                   {manualQuests.map(quest => (
                     <div
                       key={quest.quest_key}
                       style={{
-                        margin: '15px auto',
-                        padding: '20px',
+                        margin: '0 auto 12px',
+                        padding: '16px',
                         maxWidth: '500px',
-                        background: 'rgba(255, 165, 0, 0.1)',
-                        border: '2px solid #ffa500',
-                        borderRadius: '15px',
-                        boxShadow: '0 0 20px #ffa50030',
+                        background: 'rgba(255, 165, 0, 0.05)',
+                        border: '1px solid #ffa50040',
+                        borderRadius: '12px',
                         transition: 'all 0.3s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ textAlign: 'left', flex: 1 }}>
-                          <h4 style={{ color: '#ffa500', marginBottom: '8px', fontSize: '1.1rem' }}>
-                            {quest.quest_name}
-                          </h4>
-                          <p style={{ color: '#ccc', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                            {quest.description}
+                      <div style={{ marginBottom: '12px' }}>
+                        <h4 style={{
+                          color: '#ffa500',
+                          margin: '0 0 6px 0',
+                          fontSize: '1rem',
+                          fontWeight: '600',
+                          lineHeight: '1.3',
+                          textAlign: 'left'
+                        }}>
+                          {quest.quest_name}
+                        </h4>
+                        <p style={{
+                          color: '#a0a0a0',
+                          margin: '0 0 6px 0',
+                          fontSize: '0.85rem',
+                          lineHeight: '1.4',
+                          textAlign: 'left'
+                        }}>
+                          {quest.description}
+                        </p>
+                        {quest.manual_check_user_instructions && (
+                          <p style={{
+                            color: '#ffaa00',
+                            margin: 0,
+                            fontSize: '0.75rem',
+                            lineHeight: '1.3',
+                            textAlign: 'left'
+                          }}>
+                            {quest.manual_check_user_instructions}
                           </p>
-                          {/* 🆕 Показываем инструкции для пользователя */}
-                          {quest.manual_check_user_instructions && (
-                            <p style={{ color: '#ffaa00', margin: '0 0 8px 0', fontSize: '0.8rem', lineHeight: '1.3' }}>
-                              📋 {quest.manual_check_user_instructions}
-                            </p>
-                          )}
-                          <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
-                            🎁 {t('reward')}: {Number(quest.reward_cs).toLocaleString()} CS
-                          </p>
+                        )}
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: '12px',
+                        borderTop: '1px solid #ffa50020'
+                      }}>
+                        <div style={{
+                          color: '#90EE90',
+                          fontSize: '0.9rem',
+                          fontWeight: '600'
+                        }}>
+                          +{Number(quest.reward_cs).toLocaleString()} CS
                         </div>
                         <div style={{
-                          padding: '10px 15px',
-                          borderRadius: '12px',
-                          background: 'rgba(255, 165, 0, 0.3)',
-                          border: '2px solid #ffa500',
-                          fontSize: '0.9rem',
-                          fontWeight: 'bold',
+                          padding: '8px 20px',
+                          background: 'rgba(255, 165, 0, 0.2)',
+                          border: '1px solid #ffa500',
+                          borderRadius: '8px',
                           color: '#ffa500',
-                          textAlign: 'center',
-                          minWidth: '140px'
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap'
                         }}>
-                          ⏳ {t('manual_check') || 'Ручная проверка'}
+                          {t('manual_check') || 'Ручная проверка'}
                         </div>
                       </div>
                     </div>
@@ -588,7 +679,7 @@ const QuestsPage: React.FC = () => {
                 </div>
               )}
               
-              {/* ПРОСМОТР РЕКЛАМЫ ДЛЯ ЗАДАНИЙ (без изменений в логике) */}
+              {/* ПРОСМОТР РЕКЛАМЫ ДЛЯ ЗАДАНИЙ */}
               <div style={{ marginTop: '40px' }}>
                 <h3 style={{ 
                   color: colorStyle, 
@@ -596,94 +687,53 @@ const QuestsPage: React.FC = () => {
                   marginBottom: '20px',
                   textShadow: `0 0 10px ${colorStyle}`
                 }}>
-                  📺 {t('daily_ads') || 'Просмотр рекламы (Ежедневно)'}
+                  {t('daily_ads') || 'Просмотр рекламы (Ежедневно)'}
                 </h3>
-                {Array(5).fill(null).map((_, index) => {
-                  const isCompleted = (player?.quest_ad_views || 0) > index;
-                  const isAvailable = (player?.quest_ad_views || 0) === index;
-                  return (
-                    <div
-                      key={index}
-                      style={{
-                        margin: '15px auto',
-                        padding: '20px',
-                        maxWidth: '500px',
-                        background: isCompleted 
-                          ? 'rgba(0, 255, 0, 0.1)' 
-                          : 'rgba(0, 0, 0, 0.3)',
-                        border: `2px solid ${isCompleted ? '#00ff00' : colorStyle}`,
-                        borderRadius: '15px',
-                        boxShadow: `0 0 20px ${isCompleted ? '#00ff0030' : colorStyle + '30'}`,
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
-                        <div style={{ textAlign: 'left', flex: 1 }}>
-                          <h4 style={{ 
-                            color: isCompleted ? '#00ff00' : colorStyle, 
-                            marginBottom: '8px',
-                            fontSize: '1.1rem'
-                          }}>
-                            📺 {t('ad_watch')} #{index + 1}
-                          </h4>
-                          <p style={{ color: '#90EE90', margin: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
-                            🎁 {t('reward')}: 10 CCC
-                          </p>
-                        </div>
-                        <div style={{ minWidth: '140px' }}>
-                          {isCompleted ? (
-                            <div style={{
-                              padding: '10px 15px',
-                              borderRadius: '12px',
-                              background: 'rgba(0, 255, 0, 0.3)',
-                              border: '2px solid #00ff00',
-                              fontSize: '0.9rem',
-                              fontWeight: 'bold',
-                              color: '#00ff00',
-                              textAlign: 'center'
-                            }}>
-                              ✅ {t('completed') || 'Выполнено'}
-                            </div>
-                          ) : isAvailable ? (
-                            <button
-                              onClick={watchAd}
-                              style={{
-                                padding: '10px 15px',
-                                background: `linear-gradient(135deg, ${colorStyle}40, ${colorStyle}80)`,
-                                border: `2px solid ${colorStyle}`,
-                                borderRadius: '12px',
-                                boxShadow: `0 0 15px ${colorStyle}50`,
-                                color: '#fff',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                fontWeight: 'bold',
-                                fontSize: '0.9rem',
-                                width: '100%'
-                              }}
-                              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
-                              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-                            >
-                              📺 {t('watch') || 'Смотреть'}
-                            </button>
-                          ) : (
-                            <div style={{
-                              padding: '10px 15px',
-                              borderRadius: '12px',
-                              background: 'rgba(128, 128, 128, 0.3)',
-                              border: '2px solid #888',
-                              fontSize: '0.9rem',
-                              color: '#888',
-                              textAlign: 'center',
-                              fontWeight: 'bold'
-                            }}>
-                              🔒 {t('locked') || 'Заблокировано'}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                {Array(5).fill(null).map((_, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      margin: '0 auto 12px',
+                      padding: '16px',
+                      maxWidth: '500px',
+                      background: (player?.quest_ad_views || 0) > index 
+                        ? 'rgba(0, 255, 0, 0.05)' 
+                        : 'rgba(255, 255, 255, 0.03)',
+                      border: `1px solid ${(player?.quest_ad_views || 0) > index ? '#00ff0040' : colorStyle + '40'}`,
+                      borderRadius: '12px',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <div style={{ marginBottom: '12px' }}>
+                      <h4 style={{
+                        color: (player?.quest_ad_views || 0) > index ? '#00ff00' : colorStyle,
+                        margin: '0 0 6px 0',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        textAlign: 'left'
+                      }}>
+                        {t('ad_watch')} #{index + 1}
+                      </h4>
                     </div>
-                  );
-                })}
+
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingTop: '12px',
+                      borderTop: `1px solid ${(player?.quest_ad_views || 0) > index ? '#00ff0020' : colorStyle + '20'}`
+                    }}>
+                      <div style={{
+                        color: '#90EE90',
+                        fontSize: '0.9rem',
+                        fontWeight: '600'
+                      }}>
+                        +10 CCC
+                      </div>
+                      {renderAdButton(index)}
+                    </div>
+                  </div>
+                ))}
                 
                 {/* СООБЩЕНИЕ О ЗАВЕРШЕНИИ РЕКЛАМЫ */}
                 {(player?.quest_ad_views || 0) >= 5 && (
@@ -697,7 +747,7 @@ const QuestsPage: React.FC = () => {
                     textAlign: 'center'
                   }}>
                     <h4 style={{ color: '#00ff00', marginBottom: '10px', fontSize: '1.1rem' }}>
-                      🎉 {t('daily_ads_completed') || 'Реклама за сегодня просмотрена!'}
+                      {t('daily_ads_completed') || 'Реклама за сегодня просмотрена!'}
                     </h4>
                     <p style={{ color: '#ccc', fontSize: '0.9rem', margin: 0 }}>
                       {t('daily_ads_reset') || 'Завтра будут новые рекламные ролики!'}
@@ -724,7 +774,7 @@ const QuestsPage: React.FC = () => {
               fontSize: '1.1rem',
               textAlign: 'center' 
             }}>
-              ℹ️ {t('information') || 'Информация'}
+              {t('information') || 'Информация'}
             </h4>
             <div style={{
               color: '#ccc',
