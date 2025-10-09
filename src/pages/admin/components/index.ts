@@ -26,3 +26,6 @@ export { default as AdminMinigamesTab } from './AdminMinigamesTab';
 export { default as AdminFinanceTab } from './AdminFinanceTab';
 export { default as AdminSystemTab } from './AdminSystemTab';
 export { default as AdminNotificationsTab } from './AdminNotificationsTab';
+
+// Ручная проверка заданий
+export { default as AdminManualChecksTab } from './AdminManualChecksTab';

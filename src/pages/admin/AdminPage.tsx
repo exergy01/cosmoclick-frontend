@@ -13,9 +13,10 @@ import AdminPlayersTab from './components/AdminPlayersTab';
 import AdminQuestsTab from './components/AdminQuestsTab';
 import AdminFinanceTab from './components/AdminFinanceTab_v2';
 import AdminInvestigationTab from './components/AdminInvestigationTab';
+import AdminManualChecksTab from './components/AdminManualChecksTab';
 
 // Типы для вкладок
-type AdminTabType = 'stats' | 'players' | 'quests' | 'finance' | 'investigation' | 'management';
+type AdminTabType = 'stats' | 'players' | 'quests' | 'finance' | 'investigation' | 'manual-checks' | 'management';
 
 const AdminPage: React.FC = () => {
   const { t } = useTranslation();
@@ -33,6 +34,7 @@ const AdminPage: React.FC = () => {
     { key: 'quests' as const, label: t('admin.tabs.quests'), icon: '📋' },
     { key: 'finance' as const, label: t('admin.tabs.finance'), icon: '🏦' },
     { key: 'investigation' as const, label: t('admin.tabs.investigation'), icon: '🕵️' },
+    { key: 'manual-checks' as const, label: 'Ручная проверка', icon: '✅' },
     { key: 'management' as const, label: t('admin.tabs.management'), icon: '⚙️' }
   ];
 
@@ -96,6 +98,12 @@ const AdminPage: React.FC = () => {
         case 'investigation':
           return (
             <AdminInvestigationTab
+              colorStyle={colorStyle}
+            />
+          );
+        case 'manual-checks':
+          return (
+            <AdminManualChecksTab
               colorStyle={colorStyle}
             />
           );

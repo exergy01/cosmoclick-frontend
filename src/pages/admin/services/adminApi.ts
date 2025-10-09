@@ -859,6 +859,50 @@ export const adminApiService = {
       console.error('❌ Ошибка создания отчета:', error);
       throw error;
     }
+  },
+
+  // 🆕 ФУНКЦИИ ДЛЯ РУЧНОЙ ПРОВЕРКИ ЗАДАНИЙ
+
+  // Получить список заявок на ручную проверку
+  async getManualChecks(status: 'all' | 'pending' | 'approved' | 'rejected' = 'all'): Promise<any> {
+    try {
+      const id = forceGetTelegramId();
+
+      console.log('📋 Загружаем заявки на ручную проверку. ID:', id, 'статус:', status);
+      const response = await adminApi.get(`/manual-checks/list/${encodeURIComponent(id)}`, {
+        params: { status }
+      });
+
+      console.log('✅ Заявки загружены:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка загрузки заявок:', error);
+      throw error;
+    }
+  },
+
+  // Одобрить или отклонить заявку
+  async reviewManualCheck(
+    submissionId: number,
+    action: 'approve' | 'reject',
+    reviewNotes?: string
+  ): Promise<any> {
+    try {
+      const id = forceGetTelegramId();
+
+      console.log('✅ Проверяем заявку. ID:', id, 'submission:', submissionId, 'action:', action);
+      const response = await adminApi.post(`/manual-checks/review/${encodeURIComponent(id)}`, {
+        submission_id: submissionId,
+        action,
+        review_notes: reviewNotes
+      });
+
+      console.log('✅ Заявка обработана:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Ошибка проверки заявки:', error);
+      throw error;
+    }
   }
 };
 

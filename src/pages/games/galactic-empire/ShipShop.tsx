@@ -124,6 +124,7 @@ const ShipShop: React.FC = () => {
     buy: lang === 'ru' ? 'Купить' : 'Buy',
     buying: lang === 'ru' ? 'Покупка...' : 'Buying...',
     level: lang === 'ru' ? 'Уровень' : 'Level',
+    all: lang === 'ru' ? 'Все корабли' : 'All Ships',
     frigate: lang === 'ru' ? 'Фрегаты' : 'Frigates',
     destroyer: lang === 'ru' ? 'Эсминцы' : 'Destroyers',
     cruiser: lang === 'ru' ? 'Крейсеры' : 'Cruisers',
@@ -137,6 +138,7 @@ const ShipShop: React.FC = () => {
   };
 
   const classColors: Record<string, string> = {
+    all: '#FFFFFF',
     frigate: '#4ECDC4',
     destroyer: '#FFE66D',
     cruiser: '#FF6B6B',
@@ -148,7 +150,9 @@ const ShipShop: React.FC = () => {
     torpedoes: '#FF1744'
   };
 
-  const filteredShips = ships.filter(s => s.class === selectedClass);
+  const filteredShips = selectedClass === 'all'
+    ? ships
+    : ships.filter(s => s.class === selectedClass);
 
   if (loading) {
     return (
@@ -228,7 +232,7 @@ const ShipShop: React.FC = () => {
             gap: '8px',
             marginBottom: '15px'
           }}>
-            {['frigate', 'destroyer', 'cruiser', 'battleship', 'premium', 'drones', 'torpedoes', 'reb', 'ai'].map(cls => (
+            {['all', 'frigate', 'destroyer', 'cruiser', 'battleship', 'premium', 'drones', 'torpedoes', 'reb', 'ai'].map(cls => (
               <button
                 key={cls}
                 onClick={() => setSelectedClass(cls)}

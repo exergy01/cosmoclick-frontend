@@ -272,10 +272,10 @@ const QuestsPage: React.FC = () => {
 
   const handleManualCheckSubmit = async (quest: QuestDataV2) => {
     if (!player?.telegram_id) return;
-    
-    const userData = manualCheckInput[quest.quest_id]?.trim();
-    
-    if (!userData) {
+
+    const accountNumber = manualCheckInput[quest.quest_id]?.trim();
+
+    if (!accountNumber) {
       addNotification('Введите номер счета', 'error');
       return;
     }
@@ -283,17 +283,18 @@ const QuestsPage: React.FC = () => {
     try {
       setManualCheckState(prev => ({ ...prev, [quest.quest_id]: 'submitting' }));
 
-      const response = await axios.post(`${API_URL}/api/quests/submit_manual_check`, {
-        telegramId: player.telegram_id,
-        questId: quest.quest_id,
+      // ОБНОВЛЕНО: используем новый API endpoint
+      const response = await axios.post(`${API_URL}/api/quests/submit-manual`, {
+        telegram_id: player.telegram_id,
         quest_key: quest.quest_key,
-        userData: userData
+        account_number: accountNumber,
+        notes: '' // Дополнительные заметки (опционально)
       });
 
       if (response.data.success) {
         setManualCheckState(prev => ({ ...prev, [quest.quest_id]: 'submitted' }));
         addNotification(
-          response.data.message || 'Заявка отправлена на проверку!', 
+          response.data.message || 'Заявка отправлена администратору на проверку!',
           'success',
           5000
         );
@@ -304,9 +305,10 @@ const QuestsPage: React.FC = () => {
     } catch (error: any) {
       setManualCheckState(prev => ({ ...prev, [quest.quest_id]: 'input' }));
       addNotification(
-        error.response?.data?.error || 'Ошибка отправки заявки', 
+        error.response?.data?.error || error.message || 'Ошибка отправки заявки',
         'error'
       );
+      console.error('❌ Ошибка отправки заявки:', error);
     }
   };
 
