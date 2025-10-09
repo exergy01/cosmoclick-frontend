@@ -10,6 +10,7 @@ interface ManualSubmission {
   id: number;
   telegram_id: string;
   quest_key: string;
+  broker_name?: string;
   submission_data: {
     account_number: string;
     notes?: string;
@@ -20,7 +21,6 @@ interface ManualSubmission {
   reviewed_at?: string;
   review_notes?: string;
   first_name?: string;
-  last_name?: string;
   username?: string;
   quest_name?: string;
   reward_cs?: number;
@@ -29,6 +29,7 @@ interface ManualSubmission {
 interface GroupedSubmissions {
   quest_key: string;
   quest_name: string;
+  broker_name?: string;
   quest_type?: string;
   reward_cs?: number;
   submissions: ManualSubmission[];
@@ -260,7 +261,7 @@ const AdminManualChecksTab: React.FC<AdminManualChecksTabProps> = ({ colorStyle 
                   fontSize: '1.3rem',
                   textShadow: `0 0 10px ${colorStyle}60`
                 }}>
-                  📋 {group.quest_name || group.quest_key}
+                  🏦 {group.broker_name || group.quest_name || group.quest_key}
                 </h3>
                 <div style={{ color: '#aaa', fontSize: '0.9rem' }}>
                   {group.reward_cs && `💰 Награда: ${group.reward_cs} CS • `}
