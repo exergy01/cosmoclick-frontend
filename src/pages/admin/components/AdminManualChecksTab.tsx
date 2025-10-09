@@ -223,7 +223,7 @@ const AdminManualChecksTab: React.FC<AdminManualChecksTabProps> = ({ colorStyle 
         ))}
       </div>
 
-      {/* Список заявок по заданиям */}
+      {/* Список заявок сгруппированных по брокерам */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#aaa', fontSize: '1.2rem' }}>
           <div style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
@@ -242,7 +242,40 @@ const AdminManualChecksTab: React.FC<AdminManualChecksTabProps> = ({ colorStyle 
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-          {submissions.map(group => (
+          {/* Группируем по broker_name */}
+          {Object.entries(
+            submissions.reduce((acc, group) => {
+              const brokerKey = group.broker_name || 'Unknown';
+              if (!acc[brokerKey]) {
+                acc[brokerKey] = [];
+              }
+              acc[brokerKey].push(group);
+              return acc;
+            }, {} as Record<string, GroupedSubmissions[]>)
+          ).map(([brokerName, brokerGroups]) => (
+            <div key={brokerName} style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: '20px',
+              border: `2px solid ${colorStyle}60`,
+              overflow: 'hidden',
+              padding: '20px'
+            }}>
+              {/* Заголовок брокера */}
+              <h2 style={{
+                margin: '0 0 20px 0',
+                color: colorStyle,
+                fontSize: '1.8rem',
+                textShadow: `0 0 15px ${colorStyle}80`,
+                textAlign: 'center',
+                paddingBottom: '15px',
+                borderBottom: `2px solid ${colorStyle}40`
+              }}>
+                🏦 {brokerName}
+              </h2>
+
+              {/* Квесты этого брокера */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {brokerGroups.map(group => (
             <div key={group.quest_key} style={{
               background: 'rgba(255, 255, 255, 0.05)',
               borderRadius: '15px',
@@ -429,6 +462,9 @@ const AdminManualChecksTab: React.FC<AdminManualChecksTabProps> = ({ colorStyle 
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          ))}
               </div>
             </div>
           ))}
