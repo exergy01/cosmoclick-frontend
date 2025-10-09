@@ -312,8 +312,8 @@ const QuestsPage: React.FC = () => {
     }
   };
 
-  const basicQuests = quests.filter(q => 
-    !q.completed && (q.quest_type === 'referral' || q.quest_type === 'partner_link')
+  const basicQuests = quests.filter(q =>
+    !q.completed && (q.quest_type === 'referral' || q.quest_type === 'partner_link' || q.quest_type === 'automatic')
   );
 
   const manualQuests = quests.filter(q => !q.completed && q.quest_type === 'manual_check');
