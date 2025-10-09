@@ -21,6 +21,7 @@ interface ManualSubmission {
   reviewed_at?: string;
   review_notes?: string;
   first_name?: string;
+  last_name?: string;
   username?: string;
   quest_name?: string;
   reward_cs?: number;
