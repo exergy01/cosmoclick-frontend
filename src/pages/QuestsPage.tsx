@@ -32,6 +32,7 @@ interface QuestDataV2 {
   used_language: string;
   manual_check_user_instructions?: string;
   link_state?: QuestLinkState | null;
+  manual_check_status?: 'pending' | 'approved_unclaimed' | null;
 }
 
 interface ToastNotificationData {
@@ -423,6 +424,42 @@ const QuestsPage: React.FC = () => {
   };
 
   const renderManualCheckButton = (quest: QuestDataV2) => {
+    // Приоритет: сначала проверяем статус из API
+    if (quest.manual_check_status === 'pending') {
+      return (
+        <div style={{
+          padding: '8px 20px',
+          background: 'rgba(0, 191, 255, 0.2)',
+          border: '1px solid #00bfff',
+          borderRadius: '8px',
+          color: '#00bfff',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          ⏳ На проверке
+        </div>
+      );
+    }
+
+    if (quest.manual_check_status === 'approved_unclaimed') {
+      return (
+        <div style={{
+          padding: '8px 20px',
+          background: 'rgba(0, 255, 0, 0.2)',
+          border: '1px solid #00ff00',
+          borderRadius: '8px',
+          color: '#00ff00',
+          fontSize: '0.85rem',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          ✅ Готово к сбору
+        </div>
+      );
+    }
+
+    // Локальное состояние для UI
     const state = manualCheckState[quest.quest_id] || 'idle';
 
     if (state === 'submitted') {
@@ -437,7 +474,7 @@ const QuestsPage: React.FC = () => {
           fontWeight: '600',
           whiteSpace: 'nowrap'
         }}>
-          На проверке
+          ⏳ Отправлено
         </div>
       );
     }
@@ -487,8 +524,8 @@ const QuestsPage: React.FC = () => {
             disabled={state === 'submitting'}
             style={{
               padding: '6px 16px',
-              background: state === 'submitting' 
-                ? 'rgba(128, 128, 128, 0.2)' 
+              background: state === 'submitting'
+                ? 'rgba(128, 128, 128, 0.2)'
                 : 'linear-gradient(135deg, #00ff0040, #00ff0080)',
               border: `1px solid ${state === 'submitting' ? '#888' : '#00ff00'}`,
               borderRadius: '6px',
