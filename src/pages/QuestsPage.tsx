@@ -293,13 +293,18 @@ const QuestsPage: React.FC = () => {
       });
 
       if (response.data.success) {
-        setManualCheckState(prev => ({ ...prev, [quest.quest_id]: 'submitted' }));
+        // Очищаем локальное состояние
+        setManualCheckState(prev => ({ ...prev, [quest.quest_id]: 'idle' }));
+        setManualCheckInput(prev => ({ ...prev, [quest.quest_id]: '' }));
+
         addNotification(
           response.data.message || 'Заявка отправлена администратору на проверку!',
           'success',
           5000
         );
-        setManualCheckInput(prev => ({ ...prev, [quest.quest_id]: '' }));
+
+        // Перезагружаем квесты из API, чтобы получить актуальный статус
+        loadQuests();
       } else {
         throw new Error(response.data.error);
       }
@@ -463,25 +468,11 @@ const QuestsPage: React.FC = () => {
       );
     }
 
-    // Локальное состояние для UI
+    // Локальное состояние для UI (только для процесса ввода)
     const state = manualCheckState[quest.quest_id] || 'idle';
 
-    if (state === 'submitted') {
-      return (
-        <div style={{
-          padding: '8px 20px',
-          background: 'rgba(0, 191, 255, 0.2)',
-          border: '1px solid #00bfff',
-          borderRadius: '8px',
-          color: '#00bfff',
-          fontSize: '0.85rem',
-          fontWeight: '600',
-          whiteSpace: 'nowrap'
-        }}>
-          ⏳ Отправлено
-        </div>
-      );
-    }
+    // Убрали показ 'submitted', потому что теперь сразу перезагружаем из API
+    // и показываем статус 'pending' из БД
 
     if (state === 'idle') {
       return (
