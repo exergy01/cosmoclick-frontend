@@ -444,18 +444,22 @@ const QuestsPage: React.FC = () => {
 
     if (quest.manual_check_status === 'approved_unclaimed') {
       return (
-        <div style={{
-          padding: '8px 20px',
-          background: 'rgba(0, 255, 0, 0.2)',
-          border: '1px solid #00ff00',
-          borderRadius: '8px',
-          color: '#00ff00',
-          fontSize: '0.85rem',
-          fontWeight: '600',
-          whiteSpace: 'nowrap'
-        }}>
-          ✅ Готово к сбору
-        </div>
+        <button
+          onClick={() => completeQuest(quest)}
+          style={{
+            padding: '8px 20px',
+            background: 'linear-gradient(135deg, #00ff0040, #00ff0080)',
+            border: '1px solid #00ff00',
+            borderRadius: '8px',
+            color: '#00ff00',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer'
+          }}
+        >
+          ✅ Забрать награду
+        </button>
       );
     }
 
