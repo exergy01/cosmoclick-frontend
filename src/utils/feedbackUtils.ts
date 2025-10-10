@@ -3,6 +3,13 @@
 // 🪙 Функция для создания звука звона монетки
 export const playCoinSound = async () => {
   try {
+    // ⚙️ Проверяем настройку звука
+    const soundEnabled = localStorage.getItem('cosmoclick_sound_enabled');
+    if (soundEnabled === 'false') {
+      console.log('🔇 Звук отключен в настройках');
+      return;
+    }
+
     // Проверяем поддержку AudioContext
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) {
@@ -59,6 +66,13 @@ export const playCoinSound = async () => {
 // 📳 Функция для максимально сильной вибрации
 export const triggerStrongVibration = () => {
   try {
+    // ⚙️ Проверяем настройку звука (вибрация тоже относится к звуковым эффектам)
+    const soundEnabled = localStorage.getItem('cosmoclick_sound_enabled');
+    if (soundEnabled === 'false') {
+      console.log('📳 Вибрация отключена в настройках');
+      return;
+    }
+
     console.log('📳 Попытка сильной вибрации...');
 
     // Используем type assertion для обхода TypeScript проблемы

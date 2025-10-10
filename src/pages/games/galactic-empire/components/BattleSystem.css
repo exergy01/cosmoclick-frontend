@@ -1,0 +1,728 @@
+/* Базовые стили */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Контейнер боя */
+.battle-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(180deg, #0a0a2a 0%, #000000 100%);
+  overflow: hidden;
+}
+
+/* Экран боя */
+.battle-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Звездное небо на заднем плане */
+.stars-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(2px 2px at 160px 30px, #ddd, transparent);
+  background-repeat: repeat;
+  background-size: 200px 100px;
+  opacity: 0.8;
+  animation: drift 200s linear infinite;
+}
+
+@keyframes drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-100px, -50px); }
+}
+
+/* Флотилии */
+.fleet {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+}
+
+.player-fleet {
+  bottom: 10%;
+  left: 15%;
+}
+
+.enemy-fleet {
+  top: 10%;
+  right: 15%;
+  transform: scaleX(-1);
+}
+
+/* Корабли */
+.ship {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px 0;
+  position: relative;
+}
+
+.ship-icon {
+  font-size: 2.5rem;
+  margin-bottom: 3px;
+  text-shadow: 0 0 8px #00f, 0 0 15px #00f;
+  animation: shipGlow 2s infinite alternate;
+}
+
+.player-ship .ship-icon {
+  text-shadow: 0 0 8px #00f, 0 0 15px #00f;
+}
+
+.enemy-ship .ship-icon {
+  text-shadow: 0 0 8px #f00, 0 0 15px #f00;
+}
+
+.ship.destroyed .ship-icon {
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+.ship-name {
+  font-size: 0.7rem;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid #00f;
+}
+
+.player-ship .ship-name {
+  border-color: #00f;
+}
+
+.enemy-ship .ship-name {
+  border-color: #f00;
+}
+
+/* Истребители */
+.fighters {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+}
+
+.player-fighters {
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.enemy-fighters {
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(-1);
+}
+
+.fighter {
+  font-size: 1rem;
+  transition: all 1s ease-out;
+}
+
+.fighter.damaged {
+  filter: hue-rotate(180deg) brightness(0.7);
+}
+
+.fighter.destroyed {
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+/* Торпедоносцы */
+.torpedo-bombers {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+}
+
+.player-torpedo-bombers {
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.enemy-torpedo-bombers {
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(-1);
+}
+
+.torpedo-bomber {
+  font-size: 1rem;
+  transition: all 1s ease-out;
+}
+
+.torpedo-bomber.damaged {
+  filter: hue-rotate(180deg) brightness(0.7);
+}
+
+.torpedo-bomber.destroyed {
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+/* Модули */
+.modules {
+  position: absolute;
+  display: flex;
+  gap: 2px;
+}
+
+.player-modules {
+  top: 50%;
+  right: -25px;
+  transform: translateY(-50%);
+  flex-direction: column;
+}
+
+.enemy-modules {
+  top: 50%;
+  left: -25px;
+  transform: translateY(-50%) scaleX(-1);
+  flex-direction: column;
+}
+
+.module {
+  font-size: 0.9rem;
+  animation: modulePulse 1.5s infinite;
+}
+
+.module.damaged {
+  filter: hue-rotate(180deg) brightness(0.7);
+  animation: none;
+}
+
+.module.destroyed {
+  opacity: 0.3;
+  filter: grayscale(100%);
+  animation: none;
+}
+
+.ewar-module {
+  animation: ewarPulse 2s infinite;
+}
+
+/* Щиты */
+.shields {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid transparent;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.player-shields {
+  box-shadow: 0 0 15px #00f, 0 0 30px #00f;
+  animation: shieldPulse 2s infinite;
+}
+
+.enemy-shields {
+  box-shadow: 0 0 15px #f00, 0 0 30px #f00;
+  animation: shieldPulse 2s infinite 1s;
+}
+
+.shields.damaged {
+  box-shadow: 0 0 10px #888, 0 0 20px #888;
+}
+
+/* Лазерные лучи */
+.laser-beam {
+  position: absolute;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ff0, transparent);
+  opacity: 0;
+  transform-origin: left center;
+  box-shadow: 0 0 5px #ff0;
+  pointer-events: none;
+}
+
+.laser-beam.miss {
+  background: linear-gradient(90deg, transparent, #f00, transparent);
+  box-shadow: 0 0 5px #f00;
+}
+
+.ship-laser {
+  height: 4px;
+  box-shadow: 0 0 10px #ff0;
+}
+
+.fighter-laser {
+  height: 2px;
+  box-shadow: 0 0 3px #0f0;
+}
+
+.torpedo-laser {
+  height: 2px;
+  box-shadow: 0 0 3px #00f;
+}
+
+/* Торпеды */
+.torpedo {
+  position: absolute;
+  width: 10px;
+  height: 4px;
+  background: #00f;
+  border-radius: 2px;
+  box-shadow: 0 0 5px #00f;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Волны РЭБ */
+.ewar-wave {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  border: 2px solid #0ff;
+  opacity: 0;
+  box-shadow: 0 0 10px #0ff;
+  pointer-events: none;
+}
+
+/* Взрывы */
+.explosion {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, #ff0, #f80, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 20px #ff0;
+  pointer-events: none;
+}
+
+/* Эффекты попаданий */
+.hit-effect {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #ff0;
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 10px #ff0;
+  pointer-events: none;
+}
+
+/* Индикаторы здоровья кораблей */
+.health-bars-container {
+  position: absolute;
+  bottom: 80px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 20px;
+}
+
+.fleet-health {
+  width: 40%;
+}
+
+.fleet-health-header {
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 3px;
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+}
+
+.health-bar {
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin: 2px 0;
+}
+
+.health-bar span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.health-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.player-health .health-fill {
+  background: linear-gradient(90deg, #00f, #0ff);
+}
+
+.enemy-health .health-fill {
+  background: linear-gradient(90deg, #f00, #f80);
+}
+
+/* Индикаторы здоровья истребителей */
+.fighter-health-bars {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 20px;
+}
+
+.fighter-health-group {
+  display: flex;
+  gap: 5px;
+  width: 40%;
+}
+
+.fighter-health-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fighter-health-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  background: linear-gradient(90deg, #0f0, #0ff);
+}
+
+.enemy-fighter-health .fighter-health-fill {
+  background: linear-gradient(90deg, #f00, #f80);
+}
+
+/* Лог боя */
+.battle-log-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 250px;
+  max-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.battle-log-header {
+  font-weight: bold;
+  margin-bottom: 3px;
+  color: #0f0;
+  text-shadow: 0 0 5px #0f0;
+  font-size: 0.8rem;
+}
+
+.battle-log {
+  flex-grow: 1;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #0f0;
+  border-radius: 5px;
+  padding: 8px;
+  overflow-y: auto;
+  font-size: 0.6rem;
+}
+
+.battle-log p {
+  margin: 1px 0;
+  color: #ccc;
+}
+
+/* Панель управления справа */
+.control-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 130px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #0f0;
+  border-radius: 5px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-panel h4 {
+  color: #0f0;
+  text-align: center;
+  margin: 0 0 3px 0;
+  font-size: 0.8rem;
+}
+
+.ewar-button, .auto-battle-button {
+  background: linear-gradient(135deg, #00f, #0ff);
+  border: none;
+  color: white;
+  padding: 6px;
+  font-size: 0.7rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 8px #0ff;
+  text-align: center;
+}
+
+.ewar-button:hover:not(:disabled), .auto-battle-button:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px #0ff;
+}
+
+.ewar-button:disabled {
+  background: linear-gradient(135deg, #444, #666);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ewar-button.active {
+  background: linear-gradient(135deg, #0f0, #0ff);
+  box-shadow: 0 0 15px #0ff;
+}
+
+.auto-battle-button {
+  background: linear-gradient(135deg, #f0f, #f8f);
+  box-shadow: 0 0 8px #f0f;
+}
+
+.auto-battle-button:hover:not(:disabled) {
+  box-shadow: 0 0 12px #f0f;
+}
+
+.auto-battle-button.active {
+  background: linear-gradient(135deg, #0f0, #0ff);
+  box-shadow: 0 0 15px #0ff;
+}
+
+.target-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.target-button {
+  background: linear-gradient(135deg, #f00, #f80);
+  border: none;
+  color: white;
+  padding: 5px;
+  font-size: 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 6px #f80;
+  text-align: center;
+}
+
+.target-button:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 0 10px #f80;
+}
+
+.target-button:disabled {
+  background: linear-gradient(135deg, #444, #666);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Результат боя */
+.battle-result {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.result-content {
+  text-align: center;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 30px;
+  border-radius: 15px;
+  border: 2px solid #0f0;
+  box-shadow: 0 0 20px #0f0;
+}
+
+.result-content h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #0f0;
+  text-shadow: 0 0 10px #0f0;
+}
+
+.result-content p {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  color: #fff;
+}
+
+.restart-button {
+  background: linear-gradient(135deg, #00f, #0ff);
+  border: none;
+  color: white;
+  padding: 12px 25px;
+  font-size: 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px #0ff;
+}
+
+.restart-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px #0ff;
+}
+
+/* Анимации */
+@keyframes shipGlow {
+  0% { text-shadow: 0 0 10px #00f, 0 0 20px #00f; }
+  100% { text-shadow: 0 0 20px #00f, 0 0 30px #00f, 0 0 40px #00f; }
+}
+
+@keyframes modulePulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes ewarPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes shieldPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes fireLaser {
+  0% { width: 0; opacity: 1; }
+  100% { width: var(--laser-distance, 100px); opacity: 1; }
+}
+
+@keyframes explode {
+  0% { opacity: 1; transform: scale(0); }
+  50% { opacity: 1; transform: scale(2); }
+  100% { opacity: 0; transform: scale(3); }
+}
+
+@keyframes hitFlash {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+@keyframes shipShake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-5px, 2px); }
+  50% { transform: translate(5px, -2px); }
+  75% { transform: translate(-3px, -2px); }
+}
+
+@keyframes shipFloat {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-10px, -8px) rotate(-2deg); }
+  50% { transform: translate(5px, -5px) rotate(1deg); }
+  75% { transform: translate(-5px, 8px) rotate(-1deg); }
+}
+
+.player-fleet .ship {
+  animation: shipFloat 6s ease-in-out infinite;
+}
+
+.player-fleet .ship:nth-child(2) {
+  animation: shipFloat 5.5s ease-in-out infinite 0.5s;
+}
+
+.player-fleet .ship:nth-child(3) {
+  animation: shipFloat 6.5s ease-in-out infinite 1s;
+}
+
+.enemy-fleet .ship {
+  animation: shipFloat 5s ease-in-out infinite;
+}
+
+.enemy-fleet .ship:nth-child(2) {
+  animation: shipFloat 5.8s ease-in-out infinite 0.3s;
+}
+
+.enemy-fleet .ship:nth-child(3) {
+  animation: shipFloat 6.2s ease-in-out infinite 0.7s;
+}
+
+.ship.hit {
+  animation: shipShake 0.3s ease-in-out !important;
+}
+
+/* Адаптация для мобильных устройств */
+@media (max-width: 768px) {
+  .ship-icon {
+    font-size: 2rem;
+  }
+
+  .fighter, .torpedo-bomber {
+    font-size: 0.8rem;
+  }
+
+  .health-bar {
+    height: 15px;
+  }
+
+  .fighter-health-bar {
+    height: 6px;
+  }
+
+  .result-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .result-content p {
+    font-size: 1rem;
+  }
+
+  .battle-log-container {
+    width: 180px;
+    max-height: 180px;
+  }
+
+  .battle-log {
+    font-size: 0.5rem;
+  }
+
+  .control-panel {
+    width: 100px;
+    padding: 6px;
+  }
+
+  .ewar-button, .auto-battle-button, .target-button {
+    padding: 4px;
+    font-size: 0.6rem;
+  }
+}

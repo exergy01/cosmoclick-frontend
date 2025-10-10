@@ -18,6 +18,7 @@ import Hangar from './Hangar';
 import Formation from './Formation';
 import BattleHistory from './BattleHistory';
 import BattleReplay from './BattleReplay';
+import BattleScreen from './components/BattleScreen';
 import LuminiosExchange from './LuminiosExchange';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
@@ -1826,18 +1827,17 @@ const GalacticEmpire: React.FC = () => {
       )}
 
       {showBattleReplay && (
-        <BattleReplay
+        <BattleScreen
           battleLog={showBattleReplay.battleLog}
           playerFleet={showBattleReplay.playerFleet}
           enemyFleet={showBattleReplay.enemyFleet}
           winner={showBattleReplay.winner}
-          onClose={async () => {
+          reward={showBattleReplay.reward}
+          onBattleEnd={async () => {
             setShowBattleReplay(null);
             await loadShipsAndFormation();
             await loadBattles();
           }}
-          lang={lang}
-          raceColor={raceColor}
         />
       )}
     </div>
