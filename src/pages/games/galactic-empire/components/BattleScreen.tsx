@@ -9,17 +9,20 @@ import './BattleSystem.css';
 interface BattleAction {
   round: number;
   attacker: {
-    shipId: number;
+    fleet: number;
+    index: number;
+    shipId: number | string;
     shipType: string;
-    isPlayer: boolean;
   };
   target: {
-    shipId: number;
+    fleet: number;
+    index: number;
+    shipId: number | string;
     shipType: string;
-    isPlayer: boolean;
   };
   damage: number;
   isCrit: boolean;
+  blocked: number;
   isKill: boolean;
   targetRemainingHP: number;
 }
@@ -154,7 +157,7 @@ const BattleScreen: React.FC<BattleScreenProps> = ({
 
     const timer = setTimeout(() => {
       // Обновляем HP кораблей
-      if (action.target.isPlayer) {
+      if (action.target.fleet === 1) {
         setPlayerShips(prev =>
           prev.map(ship =>
             ship.id === action.target.shipId
@@ -180,11 +183,11 @@ const BattleScreen: React.FC<BattleScreenProps> = ({
         );
       }
 
-      // Визуальные эффекты
-      const fromSelector = action.attacker.isPlayer ? '.player-ship .ship-icon' : '.enemy-ship .ship-icon';
-      const toSelector = action.target.isPlayer ? '.player-ship .ship-icon' : '.enemy-ship .ship-icon';
-      const laserClass = action.attacker.isPlayer ? 'sl1' : 'sl2';
-      const explosionClass = action.target.isPlayer ? 'explosion1' : 'explosion2';
+      // Визуальные эффекты - используем shipId для точного таргетинга
+      const fromSelector = `[data-ship-id="${action.attacker.shipId}"] .ship-icon`;
+      const toSelector = `[data-ship-id="${action.target.shipId}"] .ship-icon`;
+      const laserClass = action.attacker.fleet === 1 ? 'sl1' : 'sl2';
+      const explosionClass = action.target.fleet === 1 ? 'explosion1' : 'explosion2';
 
       fireLaser(fromSelector, toSelector, laserClass);
       setTimeout(() => {
@@ -194,7 +197,7 @@ const BattleScreen: React.FC<BattleScreenProps> = ({
       // Лог боя
       const critText = action.isCrit ? ' 💥КРИТ' : '';
       const killText = action.isKill ? ' 💀УНИЧТОЖЕН' : '';
-      const attackerName = action.attacker.isPlayer ? '🔵' : '🔴';
+      const attackerName = action.attacker.fleet === 1 ? '🔵' : '🔴';
       addToBattleLog(
         `${attackerName} ${action.attacker.shipType} → ${action.target.shipType}: -${action.damage}${critText}${killText}`
       );
