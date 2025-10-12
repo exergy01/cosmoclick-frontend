@@ -1,23 +1,28 @@
-// components/WithdrawModal.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// components/WithdrawModal.tsx - FIXED VERSION (Backend API approach)
 import React from 'react';
-import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
+import { useTonAddress } from '@tonconnect/ui-react';
 import { useState } from 'react';
+import axios from 'axios';
 
 interface WithdrawModalProps {
   playerBalance: number;
+  telegramId: string;
   onClose?: () => void;
   onSuccess?: (amount: number) => void;
 }
 
-export const WithdrawModal: React.FC<WithdrawModalProps> = ({ 
-  playerBalance, 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+export const WithdrawModal: React.FC<WithdrawModalProps> = ({
+  playerBalance,
+  telegramId,
   onClose,
-  onSuccess 
+  onSuccess
 }) => {
-  const [tonConnectUI] = useTonConnectUI();
   const [amount, setAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const address = useTonAddress();
 
   const handleWithdraw = async () => {
@@ -27,7 +32,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
     }
 
     const withdrawAmount = parseFloat(amount);
-    
+
     if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
       setError('Invalid amount');
       return;
@@ -45,48 +50,54 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
     setIsProcessing(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      // Конвертация баланса в TON (1 TON = 1,000,000,000 nanoton)
-      const nanotons = Math.floor(withdrawAmount * 1e9);
+      // 🔒 SECURITY: Call backend API to prepare withdrawal
+      const response = await axios.post(`${API_URL}/api/wallet/ton-withdrawals/prepare`, {
+        telegram_id: telegramId,
+        amount: withdrawAmount,
+        wallet_address: address
+      });
 
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 60, // 60 секунд
-        messages: [
-          {
-            address: address, // Адрес игрока
-            amount: nanotons.toString()
-          }
-        ]
-      };
+      console.log('Withdrawal request created:', response.data);
 
-      const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('Transaction sent:', result);
-      
+      setSuccess(`✅ Withdrawal request submitted!\nAmount: ${withdrawAmount} TON\nRequest ID: ${response.data.withdrawal_id}\n\nAdmin will process your request soon.`);
+
       // Вызываем колбэк успеха
       if (onSuccess) {
         onSuccess(withdrawAmount);
       }
-      
-      // Закрываем модал
-      if (onClose) {
-        onClose();
-      }
+
+      // Закрываем модал через 3 секунды
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        }
+      }, 3000);
 
     } catch (error: any) {
-      console.error('Transaction failed:', error);
-      
-      if (error.message?.includes('Wallet declined')) {
-        setError('Transaction declined by wallet');
+      console.error('Withdrawal request failed:', error);
+
+      if (error.response?.data?.error) {
+        setError(error.response.data.error);
+
+        // Show detailed balance info if available
+        if (error.response.data.available_balance !== undefined) {
+          const details = error.response.data;
+          setError(`${details.error}\n\nAvailable: ${details.available_balance} TON\nTotal balance: ${details.total_balance} TON\nReserved: ${details.reserved} TON\nStaked: ${details.staked} TON`);
+        }
+      } else if (error.message?.includes('Network')) {
+        setError('Network error. Please check your connection.');
       } else {
-        setError('Transaction failed');
+        setError('Withdrawal request failed. Please try again.');
       }
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const maxAmount = Math.max(0, playerBalance - 0.01); // Оставляем запас на комиссию
+  const maxAmount = Math.max(0, playerBalance - 0.01); // Reserve for potential fees
 
   return (
     <div className="withdraw-modal" style={{
@@ -114,7 +125,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
         <h3 style={{ color: '#00f0ff', marginBottom: '20px', textAlign: 'center' }}>
           💸 Withdraw TON
         </h3>
-        
+
         {error && (
           <div style={{
             background: 'rgba(239, 68, 68, 0.15)',
@@ -122,12 +133,27 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             padding: '10px',
             borderRadius: '8px',
             marginBottom: '15px',
-            textAlign: 'center'
+            fontSize: '0.85rem',
+            whiteSpace: 'pre-line'
           }}>
             ⚠️ {error}
           </div>
         )}
-        
+
+        {success && (
+          <div style={{
+            background: 'rgba(34, 197, 94, 0.15)',
+            color: '#22c55e',
+            padding: '10px',
+            borderRadius: '8px',
+            marginBottom: '15px',
+            fontSize: '0.85rem',
+            whiteSpace: 'pre-line'
+          }}>
+            {success}
+          </div>
+        )}
+
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', color: '#ccc' }}>
             Amount (TON):
@@ -140,7 +166,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             step="0.01"
             min="0.1"
             max={maxAmount}
-            disabled={isProcessing}
+            disabled={isProcessing || success !== null}
             style={{
               width: '100%',
               padding: '12px',
@@ -172,10 +198,22 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
           </p>
         </div>
 
+        <div style={{
+          background: 'rgba(255, 165, 0, 0.1)',
+          border: '1px solid rgba(255, 165, 0, 0.3)',
+          borderRadius: '8px',
+          padding: '10px',
+          marginBottom: '15px',
+          fontSize: '0.75rem',
+          color: '#ffa500'
+        }}>
+          ℹ️ Your withdrawal request will be reviewed by an admin. Processing time: 1-24 hours.
+        </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
             onClick={handleWithdraw}
-            disabled={isProcessing || !amount || parseFloat(amount) < 0.1 || !address}
+            disabled={isProcessing || !amount || parseFloat(amount) < 0.1 || !address || success !== null}
             style={{
               flex: 1,
               padding: '12px',
@@ -184,13 +222,13 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               borderRadius: '8px',
               color: '#fff',
               fontSize: '1rem',
-              cursor: (isProcessing || !amount || parseFloat(amount) < 0.1 || !address) ? 'not-allowed' : 'pointer',
-              opacity: (isProcessing || !amount || parseFloat(amount) < 0.1 || !address) ? 0.5 : 1
+              cursor: (isProcessing || !amount || parseFloat(amount) < 0.1 || !address || success !== null) ? 'not-allowed' : 'pointer',
+              opacity: (isProcessing || !amount || parseFloat(amount) < 0.1 || !address || success !== null) ? 0.5 : 1
             }}
           >
-            {isProcessing ? '🔄 Processing...' : '✅ Withdraw'}
+            {isProcessing ? '🔄 Processing...' : success ? '✅ Sent' : '✅ Withdraw'}
           </button>
-          
+
           <button
             onClick={onClose}
             disabled={isProcessing}
@@ -205,7 +243,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               cursor: 'pointer'
             }}
           >
-            ❌ Cancel
+            ❌ {success ? 'Close' : 'Cancel'}
           </button>
         </div>
       </div>

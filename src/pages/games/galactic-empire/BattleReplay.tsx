@@ -90,6 +90,14 @@ const BattleReplay: React.FC<BattleReplayProps> = ({
   const [enemyFleet, setEnemyFleet] = useState(initialEnemyFleet.map(s => ({ ...s })));
   const [lastHit, setLastHit] = useState<{ fleet: number; index: number } | null>(null);
 
+  // Debug: Log winner type and value
+  React.useEffect(() => {
+    console.log('🔍 BattleReplay winner:', winner, 'type:', typeof winner);
+    console.log('🔍 winner === 1:', winner === 1);
+    console.log('🔍 winner === 2:', winner === 2);
+    console.log('🔍 winner === "draw":', winner === "draw");
+  }, [winner]);
+
   const t = {
     ru: {
       replay: 'Повтор боя',

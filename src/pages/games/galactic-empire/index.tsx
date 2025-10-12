@@ -20,12 +20,15 @@ import BattleHistory from './BattleHistory';
 import BattleReplay from './BattleReplay';
 import BattleScreen from './components/BattleScreen';
 import LuminiosExchange from './LuminiosExchange';
+import ModuleWorkshop from './ModuleWorkshop';
+import { premiumAdService } from '../../../services/premiumAwareAdService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
 // Компонент для отображения строящегося корабля с таймером
-const BuildingShipItem: React.FC<{ ship: any; lang: string }> = ({ ship, lang }) => {
+const BuildingShipItem: React.FC<{ ship: any; lang: string; onShipReady?: () => void }> = ({ ship, lang, onShipReady }) => {
   const [timeLeft, setTimeLeft] = useState(0);
+  const [shipReady, setShipReady] = useState(false);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -34,16 +37,19 @@ const BuildingShipItem: React.FC<{ ship: any; lang: string }> = ({ ship, lang })
       const remaining = Math.max(0, Math.floor((buildTime - now) / 1000));
       setTimeLeft(remaining);
 
-      if (remaining === 0) {
-        // Корабль построен - перезагружаем страницу
-        window.location.reload();
+      if (remaining === 0 && !shipReady) {
+        // ✅ Корабль построен - вызываем callback вместо reload
+        setShipReady(true);
+        if (onShipReady) {
+          onShipReady();
+        }
       }
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [ship.built_at]);
+  }, [ship.built_at, shipReady, onShipReady]);
 
   const formatTime = (seconds: number) => {
     if (seconds < 60) return `${seconds}${lang === 'ru' ? 'с' : 's'}`;
@@ -127,12 +133,14 @@ const GalacticEmpire: React.FC = () => {
   const [buildingShips, setBuildingShips] = useState<any[]>([]);
 
   // NEW: State for screens
-  const [currentScreen, setCurrentScreen] = useState<'main' | 'hangar' | 'formation' | 'battles' | 'exchange'>('main');
+  const [currentScreen, setCurrentScreen] = useState<'main' | 'hangar' | 'formation' | 'battles' | 'exchange' | 'modules'>('main');
   const [ships, setShips] = useState<any[]>([]);
   const [formationShipIds, setFormationShipIds] = useState<number[]>([]);
   const [formationShips, setFormationShips] = useState<any[]>([]);
   const [battles, setBattles] = useState<any[]>([]);
   const [showBattleReplay, setShowBattleReplay] = useState<any>(null);
+  const [modules, setModules] = useState<any[]>([]);
+  const [selectedShipForModules, setSelectedShipForModules] = useState<any>(null);
 
   // Вынесли loadEmpireData из useEffect
   const loadEmpireData = async () => {
@@ -211,6 +219,7 @@ const GalacticEmpire: React.FC = () => {
 
     const init = async () => {
       await loadEmpireData();
+      await loadModules();
     };
 
     init();
@@ -227,7 +236,10 @@ const GalacticEmpire: React.FC = () => {
       ]);
 
       const allShips = shipsRes.data;
+      const buildingShips = allShips.filter((ship: any) => new Date(ship.built_at) > new Date());
       const readyShips = allShips.filter((ship: any) => new Date(ship.built_at) <= new Date());
+
+      setBuildingShips(buildingShips); // ✅ Обновляем список строящихся
       setShips(readyShips);
 
       if (formationRes.data.shipIds) {
@@ -323,6 +335,74 @@ const GalacticEmpire: React.FC = () => {
     }
   };
 
+  const handleUpgradeShip = async (shipId: number) => {
+    try {
+      const res = await axios.post(`${API_URL}/api/galactic-empire/ships/upgrade`, {
+        telegramId: player.telegram_id,
+        shipId
+      });
+
+      // Reload ships and update balance
+      await loadShipsAndFormation();
+      if (empireData?.player) {
+        setEmpireData({
+          ...empireData,
+          player: {
+            ...empireData.player,
+            luminios_balance: res.data.newBalance
+          }
+        });
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Upgrade failed');
+    }
+  };
+
+  // Load modules
+  const loadModules = async () => {
+    if (!player?.telegram_id) return;
+    try {
+      const res = await axios.get(`${API_URL}/api/galactic-empire/modules/${player.telegram_id}`);
+      setModules(res.data);
+    } catch (error) {
+      console.error('Failed to load modules:', error);
+    }
+  };
+
+  // Equip module
+  const handleEquipModule = async (shipId: number, slotNumber: number, moduleType: string, moduleTier: number) => {
+    try {
+      await axios.post(`${API_URL}/api/galactic-empire/ships/module/equip`, {
+        telegramId: player.telegram_id,
+        shipId,
+        slotNumber,
+        moduleType,
+        moduleTier
+      });
+      await loadShipsAndFormation();
+      await loadModules();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to equip module');
+      throw error;
+    }
+  };
+
+  // Unequip module
+  const handleUnequipModule = async (shipId: number, slotNumber: number) => {
+    try {
+      await axios.post(`${API_URL}/api/galactic-empire/ships/module/unequip`, {
+        telegramId: player.telegram_id,
+        shipId,
+        slotNumber
+      });
+      await loadShipsAndFormation();
+      await loadModules();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to unequip module');
+      throw error;
+    }
+  };
+
   const handleStartBattle = async () => {
     console.log('⚔️ handleStartBattle called');
     console.log('Formation ships:', formationShips);
@@ -342,6 +422,18 @@ const GalacticEmpire: React.FC = () => {
 
     try {
       setLoading(true);
+
+      // 📺 Показываем рекламу перед боем (с учетом премиума)
+      console.log('📺 Показываю рекламу перед боем...');
+      premiumAdService.setTelegramId(player.telegram_id);
+      const adResult = await premiumAdService.showAd();
+
+      if (!adResult.success && !adResult.skipped) {
+        console.log('❌ Реклама не была просмотрена');
+        setLoading(false);
+        return;
+      }
+
       console.log('🚀 Starting PvE battle for player:', player.telegram_id);
 
       const res = await axios.post(`${API_URL}/api/galactic-empire/battles/start-pve`, {
@@ -349,6 +441,7 @@ const GalacticEmpire: React.FC = () => {
       });
 
       console.log('✅ Battle completed:', res.data);
+      console.log('🏆 Winner from server:', res.data.winner);
 
       // Show battle replay
       setShowBattleReplay({
@@ -919,7 +1012,7 @@ const GalacticEmpire: React.FC = () => {
               ⏱️ {lang === 'ru' ? 'В постройке' : 'Building'}
             </h3>
             {buildingShips.map((ship: any) => (
-              <BuildingShipItem key={ship.id} ship={ship} lang={lang} />
+              <BuildingShipItem key={ship.id} ship={ship} lang={lang} onShipReady={loadShipsAndFormation} />
             ))}
           </div>
         )}
@@ -1557,6 +1650,36 @@ const GalacticEmpire: React.FC = () => {
             <span>💱</span>
             <span>{lang === 'ru' ? 'Обмен' : 'Exchange'}</span>
           </button>
+
+          <button
+            onClick={() => setCurrentScreen('modules')}
+            style={{
+              background: 'rgba(0, 0, 0, 0.3)',
+              border: `2px solid ${raceColor}40`,
+              borderRadius: '12px',
+              padding: '20px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}`;
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.border = `2px solid ${raceColor}40`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <span>🔧</span>
+            <span>{lang === 'ru' ? 'Мастерская' : 'Modules'}</span>
+          </button>
         </div>
 
         {/* Третья строка: Статистика / Смена расы */}
@@ -1704,6 +1827,7 @@ const GalacticEmpire: React.FC = () => {
             onSelectShip={(ship) => console.log('Selected', ship)}
             onAddToFormation={handleAddToFormation}
             onRepairShip={handleRepairShip}
+            onUpgradeShip={handleUpgradeShip}
             lang={lang}
             raceColor={raceColor}
           />
@@ -1820,6 +1944,48 @@ const GalacticEmpire: React.FC = () => {
               // Update player CS balance without reload
               await updatePlayer();
             }}
+            lang={lang}
+            raceColor={raceColor}
+          />
+        </div>
+      )}
+
+      {/* Module Workshop Screen */}
+      {currentScreen === 'modules' && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.95)',
+          zIndex: 1000,
+          padding: '20px',
+          overflowY: 'auto'
+        }}>
+          <button
+            onClick={() => setCurrentScreen('main')}
+            style={{
+              background: raceColor,
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '1.1rem',
+              color: '#fff',
+              cursor: 'pointer',
+              marginBottom: '20px'
+            }}
+          >
+            ← {lang === 'ru' ? 'Назад' : 'Back'}
+          </button>
+
+          <ModuleWorkshop
+            modules={modules}
+            ships={ships}
+            selectedShip={selectedShipForModules}
+            onSelectShip={setSelectedShipForModules}
+            onEquipModule={handleEquipModule}
+            onUnequipModule={handleUnequipModule}
             lang={lang}
             raceColor={raceColor}
           />

@@ -113,7 +113,7 @@ class PremiumAwareAdService {
   async showRewardedAd(): Promise<PremiumAdResult> {
     // 🚀 ВСЕГДА ПОЛУЧАЕМ СВЕЖИЙ СТАТУС ПРЕМИУМА
     const premiumStatus = await this.checkPremiumStatus();
-    
+
     if (premiumStatus.hasPremium) {
       // Возвращаем успешный результат без показа рекламы
       return {
@@ -125,15 +125,20 @@ class PremiumAwareAdService {
         timestamp: Date.now()
       };
     }
-    
+
     // 🎯 ПОКАЗЫВАЕМ РЕКЛАМУ
     const adResult = await adService.showRewardedAd();
-    
+
     return {
       ...adResult,
       premium: premiumStatus,
       skipped: false
     };
+  }
+
+  // 🎯 АЛИАС ДЛЯ СОВМЕСТИМОСТИ
+  async showAd(): Promise<PremiumAdResult> {
+    return this.showRewardedAd();
   }
 
   // 🎯 БЫСТРАЯ ПРОВЕРКА ДОСТУПНОСТИ
