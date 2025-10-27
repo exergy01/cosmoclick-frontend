@@ -105,37 +105,19 @@ const CurrencyPanel: React.FC<CurrencyPanelProps> = ({ player, currentSystem, co
         </p>
       </div>
       <div style={{ textAlign: 'right', position: 'relative' }}>
-        {/* 👑 КОРОНА VIP СТАТУСА */}
-        {premiumStatus?.hasPremium && (
-          <div style={{
-            position: 'absolute',
-            top: '-5px',
-            right: '-5px',
-            fontSize: '1.2rem',
-            textShadow: '0 0 10px #FFD700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            zIndex: 10
-          }}>
-            👑
-            {premiumStatus.type === 'temporary' && premiumStatus.daysLeft && (
-              <span style={{
-                fontSize: '0.6rem',
-                color: '#FFD700',
-                fontWeight: 'bold'
-              }}>
-                {premiumStatus.daysLeft}д
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* 🎨 СИММЕТРИЧНО: один <p> с <br/> как слева */}
+        {/* 🎨 ИНФОРМАЦИЯ О БАЛАНСАХ И VIP */}
         <p style={{ fontSize: '1rem' }}>
           ✨ CS: {(typeof player.cs === 'number' ? player.cs : parseFloat(player.cs || '0')).toFixed(5)}<br/>
           💎 TON: {(typeof player.ton === 'number' ? player.ton : parseFloat(player.ton || '0')).toFixed(9)}<br/>
-          ⭐ Stars: {(player.telegram_stars || 0).toLocaleString()}
+          {premiumStatus?.hasPremium ? (
+            <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
+              👑 VIP: {premiumStatus.type === 'forever' ? 'Навсегда' : `${premiumStatus.daysLeft}д`}
+            </span>
+          ) : (
+            <span style={{ color: '#888', fontSize: '0.85rem' }}>
+              VIP: Неактивен
+            </span>
+          )}
         </p>
       </div>
     </div>

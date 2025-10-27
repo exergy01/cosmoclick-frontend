@@ -11,6 +11,7 @@ interface Ship {
   max_hp: number;
   updated_at: string;
   race: string;
+  ship_class?: string; // premium or regular
 }
 
 interface UseShipRegenerationProps {

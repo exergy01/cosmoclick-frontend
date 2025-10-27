@@ -334,33 +334,51 @@ const WalletPage: React.FC = () => {
 
   const handlePremiumPurchaseStars = async (packageType: 'NO_ADS_30_DAYS' | 'NO_ADS_FOREVER') => {
     const amount = PREMIUM_PACKAGES[packageType].stars;
-    const currentStars = parseInt(player?.telegram_stars || '0');
-
-    if (currentStars < amount) {
-      setError(`Недостаточно Stars! У вас: ${currentStars}, нужно: ${amount}`);
-      return;
-    }
+    const duration = packageType === 'NO_ADS_30_DAYS' ? '30 дней' : 'навсегда';
 
     setIsProcessing(true);
     setError(null);
 
     try {
-      const response = await axios.post(`${API_URL}/api/wallet/premium-system/purchase`, {
+      console.log('Creating premium invoice for Stars:', { packageType, amount });
+
+      // Создаем invoice через backend с правильным описанием
+      const response = await axios.post(`${API_URL}/api/wallet/stars-payments/create-invoice`, {
         telegram_id: player?.telegram_id,
-        package_type: packageType.toLowerCase(),
-        payment_method: 'stars',
-        payment_amount: amount
+        amount: amount,
+        description: `Премиум подписка ${duration} - отключение рекламы`,
+        payload: `premium_${packageType.toLowerCase()}` // Для идентификации на backend
       });
 
-      if (response.data.success) {
-        setSuccess(response.data.message);
-        await refreshPlayer();
-        await checkPremiumStatus();
+      if (response.data.success && response.data.invoice_url) {
+        const invoiceUrl = response.data.invoice_url;
+
+        // Открываем invoice в Telegram
+        if ((window as any).Telegram?.WebApp?.openInvoice) {
+          (window as any).Telegram.WebApp.openInvoice(invoiceUrl, async (status: string) => {
+            if (status === 'paid') {
+              setSuccess('Премиум подписка активирована!');
+              await refreshPlayer();
+              await checkPremiumStatus();
+            } else if (status === 'cancelled') {
+              setError('Оплата отменена');
+            } else if (status === 'failed') {
+              setError('Ошибка оплаты');
+            }
+          });
+        } else if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+          (window as any).Telegram.WebApp.openTelegramLink(invoiceUrl);
+          setSuccess('Счет создан! Откройте ссылку для оплаты');
+        } else {
+          window.open(invoiceUrl, '_blank');
+          setSuccess('Счет создан! Откройте ссылку для оплаты');
+        }
       } else {
-        setError(response.data.error || 'Ошибка покупки');
+        setError(response.data.error || 'Ошибка создания счета');
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Ошибка покупки премиума');
+      console.error('Premium Stars invoice error:', err);
+      setError(err.response?.data?.error || 'Ошибка создания счета на оплату');
     } finally {
       setIsProcessing(false);
     }
@@ -664,16 +682,14 @@ const WalletPage: React.FC = () => {
     textAlign: 'center'
   }}>Баланс</h3>
   
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-around', 
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: '25px',
     padding: '15px',
     background: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: '10px',
-    flexWrap: 'wrap',
-    gap: '15px'
+    borderRadius: '10px'
   }}>
     <div style={{ textAlign: 'center', minWidth: '120px' }}>
       <div style={{ fontSize: '1.4rem', color: colorStyle, marginBottom: '3px' }}>
@@ -681,22 +697,6 @@ const WalletPage: React.FC = () => {
       </div>
       <div style={{ color: '#888', fontSize: '0.7rem' }}>
         ≈ ${(parseFloat(player?.ton || '0') * 2.5).toFixed(2)}
-      </div>
-    </div>
-    
-    <div style={{ 
-      width: '1px', 
-      height: '40px', 
-      background: colorStyle, 
-      opacity: 0.3 
-    }} />
-    
-    <div style={{ textAlign: 'center', minWidth: '120px' }}>
-      <div style={{ fontSize: '1.4rem', color: colorStyle, marginBottom: '3px' }}>
-        ⭐ {parseInt(player?.telegram_stars || '0').toLocaleString()}
-      </div>
-      <div style={{ color: '#888', fontSize: '0.7rem' }}>
-        Telegram Stars
       </div>
     </div>
   </div>
@@ -733,26 +733,6 @@ const WalletPage: React.FC = () => {
         minHeight: '50px'
       }}
     >🛡️ Пополнить TON</button>
-
-    <button
-      onClick={() => {
-        setShowStarsModal(true);
-        setError(null);
-        setSuccess(null);
-      }}
-      style={{
-        padding: '15px 18px',
-        background: `linear-gradient(135deg, ${colorStyle}30, ${colorStyle}60, ${colorStyle}30)`,
-        border: `2px solid ${colorStyle}`,
-        borderRadius: '15px',
-        color: '#fff',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '1rem',
-        minWidth: '140px',
-        minHeight: '50px'
-      }}
-    >Купить Stars</button>
 
     <button
       onClick={checkSecureDeposits}
@@ -917,24 +897,22 @@ const WalletPage: React.FC = () => {
                       <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => handlePremiumPurchaseStars('NO_ADS_30_DAYS')}
-                          disabled={isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars}
+                          disabled={isProcessing}
                           style={{
                             padding: '12px 18px',
-                            background: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars
-                              ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-                              : 'rgba(128, 128, 128, 0.3)',
+                            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                             border: 'none',
                             borderRadius: '12px',
                             color: '#fff',
-                            cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 'not-allowed' : 'pointer',
+                            cursor: isProcessing ? 'not-allowed' : 'pointer',
                             fontWeight: 'bold',
                             fontSize: '1rem',
-                            opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars) ? 0.5 : 1,
+                            opacity: isProcessing ? 0.5 : 1,
                             minWidth: '140px',
                             minHeight: '48px'
                           }}
                         >
-                          {PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars} Stars
+                          ⭐ {PREMIUM_PACKAGES.NO_ADS_30_DAYS.stars} Stars
                         </button>
                         <button
                           onClick={() => handlePremiumPurchaseTON('NO_ADS_30_DAYS')}
@@ -961,7 +939,6 @@ const WalletPage: React.FC = () => {
                     </div>
                   </div>
                 )}
-                // ЧАСТЬ 12: ПРЕМИУМ СЕКЦИЯ (ВТОРАЯ ПОЛОВИНА)
 
 <div style={{
   padding: '25px',
@@ -1007,27 +984,23 @@ const WalletPage: React.FC = () => {
     <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
       <button
         onClick={() => handlePremiumPurchaseStars('NO_ADS_FOREVER')}
-        disabled={isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars}
+        disabled={isProcessing}
         style={{
           padding: '15px 20px',
-          background: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars
-            ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-            : 'rgba(128, 128, 128, 0.3)',
+          background: 'linear-gradient(135deg, #FFD700, #FFA500)',
           border: 'none',
           borderRadius: '15px',
           color: '#fff',
-          cursor: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 'not-allowed' : 'pointer',
+          cursor: isProcessing ? 'not-allowed' : 'pointer',
           fontWeight: 'bold',
           fontSize: '1.1rem',
-          opacity: (isProcessing || parseInt(player?.telegram_stars || '0') < PREMIUM_PACKAGES.NO_ADS_FOREVER.stars) ? 0.5 : 1,
-          boxShadow: parseInt(player?.telegram_stars || '0') >= PREMIUM_PACKAGES.NO_ADS_FOREVER.stars 
-            ? '0 0 15px rgba(255, 215, 0, 0.4)' 
-            : 'none',
+          opacity: isProcessing ? 0.5 : 1,
+          boxShadow: '0 0 15px rgba(255, 215, 0, 0.4)',
           minWidth: '160px',
           minHeight: '55px'
         }}
       >
-        {PREMIUM_PACKAGES.NO_ADS_FOREVER.stars} Stars
+        ⭐ {PREMIUM_PACKAGES.NO_ADS_FOREVER.stars} Stars
       </button>
       <button
         onClick={() => handlePremiumPurchaseTON('NO_ADS_FOREVER')}
