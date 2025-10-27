@@ -197,15 +197,13 @@ const ShopPage: React.FC = () => {
   const getResourceValue = (item: Item): number => {
     // 💣 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ БОМБЫ
     const isBomb = item.id === 13 || item.isBomb;
-    
+
     if (isBomb) {
       // Для бомбы показываем сумму ВСЕХ основных астероидов системы из shopData
-      const systemAsteroids = shopItems.asteroids.filter(a => 
+      const systemAsteroids = shopItems.asteroids.filter(a =>
         a.system === currentSystem && a.id <= 12 && !a.isBomb
       );
-      
-      console.log(`💣 Рассчитываем ресурсы бомбы для системы ${currentSystem}:`, systemAsteroids);
-      
+
       const totalResources = systemAsteroids.reduce((sum, asteroid) => {
         if (currentSystem === 4) {
           return sum + (asteroid.totalCs || 0);
@@ -213,11 +211,10 @@ const ShopPage: React.FC = () => {
           return sum + (asteroid.totalCcc || 0);
         }
       }, 0);
-      
-      console.log(`💣 Общие ресурсы системы ${currentSystem}:`, totalResources);
+
       return totalResources;
     }
-    
+
     // Для обычных астероидов - стандартная логика
     if (currentSystem === 4) {
       return item.totalCs || 0;
@@ -293,22 +290,11 @@ const ShopPage: React.FC = () => {
       const purchasedAsteroids = player.asteroids.filter((a: any) => a.system === currentSystem && a.id <= 12).length;
       const purchasedDrones = player.drones.filter((d: any) => d.system === currentSystem).length;
       const purchasedCargo = player.cargo_levels.filter((c: any) => c.system === currentSystem).length;
-      
-      console.log(`🔍 Система ${currentSystem} проверка бомбы:`, {
-        purchasedAsteroids, 
-        purchasedDrones, 
-        purchasedCargo,
-        maxAsteroids: systemAsteroids.length,
-        maxDrones: systemDrones.length, 
-        maxCargo: systemCargo.length
-      });
-      
+
       // 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Проверяем ВСЕ основные товары
-      const hasAllItems = purchasedAsteroids === systemAsteroids.length && 
-                          purchasedDrones === systemDrones.length && 
+      const hasAllItems = purchasedAsteroids === systemAsteroids.length &&
+                          purchasedDrones === systemDrones.length &&
                           purchasedCargo === systemCargo.length;
-      
-      console.log(`💣 Бомба доступна в системе ${currentSystem}:`, hasAllItems);
       
       // 🔥 ИСПРАВЛЕНО: Показываем бомбу только если куплено все (но она ВСЕГДА доступна для покупки)
       const availableAsteroids = asteroids
@@ -599,7 +585,76 @@ const ShopPage: React.FC = () => {
         colorStyle={colorStyle}
       />
 
-      <div style={{ marginTop: '150px', paddingBottom: '130px' }}>
+      <div style={{ marginTop: '110px', paddingBottom: '130px' }}>
+        {/* 🔥 БЛОК: Выбор системы (с поддержкой системы 5) - ПОДНЯТ ВЫШЕ */}
+        <div style={{ textAlign: 'center', marginBottom: '15px', position: 'relative' }}>
+          <span
+            onClick={() => { setShowSystemDropdown(!showSystemDropdown); }}
+            style={{
+              fontSize: '1.5rem',
+              color: colorStyle,
+              textShadow: `0 0 10px ${colorStyle}`,
+              cursor: 'pointer',
+              transition: 'transform 0.3s ease',
+              display: 'inline-block'
+            }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            🛒 {systemName}
+          </span>
+          {showSystemDropdown && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(0, 0, 0, 0.7)',
+              border: `2px solid ${colorStyle}`,
+              borderRadius: '10px',
+              boxShadow: `0 0 10px ${colorStyle}`,
+              zIndex: 10
+            }}>
+              {[1, 2, 3, 4, 5].map(i => {
+                const isUnlocked = player.unlocked_systems?.includes(i);
+                const systemData = {
+                  1: { price: 0, currency: 'cs' },
+                  2: { price: 150, currency: 'cs' },
+                  3: { price: 300, currency: 'cs' },
+                  4: { price: 500, currency: 'cs' },
+                  5: { price: 15, currency: 'ton' }
+                };
+                const system = systemData[i as keyof typeof systemData];
+
+                return (
+                  <div
+                    key={`system-dropdown-${i}`} 
+                    onClick={() => handleSystemChange(i)}
+                    style={{ 
+                      padding: '10px 20px', 
+                      color: isUnlocked ? '#fff' : '#888', 
+                      cursor: 'pointer', 
+                      textAlign: 'center', 
+                      transition: 'background 0.3s ease',
+                      borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')} 
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {t('system_display_format', { number: i, name: systemNames[i-1] })}
+                    {!isUnlocked && (
+                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                        🔒 {system.price} {system.currency.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                );
+                
+                })}
+            </div>
+          )}
+        </div>
+
         {/* Кнопки категорий */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '15px', marginBottom: '10px' }}>
           {shopButtons.map(({ type, count, amount }) => (
@@ -609,15 +664,15 @@ const ShopPage: React.FC = () => {
               style={{
                 flex: 1,
                 padding: '8px 5px',
-                background: activeTab === (type === 'resources' ? 'asteroid' : type) 
-                  ? `rgba(0, 240, 255, 0.2)` 
+                background: activeTab === (type === 'resources' ? 'asteroid' : type)
+                  ? `rgba(0, 240, 255, 0.2)`
                   : 'rgba(0, 0, 0, 0.5)',
-                border: activeTab === (type === 'resources' ? 'asteroid' : type) 
-                  ? `4px solid ${colorStyle}` 
+                border: activeTab === (type === 'resources' ? 'asteroid' : type)
+                  ? `4px solid ${colorStyle}`
                   : `2px solid ${colorStyle}`,
                 borderRadius: '15px',
-                boxShadow: activeTab === (type === 'resources' ? 'asteroid' : type) 
-                  ? `0 0 20px ${colorStyle}, inset 0 0 15px ${colorStyle}, inset 0 0 25px rgba(0, 240, 255, 0.3)` 
+                boxShadow: activeTab === (type === 'resources' ? 'asteroid' : type)
+                  ? `0 0 20px ${colorStyle}, inset 0 0 15px ${colorStyle}, inset 0 0 25px rgba(0, 240, 255, 0.3)`
                   : `0 0 10px ${colorStyle}`,
                 color: activeTab === (type === 'resources' ? 'asteroid' : type) ? colorStyle : '#fff',
                 fontSize: '1rem',
@@ -644,75 +699,6 @@ const ShopPage: React.FC = () => {
               {amount && <span>{amount}</span>}
             </button>
           ))}
-        </div>
-
-        {/* 🔥 БЛОК: Выбор системы (с поддержкой системы 5) */}
-        <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
-          <span 
-            onClick={() => { setShowSystemDropdown(!showSystemDropdown); }} 
-            style={{ 
-              fontSize: '1.5rem', 
-              color: colorStyle, 
-              textShadow: `0 0 10px ${colorStyle}`, 
-              cursor: 'pointer', 
-              transition: 'transform 0.3s ease', 
-              display: 'inline-block' 
-            }}
-            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} 
-            onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            🛒 {systemName}
-          </span>
-          {showSystemDropdown && (
-            <div style={{ 
-              position: 'absolute', 
-              top: '100%', 
-              left: '50%', 
-              transform: 'translateX(-50%)', 
-              background: 'rgba(0, 0, 0, 0.7)', 
-              border: `2px solid ${colorStyle}`, 
-              borderRadius: '10px', 
-              boxShadow: `0 0 10px ${colorStyle}`, 
-              zIndex: 10 
-            }}>
-              {[1, 2, 3, 4, 5].map(i => {
-                const isUnlocked = player.unlocked_systems?.includes(i);
-                const systemData = {
-                  1: { price: 0, currency: 'cs' },
-                  2: { price: 150, currency: 'cs' },
-                  3: { price: 300, currency: 'cs' },
-                  4: { price: 500, currency: 'cs' },
-                  5: { price: 15, currency: 'ton' }
-                };
-                const system = systemData[i as keyof typeof systemData];
-                
-                return (
-                  <div 
-                    key={i} 
-                    onClick={() => handleSystemChange(i)}
-                    style={{ 
-                      padding: '10px 20px', 
-                      color: isUnlocked ? '#fff' : '#888', 
-                      cursor: 'pointer', 
-                      textAlign: 'center', 
-                      transition: 'background 0.3s ease',
-                      borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')} 
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    {t('system_display_format', { number: i, name: systemNames[i-1] })}
-                    {!isUnlocked && (
-                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                        🔒 {system.price} {system.currency.toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                );
-                
-                })}
-            </div>
-          )}
         </div>
 
         {/* Индикатор загрузки */}

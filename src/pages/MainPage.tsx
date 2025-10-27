@@ -396,8 +396,9 @@ const MainPage: React.FC = () => {
   }, [player]);
 
   useEffect(() => {
-    if (!player || isTonSystem) return;
-    
+    // Проверяем систему напрямую, а не через isTonSystem из render
+    if (!player || currentSystem === 5) return;
+
     fetchMaxItems().then(({ maxAsteroids, maxDrones }) => {
       const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
       const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
@@ -692,49 +693,48 @@ const MainPage: React.FC = () => {
       
         <CurrencyPanel player={player} currentSystem={currentSystem} colorStyle={colorStyle} />
 
+        {/* Выбор системы - ПОДНЯТ ВЫШЕ */}
+        <div style={{ marginTop: '110px', textAlign: 'center', marginBottom: '15px', position: 'relative' }}>
+          <span onClick={() => setShowSystemDropdown(!showSystemDropdown)} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
+            {systemName}
+          </span>
+          {showSystemDropdown && (
+            <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
+              {[1, 2, 3, 4, 5].map(i => {
+                const isUnlocked = player.unlocked_systems?.includes(i);
+                const systemData = { 1: { price: 0, currency: 'cs' }, 2: { price: 150, currency: 'cs' }, 3: { price: 300, currency: 'cs' }, 4: { price: 500, currency: 'cs' }, 5: { price: 15, currency: 'ton' }};
+                const system = systemData[i as keyof typeof systemData];
 
-        <div style={{ marginTop: '100px', flex: 1 }}>
-          
-          <div style={{ textAlign: 'center', margin: '10px 0', position: 'relative' }}>
-            <span onClick={() => setShowSystemDropdown(!showSystemDropdown)} style={{ fontSize: '1.5rem', color: colorStyle, textShadow: `0 0 10px ${colorStyle}`, cursor: 'pointer', transition: 'transform 0.3s ease', display: 'inline-block' }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.1)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
-              {systemName}
-            </span>
-            {showSystemDropdown && (
-              <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0, 0, 0, 0.7)', border: `2px solid ${colorStyle}`, borderRadius: '10px', boxShadow: `0 0 10px ${colorStyle}`, zIndex: 10 }}>
-                {[1, 2, 3, 4, 5].map(i => {
-                  const isUnlocked = player.unlocked_systems?.includes(i);
-                  const systemData = { 1: { price: 0, currency: 'cs' }, 2: { price: 150, currency: 'cs' }, 3: { price: 300, currency: 'cs' }, 4: { price: 500, currency: 'cs' }, 5: { price: 15, currency: 'ton' }};
-                  const system = systemData[i as keyof typeof systemData];
-                  
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => handleSystemChange(i)}
-                      style={{
-                        padding: '10px 20px',
-                        color: isUnlocked ? '#fff' : '#888',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        transition: 'background 0.3s ease',
-                        borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      {t('system_display_format', { number: i, name: systemNames[i-1] })}
-                      {!isUnlocked && (
-                        <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
-                          🔒 {system.price} {system.currency.toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                return (
+                  <div
+                    key={i}
+                    onClick={() => handleSystemChange(i)}
+                    style={{
+                      padding: '10px 20px',
+                      color: isUnlocked ? '#fff' : '#888',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'background 0.3s ease',
+                      borderLeft: isUnlocked ? `4px solid ${colorStyle}` : '4px solid transparent'
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.2)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {t('system_display_format', { number: i, name: systemNames[i-1] })}
+                    {!isUnlocked && (
+                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                        🔒 {system.price} {system.currency.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
+        <div style={{ flex: 1 }}>
           {isTonSystem ? (
             <StakingView
               player={player}
