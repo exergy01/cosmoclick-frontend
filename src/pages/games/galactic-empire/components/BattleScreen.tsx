@@ -47,6 +47,8 @@ interface BattleScreenProps {
   onBattleEnd: () => void;
 }
 
+type BattleViewMode = 'classic' | 'tactical' | 'detailed';
+
 const BattleScreen: React.FC<BattleScreenProps> = ({
   battleLog,
   playerFleet,
@@ -61,6 +63,7 @@ const BattleScreen: React.FC<BattleScreenProps> = ({
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
   const [battleActive, setBattleActive] = useState(true);
   const [showResult, setShowResult] = useState(false);
+  const [viewMode, setViewMode] = useState<BattleViewMode>('classic');
 
   const battleScreenRef = useRef<HTMLDivElement>(null);
 
@@ -208,34 +211,186 @@ const BattleScreen: React.FC<BattleScreenProps> = ({
     return () => clearTimeout(timer);
   }, [battleActive, currentActionIndex, battleLog]);
 
+  // Рендер для классического вида
+  const renderClassicView = () => (
+    <>
+      {/* Звездное небо */}
+      <div className="stars-background"></div>
+
+      {/* Флот игрока */}
+      <div className="fleet player-fleet">
+        {playerShips.map((ship) => (
+          <Ship key={ship.id} ship={ship} isPlayer={true} isActive={battleActive} />
+        ))}
+      </div>
+
+      {/* Флот противника */}
+      <div className="fleet enemy-fleet">
+        {enemyShips.map((ship) => (
+          <Ship key={ship.id} ship={ship} isPlayer={false} isActive={battleActive} />
+        ))}
+      </div>
+
+      {/* Эффекты боя */}
+      <BattleEffects />
+    </>
+  );
+
+  // Рендер для тактического вида (вид сверху)
+  const renderTacticalView = () => (
+    <>
+      <div className="tactical-grid">
+        {/* Сетка координат */}
+        {[...Array(8)].map((_, i) => (
+          <div key={`grid-h-${i}`} className="grid-line grid-horizontal" style={{top: `${i * 12.5}%`}} />
+        ))}
+        {[...Array(8)].map((_, i) => (
+          <div key={`grid-v-${i}`} className="grid-line grid-vertical" style={{left: `${i * 12.5}%`}} />
+        ))}
+      </div>
+
+      {/* Флот игрока (синие точки) */}
+      <div className="tactical-fleet player-tactical">
+        {playerShips.map((ship, index) => (
+          <div
+            key={ship.id}
+            data-ship-id={ship.id}
+            className={`tactical-ship ${ship.destroyed ? 'destroyed' : ''}`}
+            style={{
+              left: `${20 + index * 10}%`,
+              top: '70%',
+              backgroundColor: '#00bfff',
+            }}
+          >
+            <div className="tactical-ship-icon">●</div>
+            <div className="tactical-ship-label">{ship.ship_type.split('_')[0]}</div>
+            <div className="tactical-hp-bar">
+              <div
+                className="tactical-hp-fill"
+                style={{ width: `${(ship.current_hp / ship.max_hp) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Флот противника (красные точки) */}
+      <div className="tactical-fleet enemy-tactical">
+        {enemyShips.map((ship, index) => (
+          <div
+            key={ship.id}
+            data-ship-id={ship.id}
+            className={`tactical-ship ${ship.destroyed ? 'destroyed' : ''}`}
+            style={{
+              left: `${20 + index * 10}%`,
+              top: '20%',
+              backgroundColor: '#ff4444',
+            }}
+          >
+            <div className="tactical-ship-icon">●</div>
+            <div className="tactical-ship-label">{ship.ship_type.split('_')[0]}</div>
+            <div className="tactical-hp-bar">
+              <div
+                className="tactical-hp-fill"
+                style={{ width: `${(ship.current_hp / ship.max_hp) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Траектории выстрелов */}
+      <svg className="tactical-trajectories" style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none'}}>
+        {/* Траектории будут добавляться динамически */}
+      </svg>
+    </>
+  );
+
+  // Рендер для детального вида (с кулдаунами)
+  const renderDetailedView = () => (
+    <>
+      {/* Звездное небо */}
+      <div className="stars-background"></div>
+
+      {/* Флот игрока с деталями */}
+      <div className="fleet player-fleet detailed">
+        {playerShips.map((ship) => (
+          <div key={ship.id} className="detailed-ship-container" data-ship-id={ship.id}>
+            <Ship ship={ship} isPlayer={true} isActive={battleActive} />
+            <div className="ship-details">
+              <div className="detail-stat">⚔️ {ship.attack}</div>
+              <div className="detail-stat">🛡️ {ship.defense}</div>
+              <div className="detail-stat">⚡ {ship.speed}</div>
+              <div className="detail-cooldown">
+                <div className="cooldown-bar" style={{width: '0%'}}>🔫</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Флот противника с деталями */}
+      <div className="fleet enemy-fleet detailed">
+        {enemyShips.map((ship) => (
+          <div key={ship.id} className="detailed-ship-container" data-ship-id={ship.id}>
+            <Ship ship={ship} isPlayer={false} isActive={battleActive} />
+            <div className="ship-details">
+              <div className="detail-stat">⚔️ {ship.attack}</div>
+              <div className="detail-stat">🛡️ {ship.defense}</div>
+              <div className="detail-stat">⚡ {ship.speed}</div>
+              <div className="detail-cooldown">
+                <div className="cooldown-bar" style={{width: '0%'}}>🔫</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Эффекты боя */}
+      <BattleEffects />
+    </>
+  );
+
   return (
     <div className="battle-container">
-      <div className="battle-screen" ref={battleScreenRef}>
-        {/* Звездное небо */}
-        <div className="stars-background"></div>
+      {/* Кнопки переключения вида */}
+      <div className="battle-view-controls">
+        <button
+          className={`view-btn ${viewMode === 'classic' ? 'active' : ''}`}
+          onClick={() => setViewMode('classic')}
+          disabled={battleActive}
+        >
+          📺 Классический
+        </button>
+        <button
+          className={`view-btn ${viewMode === 'tactical' ? 'active' : ''}`}
+          onClick={() => setViewMode('tactical')}
+          disabled={battleActive}
+        >
+          🗺️ Тактический
+        </button>
+        <button
+          className={`view-btn ${viewMode === 'detailed' ? 'active' : ''}`}
+          onClick={() => setViewMode('detailed')}
+          disabled={battleActive}
+        >
+          📊 Детальный
+        </button>
+      </div>
 
-        {/* Флот игрока */}
-        <div className="fleet player-fleet">
-          {playerShips.map((ship) => (
-            <Ship key={ship.id} ship={ship} isPlayer={true} isActive={battleActive} />
-          ))}
-        </div>
+      <div className={`battle-screen battle-view-${viewMode}`} ref={battleScreenRef}>
+        {/* Рендер выбранного вида */}
+        {viewMode === 'classic' && renderClassicView()}
+        {viewMode === 'tactical' && renderTacticalView()}
+        {viewMode === 'detailed' && renderDetailedView()}
 
-        {/* Флот противника */}
-        <div className="fleet enemy-fleet">
-          {enemyShips.map((ship) => (
-            <Ship key={ship.id} ship={ship} isPlayer={false} isActive={battleActive} />
-          ))}
-        </div>
-
-        {/* Эффекты боя */}
-        <BattleEffects />
-
-        {/* Лог боя */}
+        {/* Лог боя (общий для всех видов) */}
         <BattleLog messages={battleMessages} />
 
-        {/* Индикаторы здоровья */}
-        <HealthBars playerShips={playerShips} enemyShips={enemyShips} />
+        {/* Индикаторы здоровья (для классического и детального) */}
+        {viewMode !== 'tactical' && (
+          <HealthBars playerShips={playerShips} enemyShips={enemyShips} />
+        )}
       </div>
 
       {/* Результат боя */}
