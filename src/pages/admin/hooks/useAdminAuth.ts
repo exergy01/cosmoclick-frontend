@@ -23,8 +23,8 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
     setError(null);
 
     try {
-      console.log('🔍 Начинаем проверку админских прав...');
-      console.log('📱 Player данные:', {
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Начинаем проверку админских прав...');
+      if (process.env.NODE_ENV === 'development') console.log('📱 Player данные:', {
         telegram_id: player?.telegram_id,
         username: player?.username,
         first_name: player?.first_name,
@@ -33,18 +33,18 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       
       // Проверяем наличие player и его telegram_id - как в ReferralsPage
       if (!player?.telegram_id) {
-        console.log('⚠️ Player не загружен или нет telegram_id');
+        if (process.env.NODE_ENV === 'development') console.log('⚠️ Player не загружен или нет telegram_id');
         
         // Пытаемся получить ID из Telegram WebApp как fallback
         const webApp = (window as any)?.Telegram?.WebApp;
         if (webApp?.initDataUnsafe?.user?.id) {
           const telegramId = String(webApp.initDataUnsafe.user.id);
-          console.log('📱 Найден ID в Telegram WebApp:', telegramId);
+          if (process.env.NODE_ENV === 'development') console.log('📱 Найден ID в Telegram WebApp:', telegramId);
           
           // Проверяем админа с ID из WebApp
           const response = await axios.get(`${apiUrl}/api/admin/check/${telegramId}`);
           setIsAdmin(response.data.isAdmin);
-          console.log('🔐 Результат проверки админа (WebApp ID):', response.data.isAdmin);
+          if (process.env.NODE_ENV === 'development') console.log('🔐 Результат проверки админа (WebApp ID):', response.data.isAdmin);
           
           if (!response.data.isAdmin) {
             setError('Доступ запрещен! Только для администратора.');
@@ -57,24 +57,24 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
         return;
       }
       
-      console.log('🔍 Проверяем админский статус для ID:', player.telegram_id);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Проверяем админский статус для ID:', player.telegram_id);
       
       // Используем прямой axios запрос как в ReferralsPage
       const response = await axios.get(`${apiUrl}/api/admin/check/${player.telegram_id}`);
       
       setIsAdmin(response.data.isAdmin);
-      console.log('🔐 Результат проверки админа:', response.data.isAdmin);
+      if (process.env.NODE_ENV === 'development') console.log('🔐 Результат проверки админа:', response.data.isAdmin);
       
       if (!response.data.isAdmin) {
         setError('Доступ запрещен! Только для администратора.');
-        console.log('❌ Доступ запрещен - не админ. Player telegram_id:', player.telegram_id);
+        if (process.env.NODE_ENV === 'development') console.log('❌ Доступ запрещен - не админ. Player telegram_id:', player.telegram_id);
         
         // Показываем предупреждение и перенаправляем через 3 секунды
         setTimeout(() => {
           navigate('/', { replace: true });
         }, 3000);
       } else {
-        console.log('✅ Админские права подтверждены для ID:', player.telegram_id);
+        if (process.env.NODE_ENV === 'development') console.log('✅ Админские права подтверждены для ID:', player.telegram_id);
       }
       
     } catch (err: any) {

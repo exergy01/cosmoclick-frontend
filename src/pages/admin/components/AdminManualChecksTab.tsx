@@ -63,7 +63,7 @@ const AdminManualChecksTab: React.FC<AdminManualChecksTabProps> = ({ colorStyle 
       const response: SubmissionsResponse = await adminApiService.getManualChecks(filter);
       setSubmissions(response.grouped_by_quest || []);
       setStats(response.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
-      console.log('✅ Загружено заявок:', response.stats);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Загружено заявок:', response.stats);
     } catch (error: any) {
       console.error('❌ Ошибка загрузки заявок:', error);
       showMessage('Не удалось загрузить заявки: ' + error.message, 'error');

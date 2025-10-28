@@ -26,7 +26,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
         from_address: playerAddress,
         timestamp: Date.now()
       });
-      console.log('✅ Зарегистрирован ожидаемый депозит');
+      if (process.env.NODE_ENV === 'development') console.log('✅ Зарегистрирован ожидаемый депозит');
     } catch (error) {
       console.error('Ошибка регистрации ожидаемого депозита:', error);
     }
@@ -40,7 +40,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
         amount: amount,
         status: status
       });
-      console.log(`✅ Статус депозита обновлен: ${status}`);
+      if (process.env.NODE_ENV === 'development') console.log(`✅ Статус депозита обновлен: ${status}`);
     } catch (error) {
       console.error('Ошибка обновления статуса депозита:', error);
     }
@@ -51,7 +51,7 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
     if (!playerId) return false;
 
     try {
-      console.log('Автопроверка депозитов после транзакции...');
+      if (process.env.NODE_ENV === 'development') console.log('Автопроверка депозитов после транзакции...');
       
       const response = await axios.post(`${API_URL}/api/wallet/ton-deposits/check-deposits`, {
         player_id: playerId,
@@ -67,13 +67,13 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
       
       return false;
     } catch (error) {
-      console.log('Автопроверка не удалась, нужно будет обновить вручную:', error);
+      if (process.env.NODE_ENV === 'development') console.log('Автопроверка не удалась, нужно будет обновить вручную:', error);
       return false;
     }
   };
 
   const sendDepositTransaction = async (amount: number): Promise<boolean> => {
-    console.log('🔒 ЗАЩИЩЕННЫЙ депозит с временным окном:', { amount, userAddress, playerId });
+    if (process.env.NODE_ENV === 'development') console.log('🔒 ЗАЩИЩЕННЫЙ депозит с временным окном:', { amount, userAddress, playerId });
 
     // Валидация
     if (!tonConnectUI) {
@@ -117,11 +117,11 @@ export const useTONDeposit = ({ playerId, onSuccess, onError, onBalanceUpdate }:
         }]
       };
       
-      console.log('💳 Отправляем защищенную транзакцию через временное окно...');
+      if (process.env.NODE_ENV === 'development') console.log('💳 Отправляем защищенную транзакцию через временное окно...');
       
       // Отправляем через TON Connect
       const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('✅ Транзакция отправлена:', result);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Транзакция отправлена:', result);
       
       onSuccess?.('Транзакция отправлена! Проверяем зачисление...');
       

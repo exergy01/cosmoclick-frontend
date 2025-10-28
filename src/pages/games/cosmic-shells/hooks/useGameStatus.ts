@@ -41,7 +41,7 @@ export const useGameStatus = (telegramId: string | undefined) => {
       setError(null);
       const status = await CosmicShellsApi.getStatus(telegramId);
       
-      console.log('🛸 Frontend: Loaded game status from backend:', {
+      if (process.env.NODE_ENV === 'development') console.log('🛸 Frontend: Loaded game status from backend:', {
         dailyGames: status.dailyGames,
         dailyAds: status.dailyAds,
         gamesLeft: status.gamesLeft,
@@ -70,12 +70,12 @@ export const useGameStatus = (telegramId: string | undefined) => {
       ...newStatus
     }));
     
-    console.log('🛸 Status updated locally:', newStatus);
+    if (process.env.NODE_ENV === 'development') console.log('🛸 Status updated locally:', newStatus);
   }, []);
 
   // ✅ НОВАЯ ФУНКЦИЯ: Принудительное обновление с сервера (для критических случаев)
   const forceRefresh = useCallback(async () => {
-    console.log('🛸 Force refreshing status from server...');
+    if (process.env.NODE_ENV === 'development') console.log('🛸 Force refreshing status from server...');
     await loadGameStatus();
   }, [loadGameStatus]);
 

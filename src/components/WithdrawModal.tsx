@@ -60,7 +60,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
         wallet_address: address
       });
 
-      console.log('Withdrawal request created:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('Withdrawal request created:', response.data);
 
       setSuccess(`✅ Withdrawal request submitted!\nAmount: ${withdrawAmount} TON\nRequest ID: ${response.data.withdrawal_id}\n\nAdmin will process your request soon.`);
 

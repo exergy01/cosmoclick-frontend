@@ -50,23 +50,23 @@ const buyAsteroid = async (id: number, price: number, systemId: number, currency
       currency: currencyToSend
     };
 
-    console.log(`🛒 ОТПРАВКА ЗАПРОСА НА ПОКУПКУ АСТЕРОИДА:`, requestData);
-    console.log(`🔍 URL: ${API_URL}/api/shop/buy`);
-    console.log(`🔍 Тело запроса:`, JSON.stringify(requestData, null, 2));
+    if (process.env.NODE_ENV === 'development') console.log(`🛒 ОТПРАВКА ЗАПРОСА НА ПОКУПКУ АСТЕРОИДА:`, requestData);
+    if (process.env.NODE_ENV === 'development') console.log(`🔍 URL: ${API_URL}/api/shop/buy`);
+    if (process.env.NODE_ENV === 'development') console.log(`🔍 Тело запроса:`, JSON.stringify(requestData, null, 2));
     
     // 💣 СПЕЦИАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ БОМБЫ
     if (id === 13) {
-      console.log(`💣 ПОКУПКА БОМБЫ система ${systemId}: валюта ${currencyToSend} (TON), цена ${price}`);
+      if (process.env.NODE_ENV === 'development') console.log(`💣 ПОКУПКА БОМБЫ система ${systemId}: валюта ${currencyToSend} (TON), цена ${price}`);
     }
 
     // 🔥 ПРЯМОЙ AXIOS ВЫЗОВ (НЕ shopApi!)
     const response = await axios.post(`${API_URL}/api/shop/buy`, requestData);
 
-    console.log(`✅ Астероид ${id} куплен успешно:`, response.data);
+    if (process.env.NODE_ENV === 'development') console.log(`✅ Астероид ${id} куплен успешно:`, response.data);
     
     // 💣 СПЕЦИАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ БОМБЫ
     if (id === 13) {
-      console.log(`💣 БОМБА АКТИВИРОВАНА! Лимиты астероидов восстановлены для системы ${systemId}`);
+      if (process.env.NODE_ENV === 'development') console.log(`💣 БОМБА АКТИВИРОВАНА! Лимиты астероидов восстановлены для системы ${systemId}`);
     }
     
     return response.data;

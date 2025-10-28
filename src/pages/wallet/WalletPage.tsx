@@ -193,7 +193,7 @@ const WalletPage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Запуск безопасной диагностики для игрока:', player.telegram_id);
+      if (process.env.NODE_ENV === 'development') console.log('Запуск безопасной диагностики для игрока:', player.telegram_id);
       
       const response = await axios.post(`${API_URL}/api/wallet/ton-deposits/debug-deposits`, {
         player_id: player.telegram_id
@@ -276,7 +276,7 @@ const WalletPage: React.FC = () => {
         await refreshPlayer();
       }
     } catch (err) {
-      console.log('Автопроверка депозитов не удалась');
+      if (process.env.NODE_ENV === 'development') console.log('Автопроверка депозитов не удалась');
     }
   };
   // ЧАСТЬ 6: ФУНКЦИИ ПОДКЛЮЧЕНИЯ КОШЕЛЬКА И ПРЕМИУМ
@@ -340,7 +340,7 @@ const WalletPage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('Creating premium invoice for Stars:', { packageType, amount });
+      if (process.env.NODE_ENV === 'development') console.log('Creating premium invoice for Stars:', { packageType, amount });
 
       // Создаем invoice через backend с правильным описанием
       const response = await axios.post(`${API_URL}/api/wallet/stars-payments/create-invoice`, {

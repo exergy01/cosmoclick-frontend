@@ -72,7 +72,7 @@ class CosmicFleetApi {
   }
 
   async exchangeCSToLuminios(telegramId: number, csAmount: number): Promise<ExchangeResponse> {
-    console.log('🔄 Отправка запроса обмена:', { telegramId, csAmount, types: { telegramId: typeof telegramId, csAmount: typeof csAmount } });
+    if (process.env.NODE_ENV === 'development') console.log('🔄 Отправка запроса обмена:', { telegramId, csAmount, types: { telegramId: typeof telegramId, csAmount: typeof csAmount } });
     const response = await axios.post(
       `${API_URL}/api/luminios/exchange`,
       {

@@ -25,14 +25,14 @@ const adminApi = axios.create({
 
 // Функция для получения Telegram ID с гарантией
 const getTelegramId = (): string | null => {
-  console.log('🔍 === ПОЛУЧЕНИЕ TELEGRAM ID ===');
+  if (process.env.NODE_ENV === 'development') console.log('🔍 === ПОЛУЧЕНИЕ TELEGRAM ID ===');
   
   try {
     // 1. Приоритет - localStorage (сохраненный ID)
     const savedId = localStorage.getItem('telegramId');
     if (savedId && savedId.trim()) {
       const cleanId = savedId.trim();
-      console.log('💾 Используем сохраненный ID:', cleanId, 'тип:', typeof cleanId);
+      if (process.env.NODE_ENV === 'development') console.log('💾 Используем сохраненный ID:', cleanId, 'тип:', typeof cleanId);
       return cleanId;
     }
     
@@ -40,12 +40,12 @@ const getTelegramId = (): string | null => {
     const webApp = (window as any)?.Telegram?.WebApp;
     if (webApp?.initDataUnsafe?.user?.id) {
       const webAppId = String(webApp.initDataUnsafe.user.id);
-      console.log('📱 Найден ID в WebApp:', webAppId, 'тип:', typeof webAppId);
+      if (process.env.NODE_ENV === 'development') console.log('📱 Найден ID в WebApp:', webAppId, 'тип:', typeof webAppId);
       
       // Сохраняем для будущего использования
       try {
         localStorage.setItem('telegramId', webAppId);
-        console.log('💾 WebApp ID сохранен в localStorage');
+        if (process.env.NODE_ENV === 'development') console.log('💾 WebApp ID сохранен в localStorage');
       } catch (storageError) {
         console.warn('⚠️ Не удалось сохранить ID:', storageError);
       }
@@ -64,13 +64,13 @@ const getTelegramId = (): string | null => {
 
 // Функция для принудительного получения ID с детальной диагностикой
 const forceGetTelegramId = (): string => {
-  console.log('🚨 === ПРИНУДИТЕЛЬНОЕ ПОЛУЧЕНИЕ ID ===');
+  if (process.env.NODE_ENV === 'development') console.log('🚨 === ПРИНУДИТЕЛЬНОЕ ПОЛУЧЕНИЕ ID ===');
   
   const savedId = localStorage.getItem('telegramId');
   const webApp = (window as any)?.Telegram?.WebApp;
   const webAppId = webApp?.initDataUnsafe?.user?.id;
   
-  console.log('🔍 Все доступные источники ID:', {
+  if (process.env.NODE_ENV === 'development') console.log('🔍 Все доступные источники ID:', {
     savedId: savedId,
     webAppId: webAppId,
     webAppIdString: webAppId ? String(webAppId) : null,
@@ -83,10 +83,10 @@ const forceGetTelegramId = (): string => {
   
   if (savedId && savedId.trim()) {
     finalId = savedId.trim();
-    console.log('✅ Используем сохраненный ID:', finalId);
+    if (process.env.NODE_ENV === 'development') console.log('✅ Используем сохраненный ID:', finalId);
   } else if (webAppId) {
     finalId = String(webAppId);
-    console.log('✅ Используем WebApp ID:', finalId);
+    if (process.env.NODE_ENV === 'development') console.log('✅ Используем WebApp ID:', finalId);
     try {
       localStorage.setItem('telegramId', finalId);
     } catch (e) {
@@ -95,7 +95,7 @@ const forceGetTelegramId = (): string => {
   } else {
     // Если ничего нет - устанавливаем принудительно админский ID для тестирования
     finalId = '1222791281';
-    console.log('🧪 Принудительно используем тестовый админский ID:', finalId);
+    if (process.env.NODE_ENV === 'development') console.log('🧪 Принудительно используем тестовый админский ID:', finalId);
     try {
       localStorage.setItem('telegramId', finalId);
     } catch (e) {
@@ -107,16 +107,16 @@ const forceGetTelegramId = (): string => {
     throw new Error('Невозможно получить Telegram ID из всех источников');
   }
   
-  console.log('🎯 ФИНАЛЬНЫЙ ID:', finalId, 'тип:', typeof finalId);
+  if (process.env.NODE_ENV === 'development') console.log('🎯 ФИНАЛЬНЫЙ ID:', finalId, 'тип:', typeof finalId);
   return finalId;
 };
 
 // Интерцептор для логирования запросов
 adminApi.interceptors.request.use(
   (config) => {
-    console.log(`🔧 Admin API запрос: ${config.method?.toUpperCase()} ${config.url || ''}`);
-    console.log('📦 Данные запроса:', config.data);
-    console.log('🔗 Полный URL:', (config.baseURL || '') + (config.url || ''));
+    if (process.env.NODE_ENV === 'development') console.log(`🔧 Admin API запрос: ${config.method?.toUpperCase()} ${config.url || ''}`);
+    if (process.env.NODE_ENV === 'development') console.log('📦 Данные запроса:', config.data);
+    if (process.env.NODE_ENV === 'development') console.log('🔗 Полный URL:', (config.baseURL || '') + (config.url || ''));
     return config;
   },
   (error) => {
@@ -128,8 +128,8 @@ adminApi.interceptors.request.use(
 // Интерцептор для обработки ответов
 adminApi.interceptors.response.use(
   (response) => {
-    console.log(`✅ Admin API ответ: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url || ''}`);
-    console.log('📦 Данные ответа (первые 500 символов):', JSON.stringify(response.data).slice(0, 500) + '...');
+    if (process.env.NODE_ENV === 'development') console.log(`✅ Admin API ответ: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url || ''}`);
+    if (process.env.NODE_ENV === 'development') console.log('📦 Данные ответа (первые 500 символов):', JSON.stringify(response.data).slice(0, 500) + '...');
     return response;
   },
   (error) => {
@@ -160,10 +160,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('🔍 Проверяем админский статус. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Проверяем админский статус. ID:', id);
       const response = await adminApi.get(`/check/${encodeURIComponent(id)}`);
       
-      console.log('✅ Результат проверки админа:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Результат проверки админа:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка проверки админского статуса:', error);
@@ -176,13 +176,13 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('📊 Загружаем статистику. ID:', id);
-      console.log('🔗 URL будет:', `${API_URL}/api/admin/stats/${encodeURIComponent(id)}`);
+      if (process.env.NODE_ENV === 'development') console.log('📊 Загружаем статистику. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🔗 URL будет:', `${API_URL}/api/admin/stats/${encodeURIComponent(id)}`);
       
       const response = await adminApi.get(`/stats/${encodeURIComponent(id)}`);
       const stats = response.data as AdminStats;
       
-      console.log('✅ Статистика загружена успешно. Размер данных:', JSON.stringify(stats).length);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Статистика загружена успешно. Размер данных:', JSON.stringify(stats).length);
       return stats;
     } catch (error) {
       console.error('❌ Ошибка загрузки статистики:', error);
@@ -199,7 +199,7 @@ export const adminApiService = {
         return [];
       }
       
-      console.log('🔍 Поиск игроков. ID:', id, 'запрос:', query);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Поиск игроков. ID:', id, 'запрос:', query);
       const response = await adminApi.get(`/search/${encodeURIComponent(id)}`, {
         params: { q: query }
       });
@@ -220,7 +220,7 @@ export const adminApiService = {
         throw new Error('ID игрока не указан');
       }
       
-      console.log('👤 Загружаем данные игрока. Admin ID:', id, 'Player ID:', playerId);
+      if (process.env.NODE_ENV === 'development') console.log('👤 Загружаем данные игрока. Admin ID:', id, 'Player ID:', playerId);
       const response = await adminApi.get(`/player/${encodeURIComponent(id)}/${encodeURIComponent(playerId)}`);
       
       return response.data;
@@ -243,7 +243,7 @@ export const adminApiService = {
         throw new Error('Заполните все поля');
       }
 
-      console.log('💰 Обновляем баланс. Admin ID:', id, 'данные:', form);
+      if (process.env.NODE_ENV === 'development') console.log('💰 Обновляем баланс. Admin ID:', id, 'данные:', form);
       const response = await adminApi.post(`/update-balance/${encodeURIComponent(id)}`, {
         playerId: form.playerId,
         currency: form.currency,
@@ -267,7 +267,7 @@ export const adminApiService = {
         throw new Error('Не хватает данных для верификации игрока');
       }
       
-      console.log('🔧 Верифицируем игрока. Admin ID:', id, 'Player ID:', playerId, 'статус:', verified);
+      if (process.env.NODE_ENV === 'development') console.log('🔧 Верифицируем игрока. Admin ID:', id, 'Player ID:', playerId, 'статус:', verified);
       await adminApi.post(`/verify-player/${encodeURIComponent(id)}`, {
         playerId,
         verified
@@ -291,7 +291,7 @@ export const adminApiService = {
         throw new Error('Введите корректный курс TON');
       }
 
-      console.log('📈 Обновляем курс TON. Admin ID:', id, 'новый курс:', form.newRate);
+      if (process.env.NODE_ENV === 'development') console.log('📈 Обновляем курс TON. Admin ID:', id, 'новый курс:', form.newRate);
       const response = await adminApi.post(`/update-ton-rate/${encodeURIComponent(id)}`, {
         newRate: parseFloat(form.newRate)
       });
@@ -308,7 +308,7 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('🔓 Снимаем блокировку обмена. Admin ID:', id, 'тип:', exchangeType);
+      if (process.env.NODE_ENV === 'development') console.log('🔓 Снимаем блокировку обмена. Admin ID:', id, 'тип:', exchangeType);
       await adminApi.post(`/unblock-exchange/${encodeURIComponent(id)}`, {
         exchangeType
       });
@@ -325,10 +325,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('📋 Загружаем список квестов. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('📋 Загружаем список квестов. ID:', id);
       const response = await adminApi.get(`/quests/list/${encodeURIComponent(id)}`);
       
-      console.log('✅ Список квестов загружен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Список квестов загружен:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка загрузки списка квестов:', error);
@@ -345,10 +345,10 @@ export const adminApiService = {
         throw new Error('Ключ квеста не указан');
       }
       
-      console.log('📝 Загружаем детали квеста. ID:', id, 'Quest Key:', questKey);
+      if (process.env.NODE_ENV === 'development') console.log('📝 Загружаем детали квеста. ID:', id, 'Quest Key:', questKey);
       const response = await adminApi.get(`/quests/get/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`);
       
-      console.log('✅ Детали квеста загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Детали квеста загружены:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка загрузки деталей квеста:', error);
@@ -365,10 +365,10 @@ export const adminApiService = {
         throw new Error('Данные квеста не предоставлены');
       }
       
-      console.log('🧪 Создаем новый квест. ID:', id, 'данные:', questData);
+      if (process.env.NODE_ENV === 'development') console.log('🧪 Создаем новый квест. ID:', id, 'данные:', questData);
       const response = await adminApi.post(`/quests/create/${encodeURIComponent(id)}`, questData);
       
-      console.log('✅ Квест создан:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Квест создан:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка создания квеста:', error);
@@ -385,10 +385,10 @@ export const adminApiService = {
         throw new Error('Ключ квеста и данные обязательны');
       }
       
-      console.log('✏️ Обновляем квест. ID:', id, 'Quest Key:', questKey);
+      if (process.env.NODE_ENV === 'development') console.log('✏️ Обновляем квест. ID:', id, 'Quest Key:', questKey);
       const response = await adminApi.put(`/quests/update/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`, questData);
       
-      console.log('✅ Квест обновлен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Квест обновлен:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка обновления квеста:', error);
@@ -405,10 +405,10 @@ export const adminApiService = {
         throw new Error('Ключ квеста не указан');
       }
       
-      console.log('🗑️ Удаляем квест. ID:', id, 'Quest Key:', questKey);
+      if (process.env.NODE_ENV === 'development') console.log('🗑️ Удаляем квест. ID:', id, 'Quest Key:', questKey);
       const response = await adminApi.delete(`/quests/delete/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`);
       
-      console.log('✅ Квест удален:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Квест удален:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка удаления квеста:', error);
@@ -425,10 +425,10 @@ export const adminApiService = {
         throw new Error('Ключ квеста не указан');
       }
       
-      console.log('🔄 Переключаем статус квеста. ID:', id, 'Quest Key:', questKey);
+      if (process.env.NODE_ENV === 'development') console.log('🔄 Переключаем статус квеста. ID:', id, 'Quest Key:', questKey);
       const response = await adminApi.post(`/quests/toggle-status/${encodeURIComponent(questKey)}/${encodeURIComponent(id)}`);
       
-      console.log('✅ Статус квеста изменен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Статус квеста изменен:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка изменения статуса квеста:', error);
@@ -469,7 +469,7 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('📊 Собираем статистику по квестам. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('📊 Собираем статистику по квестам. ID:', id);
       
       // Получаем список квестов
       const questsList = await this.getQuestsList(id);
@@ -500,7 +500,7 @@ export const adminApiService = {
         );
       }
       
-      console.log('✅ Статистика квестов собрана:', stats);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Статистика квестов собрана:', stats);
       return stats;
     } catch (error) {
       console.error('❌ Ошибка получения статистики квестов:', error);
@@ -513,7 +513,7 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
       
-      console.log('🧹 Запускаем массовое удаление тестовых квестов. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🧹 Запускаем массовое удаление тестовых квестов. ID:', id);
       
       // Получаем список всех квестов
       const questsList = await this.getQuestsList(id);
@@ -531,7 +531,7 @@ export const adminApiService = {
         return { message: 'Тестовые квесты не найдены', deleted_count: 0 };
       }
       
-      console.log(`🎯 Найдено ${testQuests.length} тестовых квестов для удаления`);
+      if (process.env.NODE_ENV === 'development') console.log(`🎯 Найдено ${testQuests.length} тестовых квестов для удаления`);
       
       // Удаляем каждый тестовый квест
       const results = [];
@@ -539,7 +539,7 @@ export const adminApiService = {
         try {
           await this.deleteQuest(id, quest.quest_key);
           results.push({ quest_key: quest.quest_key, status: 'deleted' });
-          console.log(`✅ Удален тестовый квест: ${quest.quest_key}`);
+          if (process.env.NODE_ENV === 'development') console.log(`✅ Удален тестовый квест: ${quest.quest_key}`);
         } catch (deleteError) {
           results.push({ quest_key: quest.quest_key, status: 'error', error: deleteError });
           console.error(`❌ Ошибка удаления ${quest.quest_key}:`, deleteError);
@@ -548,7 +548,7 @@ export const adminApiService = {
       
       const deletedCount = results.filter(r => r.status === 'deleted').length;
       
-      console.log(`🧹 Массовое удаление завершено. Удалено: ${deletedCount}/${testQuests.length}`);
+      if (process.env.NODE_ENV === 'development') console.log(`🧹 Массовое удаление завершено. Удалено: ${deletedCount}/${testQuests.length}`);
       
       return {
         message: `Удаление завершено: ${deletedCount}/${testQuests.length}`,
@@ -569,10 +569,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('💎 Загружаем TON депозиты. ID:', id, 'статус:', status);
+      if (process.env.NODE_ENV === 'development') console.log('💎 Загружаем TON депозиты. ID:', id, 'статус:', status);
       const response = await adminApi.get(`/ton-deposits?status=${status}&admin_id=${encodeURIComponent(id)}`);
 
-      console.log('✅ TON депозиты загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ TON депозиты загружены:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки TON депозитов:', error);
@@ -585,10 +585,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('📊 Загружаем статистику TON. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('📊 Загружаем статистику TON. ID:', id);
       const response = await adminApi.get(`/ton-stats?admin_id=${encodeURIComponent(id)}`);
 
-      console.log('✅ Статистика TON загружена:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Статистика TON загружена:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки статистики TON:', error);
@@ -601,14 +601,14 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('⚡ Обрабатываем TON депозит. Admin ID:', id, 'Deposit ID:', depositId, 'Player ID:', playerId);
+      if (process.env.NODE_ENV === 'development') console.log('⚡ Обрабатываем TON депозит. Admin ID:', id, 'Deposit ID:', depositId, 'Player ID:', playerId);
       const response = await adminApi.post(`/process-ton-deposit`, {
         admin_id: id,
         deposit_id: depositId,
         player_id: playerId
       });
 
-      console.log('✅ TON депозит обработан:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ TON депозит обработан:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка обработки TON депозита:', error);
@@ -621,13 +621,13 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('💱 Обновляем курс TON. Admin ID:', id, 'новый курс:', newRate);
+      if (process.env.NODE_ENV === 'development') console.log('💱 Обновляем курс TON. Admin ID:', id, 'новый курс:', newRate);
       const response = await adminApi.post(`/update-ton-rate/${encodeURIComponent(id)}`, {
         new_rate: newRate,
         source: 'manual_admin'
       });
 
-      console.log('✅ Курс TON обновлен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Курс TON обновлен:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка обновления курса TON:', error);
@@ -642,10 +642,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('💸 Загружаем ожидающие выводы. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('💸 Загружаем ожидающие выводы. ID:', id);
       const response = await adminApi.get(`/withdrawals/pending?admin_id=${encodeURIComponent(id)}`);
 
-      console.log('✅ Ожидающие выводы загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Ожидающие выводы загружены:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки выводов:', error);
@@ -658,7 +658,7 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log(`✅ ${action} вывода ${withdrawalId}. Admin ID:`, id);
+      if (process.env.NODE_ENV === 'development') console.log(`✅ ${action} вывода ${withdrawalId}. Admin ID:`, id);
       const response = await adminApi.post('/withdrawals/approve', {
         admin_id: id,
         withdrawal_id: withdrawalId,
@@ -666,7 +666,7 @@ export const adminApiService = {
         reason: reason
       });
 
-      console.log('✅ Вывод обработан:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Вывод обработан:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка обработки вывода:', error);
@@ -681,10 +681,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🔍 Загружаем потерянные депозиты. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Загружаем потерянные депозиты. ID:', id);
       const response = await adminApi.get(`/deposits/orphaned?admin_id=${encodeURIComponent(id)}&min_amount=${minAmount}&time_hours=${timeHours}`);
 
-      console.log('✅ Потерянные депозиты загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Потерянные депозиты загружены:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки потерянных депозитов:', error);
@@ -697,14 +697,14 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🕵️ Расследуем депозит. Admin ID:', id, 'Deposit ID:', depositId);
+      if (process.env.NODE_ENV === 'development') console.log('🕵️ Расследуем депозит. Admin ID:', id, 'Deposit ID:', depositId);
       const response = await adminApi.post('/deposits/investigate', {
         admin_id: id,
         deposit_id: depositId,
         search_params: searchParams
       });
 
-      console.log('✅ Расследование завершено:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Расследование завершено:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка расследования:', error);
@@ -719,10 +719,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🚨 Загружаем критические алерты. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🚨 Загружаем критические алерты. ID:', id);
       const response = await adminApi.get(`/alerts/critical?admin_id=${encodeURIComponent(id)}`);
 
-      console.log('✅ Алерты загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Алерты загружены:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки алертов:', error);
@@ -737,10 +737,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('📈 Загружаем ежедневную статистику. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('📈 Загружаем ежедневную статистику. ID:', id);
       const response = await adminApi.get(`/analytics/daily-finance?admin_id=${encodeURIComponent(id)}&days=${days}`);
 
-      console.log('✅ Статистика загружена:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Статистика загружена:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки статистики:', error);
@@ -753,10 +753,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('👑 Загружаем топ игроков. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('👑 Загружаем топ игроков. ID:', id);
       const response = await adminApi.get(`/analytics/top-players?admin_id=${encodeURIComponent(id)}&period=${period}&limit=${limit}`);
 
-      console.log('✅ Топ игроков загружен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Топ игроков загружен:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки топа игроков:', error);
@@ -769,10 +769,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🔍 Загружаем подозрительные паттерны. ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Загружаем подозрительные паттерны. ID:', id);
       const response = await adminApi.get(`/analytics/suspicious-patterns?admin_id=${encodeURIComponent(id)}`);
 
-      console.log('✅ Паттерны загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Паттерны загружены:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка загрузки паттернов:', error);
@@ -787,14 +787,14 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🔍 Универсальный поиск. ID:', id, 'запрос:', query);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Универсальный поиск. ID:', id, 'запрос:', query);
       const response = await adminApi.post('/investigation/search', {
         admin_id: id,
         query: query,
         search_type: searchType
       });
 
-      console.log('✅ Поиск завершен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Поиск завершен:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка поиска:', error);
@@ -807,10 +807,10 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('📊 Анализируем игрока. Admin ID:', id, 'Player ID:', playerId);
+      if (process.env.NODE_ENV === 'development') console.log('📊 Анализируем игрока. Admin ID:', id, 'Player ID:', playerId);
       const response = await adminApi.get(`/investigation/player-analysis/${encodeURIComponent(playerId)}?admin_id=${encodeURIComponent(id)}`);
 
-      console.log('✅ Анализ игрока завершен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Анализ игрока завершен:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка анализа игрока:', error);
@@ -823,14 +823,14 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🔗 Анализируем связи. Admin ID:', id, 'игроки:', playerIds);
+      if (process.env.NODE_ENV === 'development') console.log('🔗 Анализируем связи. Admin ID:', id, 'игроки:', playerIds);
       const response = await adminApi.post('/investigation/connection-analysis', {
         admin_id: id,
         player_ids: playerIds,
         analysis_depth: analysisDepth
       });
 
-      console.log('✅ Анализ связей завершен:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Анализ связей завершен:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка анализа связей:', error);
@@ -843,7 +843,7 @@ export const adminApiService = {
     try {
       const id = telegramId || forceGetTelegramId();
 
-      console.log('🚨 Создаем отчет о подозрительной активности. Admin ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('🚨 Создаем отчет о подозрительной активности. Admin ID:', id);
       const response = await adminApi.post('/investigation/report-suspicious', {
         admin_id: id,
         telegram_id: playerId,
@@ -853,7 +853,7 @@ export const adminApiService = {
         details: details
       });
 
-      console.log('✅ Отчет создан:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Отчет создан:', response.data);
       return response;
     } catch (error) {
       console.error('❌ Ошибка создания отчета:', error);
@@ -868,12 +868,12 @@ export const adminApiService = {
     try {
       const id = forceGetTelegramId();
 
-      console.log('📋 Загружаем заявки на ручную проверку. ID:', id, 'статус:', status);
+      if (process.env.NODE_ENV === 'development') console.log('📋 Загружаем заявки на ручную проверку. ID:', id, 'статус:', status);
       const response = await adminApi.get(`/manual-checks/list/${encodeURIComponent(id)}`, {
         params: { status }
       });
 
-      console.log('✅ Заявки загружены:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Заявки загружены:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка загрузки заявок:', error);
@@ -890,14 +890,14 @@ export const adminApiService = {
     try {
       const id = forceGetTelegramId();
 
-      console.log('✅ Проверяем заявку. ID:', id, 'submission:', submissionId, 'action:', action);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Проверяем заявку. ID:', id, 'submission:', submissionId, 'action:', action);
       const response = await adminApi.post(`/manual-checks/review/${encodeURIComponent(id)}`, {
         submission_id: submissionId,
         action,
         review_notes: reviewNotes
       });
 
-      console.log('✅ Заявка обработана:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Заявка обработана:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Ошибка проверки заявки:', error);
@@ -938,7 +938,7 @@ export const forceSaveTelegramId = (): string | null => {
     if (webApp?.initDataUnsafe?.user?.id) {
       const id = String(webApp.initDataUnsafe.user.id);
       localStorage.setItem('telegramId', id);
-      console.log('💾 Принудительно сохранен Telegram ID:', id);
+      if (process.env.NODE_ENV === 'development') console.log('💾 Принудительно сохранен Telegram ID:', id);
       return id;
     }
     
@@ -954,7 +954,7 @@ export const setTestAdminId = (): void => {
   try {
     const adminId = '1222791281';
     localStorage.setItem('telegramId', adminId);
-    console.log('🧪 Установлен тестовый админский ID:', adminId);
+    if (process.env.NODE_ENV === 'development') console.log('🧪 Установлен тестовый админский ID:', adminId);
   } catch (error) {
     console.error('❌ Ошибка установки тестового ID:', error);
   }

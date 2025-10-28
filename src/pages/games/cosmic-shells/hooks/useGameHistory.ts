@@ -35,7 +35,7 @@ export const useGameHistory = (telegramId: string | undefined) => {
       const response = await CosmicShellsApi.getHistory(telegramId); // Без параметров = все игры
       if (response.success) {
         setFullHistory(response.history || []);
-        console.log('🛸 Loaded full history:', response.history?.length || 0, 'games total');
+        if (process.env.NODE_ENV === 'development') console.log('🛸 Loaded full history:', response.history?.length || 0, 'games total');
       }
     } catch (err) {
       console.error('Error loading full cosmic shells history:', err);

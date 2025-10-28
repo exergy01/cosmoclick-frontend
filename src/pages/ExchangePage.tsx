@@ -104,7 +104,7 @@ const ExchangePage: React.FC = () => {
   // 🌟 Функция получения курсов Stars
   const fetchStarsRates = async () => {
     try {
-      console.log('📊 Получаем курсы Stars...');
+      if (process.env.NODE_ENV === 'development') console.log('📊 Получаем курсы Stars...');
       const response = await axios.get(`${API_URL}/api/stars/rates`);
       
       if (response.data) {
@@ -112,7 +112,7 @@ const ExchangePage: React.FC = () => {
         setStarsExchangeBlocked(!response.data.exchange_available);
         setBlockInfo(response.data.block_info);
         
-        console.log('📊 Курсы Stars получены:', {
+        if (process.env.NODE_ENV === 'development') console.log('📊 Курсы Stars получены:', {
           rates: response.data.rates,
           blocked: !response.data.exchange_available
         });
@@ -232,7 +232,7 @@ const ExchangePage: React.FC = () => {
       
       if (selectedPair.fromCurrency === 'STARS') {
         // 🌟 СПЕЦИАЛЬНЫЙ ЗАПРОС ДЛЯ STARS
-        console.log('Отправка запроса на обмен Stars:', {
+        if (process.env.NODE_ENV === 'development') console.log('Отправка запроса на обмен Stars:', {
           telegramId: player?.telegram_id,
           starsAmount: inputAmount
         });
@@ -243,7 +243,7 @@ const ExchangePage: React.FC = () => {
         });
       } else {
         // Обычный обмен валют
-        console.log('Отправка запроса на обмен:', {
+        if (process.env.NODE_ENV === 'development') console.log('Отправка запроса на обмен:', {
           telegramId: player?.telegram_id,
           fromCurrency: selectedPair.fromCurrency.toLowerCase(),
           toCurrency: selectedPair.toCurrency.toLowerCase(),
@@ -258,7 +258,7 @@ const ExchangePage: React.FC = () => {
         });
       }
       
-      console.log('Ответ от сервера:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('Ответ от сервера:', response.data);
       
       if (response.data && response.data.success) {
         setSuccess('Обмен выполнен успешно!');

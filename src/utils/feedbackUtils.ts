@@ -6,14 +6,14 @@ export const playCoinSound = async () => {
     // ⚙️ Проверяем настройку звука
     const soundEnabled = localStorage.getItem('cosmoclick_sound_enabled');
     if (soundEnabled === 'false') {
-      console.log('🔇 Звук отключен в настройках');
+      if (process.env.NODE_ENV === 'development') console.log('🔇 Звук отключен в настройках');
       return;
     }
 
     // Проверяем поддержку AudioContext
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) {
-      console.log('🔇 AudioContext не поддерживается');
+      if (process.env.NODE_ENV === 'development') console.log('🔇 AudioContext не поддерживается');
       return;
     }
 
@@ -57,9 +57,9 @@ export const playCoinSound = async () => {
       oscillator.stop(startTime + duration);
     });
 
-    console.log('🪙 Звон монетки воспроизведен');
+    if (process.env.NODE_ENV === 'development') console.log('🪙 Звон монетки воспроизведен');
   } catch (error) {
-    console.log('🔇 Звук недоступен:', error);
+    if (process.env.NODE_ENV === 'development') console.log('🔇 Звук недоступен:', error);
   }
 };
 
@@ -69,11 +69,11 @@ export const triggerStrongVibration = () => {
     // ⚙️ Проверяем настройку звука (вибрация тоже относится к звуковым эффектам)
     const soundEnabled = localStorage.getItem('cosmoclick_sound_enabled');
     if (soundEnabled === 'false') {
-      console.log('📳 Вибрация отключена в настройках');
+      if (process.env.NODE_ENV === 'development') console.log('📳 Вибрация отключена в настройках');
       return;
     }
 
-    console.log('📳 Попытка сильной вибрации...');
+    if (process.env.NODE_ENV === 'development') console.log('📳 Попытка сильной вибрации...');
 
     // Используем type assertion для обхода TypeScript проблемы
     const telegramWebApp = (window as any).Telegram?.WebApp;
@@ -82,22 +82,22 @@ export const triggerStrongVibration = () => {
     if (telegramWebApp?.HapticFeedback) {
       // 💥 МАКСИМАЛЬНАЯ ВИБРАЦИЯ: серия heavy импульсов
       telegramWebApp.HapticFeedback.impactOccurred('heavy');
-      console.log('📳 Первая сильная вибрация через Telegram WebApp');
+      if (process.env.NODE_ENV === 'development') console.log('📳 Первая сильная вибрация через Telegram WebApp');
 
       // 🎉 ДОПОЛНИТЕЛЬНЫЕ ИМПУЛЬСЫ для максимального эффекта
       setTimeout(() => {
         telegramWebApp.HapticFeedback.impactOccurred('heavy');
-        console.log('📳 Вторая сильная вибрация');
+        if (process.env.NODE_ENV === 'development') console.log('📳 Вторая сильная вибрация');
       }, 100);
 
       setTimeout(() => {
         telegramWebApp.HapticFeedback.notificationOccurred('success');
-        console.log('📳 Нотификация успеха');
+        if (process.env.NODE_ENV === 'development') console.log('📳 Нотификация успеха');
       }, 200);
 
       setTimeout(() => {
         telegramWebApp.HapticFeedback.impactOccurred('heavy');
-        console.log('📳 Финальная сильная вибрация');
+        if (process.env.NODE_ENV === 'development') console.log('📳 Финальная сильная вибрация');
       }, 300);
 
       return;
@@ -107,13 +107,13 @@ export const triggerStrongVibration = () => {
     if ('vibrate' in navigator) {
       // 🚨 СУПЕР МОЩНАЯ ВИБРАЦИЯ: длинные импульсы, много раз
       const vibrated = navigator.vibrate([300, 100, 300, 100, 300, 100, 400]);
-      console.log('📳 МАКСИМАЛЬНАЯ вибрация через Navigator API:', vibrated);
+      if (process.env.NODE_ENV === 'development') console.log('📳 МАКСИМАЛЬНАЯ вибрация через Navigator API:', vibrated);
       return;
     }
 
-    console.log('📳 Вибрация недоступна');
+    if (process.env.NODE_ENV === 'development') console.log('📳 Вибрация недоступна');
   } catch (error) {
-    console.log('📳 Ошибка вибрации:', error);
+    if (process.env.NODE_ENV === 'development') console.log('📳 Ошибка вибрации:', error);
   }
 };
 

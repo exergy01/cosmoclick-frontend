@@ -29,7 +29,7 @@ export const useCosmicShellsGame = (
       try {
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
         await adService.initialize(ADSGRAM_BLOCK_ID);
-        console.log('🛸 Ad Service initialized');
+        if (process.env.NODE_ENV === 'development') console.log('🛸 Ad Service initialized');
       } catch (error) {
         console.error('🛸❌ Ad service initialization failed:', error);
       }
@@ -53,7 +53,7 @@ export const useCosmicShellsGame = (
   const startGame = useCallback(async () => {
     if (!telegramId || gameState !== 'waiting') return;
     
-    console.log('🛸 Starting game with bet:', betAmount);
+    if (process.env.NODE_ENV === 'development') console.log('🛸 Starting game with bet:', betAmount);
     
     // Валидация ставки
     const validation = validateBet(betAmount, gameStatus.minBet, gameStatus.maxBet, gameStatus.balance);
@@ -84,7 +84,7 @@ export const useCosmicShellsGame = (
       }
       
       const currentBalance = freshStatus.balance;
-      console.log('🛸 Fresh balance before game:', currentBalance);
+      if (process.env.NODE_ENV === 'development') console.log('🛸 Fresh balance before game:', currentBalance);
       
       // ✅ ДОБАВЛЕНО: Мгновенно показываем баланс после ставки
       const balanceAfterBet = currentBalance - betAmount;
@@ -108,7 +108,7 @@ export const useCosmicShellsGame = (
         setGameState('shuffling');
         setGameResult(null);
         
-        console.log('🛸 Game started successfully');
+        if (process.env.NODE_ENV === 'development') console.log('🛸 Game started successfully');
         
         // Переходим к выбору через 5 секунд
         setTimeout(() => {
@@ -163,7 +163,7 @@ export const useCosmicShellsGame = (
               try {
                 const finalStatus = await CosmicShellsApi.getStatus(telegramId);
                 if (finalStatus.success) {
-                  console.log('🛸 Final balance from database:', finalStatus.balance);
+                  if (process.env.NODE_ENV === 'development') console.log('🛸 Final balance from database:', finalStatus.balance);
                   
                   if (onPlayerBalanceUpdate) {
                     onPlayerBalanceUpdate(finalStatus.balance);
@@ -212,7 +212,7 @@ export const useCosmicShellsGame = (
     setIsWatchingAd(true);
     
     try {
-      console.log('🛸 Starting ad watch...');
+      if (process.env.NODE_ENV === 'development') console.log('🛸 Starting ad watch...');
       
       if (!adService.isAvailable()) {
         await adService.initialize();

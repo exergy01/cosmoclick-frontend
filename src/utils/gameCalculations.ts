@@ -110,11 +110,11 @@ export const checkCollectionLimits = (
   // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: используем реальную вместимость карго
   const maxCapacity = getRealCargoCapacity(player, system);
   
-  console.log(`🔍 checkCollectionLimits система ${system}:`);
-  console.log(`   amountToCollect: ${amountToCollect}`);
-  console.log(`   remainingResources: ${remainingResources}`);
-  console.log(`   maxCapacity (РЕАЛЬНАЯ): ${maxCapacity}`);
-  console.log(`   старая max_cargo_capacity_data: ${player.max_cargo_capacity_data[system] || 0}`);
+  if (process.env.NODE_ENV === 'development') console.log(`🔍 checkCollectionLimits система ${system}:`);
+  if (process.env.NODE_ENV === 'development') console.log(`   amountToCollect: ${amountToCollect}`);
+  if (process.env.NODE_ENV === 'development') console.log(`   remainingResources: ${remainingResources}`);
+  if (process.env.NODE_ENV === 'development') console.log(`   maxCapacity (РЕАЛЬНАЯ): ${maxCapacity}`);
+  if (process.env.NODE_ENV === 'development') console.log(`   старая max_cargo_capacity_data: ${player.max_cargo_capacity_data[system] || 0}`);
   
   if (remainingResources <= 0) {
     return { 
@@ -134,7 +134,7 @@ export const checkCollectionLimits = (
   
   const maxAmount = Math.min(amountToCollect, remainingResources, maxCapacity);
   
-  console.log(`   maxAmount (итог): ${maxAmount}`);
+  if (process.env.NODE_ENV === 'development') console.log(`   maxAmount (итог): ${maxAmount}`);
   
   return { 
     canCollect: true, 

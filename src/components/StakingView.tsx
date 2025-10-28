@@ -56,14 +56,14 @@ const StakingView: React.FC<StakingViewProps> = ({
   // Функция загрузки стейков
   const fetchStakes = async () => {
     try {
-      console.log(`🔍 ЗАГРУЖАЕМ СТЕЙКИ ДЛЯ СИСТЕМЫ ${systemId}, ИГРОК ${player.telegram_id}`);
+      if (process.env.NODE_ENV === 'development') console.log(`🔍 ЗАГРУЖАЕМ СТЕЙКИ ДЛЯ СИСТЕМЫ ${systemId}, ИГРОК ${player.telegram_id}`);
       
       const response = await fetch(`${API_URL}/api/ton/stakes/${player.telegram_id}`);
       const data = await response.json();
       
-      console.log(`📋 ПОЛУЧЕНО СТЕЙКОВ ИЗ API:`, data.length);
+      if (process.env.NODE_ENV === 'development') console.log(`📋 ПОЛУЧЕНО СТЕЙКОВ ИЗ API:`, data.length);
       data.forEach((stake: any) => {
-        console.log(`   - Стейк ${stake.id}: система ${stake.system_id}, статус ${stake.status}`);
+        if (process.env.NODE_ENV === 'development') console.log(`   - Стейк ${stake.id}: система ${stake.system_id}, статус ${stake.status}`);
       });
       
       // Фильтруем стейки для текущей системы
@@ -74,10 +74,10 @@ const StakingView: React.FC<StakingViewProps> = ({
       // Разделяем активные и завершенные стейки
       const activeStakes = systemStakes.filter((stake: Stake) => stake.status === 'active');
       
-      console.log(`🎯 АКТИВНЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, activeStakes.length);
+      if (process.env.NODE_ENV === 'development') console.log(`🎯 АКТИВНЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, activeStakes.length);
       
       activeStakes.forEach((stake: any) => {
-        console.log(`   - Активный стейк ${stake.id}: ${stake.stake_amount} TON, план ${stake.plan_type}`);
+        if (process.env.NODE_ENV === 'development') console.log(`   - Активный стейк ${stake.id}: ${stake.stake_amount} TON, план ${stake.plan_type}`);
       });
       
       setStakes(activeStakes);
@@ -102,7 +102,7 @@ const StakingView: React.FC<StakingViewProps> = ({
         stake.system_id === systemId && stake.status === 'withdrawn'
       );
       
-      console.log(`📚 ЗАВЕРШЕННЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, systemCompletedStakes.length);
+      if (process.env.NODE_ENV === 'development') console.log(`📚 ЗАВЕРШЕННЫХ СТЕЙКОВ ДЛЯ СИСТЕМЫ ${systemId}:`, systemCompletedStakes.length);
       
       setCompletedStakes(systemCompletedStakes);
     } catch (err) {
@@ -113,7 +113,7 @@ const StakingView: React.FC<StakingViewProps> = ({
   // Обновление при изменении unlocked_systems игрока
   useEffect(() => {
     if (player?.telegram_id) {
-      console.log('🔄 Обновление стейков: изменился игрок или система');
+      if (process.env.NODE_ENV === 'development') console.log('🔄 Обновление стейков: изменился игрок или система');
       fetchStakes();
     }
   }, [player?.telegram_id, player?.unlocked_systems, systemId, refreshTrigger, forceRefresh]);
@@ -141,7 +141,7 @@ const StakingView: React.FC<StakingViewProps> = ({
   // Подписываемся на глобальные события обновления стейков
   useEffect(() => {
     const handleStakeUpdate = () => {
-      console.log('📢 Получен сигнал обновления стейков');
+      if (process.env.NODE_ENV === 'development') console.log('📢 Получен сигнал обновления стейков');
       triggerRefresh();
     };
 
@@ -163,12 +163,12 @@ const StakingView: React.FC<StakingViewProps> = ({
         const response = await fetch(`${API_URL}/api/ton/stakes/${player.telegram_id}`);
         const serverStakes = await response.json();
         
-        console.log('📊 ПОЛНЫЕ СЕРВЕРНЫЕ ДАННЫЕ:', serverStakes);
+        if (process.env.NODE_ENV === 'development') console.log('📊 ПОЛНЫЕ СЕРВЕРНЫЕ ДАННЫЕ:', serverStakes);
         
         // Фильтруем для текущей системы
         const systemStakes = serverStakes.filter((stake: any) => stake.system_id === systemId);
         
-        console.log('📊 СТЕЙКИ ДЛЯ СИСТЕМЫ:', systemStakes);
+        if (process.env.NODE_ENV === 'development') console.log('📊 СТЕЙКИ ДЛЯ СИСТЕМЫ:', systemStakes);
         
         if (systemStakes.length > 0) {
           const newTimeLeft: { [key: number]: string } = {};
@@ -176,12 +176,12 @@ const StakingView: React.FC<StakingViewProps> = ({
           let hasReadyStakes = false;
           
           systemStakes.forEach((stake: any) => {
-            console.log(`📊 ДЕТАЛЬНЫЙ АНАЛИЗ СТЕЙКА ${stake.id}:`, stake);
+            if (process.env.NODE_ENV === 'development') console.log(`📊 ДЕТАЛЬНЫЙ АНАЛИЗ СТЕЙКА ${stake.id}:`, stake);
             
             // 🔥 ПРОВЕРЯЕМ ЕСТЬ ЛИ СЕРВЕРНЫЕ ПОЛЯ
             if (stake.time_left_text && typeof stake.time_left_text === 'string') {
               // Используем серверные данные
-              console.log(`✅ СЕРВЕР ДАЕТ ВРЕМЯ для стейка ${stake.id}: "${stake.time_left_text}"`);
+              if (process.env.NODE_ENV === 'development') console.log(`✅ СЕРВЕР ДАЕТ ВРЕМЯ для стейка ${stake.id}: "${stake.time_left_text}"`);
               newTimeLeft[stake.id] = stake.time_left_text;
               
               if (typeof stake.progress_percent === 'number') {
@@ -193,7 +193,7 @@ const StakingView: React.FC<StakingViewProps> = ({
               }
             } else {
               // 🔥 FALLBACK: Считаем на клиенте
-              console.log(`❌ СЕРВЕР НЕ ДАЕТ ВРЕМЯ для стейка ${stake.id}, считаем на клиенте`);
+              if (process.env.NODE_ENV === 'development') console.log(`❌ СЕРВЕР НЕ ДАЕТ ВРЕМЯ для стейка ${stake.id}, считаем на клиенте`);
               
               const now = new Date();
               const startTime = new Date(stake.start_date);
@@ -239,14 +239,14 @@ const StakingView: React.FC<StakingViewProps> = ({
                 }
               }
               
-              console.log(`🔧 КЛИЕНТСКИЙ РАСЧЕТ для стейка ${stake.id}:`);
-              console.log(`   Время: "${newTimeLeft[stake.id]}"`);
-              console.log(`   Прогресс: ${progress.toFixed(1)}%`);
-              console.log(`   Готов: ${isReady}`);
+              if (process.env.NODE_ENV === 'development') console.log(`🔧 КЛИЕНТСКИЙ РАСЧЕТ для стейка ${stake.id}:`);
+              if (process.env.NODE_ENV === 'development') console.log(`   Время: "${newTimeLeft[stake.id]}"`);
+              if (process.env.NODE_ENV === 'development') console.log(`   Прогресс: ${progress.toFixed(1)}%`);
+              if (process.env.NODE_ENV === 'development') console.log(`   Готов: ${isReady}`);
             }
           });
           
-          console.log('📊 ФИНАЛЬНОЕ СОСТОЯНИЕ:', { 
+          if (process.env.NODE_ENV === 'development') console.log('📊 ФИНАЛЬНОЕ СОСТОЯНИЕ:', {
             timeLeft: newTimeLeft, 
             progress: newProgressValues 
           });
@@ -256,7 +256,7 @@ const StakingView: React.FC<StakingViewProps> = ({
           
           // Если есть готовые стейки - обновляем основные данные
           if (hasReadyStakes) {
-            console.log('⏰ Есть готовые стейки, обновляем основные данные');
+            if (process.env.NODE_ENV === 'development') console.log('⏰ Есть готовые стейки, обновляем основные данные');
             await fetchStakes();
           }
         }

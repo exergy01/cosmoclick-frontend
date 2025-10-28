@@ -74,7 +74,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ? (data.collected_cs || 0) 
         : (data.collected_ccc || 0);
       
-      console.log(`🎮 GameContext: система ${data.system}, собираем ${resourceAmount} ${data.system === 4 ? 'CS' : 'CCC'}`);
+      if (process.env.NODE_ENV === 'development') console.log(`🎮 GameContext: система ${data.system}, собираем ${resourceAmount} ${data.system === 4 ? 'CS' : 'CCC'}`);
       
       const result = await collectResources(player, data.system, resourceAmount);
       
@@ -89,7 +89,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAsteroidTotal(Number(asteroidsTotal));
         setRemaining(Number(asteroidsTotal) - Number(collected));
         
-        console.log(`✅ GameContext: данные обновлены для системы ${data.system}`);
+        if (process.env.NODE_ENV === 'development') console.log(`✅ GameContext: данные обновлены для системы ${data.system}`);
       }
       
       return result;

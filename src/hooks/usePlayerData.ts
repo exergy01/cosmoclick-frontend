@@ -79,9 +79,9 @@ export const usePlayerData = () => {
     const telegramWebApp = (window as any).Telegram?.WebApp;
     const referralData: any = {};
     
-    console.log('🔍 === ИЗВЛЕЧЕНИЕ РЕФЕРАЛЬНЫХ ДАННЫХ ===');
-    console.log('🔍 Current URL:', window.location.href);
-    console.log('🔍 URL Search:', window.location.search);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 === ИЗВЛЕЧЕНИЕ РЕФЕРАЛЬНЫХ ДАННЫХ ===');
+    if (process.env.NODE_ENV === 'development') console.log('🔍 Current URL:', window.location.href);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 URL Search:', window.location.search);
     
     // 🎯 ИСТОЧНИК 1: URL параметр tgWebAppStartParam (САМЫЙ ВАЖНЫЙ!)
     try {
@@ -89,7 +89,7 @@ export const usePlayerData = () => {
       const tgWebAppStartParam = urlParams.get('tgWebAppStartParam');
       if (tgWebAppStartParam) {
         referralData.tgWebAppStartParam = tgWebAppStartParam;
-        console.log('🎯🎯 НАЙДЕН tgWebAppStartParam:', tgWebAppStartParam);
+        if (process.env.NODE_ENV === 'development') console.log('🎯🎯 НАЙДЕН tgWebAppStartParam:', tgWebAppStartParam);
       }
     } catch (err) {
       console.error('❌ Ошибка парсинга URL:', err);
@@ -98,17 +98,17 @@ export const usePlayerData = () => {
     // 🎯 ИСТОЧНИК 2: Telegram WebApp start_param
     if (telegramWebApp?.initDataUnsafe?.start_param) {
       referralData.start_param = telegramWebApp.initDataUnsafe.start_param;
-      console.log('🎯 start_param:', referralData.start_param);
+      if (process.env.NODE_ENV === 'development') console.log('🎯 start_param:', referralData.start_param);
     }
     
-    console.log('🔍 ИТОГОВЫЕ ДАННЫЕ:', referralData);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 ИТОГОВЫЕ ДАННЫЕ:', referralData);
     return referralData;
   };
 
   // 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: Использует НОВЫЙ ENDPOINT
   const registerNewPlayer = async (telegramId: string) => {
     try {
-      console.log(`🎯 СОЗДАЕМ ИГРОКА ЧЕРЕЗ НОВЫЙ ENDPOINT: ${telegramId}`);
+      if (process.env.NODE_ENV === 'development') console.log(`🎯 СОЗДАЕМ ИГРОКА ЧЕРЕЗ НОВЫЙ ENDPOINT: ${telegramId}`);
       
       const telegramWebApp = (window as any).Telegram?.WebApp;
       const telegramUser = telegramWebApp?.initDataUnsafe?.user;
@@ -118,8 +118,8 @@ export const usePlayerData = () => {
       
       const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
               
-      console.log('🚀 ОТПРАВЛЯЕМ ЗАПРОС НА НОВЫЙ ENDPOINT...');
-      console.log('📦 Данные:', { telegramId, referralData });
+      if (process.env.NODE_ENV === 'development') console.log('🚀 ОТПРАВЛЯЕМ ЗАПРОС НА НОВЫЙ ENDPOINT...');
+      if (process.env.NODE_ENV === 'development') console.log('📦 Данные:', { telegramId, referralData });
       
       // 🔥 ВЫЗЫВАЕМ НОВЫЙ ENDPOINT
       const response = await axios.post(`${API_URL}/api/player/create-with-referrer`, {
@@ -127,7 +127,7 @@ export const usePlayerData = () => {
         referralData
       });
       
-      console.log('✅ ОТВЕТ ОТ НОВОГО ENDPOINT:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ ОТВЕТ ОТ НОВОГО ENDPOINT:', response.data);
       
       // Обновляем Telegram данные если доступны
       if (telegramUser && response.data) {
@@ -151,7 +151,7 @@ export const usePlayerData = () => {
       console.error('❌ ОШИБКА НОВОГО ENDPOINT:', err.response?.data || err.message);
       
       // Fallback на старый способ
-      console.log('🔄 Fallback на старый способ...');
+      if (process.env.NODE_ENV === 'development') console.log('🔄 Fallback на старый способ...');
       try {
         const response = await playerApi.fetchPlayer(telegramId);
         return response.data;
@@ -167,7 +167,7 @@ export const usePlayerData = () => {
       setLoading(true);
       const telegramId = getTelegramId();
       
-      console.log(`🎯 [INIT] Загрузка для: ${telegramId}`);
+      if (process.env.NODE_ENV === 'development') console.log(`🎯 [INIT] Загрузка для: ${telegramId}`);
       
       if (!telegramId) {
         setError('No telegram ID');
@@ -176,10 +176,10 @@ export const usePlayerData = () => {
 
       let playerData;
       try {
-        console.log('🎯 [INIT] Ищем игрока...');
+        if (process.env.NODE_ENV === 'development') console.log('🎯 [INIT] Ищем игрока...');
         const playerResponse = await playerApi.fetchPlayer(telegramId);
         playerData = playerResponse.data;
-        console.log('✅ [INIT] Игрок найден');
+        if (process.env.NODE_ENV === 'development') console.log('✅ [INIT] Игрок найден');
         
         // Обновляем Telegram данные если нужно
         const telegramUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user;
@@ -208,7 +208,7 @@ export const usePlayerData = () => {
         
       } catch (err: any) {
         if (err.response?.status === 404) {
-          console.log('🎯 [INIT] Игрок не найден, создаем...');
+          if (process.env.NODE_ENV === 'development') console.log('🎯 [INIT] Игрок не найден, создаем...');
           playerData = await registerNewPlayer(telegramId);
         } else {
           throw err;
@@ -220,20 +220,20 @@ export const usePlayerData = () => {
       let honorBoard: any[] = [];
       
       try {
-        console.log('🔄 [INIT] Загружаем рефералов...');
+        if (process.env.NODE_ENV === 'development') console.log('🔄 [INIT] Загружаем рефералов...');
         const referralsResponse = await referralApi.getReferralsList(telegramId);
         referrals = Array.isArray(referralsResponse.data) ? referralsResponse.data : [];
-        console.log(`✅ [INIT] Загружено рефералов: ${referrals.length}`, referrals);
+        if (process.env.NODE_ENV === 'development') console.log(`✅ [INIT] Загружено рефералов: ${referrals.length}`, referrals);
       } catch (err: any) {
         console.error('❌ [INIT] Ошибка загрузки рефералов:', err);
         referrals = [];
       }
 
       try {
-        console.log('🔄 [INIT] Загружаем доску почета...');
+        if (process.env.NODE_ENV === 'development') console.log('🔄 [INIT] Загружаем доску почета...');
         const honorBoardResponse = await referralApi.getHonorBoard();
         honorBoard = Array.isArray(honorBoardResponse.data) ? honorBoardResponse.data : [];
-        console.log(`✅ [INIT] Загружена доска почета: ${honorBoard.length}`, honorBoard);
+        if (process.env.NODE_ENV === 'development') console.log(`✅ [INIT] Загружена доска почета: ${honorBoard.length}`, honorBoard);
       } catch (err: any) {
         console.error('❌ [INIT] Ошибка загрузки доски почета:', err);
         honorBoard = [];
@@ -258,7 +258,7 @@ export const usePlayerData = () => {
         honor_board: honorBoard,        // ← ПЕРЕНЕСЕНО СЮДА!
       };
       
-      console.log('🔍 [INIT] Данные перед нормализацией:', {
+      if (process.env.NODE_ENV === 'development') console.log('🔍 [INIT] Данные перед нормализацией:', {
         referrals_count: fullPlayerData.referrals_count,
         referrals_length: fullPlayerData.referrals?.length,
         referrals_type: typeof fullPlayerData.referrals,
@@ -269,7 +269,7 @@ export const usePlayerData = () => {
       // 🔥 ТЕПЕРЬ createPlayerWithDefaults получает рефералов и не перезаписывает их
       const normalizedPlayer = createPlayerWithDefaults(fullPlayerData, 1);
       
-      console.log('🔍 [INIT] Данные после нормализации:', {
+      if (process.env.NODE_ENV === 'development') console.log('🔍 [INIT] Данные после нормализации:', {
         referrals_count: normalizedPlayer.referrals_count,
         referrals_length: normalizedPlayer.referrals?.length,
         referrals_type: typeof normalizedPlayer.referrals,
@@ -280,7 +280,7 @@ export const usePlayerData = () => {
       setPlayer(normalizedPlayer);
       setError(null);
       
-      console.log('✅ [INIT] Загрузка завершена с рефералами!');
+      if (process.env.NODE_ENV === 'development') console.log('✅ [INIT] Загрузка завершена с рефералами!');
       return normalizedPlayer;
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Unknown error';

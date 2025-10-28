@@ -27,12 +27,12 @@ export const useAdminStats = (): UseAdminStatsReturn => {
     setError(null);
 
     try {
-      console.log('📊 Начинаем загрузку статистики для:', player.telegram_id);
+      if (process.env.NODE_ENV === 'development') console.log('📊 Начинаем загрузку статистики для:', player.telegram_id);
       
       // Используем прямой axios запрос как в ReferralsPage
       const response = await axios.get(`${apiUrl}/api/admin/stats/${player.telegram_id}`);
       
-      console.log('✅ Статистика загружена успешно:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Статистика загружена успешно:', response.data);
       setStats(response.data);
       
     } catch (err: any) {
@@ -54,7 +54,7 @@ export const useAdminStats = (): UseAdminStatsReturn => {
   }, [player?.telegram_id]);
 
   const refresh = useCallback(async (): Promise<void> => {
-    console.log('🔄 Обновление статистики...');
+    if (process.env.NODE_ENV === 'development') console.log('🔄 Обновление статистики...');
     await loadStats();
   }, [loadStats]);
 

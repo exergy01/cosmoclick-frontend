@@ -43,7 +43,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
   // Анимация вращения барабанов
   useEffect(() => {
     if (gameState === 'spinning') {
-      console.log('🎰 Starting slot machine spin...');
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Starting slot machine spin...');
       setIsSpinning(true);
       setWinningPositions(new Set());
       setShowWinLines(false);
@@ -69,7 +69,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         
         await Promise.all(promises);
         setIsSpinning(false);
-        console.log('🎰 All reels stopped spinning');
+        if (process.env.NODE_ENV === 'development') console.log('🎰 All reels stopped spinning');
       };
       
       spinReels();
@@ -84,7 +84,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
     const spinDuration = 2500 + reelIndex * 200;
     const spinSpeed = 80;
     
-    console.log(`🎰 Spinning reel ${reelIndex} for ${spinDuration}ms`);
+    if (process.env.NODE_ENV === 'development') console.log(`🎰 Spinning reel ${reelIndex} for ${spinDuration}ms`);
     
     let currentStrip = createReelStrip();
     let currentIndex = 0;
@@ -117,7 +117,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         reel.style.transition = 'all 0.3s ease';
       }
       
-      console.log(`🎰 Reel ${reelIndex} stopped`);
+      if (process.env.NODE_ENV === 'development') console.log(`🎰 Reel ${reelIndex} stopped`);
       onComplete();
     }, spinDuration);
   };
@@ -125,7 +125,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
   // Показ результата
   useEffect(() => {
     if (gameState === 'revealing' && lastResult && !isSpinning) {
-      console.log('🎰 Revealing final result:', lastResult);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Revealing final result:', lastResult);
       setDisplaySymbols(lastResult.symbols);
       setWinningPositions(new Set());
       setShowWinLines(false);
@@ -135,7 +135,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
   // Показ выигрышных линий
   useEffect(() => {
     if (gameState === 'finished' && lastResult && !isSpinning) {
-      console.log('🎰 Showing winning lines:', lastResult.winningLines);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Showing winning lines:', lastResult.winningLines);
       
       if (lastResult.winningLines.length > 0) {
         const positions = new Set<number>();
@@ -147,7 +147,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({ gameState, lastResult, colorS
         });
         setWinningPositions(positions);
         setShowWinLines(true);
-        console.log('🎰 Showing winning positions:', Array.from(positions));
+        if (process.env.NODE_ENV === 'development') console.log('🎰 Showing winning positions:', Array.from(positions));
       }
     }
   }, [gameState, lastResult, isSpinning]);

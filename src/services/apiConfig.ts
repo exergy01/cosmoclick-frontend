@@ -18,11 +18,11 @@ export const fetchWithRetry = async (
       clearTimeout(timeoutId);
       return response;
     } catch (err: any) {
-      console.log(`Retry ${i + 1} failed for ${url}: ${err.message}`);
+      if (process.env.NODE_ENV === 'development') console.log(`Retry ${i + 1} failed for ${url}: ${err.message}`);
       
       // 🔥 ИСПРАВЛЕНО: Не повторяем запросы для HTTP ошибок 4xx (клиентские ошибки)
       if (err.response?.status >= 400 && err.response?.status < 500) {
-        console.log(`HTTP ${err.response.status} - не повторяем запрос`);
+        if (process.env.NODE_ENV === 'development') console.log(`HTTP ${err.response.status} - не повторяем запрос`);
         throw err; // 🔥 Возвращаем ОРИГИНАЛЬНУЮ ошибку с response.status
       }
       

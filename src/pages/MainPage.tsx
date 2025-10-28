@@ -70,12 +70,12 @@ const PremiumOfferModal = React.memo(({
     e.stopPropagation();
     
     if (isProcessing) {
-      console.log('Premium button already processing, ignoring');
+      if (process.env.NODE_ENV === 'development') console.log('Premium button already processing, ignoring');
       return;
     }
     
     setIsProcessing(true);
-    console.log('Premium buy button clicked');
+    if (process.env.NODE_ENV === 'development') console.log('Premium buy button clicked');
     
     try {
       onBuyPremium();
@@ -90,7 +90,7 @@ const PremiumOfferModal = React.memo(({
     
     if (isProcessing) return;
     
-    console.log('Premium later button clicked');
+    if (process.env.NODE_ENV === 'development') console.log('Premium later button clicked');
     onClose();
   }, [isProcessing, onClose]);
 
@@ -552,7 +552,7 @@ const MainPage: React.FC = () => {
     
     // 🎯 ВЫПОЛНЯЕМ СБОР ПОСЛЕ ВЫБОРА "ПОЗЖЕ"
     setTimeout(async () => {
-      console.log('🎯 Выполняем сбор после выбора "позже"');
+      if (process.env.NODE_ENV === 'development') console.log('🎯 Выполняем сбор после выбора "позже"');
       await performCollection();
     }, 200);
   }, [performCollection]);
@@ -562,7 +562,7 @@ const MainPage: React.FC = () => {
     setShowPremiumOffer(false);
     
     // 🎯 ВЫПОЛНЯЕМ СБОР ПЕРЕД ПЕРЕХОДОМ К ПОКУПКЕ
-    console.log('🎯 Выполняем сбор перед переходом к покупке премиума');
+    if (process.env.NODE_ENV === 'development') console.log('🎯 Выполняем сбор перед переходом к покупке премиума');
     await performCollection();
     
     // Переходим к покупке премиума

@@ -18,13 +18,13 @@ declare global {
 // Получение Telegram ID пользователя
 export const getTelegramId = (): string => {
   try {
-    console.log('getTelegramId: проверка Telegram объекта...');
-    console.log('window.Telegram:', window.Telegram);
-    console.log('window.Telegram?.WebApp:', window.Telegram?.WebApp);
-    console.log('initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
+    if (process.env.NODE_ENV === 'development') console.log('getTelegramId: проверка Telegram объекта...');
+    if (process.env.NODE_ENV === 'development') console.log('window.Telegram:', window.Telegram);
+    if (process.env.NODE_ENV === 'development') console.log('window.Telegram?.WebApp:', window.Telegram?.WebApp);
+    if (process.env.NODE_ENV === 'development') console.log('initDataUnsafe:', window.Telegram?.WebApp?.initDataUnsafe);
     
     const telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    console.log('Telegram ID from WebApp:', telegramId);
+    if (process.env.NODE_ENV === 'development') console.log('Telegram ID from WebApp:', telegramId);
     
     if (telegramId) {
       return telegramId.toString();
@@ -32,7 +32,7 @@ export const getTelegramId = (): string => {
     
     // Для тестирования в development режиме
     if (process.env.NODE_ENV === 'development') {
-      console.log('Development mode: using test ID');
+      if (process.env.NODE_ENV === 'development') console.log('Development mode: using test ID');
       return '123456789'; // Тестовый ID
     }
     
@@ -47,7 +47,7 @@ export const getTelegramId = (): string => {
 export const getTelegramLanguage = (): string => {
   try {
     const language = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
-    console.log('Telegram language:', language);
+    if (process.env.NODE_ENV === 'development') console.log('Telegram language:', language);
     return language || 'en';
   } catch (error) {
     console.error('Error getting Telegram language:', error);
@@ -58,6 +58,6 @@ export const getTelegramLanguage = (): string => {
 // Проверка доступности Telegram WebApp
 export const isTelegramWebApp = (): boolean => {
   const isAvailable = typeof window !== 'undefined' && !!window.Telegram?.WebApp;
-  console.log('isTelegramWebApp:', isAvailable);
+  if (process.env.NODE_ENV === 'development') console.log('isTelegramWebApp:', isAvailable);
   return isAvailable;
 };

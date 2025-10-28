@@ -17,7 +17,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     const webApp = (window as any)?.Telegram?.WebApp;
     const webAppId = webApp?.initDataUnsafe?.user?.id;
     
-    console.log('🔍 AdminQuestsTab - проверка ID источников:', {
+    if (process.env.NODE_ENV === 'development') console.log('🔍 AdminQuestsTab - проверка ID источников:', {
       savedId,
       webAppId,
       hasWebApp: !!webApp,
@@ -42,7 +42,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     // 1. Из localStorage
     const savedId = localStorage.getItem('telegramId');
     if (savedId?.trim()) {
-      console.log('✅ ID из localStorage:', savedId.trim());
+      if (process.env.NODE_ENV === 'development') console.log('✅ ID из localStorage:', savedId.trim());
       return savedId.trim();
     }
     
@@ -51,14 +51,14 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
     if (webApp?.initDataUnsafe?.user?.id) {
       const webAppId = String(webApp.initDataUnsafe.user.id);
       localStorage.setItem('telegramId', webAppId);
-      console.log('✅ ID из WebApp:', webAppId);
+      if (process.env.NODE_ENV === 'development') console.log('✅ ID из WebApp:', webAppId);
       return webAppId;
     }
     
     // 3. Тестовый админский ID (для разработки)
     const testId = '1222791281';
     localStorage.setItem('telegramId', testId);
-    console.log('✅ Использован тестовый ID:', testId);
+    if (process.env.NODE_ENV === 'development') console.log('✅ Использован тестовый ID:', testId);
     return testId;
   };
 
@@ -74,7 +74,7 @@ const AdminQuestsTab: React.FC<AdminQuestsTabProps> = ({ colorStyle }) => {
         return;
       }
       
-      console.log('🔍 Отправляем запрос с админ ID:', telegramId);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Отправляем запрос с админ ID:', telegramId);
       addResult(`Загружаем список квестов (админ проверка: ${telegramId})...`, 'info');
       
       const response = await adminApiService.getQuestsList(telegramId);

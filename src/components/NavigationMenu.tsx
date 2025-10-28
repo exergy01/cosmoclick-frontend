@@ -37,7 +37,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     if (!player?.telegram_id) return;
     
     try {
-      console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов...');
+      if (process.env.NODE_ENV === 'development') console.log('🔥 ПРИНУДИТЕЛЬНАЯ загрузка рефералов...');
       
       // Загружаем рефералов
       const refResponse = await axios.get(`${apiUrl}/api/referrals/list/${player.telegram_id}`, { timeout: 5000 });
@@ -47,7 +47,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
       const honorResponse = await axios.get(`${apiUrl}/api/referrals/honor-board`, { timeout: 5000 });
       const honorData = Array.isArray(honorResponse.data) ? honorResponse.data : [];
       
-      console.log('🔥 Загружено:', { referrals: referralsData.length, honor: honorData.length });
+      if (process.env.NODE_ENV === 'development') console.log('🔥 Загружено:', { referrals: referralsData.length, honor: honorData.length });
       
       // 🔥 ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ PLAYER
       const updatedPlayer = {
@@ -57,7 +57,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
       };
       
       setPlayer(updatedPlayer);
-      console.log('✅ Player принудительно обновлен!');
+      if (process.env.NODE_ENV === 'development') console.log('✅ Player принудительно обновлен!');
       
     } catch (err: any) {
       console.error('❌ Ошибка принудительной загрузки:', err);
@@ -70,9 +70,9 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({ colorStyle }) => {
     try {
       // Если переходим на рефералы - принудительно загружаем
       if (path === '/ref' || path === '/referrals') {
-        console.log('🔄 Принудительная загрузка для рефералов...');
+        if (process.env.NODE_ENV === 'development') console.log('🔄 Принудительная загрузка для рефералов...');
         await forceLoadReferrals();
-        console.log('✅ Данные принудительно загружены');
+        if (process.env.NODE_ENV === 'development') console.log('✅ Данные принудительно загружены');
       }
       navigate(path);
     } catch (err) {

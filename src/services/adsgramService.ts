@@ -42,7 +42,7 @@ function getCurrentLanguageFromI18n(): string {
       // Проверяем разные свойства i18next
       const lang = i18next.language || i18next.lng || i18next.resolvedLanguage;
       if (lang && supportedLangs.includes(lang)) {
-        console.log('🌍 Language from i18next:', lang);
+        if (process.env.NODE_ENV === 'development') console.log('🌍 Language from i18next:', lang);
         return lang;
       }
     }
@@ -50,7 +50,7 @@ function getCurrentLanguageFromI18n(): string {
     // Пробуем получить из localStorage i18next
     const storedLang = localStorage.getItem('i18nextLng');
     if (storedLang && supportedLangs.includes(storedLang)) {
-      console.log('🌍 Language from localStorage i18next:', storedLang);
+      if (process.env.NODE_ENV === 'development') console.log('🌍 Language from localStorage i18next:', storedLang);
       return storedLang;
     }
     
@@ -59,16 +59,16 @@ function getCurrentLanguageFromI18n(): string {
     if (reactI18next) {
       const lang = reactI18next.getAttribute('data-i18next-lng');
       if (lang && supportedLangs.includes(lang)) {
-        console.log('🌍 Language from React i18next DOM:', lang);
+        if (process.env.NODE_ENV === 'development') console.log('🌍 Language from React i18next DOM:', lang);
         return lang;
       }
     }
     
   } catch (e) {
-    console.log('🌍 Error getting language from i18next:', e);
+    if (process.env.NODE_ENV === 'development') console.log('🌍 Error getting language from i18next:', e);
   }
   
-  console.log('🌍 Language fallback to: ru');
+  if (process.env.NODE_ENV === 'development') console.log('🌍 Language fallback to: ru');
   return 'ru';
 }
 
@@ -117,13 +117,13 @@ class AdsgramProvider implements AdProvider {
           debug: false
         });
         this.isInitialized = true;
-        console.log('✅ Adsgram initialized successfully');
+        if (process.env.NODE_ENV === 'development') console.log('✅ Adsgram initialized successfully');
         return true;
       }
       
       return false;
     } catch (error) {
-      console.log('❌ Adsgram initialization failed:', error);
+      if (process.env.NODE_ENV === 'development') console.log('❌ Adsgram initialization failed:', error);
       return false;
     }
   }
@@ -175,7 +175,7 @@ class YandexProvider implements AdProvider {
   name = 'yandex';
 
   async initialize(): Promise<boolean> {
-    console.log('📍 Yandex provider - заглушка готова к подключению');
+    if (process.env.NODE_ENV === 'development') console.log('📍 Yandex provider - заглушка готова к подключению');
     return false; // Пока не реализован
   }
 
@@ -202,7 +202,7 @@ class TelegaProvider implements AdProvider {
   name = 'telega';
 
   async initialize(): Promise<boolean> {
-    console.log('📍 Telega.in provider - заглушка готова к подключению');
+    if (process.env.NODE_ENV === 'development') console.log('📍 Telega.in provider - заглушка готова к подключению');
     return false;
   }
 
@@ -229,7 +229,7 @@ class BitmediaProvider implements AdProvider {
   name = 'bitmedia';
 
   async initialize(): Promise<boolean> {
-    console.log('📍 Bitmedia provider - заглушка готова к подключению');
+    if (process.env.NODE_ENV === 'development') console.log('📍 Bitmedia provider - заглушка готова к подключению');
     return false;
   }
 
@@ -256,7 +256,7 @@ class PropellerAdsProvider implements AdProvider {
   name = 'propellerads';
 
   async initialize(): Promise<boolean> {
-    console.log('📍 PropellerAds provider - заглушка готова к подключению');
+    if (process.env.NODE_ENV === 'development') console.log('📍 PropellerAds provider - заглушка готова к подключению');
     return false;
   }
 
@@ -283,7 +283,7 @@ class TelegramAdsProvider implements AdProvider {
   name = 'telegram_ads';
 
   async initialize(): Promise<boolean> {
-    console.log('📍 Telegram Ads API provider - заглушка готова к подключению');
+    if (process.env.NODE_ENV === 'development') console.log('📍 Telegram Ads API provider - заглушка готова к подключению');
     return false;
   }
 
@@ -423,12 +423,12 @@ class CustomBlockProvider implements AdProvider {
   ];
 
   async initialize(): Promise<boolean> {
-    console.log('✅ Custom Block Provider initialized with', this.ads.length, 'ads');
+    if (process.env.NODE_ENV === 'development') console.log('✅ Custom Block Provider initialized with', this.ads.length, 'ads');
     return true;
   }
 
   async showRewardedAd(): Promise<AdsgramResult> {
-    console.log('🎯 Showing Custom Block carousel');
+    if (process.env.NODE_ENV === 'development') console.log('🎯 Showing Custom Block carousel');
 
     return new Promise(resolve => {
       const isPortrait = window.innerHeight > window.innerWidth;
@@ -446,7 +446,7 @@ class CustomBlockProvider implements AdProvider {
 
       // Получаем текущий язык из i18next автоматически
       const currentLanguage = getCurrentLanguageFromI18n();
-      console.log('🌍 Using language for ads:', currentLanguage);
+      if (process.env.NODE_ENV === 'development') console.log('🌍 Using language for ads:', currentLanguage);
 
       const modal = document.createElement('div');
       modal.style.cssText = `
@@ -828,9 +828,9 @@ class AdPriorityManager {
     for (const provider of this.providers) {
       try {
         await provider.initialize();
-        console.log(`📍 Provider ${provider.name} initialized`);
+        if (process.env.NODE_ENV === 'development') console.log(`📍 Provider ${provider.name} initialized`);
       } catch (error) {
-        console.log(`❌ Provider ${provider.name} failed to initialize:`, error);
+        if (process.env.NODE_ENV === 'development') console.log(`❌ Provider ${provider.name} failed to initialize:`, error);
       }
     }
   }
@@ -839,14 +839,14 @@ class AdPriorityManager {
     // Ищем первый доступный провайдер по приоритету
     for (const provider of this.providers) {
       if (provider.isAvailable()) {
-        console.log(`✅ Using provider: ${provider.name}`);
+        if (process.env.NODE_ENV === 'development') console.log(`✅ Using provider: ${provider.name}`);
         return provider;
       }
     }
 
     // Fallback - всегда возвращаем Custom Block (он всегда доступен в портретной ориентации)
     const customProvider = this.providers[this.providers.length - 1];
-    console.log(`🔄 Fallback to: ${customProvider.name}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🔄 Fallback to: ${customProvider.name}`);
     return customProvider;
   }
 
@@ -869,8 +869,8 @@ class AdService {
 
   async initialize(blockId?: string): Promise<void> {
     await this.priorityManager.initialize(blockId);
-    console.log('🎯 AdService initialized with priority system');
-    console.log('🌍 Current language from i18next:', getCurrentLanguageFromI18n());
+    if (process.env.NODE_ENV === 'development') console.log('🎯 AdService initialized with priority system');
+    if (process.env.NODE_ENV === 'development') console.log('🌍 Current language from i18next:', getCurrentLanguageFromI18n());
   }
 
   async showRewardedAd(): Promise<AdsgramResult> {
@@ -878,7 +878,7 @@ class AdService {
       const provider = await this.priorityManager.getAvailableProvider();
       const result = await provider.showRewardedAd();
       
-      console.log(`📺 Ad shown via ${provider.name}:`, result);
+      if (process.env.NODE_ENV === 'development') console.log(`📺 Ad shown via ${provider.name}:`, result);
       return result;
     } catch (error) {
       console.error('❌ Error showing ad:', error);
@@ -894,19 +894,19 @@ class AdService {
   isAvailable(): boolean {
     // Проверяем, была ли инициализация (есть ли хотя бы один инициализированный провайдер)
     const providersStatus = this.priorityManager.getProvidersStatus();
-    console.log('🔍 isAvailable() - статус провайдеров:', providersStatus);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 isAvailable() - статус провайдеров:', providersStatus);
     
     const hasInitializedProviders = providersStatus.some(p => p.info.debug && p.info.debug !== 'stub');
-    console.log('🔍 isAvailable() - есть инициализированные провайдеры:', hasInitializedProviders);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 isAvailable() - есть инициализированные провайдеры:', hasInitializedProviders);
     
     if (!hasInitializedProviders) {
-      console.log('🔍 Провайдеры не инициализированы, нужна инициализация');
+      if (process.env.NODE_ENV === 'development') console.log('🔍 Провайдеры не инициализированы, нужна инициализация');
       return false;
     }
     
     // Если провайдеры инициализированы, проверяем доступность
     const result = providersStatus.some(p => p.available);
-    console.log('🔍 isAvailable() - итоговый результат:', result);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 isAvailable() - итоговый результат:', result);
     return result;
   }
 

@@ -55,8 +55,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
     playerTon >= system.price;
 
   const handleUnlock = async () => {
-    console.log('🚀 КЛИК ПО КНОПКЕ handleUnlock, canAfford:', canAfford);
-    console.log('🚀 systemId:', systemId, 'price:', system.price);
+    if (process.env.NODE_ENV === 'development') console.log('🚀 КЛИК ПО КНОПКЕ handleUnlock, canAfford:', canAfford);
+    if (process.env.NODE_ENV === 'development') console.log('🚀 systemId:', systemId, 'price:', system.price);
     
     try {
       setLoading(true);
@@ -98,9 +98,9 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
       }
       
       // Для других систем - обычная покупка
-      console.log('🚀 ВЫЗЫВАЕМ buySystem...');
+      if (process.env.NODE_ENV === 'development') console.log('🚀 ВЫЗЫВАЕМ buySystem...');
       const result = await buySystem(systemId, system.price) as any;
-      console.log('✅ buySystem результат:', result);
+      if (process.env.NODE_ENV === 'development') console.log('✅ buySystem результат:', result);
       
       setLoading(false);
       onUnlock();
@@ -128,8 +128,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
-      console.log('🔥 Запрос расчета планов для суммы:', customAmount);
-      console.log('🔥 API URL:', `${API_URL}/api/ton/calculate/${customAmount}`);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 Запрос расчета планов для суммы:', customAmount);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 API URL:', `${API_URL}/api/ton/calculate/${customAmount}`);
       
       const response = await fetch(`${API_URL}/api/ton/calculate/${customAmount}`, {
         method: 'GET',
@@ -138,8 +138,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
         },
       });
       
-      console.log('🔥 Response status:', response.status);
-      console.log('🔥 Response headers:', response.headers);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 Response status:', response.status);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 Response headers:', response.headers);
       
       // Проверяем, что получили JSON
       const contentType = response.headers.get('Content-Type');
@@ -150,7 +150,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
       }
       
       const result = await response.json();
-      console.log('🔥 Результат расчета планов:', result);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 Результат расчета планов:', result);
       
       if (response.ok && result.success) {
         setPlanData({
@@ -177,8 +177,8 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
     setLoading(true);
     
     try {
-      console.log('🔥 ВЫБИРАЕМ ТАРИФ:', planType);
-      console.log('🔥 ДАННЫЕ ДЛЯ СТЕЙКА:', { 
+      if (process.env.NODE_ENV === 'development') console.log('🔥 ВЫБИРАЕМ ТАРИФ:', planType);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 ДАННЫЕ ДЛЯ СТЕЙКА:', {
         systemId: planData.system_id, 
         stakeAmount: planData.stake_amount,
         planType 
@@ -186,7 +186,7 @@ const SystemUnlockModal: React.FC<SystemUnlockModalProps> = ({ systemId, onUnloc
       
 const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
         
-      console.log('🔥 ОТПРАВЛЯЕМ ЗАПРОС НА:', `${API_URL}/api/ton/stake`);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 ОТПРАВЛЯЕМ ЗАПРОС НА:', `${API_URL}/api/ton/stake`);
       
       const response = await fetch(`${API_URL}/api/ton/stake`, {
         method: 'POST',
@@ -201,7 +201,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onr
         }),
       });
       
-      console.log('🔥 Response status:', response.status);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 Response status:', response.status);
       
       // Проверяем, что получили JSON
       const contentType = response.headers.get('Content-Type');
@@ -212,7 +212,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onr
       }
       
       const result = await response.json();
-      console.log('🔥 РЕЗУЛЬТАТ СОЗДАНИЯ СТЕЙКА:', result);
+      if (process.env.NODE_ENV === 'development') console.log('🔥 РЕЗУЛЬТАТ СОЗДАНИЯ СТЕЙКА:', result);
       
       if (response.ok && result.success) {
         const timeUnit = result.stake.time_unit || 'дней';
@@ -220,12 +220,12 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onr
         
         // Обновляем игрока новыми данными из ответа
         if (result.player) {
-          console.log('🔥 Обновляем игрока данными:', result.player);
+          if (process.env.NODE_ENV === 'development') console.log('🔥 Обновляем игрока данными:', result.player);
           setPlayer(result.player);
         }
         
         // Отправляем глобальное событие обновления стейков
-        console.log('📢 Отправляем событие обновления стейков');
+        if (process.env.NODE_ENV === 'development') console.log('📢 Отправляем событие обновления стейков');
         window.dispatchEvent(new CustomEvent('stakes-updated'));
         
         // Закрываем модальное окно

@@ -37,13 +37,13 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
     // 🎉 МГНОВЕННАЯ ВИБРАЦИЯ при клике для лучшего UX
     await triggerSuccessFeedback();
     const requestUrl = `${API_URL}/api/daily-bonus/claim/${telegramId}`;
-    console.log(`🎁 Попытка получить бонус для ${telegramId}`);
-    console.log(`🔗 URL запроса: ${requestUrl}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🎁 Попытка получить бонус для ${telegramId}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🔗 URL запроса: ${requestUrl}`);
 
     // Сначала тестируем GET запрос статуса
     try {
       const statusResponse = await axios.get(`${API_URL}/api/daily-bonus/status/${telegramId}`);
-      console.log(`📊 Статус работает:`, statusResponse.data);
+      if (process.env.NODE_ENV === 'development') console.log(`📊 Статус работает:`, statusResponse.data);
     } catch (statusError) {
       console.error(`❌ Ошибка статуса:`, statusError);
     }
@@ -52,10 +52,10 @@ const DailyWelcomeModal: React.FC<DailyWelcomeModalProps> = ({
       const response = await axios.post(requestUrl, {}, {
         timeout: 10000 // 10 секунд таймаут
       });
-      console.log('🎁 Ответ сервера:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('🎁 Ответ сервера:', response.data);
 
       if (response.data.success) {
-        console.log(`✅ Бонус получен: ${response.data.bonus_amount} CCC`);
+        if (process.env.NODE_ENV === 'development') console.log(`✅ Бонус получен: ${response.data.bonus_amount} CCC`);
 
         // 🎉 ДОБАВЛЯЕМ ЗВУК И ВИБРАЦИЮ
         await triggerSuccessFeedback();

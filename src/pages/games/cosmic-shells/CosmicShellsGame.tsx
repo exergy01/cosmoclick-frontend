@@ -51,7 +51,7 @@ const CosmicShellsGame: React.FC = () => {
   
   // ✅ ВОССТАНОВЛЕНО: Обновление баланса как в слотах
   const handlePlayerBalanceUpdate = useCallback((newBalance: number) => {
-    console.log('🛸 Frontend: Updating player balance:', newBalance);
+    if (process.env.NODE_ENV === 'development') console.log('🛸 Frontend: Updating player balance:', newBalance);
     if (player) {
       setPlayer({
         ...player,
@@ -62,13 +62,13 @@ const CosmicShellsGame: React.FC = () => {
   
   // ✅ ВОССТАНОВЛЕНО: Локальное обновление статуса
   const handleLocalStatusUpdate = useCallback((newStatus: any) => {
-    console.log('🛸 Frontend: Local status update:', newStatus);
+    if (process.env.NODE_ENV === 'development') console.log('🛸 Frontend: Local status update:', newStatus);
     updateLocalStatus(newStatus);
   }, [updateLocalStatus]);
   
   // ✅ ВОССТАНОВЛЕНО: Обновление истории
   const handleHistoryUpdate = useCallback(() => {
-    console.log('🛸 Frontend: Updating game history...');
+    if (process.env.NODE_ENV === 'development') console.log('🛸 Frontend: Updating game history...');
     refreshHistory();
   }, [refreshHistory]);
   

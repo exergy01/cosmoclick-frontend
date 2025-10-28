@@ -1,22 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 
-const DEBUG_TELEGRAM_IDS = [2097930691, 850758749, 1222791281, 123456789];
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 interface AccessControlProps {
   telegramId?: number | string;
   children: React.ReactNode;
 }
-
-const isDebugUser = (telegramId?: number | string): boolean => {
-  console.log('🔍 AccessControl check:', { telegramId, type: typeof telegramId });
-  if (!telegramId) return false;
-  const id = typeof telegramId === 'string' ? parseInt(telegramId, 10) : telegramId;
-  const result = DEBUG_TELEGRAM_IDS.includes(id);
-  console.log('✅ Access check result:', { id, result, allowedIds: DEBUG_TELEGRAM_IDS });
-  return result;
-};
 
 const AccessRestriction: React.FC = () => {
   const navigate = useNavigate();
@@ -111,7 +103,50 @@ const AccessRestriction: React.FC = () => {
 };
 
 const AccessControl: React.FC<AccessControlProps> = ({ telegramId, children }) => {
-  if (!isDebugUser(telegramId)) {
+  const [isChecking, setIsChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (!telegramId) {
+        setHasAccess(false);
+        setIsChecking(false);
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${API_URL}/api/admin/auth/check-test-access/${telegramId}`);
+        setHasAccess(response.data.hasTestAccess);
+      } catch (error) {
+        console.error('Access check error:', error);
+        setHasAccess(false);
+      } finally {
+        setIsChecking(false);
+      }
+    };
+
+    checkAccess();
+  }, [telegramId]);
+
+  if (isChecking) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: '#fff'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🚀</div>
+          <div>Проверка доступа...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
     return <AccessRestriction />;
   }
 
@@ -119,4 +154,3 @@ const AccessControl: React.FC<AccessControlProps> = ({ telegramId, children }) =
 };
 
 export default AccessControl;
-export { isDebugUser, DEBUG_TELEGRAM_IDS };

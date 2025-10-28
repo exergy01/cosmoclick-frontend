@@ -137,7 +137,7 @@ const RaceSelection: React.FC<RaceSelectionProps> = ({ onRaceSelected }) => {
         race: selectedRace
       });
 
-      console.log('Race selected successfully:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('Race selected successfully:', response.data);
 
       // Вызываем callback для обновления данных без перезагрузки страницы
       if (onRaceSelected) {

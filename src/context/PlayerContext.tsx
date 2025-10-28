@@ -32,10 +32,10 @@ export const usePlayer = () => {
     
     // Добавляем функции которые могут отсутствовать (заглушки)
     generateReferralLink: async () => {
-      console.log('generateReferralLink called - implement if needed');
+      if (process.env.NODE_ENV === 'development') console.log('generateReferralLink called - implement if needed');
     },
     getReferralStats: async () => {
-      console.log('getReferralStats called - implement if needed');
+      if (process.env.NODE_ENV === 'development') console.log('getReferralStats called - implement if needed');
     },
   };
 };

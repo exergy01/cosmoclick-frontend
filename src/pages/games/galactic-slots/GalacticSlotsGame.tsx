@@ -54,7 +54,7 @@ const GalacticSlotsGame: React.FC = () => {
   
   // Обновление баланса игрока
   const handlePlayerBalanceUpdate = useCallback((newBalance: number) => {
-    console.log('🎰 Frontend: Updating player balance:', newBalance);
+    if (process.env.NODE_ENV === 'development') console.log('🎰 Frontend: Updating player balance:', newBalance);
     if (player) {
       setPlayer({
         ...player,
@@ -65,13 +65,13 @@ const GalacticSlotsGame: React.FC = () => {
   
   // Локальное обновление статуса
   const handleLocalStatusUpdate = useCallback((newStatus: any) => {
-    console.log('🎰 Frontend: Local status update:', newStatus);
+    if (process.env.NODE_ENV === 'development') console.log('🎰 Frontend: Local status update:', newStatus);
     updateLocalStatus(newStatus);
   }, [updateLocalStatus]);
   
   // Обновление истории игр
   const handleHistoryUpdate = useCallback(() => {
-    console.log('🎰 Frontend: Updating game history...');
+    if (process.env.NODE_ENV === 'development') console.log('🎰 Frontend: Updating game history...');
     refreshHistory();
   }, [refreshHistory]);
   

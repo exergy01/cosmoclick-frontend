@@ -14,7 +14,7 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
   const [isProcessing, setIsProcessing] = useState(false);
 
   const createStarsInvoice = async (amount: number): Promise<boolean> => {
-    console.log('Creating Stars invoice:', { playerId, amount });
+    if (process.env.NODE_ENV === 'development') console.log('Creating Stars invoice:', { playerId, amount });
 
     // Валидация
     if (!playerId) {
@@ -44,7 +44,7 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
     setIsProcessing(true);
 
     try {
-      console.log('Sending request to create Stars invoice...');
+      if (process.env.NODE_ENV === 'development') console.log('Sending request to create Stars invoice...');
       
       // ИСПРАВЛЕНО: Правильный endpoint после реорганизации
       const response = await axios.post(`${API_URL}/api/wallet/stars-payments/create-invoice`, {
@@ -53,21 +53,21 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
         description: `Пополнение CosmoClick на ${amount} Stars`
       });
 
-      console.log('Stars invoice API response:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('Stars invoice API response:', response.data);
 
       if (response.data.success && response.data.invoice_url) {
-        console.log('Invoice created successfully:', response.data.invoice_url);
+        if (process.env.NODE_ENV === 'development') console.log('Invoice created successfully:', response.data.invoice_url);
         
         // Используем правильный Telegram WebApp API для открытия ссылки
         const invoiceUrl = response.data.invoice_url;
         
-        console.log('Opening Telegram invoice link:', invoiceUrl);
+        if (process.env.NODE_ENV === 'development') console.log('Opening Telegram invoice link:', invoiceUrl);
         
         // Используем Telegram WebApp API
         if ((window as any).Telegram?.WebApp?.openInvoice) {
-          console.log('Using Telegram WebApp.openInvoice...');
+          if (process.env.NODE_ENV === 'development') console.log('Using Telegram WebApp.openInvoice...');
           (window as any).Telegram.WebApp.openInvoice(invoiceUrl, async (status: string) => {
-            console.log('Invoice status:', status);
+            if (process.env.NODE_ENV === 'development') console.log('Invoice status:', status);
             
             // Отправляем статус на backend для записи в базу
             if (status === 'cancelled' || status === 'failed') {
@@ -77,7 +77,7 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
                   amount: amount,
                   status: status
                 });
-                console.log('Invoice cancellation recorded');
+                if (process.env.NODE_ENV === 'development') console.log('Invoice cancellation recorded');
               } catch (err) {
                 console.error('Failed to record cancellation:', err);
               }
@@ -92,11 +92,11 @@ export const useStarsPayment = ({ playerId, onSuccess, onError }: UseStarsPaymen
             }
           });
         } else if ((window as any).Telegram?.WebApp?.openTelegramLink) {
-          console.log('Using Telegram WebApp.openTelegramLink...');
+          if (process.env.NODE_ENV === 'development') console.log('Using Telegram WebApp.openTelegramLink...');
           (window as any).Telegram.WebApp.openTelegramLink(invoiceUrl);
           onSuccess?.('Счет создан! Откройте ссылку для оплаты');
         } else {
-          console.log('Fallback to window.open...');
+          if (process.env.NODE_ENV === 'development') console.log('Fallback to window.open...');
           window.open(invoiceUrl, '_blank');
           onSuccess?.('Счет создан! Откройте ссылку для оплаты');
         }

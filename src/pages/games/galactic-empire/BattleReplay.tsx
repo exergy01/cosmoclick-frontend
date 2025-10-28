@@ -92,10 +92,10 @@ const BattleReplay: React.FC<BattleReplayProps> = ({
 
   // Debug: Log winner type and value
   React.useEffect(() => {
-    console.log('🔍 BattleReplay winner:', winner, 'type:', typeof winner);
-    console.log('🔍 winner === 1:', winner === 1);
-    console.log('🔍 winner === 2:', winner === 2);
-    console.log('🔍 winner === "draw":', winner === "draw");
+    if (process.env.NODE_ENV === 'development') console.log('🔍 BattleReplay winner:', winner, 'type:', typeof winner);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 winner === 1:', winner === 1);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 winner === 2:', winner === 2);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 winner === "draw":', winner === "draw");
   }, [winner]);
 
   const t = {

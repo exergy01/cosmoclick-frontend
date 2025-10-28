@@ -156,29 +156,29 @@ const GalacticEmpire: React.FC = () => {
 
       // Фильтруем строящиеся корабли (built_at > NOW)
       const allShips = shipsResponse.data;
-      console.log('📦 All ships from API:', allShips);
+      if (process.env.NODE_ENV === 'development') console.log('📦 All ships from API:', allShips);
 
       const building = allShips.filter((ship: any) => new Date(ship.built_at) > new Date());
       const ready = allShips.filter((ship: any) => new Date(ship.built_at) <= new Date());
 
-      console.log('⏱️ Building ships:', building);
-      console.log('✅ Ready ships:', ready);
+      if (process.env.NODE_ENV === 'development') console.log('⏱️ Building ships:', building);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Ready ships:', ready);
 
       setBuildingShips(building);
       setShips(ready);
 
       // Загружаем формацию
       try {
-        console.log('🔄 Loading formation for player:', player.telegram_id);
+        if (process.env.NODE_ENV === 'development') console.log('🔄 Loading formation for player:', player.telegram_id);
         const formationRes = await axios.get(`${API_URL}/api/galactic-empire/formation/${player.telegram_id}`);
-        console.log('⚔️ Formation data:', formationRes.data);
+        if (process.env.NODE_ENV === 'development') console.log('⚔️ Formation data:', formationRes.data);
 
         if (formationRes.data.shipIds) {
           setFormationShipIds(formationRes.data.shipIds);
           setFormationShips(formationRes.data.ships || []);
-          console.log('✅ Formation loaded:', formationRes.data.shipIds);
+          if (process.env.NODE_ENV === 'development') console.log('✅ Formation loaded:', formationRes.data.shipIds);
         } else {
-          console.log('ℹ️ No formation found, starting empty');
+          if (process.env.NODE_ENV === 'development') console.log('ℹ️ No formation found, starting empty');
         }
       } catch (error) {
         console.error('❌ Failed to load formation:', error);
@@ -265,8 +265,8 @@ const GalacticEmpire: React.FC = () => {
 
   // NEW: Handlers
   const handleAddToFormation = async (shipId: number) => {
-    console.log('🔧 handleAddToFormation called with shipId:', shipId);
-    console.log('Current formationShipIds:', formationShipIds);
+    if (process.env.NODE_ENV === 'development') console.log('🔧 handleAddToFormation called with shipId:', shipId);
+    if (process.env.NODE_ENV === 'development') console.log('Current formationShipIds:', formationShipIds);
 
     if (formationShipIds.length >= 5) {
       alert(lang === 'ru' ? 'Формация заполнена (макс. 5 кораблей)' : 'Formation is full (max 5 ships)');
@@ -275,20 +275,20 @@ const GalacticEmpire: React.FC = () => {
 
     try {
       const newShipIds = [...formationShipIds, shipId];
-      console.log('Sending to API:', { telegramId: player.telegram_id, shipIds: newShipIds });
+      if (process.env.NODE_ENV === 'development') console.log('Sending to API:', { telegramId: player.telegram_id, shipIds: newShipIds });
 
       const response = await axios.post(`${API_URL}/api/galactic-empire/formation/update`, {
         telegramId: player.telegram_id,
         shipIds: newShipIds
       });
 
-      console.log('API Response:', response.data);
+      if (process.env.NODE_ENV === 'development') console.log('API Response:', response.data);
 
       setFormationShipIds(newShipIds);
       const ship = ships.find(s => s.id === shipId);
       if (ship) {
         setFormationShips([...formationShips, ship]);
-        console.log('✅ Ship added to formation:', ship);
+        if (process.env.NODE_ENV === 'development') console.log('✅ Ship added to formation:', ship);
       }
     } catch (error: any) {
       console.error('❌ Failed to add to formation:', error);
@@ -404,8 +404,8 @@ const GalacticEmpire: React.FC = () => {
   };
 
   const handleStartBattle = async () => {
-    console.log('⚔️ handleStartBattle called');
-    console.log('Formation ships:', formationShips);
+    if (process.env.NODE_ENV === 'development') console.log('⚔️ handleStartBattle called');
+    if (process.env.NODE_ENV === 'development') console.log('Formation ships:', formationShips);
 
     if (formationShips.length === 0) {
       alert(lang === 'ru' ? 'Добавьте корабли в формацию!' : 'Add ships to formation!');
@@ -413,7 +413,7 @@ const GalacticEmpire: React.FC = () => {
     }
 
     const allAlive = formationShips.every(ship => ship.current_hp > 0);
-    console.log('All ships alive?', allAlive);
+    if (process.env.NODE_ENV === 'development') console.log('All ships alive?', allAlive);
 
     if (!allAlive) {
       alert(lang === 'ru' ? 'Отремонтируйте повреждённые корабли!' : 'Repair damaged ships!');
@@ -424,24 +424,24 @@ const GalacticEmpire: React.FC = () => {
       setLoading(true);
 
       // 📺 Показываем рекламу перед боем (с учетом премиума)
-      console.log('📺 Показываю рекламу перед боем...');
+      if (process.env.NODE_ENV === 'development') console.log('📺 Показываю рекламу перед боем...');
       premiumAdService.setTelegramId(player.telegram_id);
       const adResult = await premiumAdService.showAd();
 
       if (!adResult.success && !adResult.skipped) {
-        console.log('❌ Реклама не была просмотрена');
+        if (process.env.NODE_ENV === 'development') console.log('❌ Реклама не была просмотрена');
         setLoading(false);
         return;
       }
 
-      console.log('🚀 Starting PvE battle for player:', player.telegram_id);
+      if (process.env.NODE_ENV === 'development') console.log('🚀 Starting PvE battle for player:', player.telegram_id);
 
       const res = await axios.post(`${API_URL}/api/galactic-empire/battles/start-pve`, {
         telegramId: player.telegram_id
       });
 
-      console.log('✅ Battle completed:', res.data);
-      console.log('🏆 Winner from server:', res.data.winner);
+      if (process.env.NODE_ENV === 'development') console.log('✅ Battle completed:', res.data);
+      if (process.env.NODE_ENV === 'development') console.log('🏆 Winner from server:', res.data.winner);
 
       // Show battle replay
       setShowBattleReplay({
@@ -1824,7 +1824,7 @@ const GalacticEmpire: React.FC = () => {
           <Hangar
             ships={ships}
             formationShipIds={formationShipIds}
-            onSelectShip={(ship) => console.log('Selected', ship)}
+            if (process.env.NODE_ENV === 'development') onSelectShip={(ship) => console.log('Selected', ship)}
             onAddToFormation={handleAddToFormation}
             onRepairShip={handleRepairShip}
             onUpgradeShip={handleUpgradeShip}

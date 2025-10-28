@@ -20,7 +20,7 @@ export const useDepositCheck = ({ playerId, userAddress, onSuccess, onError }: U
     }
     setIsChecking(true);
     try {
-      console.log('Checking deposits for player:', playerId);
+      if (process.env.NODE_ENV === 'development') console.log('Checking deposits for player:', playerId);
       const response = await axios.post(`${API_URL}/api/wallet/ton-deposits/check-deposits`, {
         player_id: playerId,
         sender_address: userAddress

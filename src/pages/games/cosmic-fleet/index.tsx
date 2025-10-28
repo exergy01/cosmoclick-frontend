@@ -64,7 +64,7 @@ const CosmicFleetGame: React.FC = () => {
     const result = await battleBot('medium', true);
 
     if (result) {
-      console.log('🎯 Результат боя:', result);
+      if (process.env.NODE_ENV === 'development') console.log('🎯 Результат боя:', result);
       setBattleResult(result);
       setShowBattle(true);  // Показываем replay
     }

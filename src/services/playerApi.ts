@@ -42,13 +42,13 @@ export const playerApi = {
     // 🔥 ИСПРАВЛЕНО: добавляем правильное поле в зависимости от системы
     if (data.system === 4) {
       requestBody.collected_cs = data.collected_cs;
-      console.log('🔍 playerApi: отправляем collected_cs =', data.collected_cs);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 playerApi: отправляем collected_cs =', data.collected_cs);
     } else {
       requestBody.collected_ccc = data.collected_ccc;
-      console.log('🔍 playerApi: отправляем collected_ccc =', data.collected_ccc);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 playerApi: отправляем collected_ccc =', data.collected_ccc);
     }
 
-    console.log('🔍 playerApi: полный запрос =', requestBody);
+    if (process.env.NODE_ENV === 'development') console.log('🔍 playerApi: полный запрос =', requestBody);
 
     return await axios.post(`${API_URL}/api/safe/collect`, requestBody);
   },

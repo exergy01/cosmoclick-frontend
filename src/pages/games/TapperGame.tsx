@@ -230,7 +230,7 @@ const TapperGame: React.FC = () => {
     setIsWatchingAd(true);
     
     try {
-      console.log('⚡ Starting ad watch for tapper...');
+      if (process.env.NODE_ENV === 'development') console.log('⚡ Starting ad watch for tapper...');
       
       if (!adService.isAvailable()) {
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
@@ -243,7 +243,7 @@ const TapperGame: React.FC = () => {
       }
       
       const adResult = await adService.showRewardedAd();
-      console.log('⚡ Ad result for tapper:', adResult);
+      if (process.env.NODE_ENV === 'development') console.log('⚡ Ad result for tapper:', adResult);
       
       if (adResult.success) {
         const result = await tapperApi.watchAd(player.telegram_id.toString());

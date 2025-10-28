@@ -8,18 +8,13 @@ import NavigationMenu from '../components/NavigationMenu';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://cosmoclick-backend.onrender.com';
 
-// Отладочные Telegram ID
-const DEBUG_TELEGRAM_IDS = [2097930691, 850758749, 1222791281, 123456789];
-
 const AttackPage: React.FC = () => {
   const { t } = useTranslation();
   const { player, currentSystem } = usePlayer();
   const navigate = useNavigate();
   const location = useLocation();
   const [totalPerHour, setTotalPerHour] = useState({ totalCccPerHour: 0, totalCsPerHour: 0 });
-
-  // Проверяем является ли пользователь отладочным
-  const isDebugUser = player?.telegram_id && DEBUG_TELEGRAM_IDS.includes(Number(player.telegram_id));
+  const [hasTestAccess, setHasTestAccess] = useState(false);
 
   // 💡 НОВЫЙ КОД: Состояние для отслеживания кликов
   const [clickCount, setClickCount] = useState(0);
@@ -44,10 +39,27 @@ const AttackPage: React.FC = () => {
         clearTimeout(clickTimeoutRef.current);
       }
       // 💡 НОВЫЙ КОД: Заглушка для роута
-      console.log("Secret function triggered! Redirecting to /pvp");
-      navigate('/pvp'); 
+      if (process.env.NODE_ENV === 'development') console.log("Secret function triggered! Redirecting to /pvp");
+      navigate('/pvp');
     }
   }, [clickCount, navigate]);
+
+  // Проверка тестового доступа для показа кнопок к играм
+  useEffect(() => {
+    const checkTestAccess = async () => {
+      if (!player?.telegram_id) return;
+
+      try {
+        const response = await axios.get(`${API_URL}/api/admin/auth/check-test-access/${player.telegram_id}`);
+        setHasTestAccess(response.data.hasTestAccess);
+      } catch (error) {
+        console.error('Test access check error:', error);
+        setHasTestAccess(false);
+      }
+    };
+
+    checkTestAccess();
+  }, [player?.telegram_id]);
 
   const calculateTotalPerHour = useCallback(async () => {
     if (!player || !player.drones || !player.telegram_id) return { ccc: 0, cs: 0, ton: 0 };
@@ -119,7 +131,7 @@ const AttackPage: React.FC = () => {
             ⚔️ {t('attack_page.attack')}
           </h2>
 
-          {isDebugUser && (
+          {hasTestAccess && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px', width: '100%', maxWidth: '400px' }}>
               <button
                 onClick={() => navigate('/games/cosmic-fleet')}

@@ -36,18 +36,18 @@ export const useResourceCollection = () => {
       // 🔥 ИСПРАВЛЕНО: для системы 4 отправляем collected_cs, для остальных collected_ccc
       if (system === 4) {
         collectData.collected_cs = collectedAmount;
-        console.log(`💰 useResourceCollection: отправляем ${collectedAmount} CS из системы 4`);
+        if (process.env.NODE_ENV === 'development') console.log(`💰 useResourceCollection: отправляем ${collectedAmount} CS из системы 4`);
       } else {
         collectData.collected_ccc = collectedAmount;
-        console.log(`💰 useResourceCollection: отправляем ${collectedAmount} CCC из системы ${system}`);
+        if (process.env.NODE_ENV === 'development') console.log(`💰 useResourceCollection: отправляем ${collectedAmount} CCC из системы ${system}`);
       }
 
-      console.log('🔍 useResourceCollection: полные данные запроса:', collectData);
+      if (process.env.NODE_ENV === 'development') console.log('🔍 useResourceCollection: полные данные запроса:', collectData);
 
       // Отправляем запрос через playerApi
       const response = await playerApi.safeCollect(collectData);
       
-      console.log(`✅ useResourceCollection: успешный сбор из системы ${system}:`, response.data);
+      if (process.env.NODE_ENV === 'development') console.log(`✅ useResourceCollection: успешный сбор из системы ${system}:`, response.data);
       
       return response.data;
     } catch (err: any) {
@@ -67,7 +67,7 @@ export const useResourceCollection = () => {
     // 🎯 ПРИОРИТЕТ: используем asteroid_total_data (актуальные остатки после сбора)
     const remainingFromTotalData = player.asteroid_total_data?.[system];
     if (remainingFromTotalData !== undefined) {
-      console.log(`🪨 Остатки система ${system}: из asteroid_total_data = ${remainingFromTotalData}`);
+      if (process.env.NODE_ENV === 'development') console.log(`🪨 Остатки система ${system}: из asteroid_total_data = ${remainingFromTotalData}`);
       return remainingFromTotalData;
     }
     
@@ -82,7 +82,7 @@ export const useResourceCollection = () => {
         }
       }, 0) || 0;
     
-    console.log(`🪨 Остатки система ${system}: из asteroids массива = ${remainingFromArray}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🪨 Остатки система ${system}: из asteroids массива = ${remainingFromArray}`);
     return remainingFromArray;
   };
 
@@ -92,7 +92,7 @@ export const useResourceCollection = () => {
     
     const systemStr = String(system);
     const collected = player.collected_by_system?.[systemStr] || 0;
-    console.log(`💰 Собрано система ${system}: ${collected}`);
+    if (process.env.NODE_ENV === 'development') console.log(`💰 Собрано система ${system}: ${collected}`);
     return collected;
   };
 
@@ -104,7 +104,7 @@ export const useResourceCollection = () => {
     const collectedResources = getCollectedResources(player, system);
     
     const canCollect = remainingResources > 0 && collectedResources >= 0;
-    console.log(`🔧 Можно собирать система ${system}: остатки=${remainingResources}, собрано=${collectedResources} => ${canCollect}`);
+    if (process.env.NODE_ENV === 'development') console.log(`🔧 Можно собирать система ${system}: остатки=${remainingResources}, собрано=${collectedResources} => ${canCollect}`);
     return canCollect;
   };
 

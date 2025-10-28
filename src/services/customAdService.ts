@@ -47,7 +47,7 @@ class CustomAdService {
     return new Promise((resolve) => {
       // Проверяем ориентацию экрана
       if (!this.isOrientationVertical()) {
-        console.log('📱 Горизонтальная ориентация - показываем mock рекламу');
+        if (process.env.NODE_ENV === 'development') console.log('📱 Горизонтальная ориентация - показываем mock рекламу');
         const adData = this.createMockAd();
         
         setTimeout(() => {
@@ -61,7 +61,7 @@ class CustomAdService {
       }
 
       // Вертикальная ориентация - показываем RoboForex
-      console.log('📱 Вертикальная ориентация - показываем RoboForex рекламу');
+      if (process.env.NODE_ENV === 'development') console.log('📱 Вертикальная ориентация - показываем RoboForex рекламу');
       const adData = this.createRoboForexAd();
 
       // Создаем overlay для рекламы

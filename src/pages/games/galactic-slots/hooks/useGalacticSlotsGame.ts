@@ -45,7 +45,7 @@ export const useGalacticSlotsGame = (
 
   const spin = useCallback(async (): Promise<boolean> => {
     if (!telegramId || gameState !== 'waiting' || isProcessing) {
-      console.log('🎰 Hook: Spin blocked:', { 
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Hook: Spin blocked:', {
         telegramId: !!telegramId, 
         gameState, 
         isProcessing 
@@ -53,14 +53,14 @@ export const useGalacticSlotsGame = (
       return false;
     }
     
-    console.log('🎰 Hook: Starting spin with bet:', betAmount);
+    if (process.env.NODE_ENV === 'development') console.log('🎰 Hook: Starting spin with bet:', betAmount);
     
     try {
       setIsProcessing(true);
       setGameState('spinning');
       setLastResult(null);
       
-      console.log('🔄 Getting fresh balance before spin...');
+      if (process.env.NODE_ENV === 'development') console.log('🔄 Getting fresh balance before spin...');
       const freshStatus = await GalacticSlotsApi.getStatus(telegramId);
       
       if (!freshStatus.success) {
@@ -71,7 +71,7 @@ export const useGalacticSlotsGame = (
       }
       
       const currentBalance = freshStatus.balance;
-      console.log('🎰 Using FRESH current balance from API:', currentBalance);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Using FRESH current balance from API:', currentBalance);
       
       if (onPlayerBalanceUpdate) {
         onPlayerBalanceUpdate(currentBalance);
@@ -125,7 +125,7 @@ export const useGalacticSlotsGame = (
 
       const cleanBetAmount = numAmount;
       const balanceAfterBet = currentBalance - cleanBetAmount;
-      console.log('💰 Deducting bet correctly:', { 
+      if (process.env.NODE_ENV === 'development') console.log('💰 Deducting bet correctly:', {
         currentBalance, 
         betAmount: cleanBetAmount, 
         newBalance: balanceAfterBet 
@@ -138,21 +138,21 @@ export const useGalacticSlotsGame = (
         onLocalStatusUpdate({ balance: balanceAfterBet });
       }
       
-      console.log('🎰 Making API call to spin...');
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Making API call to spin...');
       const result = await GalacticSlotsApi.spin(telegramId, cleanBetAmount);
       
-      console.log('🎰 API result received:', result);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API result received:', result);
       
       if (result.success && result.result) {
         setLastResult(result.result);
         
         setTimeout(() => {
           setGameState('revealing');
-          console.log('🎰 Animation: Revealing result...');
+          if (process.env.NODE_ENV === 'development') console.log('🎰 Animation: Revealing result...');
           
           setTimeout(() => {
             setGameState('finished');
-            console.log('🎰 Animation: Showing winning lines...');
+            if (process.env.NODE_ENV === 'development') console.log('🎰 Animation: Showing winning lines...');
             
             const winAmount = result.result!.totalWin;
             const multiplier = winAmount > 0 ? Math.round(winAmount / cleanBetAmount) : 0;
@@ -198,10 +198,10 @@ export const useGalacticSlotsGame = (
             
             setTimeout(async () => {
               try {
-                console.log('🔄 Fetching FINAL balance after game...');
+                if (process.env.NODE_ENV === 'development') console.log('🔄 Fetching FINAL balance after game...');
                 const finalStatus = await GalacticSlotsApi.getStatus(telegramId);
                 if (finalStatus.success) {
-                  console.log('✅ Final status after game:', {
+                  if (process.env.NODE_ENV === 'development') console.log('✅ Final status after game:', {
                     balance: finalStatus.balance,
                     dailyGames: finalStatus.dailyGames,
                     gamesLeft: finalStatus.gamesLeft
@@ -224,7 +224,7 @@ export const useGalacticSlotsGame = (
                   
                   setTimeout(() => {
                     setIsProcessing(false);
-                    console.log('✅ Processing unlocked, ready for next spin');
+                    if (process.env.NODE_ENV === 'development') console.log('✅ Processing unlocked, ready for next spin');
                   }, 1000);
                 } else {
                   setIsProcessing(false);
@@ -241,7 +241,7 @@ export const useGalacticSlotsGame = (
             
             setTimeout(() => {
               setGameState('waiting');
-              console.log('🎰 Animation: Ready for next spin');
+              if (process.env.NODE_ENV === 'development') console.log('🎰 Animation: Ready for next spin');
             }, 3000);
             
           }, 1000);
@@ -273,7 +273,7 @@ export const useGalacticSlotsGame = (
 
   const autoSpin = useCallback(async () => {
     if (!telegramId || !gameStatus.canPlayFree || autoSpinActive) {
-      console.log('🎰 AutoSpin: Blocked:', { 
+      if (process.env.NODE_ENV === 'development') console.log('🎰 AutoSpin: Blocked:', {
         telegramId: !!telegramId, 
         canPlayFree: gameStatus.canPlayFree, 
         autoSpinActive 
@@ -281,7 +281,7 @@ export const useGalacticSlotsGame = (
       return;
     }
     
-    console.log('🎰 AutoSpin: Starting...');
+    if (process.env.NODE_ENV === 'development') console.log('🎰 AutoSpin: Starting...');
     
     setAutoSpinActive(true);
     autoSpinRef.current = true;
@@ -292,12 +292,12 @@ export const useGalacticSlotsGame = (
       const maxSpins = 20;
       
       while (spinsDone < maxSpins && autoSpinRef.current) {
-        console.log(`🎰 AutoSpin: Spin ${spinsDone + 1}/${maxSpins}`);
+        if (process.env.NODE_ENV === 'development') console.log(`🎰 AutoSpin: Spin ${spinsDone + 1}/${maxSpins}`);
         
         try {
           const success = await spin();
           if (!success) {
-            console.log('🎰 AutoSpin: Spin failed, stopping');
+            if (process.env.NODE_ENV === 'development') console.log('🎰 AutoSpin: Spin failed, stopping');
             break;
           }
           
@@ -307,7 +307,7 @@ export const useGalacticSlotsGame = (
           await new Promise(resolve => setTimeout(resolve, 8000));
           
           if (!autoSpinRef.current) {
-            console.log('🎰 AutoSpin: Stopped by user');
+            if (process.env.NODE_ENV === 'development') console.log('🎰 AutoSpin: Stopped by user');
             break;
           }
           
@@ -322,7 +322,7 @@ export const useGalacticSlotsGame = (
       autoSpinRef.current = false;
       
       try {
-        console.log('🔄 AutoSpin: Final sync with database...');
+        if (process.env.NODE_ENV === 'development') console.log('🔄 AutoSpin: Final sync with database...');
         const finalStatus = await GalacticSlotsApi.getStatus(telegramId);
         if (finalStatus.success) {
           if (onPlayerBalanceUpdate) {
@@ -338,7 +338,7 @@ export const useGalacticSlotsGame = (
               canWatchAd: finalStatus.canWatchAd
             });
           }
-          console.log('✅ AutoSpin: Final balance from database:', finalStatus.balance);
+          if (process.env.NODE_ENV === 'development') console.log('✅ AutoSpin: Final balance from database:', finalStatus.balance);
         }
       } catch (finalSyncError) {
         console.warn('⚠️ AutoSpin: Final sync failed', finalSyncError);
@@ -359,7 +359,7 @@ export const useGalacticSlotsGame = (
   }, [telegramId, autoSpinActive, betAmount, spin, showToast, t, onPlayerBalanceUpdate, onLocalStatusUpdate]);
 
   const stopAutoSpin = useCallback(() => {
-    console.log('🎰 AutoSpin: Stopping...');
+    if (process.env.NODE_ENV === 'development') console.log('🎰 AutoSpin: Stopping...');
     autoSpinRef.current = false;
     setAutoSpinActive(false);
     
@@ -373,7 +373,7 @@ export const useGalacticSlotsGame = (
 
   const watchAd = useCallback(async () => {
     if (!telegramId || !gameStatus.canWatchAd || isWatchingAd) {
-      console.log('🎰 Ad watch blocked:', {
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Ad watch blocked:', {
         hasTelegramId: !!telegramId,
         canWatchAd: gameStatus.canWatchAd,
         isWatchingAd
@@ -384,7 +384,7 @@ export const useGalacticSlotsGame = (
     setIsWatchingAd(true);
     
     try {
-      console.log('🎰 Starting ad watch for slots...');
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Starting ad watch for slots...');
       
       if (!adService.isAvailable()) {
         const ADSGRAM_BLOCK_ID = process.env.REACT_APP_ADSGRAM_BLOCK_ID || '13245';
@@ -397,7 +397,7 @@ export const useGalacticSlotsGame = (
       }
       
       const adResult = await adService.showRewardedAd();
-      console.log('🎰 Ad result for slots:', adResult);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 Ad result for slots:', adResult);
       
       if (adResult.success) {
         const apiResult = await GalacticSlotsApi.watchAd(telegramId);

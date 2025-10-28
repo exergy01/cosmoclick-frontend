@@ -47,7 +47,7 @@ export const useTONWithdrawal = ({
     setIsProcessing(true);
 
     try {
-      console.log('Creating withdrawal request:', { playerId, amount, walletAddress });
+      if (process.env.NODE_ENV === 'development') console.log('Creating withdrawal request:', { playerId, amount, walletAddress });
 
       // Создаем заявку на вывод
       const response = await axios.post(`${API_URL}/api/wallet/ton-withdrawals/prepare`, {
@@ -58,7 +58,7 @@ export const useTONWithdrawal = ({
 
       if (response.data.success) {
         const message = `Заявка на вывод ${amount} TON создана! Администратор обработает её в ближайшее время.`;
-        console.log('Withdrawal request created successfully');
+        if (process.env.NODE_ENV === 'development') console.log('Withdrawal request created successfully');
         onSuccess?.(message);
         onBalanceUpdate?.(); // Обновляем баланс
         return true;

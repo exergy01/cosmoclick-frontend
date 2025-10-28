@@ -140,7 +140,7 @@ const collectReferralRewards = async () => {
             showToastMessage(t('select_chat_to_share'));
             return;
           } catch (e) {
-            console.log('switchInlineQuery failed:', e);
+            if (process.env.NODE_ENV === 'development') console.log('switchInlineQuery failed:', e);
           }
         }
         
@@ -153,7 +153,7 @@ const collectReferralRewards = async () => {
             showToastMessage(t('opening_share_dialog'));
             return;
           } catch (e) {
-            console.log('openTelegramLink failed:', e);
+            if (process.env.NODE_ENV === 'development') console.log('openTelegramLink failed:', e);
           }
         }
         
@@ -168,7 +168,7 @@ const collectReferralRewards = async () => {
             showToastMessage(t('data_sent_to_bot'));
             return;
           } catch (e) {
-            console.log('sendData failed:', e);
+            if (process.env.NODE_ENV === 'development') console.log('sendData failed:', e);
           }
         }
         
@@ -181,7 +181,7 @@ const collectReferralRewards = async () => {
             showToastMessage(t('opening_in_browser'));
             return;
           } catch (e) {
-            console.log('openLink failed:', e);
+            if (process.env.NODE_ENV === 'development') console.log('openLink failed:', e);
           }
         }
       }

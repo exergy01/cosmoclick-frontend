@@ -138,7 +138,7 @@ export const initializeSystemData = (): { [key: string]: number } => {
 
 // 🔥 ИСПРАВЛЕННАЯ функция создания полного объекта игрока с значениями по умолчанию
 export const createPlayerWithDefaults = (playerData: any, currentSystem: number) => {
-  console.log('🔧 createPlayerWithDefaults вызван с данными:', {
+  if (process.env.NODE_ENV === 'development') console.log('🔧 createPlayerWithDefaults вызван с данными:', {
     referrals: playerData.referrals,
     referrals_type: typeof playerData.referrals,
     referrals_length: playerData.referrals?.length,
@@ -159,7 +159,7 @@ export const createPlayerWithDefaults = (playerData: any, currentSystem: number)
   const safeReferrals = Array.isArray(playerData.referrals) ? playerData.referrals : [];
   const safeHonorBoard = Array.isArray(playerData.honor_board) ? playerData.honor_board : [];
 
-  console.log('🔧 createPlayerWithDefaults обработка рефералов:', {
+  if (process.env.NODE_ENV === 'development') console.log('🔧 createPlayerWithDefaults обработка рефералов:', {
     original_referrals: playerData.referrals,
     safe_referrals: safeReferrals,
     safe_referrals_length: safeReferrals.length,
@@ -186,7 +186,7 @@ export const createPlayerWithDefaults = (playerData: any, currentSystem: number)
     current_system: playerData.current_system || 1,
   };
 
-  console.log('🔧 createPlayerWithDefaults результат:', {
+  if (process.env.NODE_ENV === 'development') console.log('🔧 createPlayerWithDefaults результат:', {
     result_referrals: result.referrals,
     result_referrals_type: typeof result.referrals,
     result_referrals_length: result.referrals?.length,

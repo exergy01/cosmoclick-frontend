@@ -27,7 +27,7 @@ class GalacticSlotsApiService {
       }
 
       const data = await response.json();
-      console.log('🎰 API: Status received:', data);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: Status received:', data);
       return data;
     } catch (error) {
       console.error('🎰❌ API Error - getStatus:', error);
@@ -59,7 +59,7 @@ class GalacticSlotsApiService {
   // ИСПРАВЛЕНО: Чистый спин без circular структур
   async spin(telegramId: string, betAmount: number): Promise<SpinResponse> {
     try {
-      console.log('🎰 API: Sending spin request:', { telegramId, betAmount, type: typeof betAmount });
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: Sending spin request:', { telegramId, betAmount, type: typeof betAmount });
       
       // Очищаем данные перед отправкой
       const cleanBetAmount = Number(betAmount);
@@ -77,7 +77,7 @@ class GalacticSlotsApiService {
         }),
       });
 
-      console.log('🎰 API: Spin response status:', response.status);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: Spin response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -89,7 +89,7 @@ class GalacticSlotsApiService {
       }
 
       const data = await response.json();
-      console.log('🎰✅ API: Spin success:', data);
+      if (process.env.NODE_ENV === 'development') console.log('🎰✅ API: Spin success:', data);
       return data;
     } catch (error) {
       console.error('🎰❌ API Error - spin:', error);
@@ -103,7 +103,7 @@ class GalacticSlotsApiService {
   // ИСПРАВЛЕНО: Правильный роут для рекламы
   async watchAd(telegramId: string): Promise<AdWatchResponse> {
     try {
-      console.log('🎰 API: Sending watch ad request:', { telegramId });
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: Sending watch ad request:', { telegramId });
       
       const response = await fetch(`${API_BASE}/api/games/galactic-slots/watch-ad/${telegramId}`, {
         method: 'POST',
@@ -113,7 +113,7 @@ class GalacticSlotsApiService {
         body: JSON.stringify({}),
       });
 
-      console.log('🎰 API: Watch ad response status:', response.status);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: Watch ad response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -128,7 +128,7 @@ class GalacticSlotsApiService {
       }
 
       const data = await response.json();
-      console.log('🎰✅ API: Watch ad success:', data);
+      if (process.env.NODE_ENV === 'development') console.log('🎰✅ API: Watch ad success:', data);
       return data;
     } catch (error) {
       console.error('🎰❌ API Error - watchAd:', error);
@@ -145,7 +145,7 @@ class GalacticSlotsApiService {
   // ИСПРАВЛЕНО: Правильный роут для истории
   async getHistory(telegramId: string, limit = 20, offset = 0): Promise<SlotHistoryResponse> {
     try {
-      console.log('🎰 API: Getting history:', { telegramId, limit, offset });
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: Getting history:', { telegramId, limit, offset });
       
       const response = await fetch(
         `${API_BASE}/api/games/galactic-slots/history/${telegramId}?limit=${limit}&offset=${offset}`,
@@ -157,14 +157,14 @@ class GalacticSlotsApiService {
         }
       );
 
-      console.log('🎰 API: History response status:', response.status);
+      if (process.env.NODE_ENV === 'development') console.log('🎰 API: History response status:', response.status);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('🎰✅ API: History success:', data);
+      if (process.env.NODE_ENV === 'development') console.log('🎰✅ API: History success:', data);
       return data;
     } catch (error) {
       console.error('🎰❌ API Error - getHistory:', error);
