@@ -1824,7 +1824,7 @@ const GalacticEmpire: React.FC = () => {
           <Hangar
             ships={ships}
             formationShipIds={formationShipIds}
-            if (process.env.NODE_ENV === 'development') onSelectShip={(ship) => console.log('Selected', ship)}
+            onSelectShip={(ship) => { if (process.env.NODE_ENV === 'development') console.log('Selected', ship) }}
             onAddToFormation={handleAddToFormation}
             onRepairShip={handleRepairShip}
             onUpgradeShip={handleUpgradeShip}
