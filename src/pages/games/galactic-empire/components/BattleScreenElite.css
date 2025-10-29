@@ -1,0 +1,315 @@
+/* Elite Battle Screen - Стиль классической Elite */
+
+.elite-battle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.elite-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* HUD в стиле Elite */
+.elite-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.elite-hud-top {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 20px;
+}
+
+/* Сканер (радар) */
+.elite-scanner {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  background: rgba(0, 50, 0, 0.8);
+  border: 2px solid #00ff00;
+  border-radius: 50%;
+  box-shadow:
+    0 0 20px rgba(0, 255, 0, 0.5),
+    inset 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.scanner-grid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: rgba(0, 255, 0, 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.scanner-grid::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 100%;
+  background: rgba(0, 255, 0, 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.scanner-grid::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgba(0, 255, 0, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.scanner-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: scanner-pulse 1.5s ease-in-out infinite;
+}
+
+.player-dot {
+  background: #00bfff;
+  box-shadow: 0 0 10px #00bfff;
+}
+
+.enemy-dot {
+  background: #ff4444;
+  box-shadow: 0 0 10px #ff4444;
+}
+
+@keyframes scanner-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+/* Статус панель */
+.elite-status {
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff88;
+  padding: 15px 20px;
+  box-shadow:
+    0 0 20px rgba(0, 255, 136, 0.4),
+    inset 0 0 10px rgba(0, 255, 136, 0.1);
+  min-width: 250px;
+}
+
+.status-line {
+  color: #00ff88;
+  font-size: 14px;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+  margin-bottom: 5px;
+  letter-spacing: 2px;
+}
+
+/* Результат боя в стиле Elite */
+.elite-result-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: elite-fade-in 0.5s ease-in;
+}
+
+@keyframes elite-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.elite-result-box {
+  background: rgba(0, 20, 0, 0.95);
+  border: 3px solid #00ff00;
+  padding: 40px 60px;
+  text-align: center;
+  box-shadow:
+    0 0 40px rgba(0, 255, 0, 0.6),
+    inset 0 0 30px rgba(0, 255, 0, 0.1);
+  animation: elite-result-pulse 2s ease-in-out infinite;
+}
+
+@keyframes elite-result-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 40px rgba(0, 255, 0, 0.6),
+      inset 0 0 30px rgba(0, 255, 0, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 60px rgba(0, 255, 0, 0.8),
+      inset 0 0 40px rgba(0, 255, 0, 0.2);
+  }
+}
+
+.elite-result-title {
+  font-size: 48px;
+  font-weight: bold;
+  color: #00ff00;
+  text-shadow:
+    0 0 10px rgba(0, 255, 0, 1),
+    0 0 20px rgba(0, 255, 0, 0.8),
+    0 0 30px rgba(0, 255, 0, 0.6);
+  margin-bottom: 30px;
+  letter-spacing: 8px;
+  animation: elite-title-flicker 3s ease-in-out infinite;
+}
+
+@keyframes elite-title-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+  75% {
+    opacity: 0.98;
+  }
+}
+
+.elite-result-reward {
+  font-size: 28px;
+  color: #ffff00;
+  text-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+  margin-bottom: 30px;
+  letter-spacing: 4px;
+}
+
+.elite-result-btn {
+  background: rgba(0, 100, 0, 0.8);
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  padding: 15px 40px;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  pointer-events: all;
+  letter-spacing: 3px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+}
+
+.elite-result-btn:hover {
+  background: rgba(0, 150, 0, 0.9);
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.elite-result-btn:active {
+  transform: scale(0.98);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .elite-hud-top {
+    flex-direction: column;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .elite-scanner {
+    width: 100px;
+    height: 100px;
+  }
+
+  .elite-status {
+    min-width: auto;
+    padding: 10px 15px;
+  }
+
+  .status-line {
+    font-size: 11px;
+  }
+
+  .elite-result-title {
+    font-size: 32px;
+    letter-spacing: 4px;
+  }
+
+  .elite-result-reward {
+    font-size: 20px;
+  }
+
+  .elite-result-btn {
+    padding: 12px 30px;
+    font-size: 14px;
+  }
+
+  .elite-result-box {
+    padding: 30px 40px;
+  }
+}
+
+/* Эффект scanline (как на старых CRT-мониторах) */
+.elite-battle-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 0, 0.03) 0px,
+    rgba(0, 0, 0, 0.02) 1px,
+    rgba(0, 0, 0, 0.02) 2px
+  );
+  pointer-events: none;
+  z-index: 5;
+  animation: scanline-move 8s linear infinite;
+}
+
+@keyframes scanline-move {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(10px);
+  }
+}
+
+/* Эффект CRT curvature (легкое искривление экрана) */
+.elite-canvas {
+  filter: contrast(1.1) brightness(1.05);
+}

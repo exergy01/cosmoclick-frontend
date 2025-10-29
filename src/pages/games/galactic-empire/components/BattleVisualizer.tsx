@@ -3,6 +3,7 @@ import BattleScreen from './BattleScreen'; // Оригинальная визу�
 import BattleScreenTactical from './BattleScreenTactical'; // Тактическая
 import BattleScreenCinematic from './BattleScreenCinematic'; // Кинематографичная
 import BattleScreenMinimal from './BattleScreenMinimal'; // Минималистичная
+import BattleScreenElite from './BattleScreenElite'; // Elite wireframe стиль
 
 interface BattleVisualizerProps {
   battleLog: any[];
@@ -14,7 +15,7 @@ interface BattleVisualizerProps {
 }
 
 const BattleVisualizer: React.FC<BattleVisualizerProps> = (props) => {
-  const [visualMode, setVisualMode] = useState<number>(1); // 1=Original, 2=Tactical, 3=Cinematic, 4=Minimal
+  const [visualMode, setVisualMode] = useState<number>(5); // 1=Original, 2=Tactical, 3=Cinematic, 4=Minimal, 5=Elite
 
   // Выбор компонента по режиму
   const renderBattle = () => {
@@ -27,8 +28,10 @@ const BattleVisualizer: React.FC<BattleVisualizerProps> = (props) => {
         return <BattleScreenCinematic {...props} />;
       case 4:
         return <BattleScreenMinimal {...props} />;
+      case 5:
+        return <BattleScreenElite {...props} />;
       default:
-        return <BattleScreen {...props} />;
+        return <BattleScreenElite {...props} />;
     }
   };
 
@@ -106,6 +109,23 @@ const BattleVisualizer: React.FC<BattleVisualizerProps> = (props) => {
           }}
         >
           ⚡ БОЙ 4 (Минимал)
+        </button>
+
+        <button
+          onClick={() => setVisualMode(5)}
+          style={{
+            padding: '10px 20px',
+            background: visualMode === 5 ? '#00ff00' : 'rgba(0,0,0,0.7)',
+            color: '#fff',
+            border: '2px solid #00ff00',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            boxShadow: visualMode === 5 ? '0 0 20px rgba(0,255,0,0.6)' : 'none'
+          }}
+        >
+          🎮 БОЙ 5 (ELITE)
         </button>
       </div>
 
