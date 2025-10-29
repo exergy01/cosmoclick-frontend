@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as THREE from 'three';
 import './BattleScreenElite.css';
 
 interface BattleAction {
@@ -43,139 +42,18 @@ interface BattleScreenEliteProps {
   onBattleEnd: () => void;
 }
 
-// Создание 3D модели корабля из геометрии
-const createShipMesh = (type: string, color: number): THREE.Group => {
-  const group = new THREE.Group();
+// Эмодзи для разных типов кораблей
+const SHIP_EMOJIS: Record<string, string> = {
+  frigate: '🚀',
+  destroyer: '✈️',
+  cruiser: '🛸',
+  battleship: '🚁',
+  default: '🛩️',
+};
 
-  const shipClass = type.split('_')[0].toLowerCase();
-
-  // Материал с эффектом свечения
-  const material = new THREE.MeshPhongMaterial({
-    color: color,
-    emissive: color,
-    emissiveIntensity: 0.3,
-    shininess: 100,
-  });
-
-  const lineMaterial = new THREE.LineBasicMaterial({ color: color });
-
-  // Разные модели для разных классов
-  if (shipClass === 'frigate') {
-    // Фрегат - легкий истребитель (треугольник)
-    const noseGeom = new THREE.ConeGeometry(0.3, 1.5, 4);
-    const nose = new THREE.Mesh(noseGeom, material);
-    nose.rotation.x = Math.PI / 2;
-    group.add(nose);
-
-    // Крылья
-    const wingGeom = new THREE.BoxGeometry(2, 0.1, 0.8);
-    const wings = new THREE.Mesh(wingGeom, material);
-    wings.position.z = 0.3;
-    group.add(wings);
-
-    // Двигатели
-    const engineGeom = new THREE.CylinderGeometry(0.15, 0.15, 0.4, 8);
-    const engine1 = new THREE.Mesh(engineGeom, material);
-    engine1.rotation.x = Math.PI / 2;
-    engine1.position.set(-0.7, 0, 0.7);
-    group.add(engine1);
-
-    const engine2 = engine1.clone();
-    engine2.position.set(0.7, 0, 0.7);
-    group.add(engine2);
-
-  } else if (shipClass === 'destroyer') {
-    // Эсминец - средний корабль
-    const bodyGeom = new THREE.BoxGeometry(0.8, 0.5, 2);
-    const body = new THREE.Mesh(bodyGeom, material);
-    group.add(body);
-
-    // Нос
-    const noseGeom = new THREE.ConeGeometry(0.4, 0.8, 4);
-    const nose = new THREE.Mesh(noseGeom, material);
-    nose.rotation.x = Math.PI / 2;
-    nose.position.z = -1.4;
-    group.add(nose);
-
-    // Крылья
-    const wingGeom = new THREE.BoxGeometry(2.5, 0.15, 1);
-    const wings = new THREE.Mesh(wingGeom, material);
-    wings.position.z = 0.5;
-    group.add(wings);
-
-    // Башня
-    const towerGeom = new THREE.BoxGeometry(0.4, 0.6, 0.4);
-    const tower = new THREE.Mesh(towerGeom, material);
-    tower.position.y = 0.5;
-    group.add(tower);
-
-  } else if (shipClass === 'cruiser') {
-    // Крейсер - тяжелый корабль
-    const bodyGeom = new THREE.BoxGeometry(1.2, 0.8, 3);
-    const body = new THREE.Mesh(bodyGeom, material);
-    group.add(body);
-
-    // Нос
-    const noseGeom = new THREE.ConeGeometry(0.6, 1.2, 6);
-    const nose = new THREE.Mesh(noseGeom, material);
-    nose.rotation.x = Math.PI / 2;
-    nose.position.z = -2.1;
-    group.add(nose);
-
-    // Крылья
-    const wingGeom = new THREE.BoxGeometry(3, 0.2, 1.5);
-    const wings = new THREE.Mesh(wingGeom, material);
-    wings.position.z = 0.5;
-    group.add(wings);
-
-    // Башни
-    for (let i = 0; i < 2; i++) {
-      const towerGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 8);
-      const tower = new THREE.Mesh(towerGeom, material);
-      tower.position.set(i === 0 ? -0.5 : 0.5, 0.6, -0.5);
-      group.add(tower);
-    }
-
-  } else if (shipClass === 'battleship') {
-    // Линкор - огромный корабль
-    const bodyGeom = new THREE.BoxGeometry(1.5, 1.2, 4);
-    const body = new THREE.Mesh(bodyGeom, material);
-    group.add(body);
-
-    // Нос
-    const noseGeom = new THREE.ConeGeometry(0.75, 1.5, 6);
-    const nose = new THREE.Mesh(noseGeom, material);
-    nose.rotation.x = Math.PI / 2;
-    nose.position.z = -2.75;
-    group.add(nose);
-
-    // Большие крылья
-    const wingGeom = new THREE.BoxGeometry(4, 0.3, 2);
-    const wings = new THREE.Mesh(wingGeom, material);
-    wings.position.z = 1;
-    group.add(wings);
-
-    // Множество башен
-    for (let i = 0; i < 3; i++) {
-      const towerGeom = new THREE.CylinderGeometry(0.4, 0.4, 1, 8);
-      const tower = new THREE.Mesh(towerGeom, material);
-      tower.position.set((i - 1) * 0.7, 0.8, -1 + i * 0.8);
-      group.add(tower);
-    }
-
-  } else {
-    // Default - простой корабль
-    const bodyGeom = new THREE.BoxGeometry(0.6, 0.4, 1.5);
-    const body = new THREE.Mesh(bodyGeom, material);
-    group.add(body);
-  }
-
-  // Добавляем слабое свечение
-  const light = new THREE.PointLight(color, 0.5, 10);
-  light.position.set(0, 0, 0);
-  group.add(light);
-
-  return group;
+const getShipEmoji = (shipType: string): string => {
+  const type = shipType.split('_')[0].toLowerCase();
+  return SHIP_EMOJIS[type] || SHIP_EMOJIS.default;
 };
 
 const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
@@ -186,346 +64,260 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
   reward,
   onBattleEnd,
 }) => {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const playerShipsRef = useRef<THREE.Group[]>([]);
-  const enemyShipsRef = useRef<THREE.Group[]>([]);
-  const lasersRef = useRef<THREE.Line[]>([]);
-
   const [playerShips, setPlayerShips] = useState<ShipData[]>([]);
   const [enemyShips, setEnemyShips] = useState<ShipData[]>([]);
-  const [currentActionIndex, setCurrentActionIndex] = useState(0);
+  const [currentRound, setCurrentRound] = useState(0);
   const [battleActive, setBattleActive] = useState(true);
   const [showResult, setShowResult] = useState(false);
+  const [activeLasers, setActiveLasers] = useState<any[]>([]);
 
-  // Инициализация Three.js сцены
+  // Группируем действия по раундам
+  const roundsData = useRef<BattleAction[][]>([]);
+
   useEffect(() => {
-    if (!mountRef.current) return;
-
-    // Сцена
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
-    sceneRef.current = scene;
-
-    // Камера
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(0, 15, 25);
-    camera.lookAt(0, 0, 0);
-    cameraRef.current = camera;
-
-    // Рендерер
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    mountRef.current.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
-
-    // Освещение
-    const ambientLight = new THREE.AmbientLight(0x404040, 1);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 20, 10);
-    scene.add(directionalLight);
-
-    // Звезды
-    const starsGeometry = new THREE.BufferGeometry();
-    const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
-
-    const starsVertices = [];
-    for (let i = 0; i < 1000; i++) {
-      const x = (Math.random() - 0.5) * 200;
-      const y = (Math.random() - 0.5) * 200;
-      const z = (Math.random() - 0.5) * 200;
-      starsVertices.push(x, y, z);
-    }
-
-    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
-    const stars = new THREE.Points(starsGeometry, starsMaterial);
-    scene.add(stars);
-
-    // Создаем корабли игрока
-    playerFleet.forEach((shipData, index) => {
-      const shipMesh = createShipMesh(shipData.ship_type, 0x00bfff);
-      shipMesh.position.set((index - playerFleet.length / 2) * 5, -5, 10);
-      shipMesh.rotation.y = Math.PI; // Смотрят вперед
-      scene.add(shipMesh);
-      playerShipsRef.current.push(shipMesh);
+    // Группируем battleLog по раундам
+    const grouped: Record<number, BattleAction[]> = {};
+    battleLog.forEach(action => {
+      if (!grouped[action.round]) {
+        grouped[action.round] = [];
+      }
+      grouped[action.round].push(action);
     });
 
-    // Создаем корабли врага
-    enemyFleet.forEach((shipData, index) => {
-      const shipMesh = createShipMesh(shipData.ship_type, 0xff4444);
-      shipMesh.position.set((index - enemyFleet.length / 2) * 5, 5, -10);
-      // Враги уже смотрят на игрока (0 rotation)
-      scene.add(shipMesh);
-      enemyShipsRef.current.push(shipMesh);
-    });
+    roundsData.current = Object.values(grouped);
 
     // Инициализация данных кораблей
-    setPlayerShips(playerFleet.map(s => ({
-      id: s.id,
-      ship_type: s.ship_type,
-      current_hp: s.current_hp,
-      max_hp: s.max_hp,
-      attack: s.attack,
-      defense: s.defense,
-      speed: s.speed,
-      destroyed: s.current_hp <= 0,
-    })));
+    setPlayerShips(
+      playerFleet.map(s => ({
+        id: s.id,
+        ship_type: s.ship_type,
+        current_hp: s.current_hp,
+        max_hp: s.max_hp,
+        attack: s.attack,
+        defense: s.defense,
+        speed: s.speed,
+        destroyed: s.current_hp <= 0,
+      }))
+    );
 
-    setEnemyShips(enemyFleet.map(s => ({
-      id: s.id,
-      ship_type: s.ship_type,
-      current_hp: s.current_hp,
-      max_hp: s.max_hp,
-      attack: s.attack,
-      defense: s.defense,
-      speed: s.speed,
-      destroyed: s.current_hp <= 0,
-    })));
+    setEnemyShips(
+      enemyFleet.map(s => ({
+        id: s.id,
+        ship_type: s.ship_type,
+        current_hp: s.current_hp,
+        max_hp: s.max_hp,
+        attack: s.attack,
+        defense: s.defense,
+        speed: s.speed,
+        destroyed: s.current_hp <= 0,
+      }))
+    );
+  }, [battleLog, playerFleet, enemyFleet]);
 
-    // Анимационный цикл
-    const animate = () => {
-      requestAnimationFrame(animate);
-
-      // Вращение звезд
-      stars.rotation.y += 0.0002;
-
-      // Легкая анимация кораблей (покачивание)
-      playerShipsRef.current.forEach((ship, i) => {
-        if (ship.visible) {
-          ship.position.y = -5 + Math.sin(Date.now() * 0.001 + i) * 0.2;
-          ship.rotation.z = Math.sin(Date.now() * 0.0015 + i) * 0.05;
-        }
-      });
-
-      enemyShipsRef.current.forEach((ship, i) => {
-        if (ship.visible) {
-          ship.position.y = 5 + Math.sin(Date.now() * 0.001 + i + 10) * 0.2;
-          ship.rotation.z = Math.sin(Date.now() * 0.0015 + i + 10) * 0.05;
-        }
-      });
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    // Обработка изменения размера окна
-    const handleResize = () => {
-      if (!camera || !renderer) return;
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
-      renderer.dispose();
-    };
-  }, [playerFleet, enemyFleet]);
-
-  // Создание лазерного выстрела
-  const createLaser = (fromPos: THREE.Vector3, toPos: THREE.Vector3, color: number) => {
-    if (!sceneRef.current) return;
-
-    const points = [fromPos, toPos];
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
-    const laser = new THREE.Line(geometry, material);
-
-    sceneRef.current.add(laser);
-    lasersRef.current.push(laser);
-
-    // Удаляем лазер через 300мс
-    setTimeout(() => {
-      if (sceneRef.current) {
-        sceneRef.current.remove(laser);
-        lasersRef.current = lasersRef.current.filter(l => l !== laser);
-      }
-    }, 300);
-  };
-
-  // Создание взрыва
-  const createExplosion = (pos: THREE.Vector3) => {
-    if (!sceneRef.current) return;
-
-    // Создаем частицы взрыва
-    const particlesGeometry = new THREE.BufferGeometry();
-    const particlesMaterial = new THREE.PointsMaterial({
-      color: 0xff6600,
-      size: 0.3,
-      transparent: true,
-    });
-
-    const particlesCount = 20;
-    const positions = [];
-
-    for (let i = 0; i < particlesCount; i++) {
-      positions.push(pos.x, pos.y, pos.z);
-    }
-
-    particlesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-    sceneRef.current.add(particles);
-
-    // Анимация разлета частиц
-    let frame = 0;
-    const animateExplosion = () => {
-      frame++;
-      const posArray = particlesGeometry.attributes.position.array as Float32Array;
-
-      for (let i = 0; i < particlesCount; i++) {
-        const i3 = i * 3;
-        const angle = (i / particlesCount) * Math.PI * 2;
-        const speed = 0.1;
-        posArray[i3] += Math.cos(angle) * speed;
-        posArray[i3 + 1] += Math.sin(angle) * speed;
-      }
-
-      particlesGeometry.attributes.position.needsUpdate = true;
-      particlesMaterial.opacity = 1 - (frame / 30);
-
-      if (frame < 30) {
-        requestAnimationFrame(animateExplosion);
-      } else {
-        if (sceneRef.current) {
-          sceneRef.current.remove(particles);
-        }
-      }
-    };
-
-    animateExplosion();
-  };
-
-  // Воспроизведение боя
+  // Воспроизведение раундов
   useEffect(() => {
-    if (!battleActive || currentActionIndex >= battleLog.length) {
-      if (currentActionIndex >= battleLog.length && battleActive) {
+    if (!battleActive || currentRound >= roundsData.current.length) {
+      if (currentRound >= roundsData.current.length && battleActive) {
         setBattleActive(false);
-        setTimeout(() => setShowResult(true), 2000);
+        setTimeout(() => setShowResult(true), 1500);
       }
       return;
     }
 
-    const action = battleLog[currentActionIndex];
+    const roundActions = roundsData.current[currentRound];
 
     const timer = setTimeout(() => {
-      // Получаем индексы атакующего и цели
-      const attackerIndex = action.attacker.index;
-      const targetIndex = action.target.index;
+      // Создаем ВСЕ лазеры одновременно для этого раунда
+      const newLasers = roundActions.map((action, idx) => ({
+        id: `${currentRound}-${idx}`,
+        fromFleet: action.attacker.fleet,
+        fromIndex: action.attacker.index,
+        toFleet: action.target.fleet,
+        toIndex: action.target.index,
+        isCrit: action.isCrit,
+      }));
 
-      // Получаем 3D модели
-      const attackerMesh = action.attacker.fleet === 1
-        ? playerShipsRef.current[attackerIndex]
-        : enemyShipsRef.current[attackerIndex];
+      setActiveLasers(newLasers);
 
-      const targetMesh = action.target.fleet === 1
-        ? playerShipsRef.current[targetIndex]
-        : enemyShipsRef.current[targetIndex];
+      // Удаляем лазеры через 400мс
+      setTimeout(() => {
+        setActiveLasers([]);
+      }, 400);
 
-      if (attackerMesh && targetMesh) {
-        // Создаем лазер
-        const color = action.attacker.fleet === 1 ? 0x00ffff : 0xff0000;
-        createLaser(
-          attackerMesh.position.clone(),
-          targetMesh.position.clone(),
-          color
-        );
-
-        // Анимация попадания через 200мс
-        setTimeout(() => {
-          createExplosion(targetMesh.position.clone());
-
-          // Тряска цели
-          const originalPos = targetMesh.position.clone();
-          targetMesh.position.x += (Math.random() - 0.5) * 0.5;
-          targetMesh.position.y += (Math.random() - 0.5) * 0.5;
-
-          setTimeout(() => {
-            targetMesh.position.copy(originalPos);
-          }, 100);
-        }, 200);
-      }
-
-      // Обновляем HP
-      if (action.target.fleet === 1) {
-        setPlayerShips(prev =>
-          prev.map(ship =>
-            ship.id === action.target.shipId
-              ? {
-                  ...ship,
-                  current_hp: action.targetRemainingHP,
-                  destroyed: action.isKill,
-                }
-              : ship
-          )
-        );
-
-        // Скрываем уничтоженный корабль
-        if (action.isKill) {
-          const targetMesh = playerShipsRef.current[targetIndex];
-          if (targetMesh) {
-            targetMesh.visible = false;
+      // Применяем весь урон одновременно через 200мс (когда лазеры долетят)
+      setTimeout(() => {
+        roundActions.forEach(action => {
+          if (action.target.fleet === 1) {
+            setPlayerShips(prev =>
+              prev.map(ship =>
+                ship.id === action.target.shipId
+                  ? {
+                      ...ship,
+                      current_hp: action.targetRemainingHP,
+                      destroyed: action.isKill,
+                    }
+                  : ship
+              )
+            );
+          } else {
+            setEnemyShips(prev =>
+              prev.map(ship =>
+                ship.id === action.target.shipId
+                  ? {
+                      ...ship,
+                      current_hp: action.targetRemainingHP,
+                      destroyed: action.isKill,
+                    }
+                  : ship
+              )
+            );
           }
-        }
-      } else {
-        setEnemyShips(prev =>
-          prev.map(ship =>
-            ship.id === action.target.shipId
-              ? {
-                  ...ship,
-                  current_hp: action.targetRemainingHP,
-                  destroyed: action.isKill,
-                }
-              : ship
-          )
-        );
+        });
+      }, 200);
 
-        // Скрываем уничтоженный корабль
-        if (action.isKill) {
-          const targetMesh = enemyShipsRef.current[targetIndex];
-          if (targetMesh) {
-            targetMesh.visible = false;
-          }
-        }
-      }
-
-      setCurrentActionIndex(prev => prev + 1);
-    }, 800); // 800мс на действие
+      setCurrentRound(prev => prev + 1);
+    }, 1200); // 1.2 сек на раунд
 
     return () => clearTimeout(timer);
-  }, [battleActive, currentActionIndex, battleLog]);
+  }, [battleActive, currentRound]);
+
+  // Получить позицию корабля
+  const getShipPosition = (fleet: ShipData[], index: number, isPlayer: boolean) => {
+    const shipCount = fleet.length;
+    const spacing = 100 / (shipCount + 1);
+    const left = spacing * (index + 1);
+    const top = isPlayer ? 70 : 20;
+
+    return { left: `${left}%`, top: `${top}%` };
+  };
 
   return (
     <div className="elite-battle-container">
-      <div ref={mountRef} className="threejs-container" />
+      {/* Космический фон */}
+      <div className="space-background">
+        {[...Array(100)].map((_, i) => (
+          <div
+            key={i}
+            className="star"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Корабли игрока */}
+      <div className="fleet player-fleet">
+        {playerShips.map((ship, index) => {
+          const pos = getShipPosition(playerShips, index, true);
+          return (
+            <div
+              key={ship.id}
+              className={`ship ${ship.destroyed ? 'destroyed' : ''}`}
+              style={{ left: pos.left, top: pos.top }}
+              data-ship-id={ship.id}
+              data-fleet="1"
+              data-index={index}
+            >
+              <div className="ship-emoji">{getShipEmoji(ship.ship_type)}</div>
+              <div className="ship-hp-bar">
+                <div
+                  className="ship-hp-fill"
+                  style={{
+                    width: `${(ship.current_hp / ship.max_hp) * 100}%`,
+                    backgroundColor: ship.current_hp / ship.max_hp > 0.5 ? '#00ff88' : ship.current_hp / ship.max_hp > 0.25 ? '#ffaa00' : '#ff3333',
+                  }}
+                />
+              </div>
+              <div className="ship-hp-text">
+                {ship.current_hp} / {ship.max_hp}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Корабли врага */}
+      <div className="fleet enemy-fleet">
+        {enemyShips.map((ship, index) => {
+          const pos = getShipPosition(enemyShips, index, false);
+          return (
+            <div
+              key={ship.id}
+              className={`ship ${ship.destroyed ? 'destroyed' : ''}`}
+              style={{ left: pos.left, top: pos.top }}
+              data-ship-id={ship.id}
+              data-fleet="2"
+              data-index={index}
+            >
+              <div className="ship-emoji enemy">{getShipEmoji(ship.ship_type)}</div>
+              <div className="ship-hp-bar">
+                <div
+                  className="ship-hp-fill"
+                  style={{
+                    width: `${(ship.current_hp / ship.max_hp) * 100}%`,
+                    backgroundColor: ship.current_hp / ship.max_hp > 0.5 ? '#00ff88' : ship.current_hp / ship.max_hp > 0.25 ? '#ffaa00' : '#ff3333',
+                  }}
+                />
+              </div>
+              <div className="ship-hp-text">
+                {ship.current_hp} / {ship.max_hp}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Лазеры */}
+      <svg className="lasers-layer" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}>
+        {activeLasers.map(laser => {
+          const fromEl = document.querySelector(
+            `[data-fleet="${laser.fromFleet}"][data-index="${laser.fromIndex}"]`
+          ) as HTMLElement;
+          const toEl = document.querySelector(
+            `[data-fleet="${laser.toFleet}"][data-index="${laser.toIndex}"]`
+          ) as HTMLElement;
+
+          if (!fromEl || !toEl) return null;
+
+          const fromRect = fromEl.getBoundingClientRect();
+          const toRect = toEl.getBoundingClientRect();
+
+          const fromX = fromRect.left + fromRect.width / 2;
+          const fromY = fromRect.top + fromRect.height / 2;
+          const toX = toRect.left + toRect.width / 2;
+          const toY = toRect.top + toRect.height / 2;
+
+          return (
+            <line
+              key={laser.id}
+              x1={fromX}
+              y1={fromY}
+              x2={toX}
+              y2={toY}
+              stroke={laser.isCrit ? '#ff00ff' : laser.fromFleet === 1 ? '#00ffff' : '#ff0000'}
+              strokeWidth={laser.isCrit ? 4 : 2}
+              className="laser-beam"
+            />
+          );
+        })}
+      </svg>
 
       {/* HUD */}
       <div className="elite-hud">
         <div className="elite-hud-top">
           <div className="elite-status">
-            <div className="status-line">BATTLE IN PROGRESS</div>
+            <div className="status-line">⚔️ GALACTIC BATTLE</div>
             <div className="status-line">
-              ROUND: {Math.min(currentActionIndex + 1, battleLog.length)} / {battleLog.length}
+              ROUND: {currentRound + 1} / {roundsData.current.length}
             </div>
             <div className="status-line">
-              PLAYER: {playerShips.filter(s => !s.destroyed).length} / {playerShips.length}
+              🔵 PLAYER: {playerShips.filter(s => !s.destroyed).length} / {playerShips.length}
             </div>
             <div className="status-line">
-              ENEMY: {enemyShips.filter(s => !s.destroyed).length} / {enemyShips.length}
+              🔴 ENEMY: {enemyShips.filter(s => !s.destroyed).length} / {enemyShips.length}
             </div>
           </div>
         </div>

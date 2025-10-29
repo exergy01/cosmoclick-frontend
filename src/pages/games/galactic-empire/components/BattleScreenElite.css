@@ -1,4 +1,4 @@
-/* Elite Battle Screen - Стиль классической Elite */
+/* Elite Battle Screen - Простая красивая визуализация */
 
 .elite-battle-container {
   position: fixed;
@@ -6,24 +6,119 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #000;
+  background: #000814;
   overflow: hidden;
   font-family: 'Courier New', monospace;
 }
 
-.threejs-container {
+/* Космический фон */
+.space-background {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
 }
 
-.threejs-container canvas {
-  display: block;
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle 3s infinite;
 }
 
-/* HUD в стиле Elite */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+}
+
+/* Корабли */
+.ship {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.ship.destroyed {
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+.ship-emoji {
+  font-size: 48px;
+  text-align: center;
+  filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.8));
+  animation: float 3s ease-in-out infinite;
+}
+
+.ship-emoji.enemy {
+  filter: drop-shadow(0 0 10px rgba(255, 68, 68, 0.8));
+  transform: scaleY(-1);
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.ship-hp-bar {
+  width: 60px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #00ff88;
+  border-radius: 3px;
+  margin: 5px auto;
+  overflow: hidden;
+}
+
+.ship-hp-fill {
+  height: 100%;
+  transition: width 0.5s ease, background-color 0.3s ease;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.ship-hp-text {
+  text-align: center;
+  color: #00ff88;
+  font-size: 10px;
+  text-shadow: 0 0 5px rgba(0, 255, 136, 0.8);
+  font-weight: bold;
+}
+
+/* Лазеры */
+.laser-beam {
+  animation: laser-pulse 0.4s ease-out;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+@keyframes laser-pulse {
+  0% {
+    opacity: 0;
+    stroke-width: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* HUD */
 .elite-hud {
   position: absolute;
   top: 0;
@@ -40,42 +135,44 @@
   padding: 20px;
 }
 
-/* Статус панель */
 .elite-status {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.9);
   border: 2px solid #00ff88;
-  padding: 15px 20px;
-  box-shadow:
-    0 0 20px rgba(0, 255, 136, 0.4),
-    inset 0 0 10px rgba(0, 255, 136, 0.1);
-  min-width: 250px;
+  padding: 15px 25px;
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.5), inset 0 0 20px rgba(0, 255, 136, 0.1);
+  min-width: 280px;
+  border-radius: 5px;
 }
 
 .status-line {
   color: #00ff88;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
-  text-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
-  margin-bottom: 5px;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+  margin-bottom: 8px;
   letter-spacing: 2px;
 }
 
-/* Результат боя в стиле Elite */
+.status-line:last-child {
+  margin-bottom: 0;
+}
+
+/* Результат боя */
 .elite-result-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  animation: elite-fade-in 0.5s ease-in;
+  animation: fade-in 0.5s ease-in;
 }
 
-@keyframes elite-fade-in {
+@keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -85,80 +182,71 @@
 }
 
 .elite-result-box {
-  background: rgba(0, 20, 0, 0.95);
-  border: 3px solid #00ff00;
-  padding: 40px 60px;
+  background: linear-gradient(135deg, rgba(0, 20, 40, 0.98) 0%, rgba(0, 50, 20, 0.98) 100%);
+  border: 4px solid #00ff00;
+  padding: 50px 80px;
   text-align: center;
-  box-shadow:
-    0 0 40px rgba(0, 255, 0, 0.6),
-    inset 0 0 30px rgba(0, 255, 0, 0.1);
-  animation: elite-result-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 60px rgba(0, 255, 0, 0.8), inset 0 0 40px rgba(0, 255, 0, 0.15);
+  animation: result-pulse 2s ease-in-out infinite;
+  border-radius: 10px;
 }
 
-@keyframes elite-result-pulse {
+@keyframes result-pulse {
   0%, 100% {
-    box-shadow:
-      0 0 40px rgba(0, 255, 0, 0.6),
-      inset 0 0 30px rgba(0, 255, 0, 0.1);
+    box-shadow: 0 0 60px rgba(0, 255, 0, 0.8), inset 0 0 40px rgba(0, 255, 0, 0.15);
   }
   50% {
-    box-shadow:
-      0 0 60px rgba(0, 255, 0, 0.8),
-      inset 0 0 40px rgba(0, 255, 0, 0.2);
+    box-shadow: 0 0 80px rgba(0, 255, 0, 1), inset 0 0 50px rgba(0, 255, 0, 0.25);
   }
 }
 
 .elite-result-title {
-  font-size: 48px;
+  font-size: 56px;
   font-weight: bold;
   color: #00ff00;
-  text-shadow:
-    0 0 10px rgba(0, 255, 0, 1),
-    0 0 20px rgba(0, 255, 0, 0.8),
-    0 0 30px rgba(0, 255, 0, 0.6);
-  margin-bottom: 30px;
-  letter-spacing: 8px;
-  animation: elite-title-flicker 3s ease-in-out infinite;
+  text-shadow: 0 0 15px rgba(0, 255, 0, 1), 0 0 25px rgba(0, 255, 0, 0.8), 0 0 35px rgba(0, 255, 0, 0.6);
+  margin-bottom: 35px;
+  letter-spacing: 10px;
+  animation: title-glow 2s ease-in-out infinite;
 }
 
-@keyframes elite-title-flicker {
+@keyframes title-glow {
   0%, 100% {
-    opacity: 1;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 1), 0 0 25px rgba(0, 255, 0, 0.8), 0 0 35px rgba(0, 255, 0, 0.6);
   }
   50% {
-    opacity: 0.95;
-  }
-  75% {
-    opacity: 0.98;
+    text-shadow: 0 0 20px rgba(0, 255, 0, 1), 0 0 30px rgba(0, 255, 0, 0.9), 0 0 45px rgba(0, 255, 0, 0.7);
   }
 }
 
 .elite-result-reward {
-  font-size: 28px;
+  font-size: 32px;
   color: #ffff00;
-  text-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
-  margin-bottom: 30px;
-  letter-spacing: 4px;
+  text-shadow: 0 0 18px rgba(255, 255, 0, 0.9);
+  margin-bottom: 35px;
+  letter-spacing: 5px;
+  font-weight: bold;
 }
 
 .elite-result-btn {
-  background: rgba(0, 100, 0, 0.8);
-  border: 2px solid #00ff00;
+  background: linear-gradient(135deg, rgba(0, 120, 0, 0.9) 0%, rgba(0, 180, 0, 0.9) 100%);
+  border: 3px solid #00ff00;
   color: #00ff00;
-  padding: 15px 40px;
-  font-size: 18px;
+  padding: 18px 50px;
+  font-size: 20px;
   font-weight: bold;
   font-family: 'Courier New', monospace;
   cursor: pointer;
   pointer-events: all;
-  letter-spacing: 3px;
+  letter-spacing: 4px;
   transition: all 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.5);
+  border-radius: 5px;
 }
 
 .elite-result-btn:hover {
-  background: rgba(0, 150, 0, 0.9);
-  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+  background: linear-gradient(135deg, rgba(0, 180, 0, 0.95) 0%, rgba(0, 220, 0, 0.95) 100%);
+  box-shadow: 0 0 35px rgba(0, 255, 0, 0.9);
   transform: scale(1.05);
 }
 
@@ -168,74 +256,58 @@
 
 /* Адаптивность для мобильных */
 @media (max-width: 768px) {
-  .elite-hud-top {
-    flex-direction: column;
-    padding: 10px;
-    gap: 10px;
+  .ship-emoji {
+    font-size: 36px;
   }
 
-  .elite-scanner {
-    width: 100px;
-    height: 100px;
+  .ship-hp-bar {
+    width: 50px;
+    height: 5px;
+  }
+
+  .ship-hp-text {
+    font-size: 9px;
   }
 
   .elite-status {
     min-width: auto;
-    padding: 10px 15px;
+    padding: 12px 18px;
   }
 
   .status-line {
-    font-size: 11px;
+    font-size: 13px;
+    margin-bottom: 6px;
   }
 
   .elite-result-title {
-    font-size: 32px;
-    letter-spacing: 4px;
+    font-size: 40px;
+    letter-spacing: 6px;
   }
 
   .elite-result-reward {
-    font-size: 20px;
+    font-size: 24px;
   }
 
   .elite-result-btn {
-    padding: 12px 30px;
-    font-size: 14px;
+    padding: 14px 35px;
+    font-size: 16px;
   }
 
   .elite-result-box {
-    padding: 30px 40px;
+    padding: 35px 50px;
   }
 }
 
-/* Эффект scanline (как на старых CRT-мониторах) */
-.elite-battle-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 255, 0, 0.03) 0px,
-    rgba(0, 0, 0, 0.02) 1px,
-    rgba(0, 0, 0, 0.02) 2px
-  );
-  pointer-events: none;
-  z-index: 5;
-  animation: scanline-move 8s linear infinite;
-}
-
-@keyframes scanline-move {
-  0% {
-    transform: translateY(0);
+/* Эффект попадания */
+@keyframes hit-flash {
+  0%, 100% {
+    filter: brightness(1);
   }
-  100% {
-    transform: translateY(10px);
+  50% {
+    filter: brightness(2) drop-shadow(0 0 20px #ff0000);
   }
 }
 
-/* Эффект CRT curvature (легкое искривление экрана) */
-.elite-canvas {
-  filter: contrast(1.1) brightness(1.05);
+.ship.hit {
+  animation: hit-flash 0.3s ease;
 }
