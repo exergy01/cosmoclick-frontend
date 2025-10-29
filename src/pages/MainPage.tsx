@@ -399,33 +399,69 @@ const MainPage: React.FC = () => {
     // Проверяем систему напрямую, а не через isTonSystem из render
     if (!player || currentSystem === 5) return;
 
-    fetchMaxItems().then(({ maxAsteroids, maxDrones }) => {
-      const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
-      const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
-      const miningSpeed = player.mining_speed_data?.[currentSystem] || 0;
-      const speedPerHour = (miningSpeed * 3600).toFixed(2);
-      const realCargoCapacity = getRealCargoCapacity(currentSystem);
-      
-      const maxMainAsteroids = 12;
-      
-      setShopButtons([
-        {
-          type: 'resources',
-          count: `${asteroidCount}/${maxMainAsteroids}`,
-          amount: `${remainingResources.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`
-        },
-        {
-          type: 'drones',
-          count: `${player.drones.filter((d: Drone) => d.system === currentSystem).length}/${maxDrones}`,
-          amount: `${speedPerHour} ${t('per_hour')}`
-        },
-        {
-          type: 'cargo',
-          count: t('level_prefix', { level: player.cargo_levels.filter((c: any) => c.system === currentSystem).length }),
-          amount: realCargoCapacity === 999999 || realCargoCapacity === 99999 ? '∞' : realCargoCapacity.toString()
-        },
-      ]);
-    });
+    let isMounted = true; // Флаг для предотвращения обновления состояния после размонтирования
+
+    fetchMaxItems()
+      .then(({ maxAsteroids, maxDrones }) => {
+        // Проверяем что компонент все еще смонтирован
+        if (!isMounted) return;
+
+        const asteroidCount = player.asteroids.filter((a: Asteroid) => a.system === currentSystem && a.id <= 12).length;
+        const remainingResources = Math.floor((player.asteroid_total_data?.[currentSystem] || 0) * 100000) / 100000;
+        const miningSpeed = player.mining_speed_data?.[currentSystem] || 0;
+        const speedPerHour = (miningSpeed * 3600).toFixed(2);
+        const realCargoCapacity = getRealCargoCapacity(currentSystem);
+
+        const maxMainAsteroids = 12;
+
+        setShopButtons([
+          {
+            type: 'resources',
+            count: `${asteroidCount}/${maxMainAsteroids}`,
+            amount: `${remainingResources.toFixed(5)} ${currentSystem === 4 ? 'CS' : 'CCC'}`
+          },
+          {
+            type: 'drones',
+            count: `${player.drones.filter((d: Drone) => d.system === currentSystem).length}/${maxDrones}`,
+            amount: `${speedPerHour} ${t('per_hour')}`
+          },
+          {
+            type: 'cargo',
+            count: t('level_prefix', { level: player.cargo_levels.filter((c: any) => c.system === currentSystem).length }),
+            amount: realCargoCapacity === 999999 || realCargoCapacity === 99999 ? '∞' : realCargoCapacity.toString()
+          },
+        ]);
+      })
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error updating shop buttons:', error);
+        }
+        // При ошибке устанавливаем дефолтные значения чтобы магазин не пропадал
+        if (isMounted) {
+          setShopButtons([
+            {
+              type: 'resources',
+              count: '0/12',
+              amount: '0.00000 ' + (currentSystem === 4 ? 'CS' : 'CCC')
+            },
+            {
+              type: 'drones',
+              count: '0/0',
+              amount: '0.00 ' + t('per_hour')
+            },
+            {
+              type: 'cargo',
+              count: t('level_prefix', { level: 0 }),
+              amount: '0'
+            },
+          ]);
+        }
+      });
+
+    // Cleanup функция для предотвращения обновления состояния после размонтирования
+    return () => {
+      isMounted = false;
+    };
   }, [player, currentSystem, getRealCargoCapacity, t]);
   // MainPage.tsx - ЧАСТЬ 4 из 6 - ИСПРАВЛЕННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ
 

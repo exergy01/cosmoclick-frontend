@@ -520,32 +520,60 @@ const ShopPage: React.FC = () => {
   // 🔥 ИСПРАВЛЕННОЕ: Обновляем счетчик ресурсов (считаем ТОЛЬКО основные астероиды)
   useEffect(() => {
     if (!player) return;
-    
-    fetchMaxItems().then(({ maxAsteroids, maxDrones, maxCargo }) => {
-      const cargoInCurrentSystem = player.cargo_levels?.filter((c: any) => c.system === currentSystem) || [];
-      let currentCargoLevel = 0;
-      
-      if (cargoInCurrentSystem.length > 0) {
-        currentCargoLevel = Math.max(...cargoInCurrentSystem.map((c: any) => c.id));
-      }
-      
-      const currentRemaining = getSystemAsteroidTotal();
-      const initialTotal = getInitialAsteroidTotal();
-      
-      // 🔥 ИСПРАВЛЕНО: Считаем только основные астероиды (1-12)
-      const mainAsteroidsCount = player.asteroids?.filter((a: any) => a.system === currentSystem && a.id <= 12).length || 0;
-      const maxMainAsteroids = 12; // всегда 12 основных астероидов
-      
-      setShopButtons([
-        { 
-          type: 'resources', 
-          count: `${mainAsteroidsCount}/${maxMainAsteroids}`, 
-          amount: `${currentRemaining.toFixed(1)} / ${initialTotal.toFixed(1)} ${getResourceName()}` 
-        },
-        { type: 'drones', count: `${player.drones?.filter((d: any) => d.system === currentSystem).length || 0}/${maxDrones}` },
-        { type: 'cargo', count: `${currentCargoLevel}/${maxCargo}` },
-      ]);
-    });
+
+    let isMounted = true; // Флаг для предотвращения обновления состояния после размонтирования
+
+    fetchMaxItems()
+      .then(({ maxAsteroids, maxDrones, maxCargo }) => {
+        // Проверяем что компонент все еще смонтирован
+        if (!isMounted) return;
+
+        const cargoInCurrentSystem = player.cargo_levels?.filter((c: any) => c.system === currentSystem) || [];
+        let currentCargoLevel = 0;
+
+        if (cargoInCurrentSystem.length > 0) {
+          currentCargoLevel = Math.max(...cargoInCurrentSystem.map((c: any) => c.id));
+        }
+
+        const currentRemaining = getSystemAsteroidTotal();
+        const initialTotal = getInitialAsteroidTotal();
+
+        // 🔥 ИСПРАВЛЕНО: Считаем только основные астероиды (1-12)
+        const mainAsteroidsCount = player.asteroids?.filter((a: any) => a.system === currentSystem && a.id <= 12).length || 0;
+        const maxMainAsteroids = 12; // всегда 12 основных астероидов
+
+        setShopButtons([
+          {
+            type: 'resources',
+            count: `${mainAsteroidsCount}/${maxMainAsteroids}`,
+            amount: `${currentRemaining.toFixed(1)} / ${initialTotal.toFixed(1)} ${getResourceName()}`
+          },
+          { type: 'drones', count: `${player.drones?.filter((d: any) => d.system === currentSystem).length || 0}/${maxDrones}` },
+          { type: 'cargo', count: `${currentCargoLevel}/${maxCargo}` },
+        ]);
+      })
+      .catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error updating shop buttons in ShopPage:', error);
+        }
+        // При ошибке устанавливаем дефолтные значения чтобы магазин не пропадал
+        if (isMounted) {
+          setShopButtons([
+            {
+              type: 'resources',
+              count: '0/12',
+              amount: '0.0 / 0.0 ' + getResourceName()
+            },
+            { type: 'drones', count: '0/0' },
+            { type: 'cargo', count: '0/0' },
+          ]);
+        }
+      });
+
+    // Cleanup функция для предотвращения обновления состояния после размонтирования
+    return () => {
+      isMounted = false;
+    };
   }, [player, currentSystem, shopItems.asteroids]);
 
   // 🔥 ИСПРАВЛЕНО: Используем правильные названия систем (включая систему 5)
