@@ -115,7 +115,7 @@ const AccessControl: React.FC<AccessControlProps> = ({ telegramId, children }) =
       }
 
       try {
-        const response = await axios.get(`${API_URL}/api/admin/auth/check-test-access/${telegramId}`);
+        const response = await axios.get(`${API_URL}/api/admin/auth/test-access/${telegramId}`);
         setHasAccess(response.data.hasTestAccess);
       } catch (error) {
         console.error('Access check error:', error);

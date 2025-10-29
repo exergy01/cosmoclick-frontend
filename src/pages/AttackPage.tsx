@@ -50,7 +50,7 @@ const AttackPage: React.FC = () => {
       if (!player?.telegram_id) return;
 
       try {
-        const response = await axios.get(`${API_URL}/api/admin/auth/check-test-access/${player.telegram_id}`);
+        const response = await axios.get(`${API_URL}/api/admin/auth/test-access/${player.telegram_id}`);
         setHasTestAccess(response.data.hasTestAccess);
       } catch (error) {
         console.error('Test access check error:', error);
