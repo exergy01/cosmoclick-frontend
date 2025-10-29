@@ -17,7 +17,7 @@ interface BattleScreenTacticalProps {
   battleLog: any[];
   playerFleet: any[];
   enemyFleet: any[];
-  winner: number | string;
+  winner: number;
   reward: number;
   onBattleEnd: () => void;
 }
