@@ -142,6 +142,10 @@ const GalacticEmpire: React.FC = () => {
   const [modules, setModules] = useState<any[]>([]);
   const [selectedShipForModules, setSelectedShipForModules] = useState<any>(null);
 
+  // Battle mode selection modal
+  const [showBattleModeModal, setShowBattleModeModal] = useState(false);
+  const [selectedBattleMode, setSelectedBattleMode] = useState<'auto' | 'manual'>('auto');
+
   // Вынесли loadEmpireData из useEffect
   const loadEmpireData = async () => {
     if (!player?.telegram_id) return;
@@ -403,8 +407,8 @@ const GalacticEmpire: React.FC = () => {
     }
   };
 
-  const handleStartBattle = async () => {
-    if (process.env.NODE_ENV === 'development') console.log('⚔️ handleStartBattle called');
+  const handleStartBattle = async (mode: 'auto' | 'manual' = 'auto') => {
+    if (process.env.NODE_ENV === 'development') console.log('⚔️ handleStartBattle called with mode:', mode);
     if (process.env.NODE_ENV === 'development') console.log('Formation ships:', formationShips);
 
     if (formationShips.length === 0) {
@@ -434,10 +438,11 @@ const GalacticEmpire: React.FC = () => {
         return;
       }
 
-      if (process.env.NODE_ENV === 'development') console.log('🚀 Starting PvE battle for player:', player.telegram_id);
+      if (process.env.NODE_ENV === 'development') console.log('🚀 Starting PvE battle for player:', player.telegram_id, 'with mode:', mode);
 
       const res = await axios.post(`${API_URL}/api/galactic-empire/battles/start-pve`, {
-        telegramId: player.telegram_id
+        telegramId: player.telegram_id,
+        battleMode: mode
       });
 
       if (process.env.NODE_ENV === 'development') console.log('✅ Battle completed:', res.data);
@@ -1303,7 +1308,7 @@ const GalacticEmpire: React.FC = () => {
                     alert(lang === 'ru' ? 'Отремонтируйте повреждённые корабли!' : 'Repair damaged ships!');
                     return;
                   }
-                  handleStartBattle();
+                  setShowBattleModeModal(true);
                 }}
                 style={{
                   background: `linear-gradient(135deg, #ff4444, #cc0000)`,
@@ -1864,7 +1869,7 @@ const GalacticEmpire: React.FC = () => {
           <Formation
             formationShips={formationShips}
             onRemoveFromFormation={handleRemoveFromFormation}
-            onStartBattle={handleStartBattle}
+            onStartBattle={() => setShowBattleModeModal(true)}
             lang={lang}
             raceColor={raceColor}
           />
@@ -1989,6 +1994,205 @@ const GalacticEmpire: React.FC = () => {
             lang={lang}
             raceColor={raceColor}
           />
+        </div>
+      )}
+
+      {/* Battle Mode Selection Modal */}
+      {showBattleModeModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          backdropFilter: 'blur(5px)'
+        }}
+        onClick={() => setShowBattleModeModal(false)}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #0c0c0c 100%)',
+              border: `3px solid ${raceColor}`,
+              borderRadius: '20px',
+              padding: '30px',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: `0 0 40px ${raceColor}80`,
+              animation: 'modalFadeIn 0.3s ease'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Title */}
+            <h2 style={{
+              textAlign: 'center',
+              marginBottom: '25px',
+              fontSize: '1.8rem',
+              background: `linear-gradient(135deg, ${raceColor}, #c77dff)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 'bold'
+            }}>
+              {lang === 'ru' ? 'Выбор режима боя' : 'Choose Battle Mode'}
+            </h2>
+
+            {/* AUTO Mode Button */}
+            <button
+              onClick={() => {
+                setSelectedBattleMode('auto');
+                setShowBattleModeModal(false);
+                handleStartBattle('auto');
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #4CAF50, #45a049)',
+                border: 'none',
+                borderRadius: '15px',
+                padding: '20px',
+                marginBottom: '15px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 5px 20px rgba(76, 175, 80, 0.4)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.03)';
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(76, 175, 80, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 5px 20px rgba(76, 175, 80, 0.4)';
+              }}
+            >
+              <div style={{
+                fontSize: '1.5rem',
+                marginBottom: '8px',
+                fontWeight: 'bold',
+                color: '#fff'
+              }}>
+                🤖 AUTO
+              </div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#e8f5e9',
+                lineHeight: '1.5',
+                marginBottom: '8px'
+              }}>
+                {lang === 'ru'
+                  ? 'Автоматический режим'
+                  : 'Automatic mode'}
+              </div>
+              <div style={{
+                fontSize: '0.85rem',
+                color: '#c8e6c9',
+                lineHeight: '1.4'
+              }}>
+                {lang === 'ru'
+                  ? 'ИИ управляет боем за вас. Быстро и бесплатно.'
+                  : 'AI controls the battle for you. Fast and free.'}
+              </div>
+              <div style={{
+                marginTop: '10px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                color: '#fff'
+              }}>
+                💰 {lang === 'ru' ? 'Бесплатно' : 'Free'}
+              </div>
+            </button>
+
+            {/* MANUAL Mode Button */}
+            <button
+              onClick={() => {
+                setSelectedBattleMode('manual');
+                setShowBattleModeModal(false);
+                handleStartBattle('manual');
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #FF9800, #F57C00)',
+                border: 'none',
+                borderRadius: '15px',
+                padding: '20px',
+                marginBottom: '15px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 5px 20px rgba(255, 152, 0, 0.4)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.03)';
+                e.currentTarget.style.boxShadow = '0 8px 30px rgba(255, 152, 0, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 5px 20px rgba(255, 152, 0, 0.4)';
+              }}
+            >
+              <div style={{
+                fontSize: '1.5rem',
+                marginBottom: '8px',
+                fontWeight: 'bold',
+                color: '#fff'
+              }}>
+                🎮 MANUAL
+              </div>
+              <div style={{
+                fontSize: '0.9rem',
+                color: '#fff3e0',
+                lineHeight: '1.5',
+                marginBottom: '8px'
+              }}>
+                {lang === 'ru'
+                  ? 'Ручной режим'
+                  : 'Manual mode'}
+              </div>
+              <div style={{
+                fontSize: '0.85rem',
+                color: '#ffe0b2',
+                lineHeight: '1.4'
+              }}>
+                {lang === 'ru'
+                  ? 'Вы управляете каждым действием в бою. Требуется AI лицензия.'
+                  : 'You control every action in battle. Requires AI license.'}
+              </div>
+              <div style={{
+                marginTop: '10px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                color: '#fff'
+              }}>
+                🔑 {lang === 'ru' ? 'AI Лицензия (1000 Luminios)' : 'AI License (1000 Luminios)'}
+              </div>
+            </button>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowBattleModeModal(false)}
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '10px',
+                padding: '12px',
+                color: '#999',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+              }}
+            >
+              {lang === 'ru' ? 'Отмена' : 'Cancel'}
+            </button>
+          </div>
         </div>
       )}
 
