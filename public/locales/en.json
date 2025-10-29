@@ -1,10 +1,21 @@
 {
+  "mobile_restriction": {
+    "only_mobile": "Mobile devices only",
+    "only_mobile_description": "CosmoClick is designed specifically for mobile devices.",
+    "only_mobile_cta": "🚀 Open the game on your phone via Telegram!",
+    "rotate_screen": "Rotate screen",
+    "rotate_screen_description": "For the best gaming experience, use vertical screen orientation."
+  },
+  "loading_page": {
+    "loading_app": "Loading CosmoClick..."
+  },
+
   "welcome_player": "Welcome, {{username}}!",
   "loading": "Loading...",
   "restore_limits": "Restoring asteroid limits",
   "under_construction": "Under development",
   "loading_complete": "Complete!",
-  
+
   "quest_reward_received": "Reward received",
   "server_save_info": "Quest progress is automatically saved",
   "checking_progress": "Checking...",
@@ -25,6 +36,24 @@
   "timer_info": "After clicking \"Go\" wait for verification and click \"Claim reward\"",
   "ads_limit_info": "Ads: limit 5 times per day, reset every 24 hours",
   "manual_check_info": "Manual verification quests require admin confirmation",
+
+  "_comment_quests": "=== QUEST TRANSLATIONS ===",
+  "quest_1_name": "Subscribe to Telegram channel",
+  "quest_1_desc": "Subscribe to our official Telegram channel for game news and updates",
+  "quest_2_name": "Follow on Twitter/X",
+  "quest_2_desc": "Follow our Twitter/X account to stay updated on all project news",
+  "quest_3_name": "Join Discord community",
+  "quest_3_desc": "Join our Discord community to chat with other players",
+  "quest_4_name": "Subscribe to YouTube channel",
+  "quest_4_desc": "Subscribe to our YouTube channel with tutorials and trailers",
+  "quest_5_name": "Invite 5 friends",
+  "quest_5_desc": "Invite 5 friends to the game using your referral link",
+  "quest_6_name": "Invite 10 friends",
+  "quest_6_desc": "Invite 10 friends to the game for bigger rewards",
+  "quest_7_name": "Verification in bot",
+  "quest_7_desc": "Complete verification in our bot to access additional features",
+  "quest_8_name": "Reach 1000 CCC",
+  "quest_8_desc": "Accumulate 1000 CCC currency in the game",
 
   "welcome_to_cosmoclick": "Welcome to CosmoClick!",
   "game_description": "CosmoClick is a space clicker game where you can:",
@@ -98,6 +127,10 @@
   "neon_purple": "Neon purple",
   "plasma_pink": "Plasma pink",
   "cosmo_green": "Cosmic green",
+  "processing_collection": "Collecting resources...",
+  "premium_offer_title": "👑 Premium offer",
+  "premium_offer_description": "Get premium status to double your income!",
+  "buy_premium": "Buy Premium",
   "star_gold": "Star gold",
   "mars_red": "Mars red",
   "no_resources_to_collect": "⚠️ Nothing to collect!\n\nWait for resources to accumulate.",
@@ -113,6 +146,14 @@
   "infinite_capacity": "Infinite capacity",
   "asteroid": "Asteroid",
   "drone": "Drone",
+  "shop_bomb_unavailable": "💣 Bomb unavailable",
+  "shop_bomb_available": "💣 Bomb available",
+  "shop_bomb_desc": "Refreshes asteroid limits for 1 system. Cost: 100 CS",
+  "buy_bomb": "Buy bomb",
+  "bomb_purchase_success": "💣 Asteroid limits refreshed!",
+  "asteroid_not_ready": "Asteroid not ready",
+  "toast_success_title": "Success",
+  "toast_error_title": "Error",
   "insufficient_funds": "Insufficient funds",
   "purchase_successful": "Purchase successful",
   "achievement_15_drones": "Hidden quest completed",
@@ -679,6 +720,21 @@
   "shop_cargo_4_3": "Science station",
   "shop_cargo_4_4": "Experimental center",
   "shop_cargo_4_5": "Knowledge institute",
+
+  "attack_page": {
+    "attack": "Attacks",
+    "under_construction": "Under development",
+    "attack_page_text_1": "Attack mode is under development.",
+    "attack_page_text_2": "Epic space battles coming soon!",
+    "future_updates_title": "🌟 Coming in future updates:",
+    "pve_battles": "🚀 PvE battles between player and bots",
+    "pvp_battles": "🚀 PvP battles between players",
+    "resource_protection": "🛡️ Resource protection",
+    "rating_system": "🏆 Rating system",
+    "special_ships": "⚡ Special combat ships and modules",
+    "collect_cs_for_battles": "💥 Collect CS for purchases and upgrades in space battles",
+    "tournaments": "🌟 How about tournaments? They're coming for sure!"
+  },
 
   "daily_welcome": {
     "title": "🎁 Daily Reward",
