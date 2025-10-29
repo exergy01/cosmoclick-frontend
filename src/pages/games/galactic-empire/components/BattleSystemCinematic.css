@@ -1,0 +1,364 @@
+/* БОЙ 3 - Кинематографичная визуализация (Mass Effect/Star Wars стиль) */
+
+.cinematic-battle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  perspective: 1000px;
+  z-index: 9999;
+}
+
+.cinematic-battle-container.slow-motion {
+  animation: slowMotionPulse 1.5s ease;
+}
+
+@keyframes slowMotionPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3) saturate(1.5); }
+}
+
+/* Звездное поле */
+.cinematic-starfield {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: starTwinkle 3s infinite ease-in-out;
+}
+
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+/* Космическая сцена с камерой */
+.cinematic-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform-style: preserve-3d;
+}
+
+/* Корабли */
+.cinematic-ship {
+  position: absolute;
+  transform-origin: center;
+  transition: all 0.6s ease;
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.6));
+}
+
+.cinematic-ship.player {
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.8));
+}
+
+.cinematic-ship.enemy {
+  filter: drop-shadow(0 0 20px rgba(255, 102, 0, 0.8));
+}
+
+.cinematic-ship.destroyed {
+  opacity: 0.2;
+  filter: grayscale(100%) blur(2px);
+  transform: scale(0.5) rotate(45deg);
+}
+
+/* Модель корабля */
+.ship-model {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: shipHover 3s ease-in-out infinite;
+}
+
+@keyframes shipHover {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.ship-body {
+  font-size: 4rem;
+  position: relative;
+  z-index: 2;
+}
+
+.ship-engine-glow {
+  position: absolute;
+  bottom: -20px;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.8) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: enginePulse 1s ease-in-out infinite;
+}
+
+.ship-engine-glow.enemy {
+  background: radial-gradient(circle, rgba(255, 102, 0, 0.8) 0%, transparent 70%);
+}
+
+@keyframes enginePulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+/* Индикатор HP */
+.ship-hp-indicator {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  text-align: center;
+}
+
+.hp-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.hp-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #00d4ff, #00ff88);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+}
+
+.hp-bar-fill.enemy {
+  background: linear-gradient(90deg, #ff6600, #ff9900);
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.8);
+}
+
+.ship-name {
+  font-size: 0.9rem;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 2px 5px rgba(0, 0, 0, 0.9);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Эффект выстрела */
+.cinematic-shot-effect {
+  z-index: 10;
+}
+
+.laser-beam {
+  animation: laserFire 1s ease-out;
+}
+
+@keyframes laserFire {
+  0% {
+    stroke-dasharray: 0, 2000;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dasharray: 2000, 0;
+    opacity: 0;
+  }
+}
+
+/* HUD элементы */
+.cinematic-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.hud-corner {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(0, 212, 255, 0.6);
+}
+
+.hud-corner.top-left {
+  top: 20px;
+  left: 20px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-corner.top-right {
+  top: 20px;
+  right: 20px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.hud-corner.bottom-left {
+  bottom: 20px;
+  left: 20px;
+  border-right: none;
+  border-top: none;
+}
+
+.hud-corner.bottom-right {
+  bottom: 20px;
+  right: 20px;
+  border-left: none;
+  border-top: none;
+}
+
+.battle-counter {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00d4ff;
+  padding: 12px 30px;
+  border-radius: 25px;
+  color: #00d4ff;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  text-shadow: 0 0 10px #00d4ff;
+}
+
+/* Виньетка */
+.vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Экран результата */
+.cinematic-battle-result {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(10, 15, 30, 0.98) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
+}
+
+.cinematic-result-panel {
+  background: linear-gradient(135deg, rgba(0, 20, 40, 0.9) 0%, rgba(0, 40, 80, 0.9) 100%);
+  border: 4px solid;
+  border-radius: 30px;
+  padding: 60px 80px;
+  text-align: center;
+  box-shadow: 0 0 80px rgba(0, 212, 255, 0.6);
+  animation: resultAppear 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform-style: preserve-3d;
+}
+
+.cinematic-result-panel.victory {
+  border-color: #00ff88;
+  box-shadow: 0 0 80px rgba(0, 255, 136, 0.8), 0 0 150px rgba(0, 255, 136, 0.4);
+}
+
+.cinematic-result-panel.defeat {
+  border-color: #ff6600;
+  box-shadow: 0 0 80px rgba(255, 102, 0, 0.8), 0 0 150px rgba(255, 102, 0, 0.4);
+}
+
+@keyframes resultAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotateX(-20deg);
+  }
+  60% {
+    transform: scale(1.05) rotateX(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotateX(0deg);
+  }
+}
+
+.cinematic-result-title {
+  font-size: 4.5rem;
+  margin: 0 0 30px 0;
+  text-shadow: 0 0 40px currentColor, 0 5px 20px rgba(0, 0, 0, 0.8);
+  animation: titleGlow 2s ease-in-out infinite;
+  background: linear-gradient(45deg, #00d4ff, #00ff88);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cinematic-result-panel.defeat .cinematic-result-title {
+  background: linear-gradient(45deg, #ff6600, #ff9900);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes titleGlow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+.cinematic-reward {
+  font-size: 2rem;
+  color: #00ff88;
+  margin: 20px 0;
+  text-shadow: 0 0 20px #00ff88;
+  font-weight: bold;
+}
+
+.cinematic-result-button {
+  margin-top: 30px;
+  padding: 20px 60px;
+  background: linear-gradient(135deg, #00d4ff, #00ff88);
+  border: none;
+  border-radius: 20px;
+  color: #000;
+  font-size: 1.4rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(0, 212, 255, 0.6);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.cinematic-result-button:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.8);
+}
+
+.cinematic-result-button:active {
+  transform: scale(0.98);
+}

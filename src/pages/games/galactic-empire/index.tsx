@@ -18,7 +18,7 @@ import Hangar from './Hangar';
 import Formation from './Formation';
 import BattleHistory from './BattleHistory';
 import BattleReplay from './BattleReplay';
-import BattleScreen from './components/BattleScreen';
+import BattleVisualizer from './components/BattleVisualizer';
 import LuminiosExchange from './LuminiosExchange';
 import ModuleWorkshop from './ModuleWorkshop';
 import { premiumAdService } from '../../../services/premiumAwareAdService';
@@ -1993,7 +1993,7 @@ const GalacticEmpire: React.FC = () => {
       )}
 
       {showBattleReplay && (
-        <BattleScreen
+        <BattleVisualizer
           battleLog={showBattleReplay.battleLog}
           playerFleet={showBattleReplay.playerFleet}
           enemyFleet={showBattleReplay.enemyFleet}

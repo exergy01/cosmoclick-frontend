@@ -1,0 +1,264 @@
+/* БОЙ 4 - Минималистичная визуализация (чистый UI, стиль Into the Breach) */
+
+.minimal-battle-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+  box-sizing: border-box;
+  z-index: 9999;
+  font-family: 'Courier New', monospace;
+}
+
+/* Заголовок */
+.minimal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.battle-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.battle-progress {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: bold;
+}
+
+/* Контейнер флотов */
+.fleets-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex: 1;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.fleet-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fleet-label {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.ships-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Корабли */
+.minimal-ship {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.minimal-ship:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.minimal-ship.destroyed {
+  opacity: 0.3;
+  border-color: rgba(255, 0, 0, 0.3);
+  background: rgba(100, 0, 0, 0.1);
+}
+
+.ship-name {
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ship-hp-bar {
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hp-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.hp-fill.player {
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.hp-fill.enemy {
+  background: linear-gradient(90deg, #fa709a 0%, #fee140 100%);
+}
+
+.ship-hp-text {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+}
+
+/* Разделитель VS */
+.fleet-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+.vs-text {
+  font-size: 3rem;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 4px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+/* Лог действий */
+.action-log {
+  margin-top: 40px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-text {
+  font-size: 1.1rem;
+  color: #fff;
+  text-align: center;
+  animation: actionFade 0.6s ease;
+}
+
+@keyframes actionFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Экран результата */
+.minimal-battle-result {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.minimal-result-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 60px 100px;
+  text-align: center;
+  animation: resultSlideIn 0.5s ease;
+}
+
+@keyframes resultSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-status {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+
+.result-status.win {
+  color: #00f2fe;
+  text-shadow: 0 0 30px #00f2fe;
+}
+
+.result-status.loss {
+  color: #fa709a;
+  text-shadow: 0 0 30px #fa709a;
+}
+
+.result-reward {
+  font-size: 1.8rem;
+  color: #fff;
+  margin: 20px 0;
+  font-weight: bold;
+}
+
+.minimal-button {
+  margin-top: 30px;
+  padding: 15px 50px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+}
+
+.minimal-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.minimal-button:active {
+  transform: translateY(0);
+}
