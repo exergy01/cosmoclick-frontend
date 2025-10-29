@@ -130,7 +130,7 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
   const [showResult, setShowResult] = useState(false);
   const [lasers, setLasers] = useState<any[]>([]);
   const [explosions, setExplosions] = useState<any[]>([]);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
 
   // Инициализация флотов с параметрами для анимации
   useEffect(() => {
