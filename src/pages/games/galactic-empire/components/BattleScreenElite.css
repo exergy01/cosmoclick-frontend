@@ -11,13 +11,16 @@
   font-family: 'Courier New', monospace;
 }
 
-.elite-canvas {
+.threejs-container {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  image-rendering: pixelated;
+}
+
+.threejs-container canvas {
+  display: block;
 }
 
 /* HUD в стиле Elite */
@@ -33,85 +36,8 @@
 
 .elite-hud-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 20px;
-  gap: 20px;
-}
-
-/* Сканер (радар) */
-.elite-scanner {
-  position: relative;
-  width: 150px;
-  height: 150px;
-  background: rgba(0, 50, 0, 0.8);
-  border: 2px solid #00ff00;
-  border-radius: 50%;
-  box-shadow:
-    0 0 20px rgba(0, 255, 0, 0.5),
-    inset 0 0 20px rgba(0, 255, 0, 0.2);
-}
-
-.scanner-grid {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 1px;
-  background: rgba(0, 255, 0, 0.3);
-  transform: translate(-50%, -50%);
-}
-
-.scanner-grid::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1px;
-  height: 100%;
-  background: rgba(0, 255, 0, 0.3);
-  transform: translate(-50%, -50%);
-}
-
-.scanner-grid::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 60px;
-  height: 60px;
-  border: 1px solid rgba(0, 255, 0, 0.4);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.scanner-dot {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: scanner-pulse 1.5s ease-in-out infinite;
-}
-
-.player-dot {
-  background: #00bfff;
-  box-shadow: 0 0 10px #00bfff;
-}
-
-.enemy-dot {
-  background: #ff4444;
-  box-shadow: 0 0 10px #ff4444;
-}
-
-@keyframes scanner-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: translate(-50%, -50%) scale(1.2);
-  }
 }
 
 /* Статус панель */

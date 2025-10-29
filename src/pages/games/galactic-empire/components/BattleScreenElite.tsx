@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import * as THREE from 'three';
 import './BattleScreenElite.css';
 
 interface BattleAction {
@@ -31,10 +32,6 @@ interface ShipData {
   defense: number;
   speed: number;
   destroyed: boolean;
-  // Elite-specific
-  rotation: number; // текущий угол поворота
-  targetRotation: number; // целевой угол
-  scale: number; // масштаб для анимации
 }
 
 interface BattleScreenEliteProps {
@@ -46,72 +43,139 @@ interface BattleScreenEliteProps {
   onBattleEnd: () => void;
 }
 
-// Определения 3D wireframe моделей кораблей (в виде линий)
-const SHIP_MODELS: Record<string, number[][]> = {
-  // Frigate - простой треугольный корабль
-  frigate: [
-    [0, -30, 0, 15, -15, 15], // нос -> правый борт
-    [-15, 15, 15, 15, -15, 15], // левый борт -> правый борт
-    [0, -30, -15, 15, -15, 15], // нос -> левый борт
-    [0, -30, 0, 0, 30, 0], // нос -> центр кормы (киль)
-    [-15, 15, 0, 0, 30, 0], // левый борт -> корма
-    [15, 15, 0, 0, 30, 0], // правый борт -> корма
-  ],
+// Создание 3D модели корабля из геометрии
+const createShipMesh = (type: string, color: number): THREE.Group => {
+  const group = new THREE.Group();
 
-  // Destroyer - более крупный с крыльями
-  destroyer: [
-    [0, -40, 0, 20, -10, 0], // нос -> правое крыло
-    [0, -40, 0, -20, -10, 0], // нос -> левое крыло
-    [-20, -10, 0, -20, 20, 0], // левое крыло
-    [20, -10, 0, 20, 20, 0], // правое крыло
-    [-20, 20, 0, 0, 35, 0], // левая корма
-    [20, 20, 0, 0, 35, 0], // правая корма
-    [0, -40, 0, 0, 35, 0], // центральная линия
-    [-10, 0, 0, 10, 0, 0], // поперечина
-  ],
+  const shipClass = type.split('_')[0].toLowerCase();
 
-  // Cruiser - сложная форма с несколькими секциями
-  cruiser: [
-    [0, -50, 0, 25, -20, 0],
-    [0, -50, 0, -25, -20, 0],
-    [-25, -20, 0, -25, 0, 0],
-    [25, -20, 0, 25, 0, 0],
-    [-25, 0, 0, -15, 30, 0],
-    [25, 0, 0, 15, 30, 0],
-    [-15, 30, 0, 0, 40, 0],
-    [15, 30, 0, 0, 40, 0],
-    // Дополнительные крылья
-    [-25, -10, 0, -35, 10, 0],
-    [25, -10, 0, 35, 10, 0],
-    [-35, 10, 0, -25, 20, 0],
-    [35, 10, 0, 25, 20, 0],
-  ],
+  // Материал с эффектом свечения
+  const material = new THREE.MeshPhongMaterial({
+    color: color,
+    emissive: color,
+    emissiveIntensity: 0.3,
+    shininess: 100,
+  });
 
-  // Battleship - массивный корабль
-  battleship: [
-    [0, -60, 0, 30, -30, 0],
-    [0, -60, 0, -30, -30, 0],
-    [-30, -30, 0, -30, 10, 0],
-    [30, -30, 0, 30, 10, 0],
-    [-30, 10, 0, -20, 40, 0],
-    [30, 10, 0, 20, 40, 0],
-    [-20, 40, 0, 0, 50, 0],
-    [20, 40, 0, 0, 50, 0],
-    // Башни
-    [-15, -10, 0, -15, 5, 0],
-    [15, -10, 0, 15, 5, 0],
+  const lineMaterial = new THREE.LineBasicMaterial({ color: color });
+
+  // Разные модели для разных классов
+  if (shipClass === 'frigate') {
+    // Фрегат - легкий истребитель (треугольник)
+    const noseGeom = new THREE.ConeGeometry(0.3, 1.5, 4);
+    const nose = new THREE.Mesh(noseGeom, material);
+    nose.rotation.x = Math.PI / 2;
+    group.add(nose);
+
     // Крылья
-    [-40, -10, 0, -30, -5, 0],
-    [40, -10, 0, 30, -5, 0],
-  ],
+    const wingGeom = new THREE.BoxGeometry(2, 0.1, 0.8);
+    const wings = new THREE.Mesh(wingGeom, material);
+    wings.position.z = 0.3;
+    group.add(wings);
 
-  // Default - базовый корабль
-  default: [
-    [0, -25, 0, 12, 12, 0],
-    [0, -25, 0, -12, 12, 0],
-    [-12, 12, 0, 12, 12, 0],
-    [0, -25, 0, 0, 25, 0],
-  ],
+    // Двигатели
+    const engineGeom = new THREE.CylinderGeometry(0.15, 0.15, 0.4, 8);
+    const engine1 = new THREE.Mesh(engineGeom, material);
+    engine1.rotation.x = Math.PI / 2;
+    engine1.position.set(-0.7, 0, 0.7);
+    group.add(engine1);
+
+    const engine2 = engine1.clone();
+    engine2.position.set(0.7, 0, 0.7);
+    group.add(engine2);
+
+  } else if (shipClass === 'destroyer') {
+    // Эсминец - средний корабль
+    const bodyGeom = new THREE.BoxGeometry(0.8, 0.5, 2);
+    const body = new THREE.Mesh(bodyGeom, material);
+    group.add(body);
+
+    // Нос
+    const noseGeom = new THREE.ConeGeometry(0.4, 0.8, 4);
+    const nose = new THREE.Mesh(noseGeom, material);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.z = -1.4;
+    group.add(nose);
+
+    // Крылья
+    const wingGeom = new THREE.BoxGeometry(2.5, 0.15, 1);
+    const wings = new THREE.Mesh(wingGeom, material);
+    wings.position.z = 0.5;
+    group.add(wings);
+
+    // Башня
+    const towerGeom = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+    const tower = new THREE.Mesh(towerGeom, material);
+    tower.position.y = 0.5;
+    group.add(tower);
+
+  } else if (shipClass === 'cruiser') {
+    // Крейсер - тяжелый корабль
+    const bodyGeom = new THREE.BoxGeometry(1.2, 0.8, 3);
+    const body = new THREE.Mesh(bodyGeom, material);
+    group.add(body);
+
+    // Нос
+    const noseGeom = new THREE.ConeGeometry(0.6, 1.2, 6);
+    const nose = new THREE.Mesh(noseGeom, material);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.z = -2.1;
+    group.add(nose);
+
+    // Крылья
+    const wingGeom = new THREE.BoxGeometry(3, 0.2, 1.5);
+    const wings = new THREE.Mesh(wingGeom, material);
+    wings.position.z = 0.5;
+    group.add(wings);
+
+    // Башни
+    for (let i = 0; i < 2; i++) {
+      const towerGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.8, 8);
+      const tower = new THREE.Mesh(towerGeom, material);
+      tower.position.set(i === 0 ? -0.5 : 0.5, 0.6, -0.5);
+      group.add(tower);
+    }
+
+  } else if (shipClass === 'battleship') {
+    // Линкор - огромный корабль
+    const bodyGeom = new THREE.BoxGeometry(1.5, 1.2, 4);
+    const body = new THREE.Mesh(bodyGeom, material);
+    group.add(body);
+
+    // Нос
+    const noseGeom = new THREE.ConeGeometry(0.75, 1.5, 6);
+    const nose = new THREE.Mesh(noseGeom, material);
+    nose.rotation.x = Math.PI / 2;
+    nose.position.z = -2.75;
+    group.add(nose);
+
+    // Большие крылья
+    const wingGeom = new THREE.BoxGeometry(4, 0.3, 2);
+    const wings = new THREE.Mesh(wingGeom, material);
+    wings.position.z = 1;
+    group.add(wings);
+
+    // Множество башен
+    for (let i = 0; i < 3; i++) {
+      const towerGeom = new THREE.CylinderGeometry(0.4, 0.4, 1, 8);
+      const tower = new THREE.Mesh(towerGeom, material);
+      tower.position.set((i - 1) * 0.7, 0.8, -1 + i * 0.8);
+      group.add(tower);
+    }
+
+  } else {
+    // Default - простой корабль
+    const bodyGeom = new THREE.BoxGeometry(0.6, 0.4, 1.5);
+    const body = new THREE.Mesh(bodyGeom, material);
+    group.add(body);
+  }
+
+  // Добавляем слабое свечение
+  const light = new THREE.PointLight(color, 0.5, 10);
+  light.position.set(0, 0, 0);
+  group.add(light);
+
+  return group;
 };
 
 const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
@@ -122,285 +186,228 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
   reward,
   onBattleEnd,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const playerShipsRef = useRef<THREE.Group[]>([]);
+  const enemyShipsRef = useRef<THREE.Group[]>([]);
+  const lasersRef = useRef<THREE.Line[]>([]);
+
   const [playerShips, setPlayerShips] = useState<ShipData[]>([]);
   const [enemyShips, setEnemyShips] = useState<ShipData[]>([]);
   const [currentActionIndex, setCurrentActionIndex] = useState(0);
   const [battleActive, setBattleActive] = useState(true);
   const [showResult, setShowResult] = useState(false);
-  const [lasers, setLasers] = useState<any[]>([]);
-  const [explosions, setExplosions] = useState<any[]>([]);
-  const animationFrameRef = useRef<number | undefined>(undefined);
 
-  // Инициализация флотов с параметрами для анимации
+  // Инициализация Three.js сцены
   useEffect(() => {
-    const initShips = (fleet: any[], baseRotation: number): ShipData[] => {
-      return fleet.map((ship, index) => ({
-        id: ship.id,
-        ship_type: ship.ship_type,
-        current_hp: ship.current_hp,
-        max_hp: ship.max_hp,
-        attack: ship.attack,
-        defense: ship.defense,
-        speed: ship.speed,
-        destroyed: ship.current_hp <= 0,
-        rotation: baseRotation + (Math.random() - 0.5) * 30, // Случайное начальное вращение
-        targetRotation: baseRotation,
-        scale: 1.0,
-      }));
-    };
+    if (!mountRef.current) return;
 
-    setPlayerShips(initShips(playerFleet, 0)); // Игрок смотрит вверх
-    setEnemyShips(initShips(enemyFleet, 180)); // Враг смотрит вниз
-  }, [playerFleet, enemyFleet]);
+    // Сцена
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    sceneRef.current = scene;
 
-  // Получить модель корабля по типу
-  const getShipModel = (shipType: string): number[][] => {
-    const type = shipType.split('_')[0].toLowerCase();
-    return SHIP_MODELS[type] || SHIP_MODELS.default;
-  };
+    // Камера
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(0, 15, 25);
+    camera.lookAt(0, 0, 0);
+    cameraRef.current = camera;
 
-  // Функция для проекции 3D точки в 2D (простая перспектива)
-  const project3D = (x: number, y: number, z: number, rotation: number, scale: number = 1) => {
-    // Поворот вокруг оси Z (yaw)
-    const rad = (rotation * Math.PI) / 180;
-    const cosR = Math.cos(rad);
-    const sinR = Math.sin(rad);
+    // Рендерер
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    mountRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
-    const x2 = x * cosR - y * sinR;
-    const y2 = x * sinR + y * cosR;
+    // Освещение
+    const ambientLight = new THREE.AmbientLight(0x404040, 1);
+    scene.add(ambientLight);
 
-    // Масштабирование
-    return {
-      x: x2 * scale,
-      y: y2 * scale,
-    };
-  };
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 20, 10);
+    scene.add(directionalLight);
 
-  // Отрисовка каркасного корабля
-  const drawWireframeShip = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    ship: ShipData,
-    color: string
-  ) => {
-    if (ship.destroyed) return;
+    // Звезды
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
 
-    const model = getShipModel(ship.ship_type);
-    const scale = ship.scale * 0.8; // Базовый масштаб
+    const starsVertices = [];
+    for (let i = 0; i < 1000; i++) {
+      const x = (Math.random() - 0.5) * 200;
+      const y = (Math.random() - 0.5) * 200;
+      const z = (Math.random() - 0.5) * 200;
+      starsVertices.push(x, y, z);
+    }
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
 
-    // Рисуем все линии модели
-    model.forEach(([x1, y1, z1, x2, y2, z2]) => {
-      const p1 = project3D(x1, y1, z1, ship.rotation, scale);
-      const p2 = project3D(x2, y2, z2, ship.rotation, scale);
-
-      ctx.beginPath();
-      ctx.moveTo(x + p1.x, y + p1.y);
-      ctx.lineTo(x + p2.x, y + p2.y);
-      ctx.stroke();
+    // Создаем корабли игрока
+    playerFleet.forEach((shipData, index) => {
+      const shipMesh = createShipMesh(shipData.ship_type, 0x00bfff);
+      shipMesh.position.set((index - playerFleet.length / 2) * 5, -5, 10);
+      shipMesh.rotation.y = Math.PI; // Смотрят вперед
+      scene.add(shipMesh);
+      playerShipsRef.current.push(shipMesh);
     });
 
-    ctx.shadowBlur = 0;
+    // Создаем корабли врага
+    enemyFleet.forEach((shipData, index) => {
+      const shipMesh = createShipMesh(shipData.ship_type, 0xff4444);
+      shipMesh.position.set((index - enemyFleet.length / 2) * 5, 5, -10);
+      // Враги уже смотрят на игрока (0 rotation)
+      scene.add(shipMesh);
+      enemyShipsRef.current.push(shipMesh);
+    });
 
-    // HP бар над кораблем
-    const barWidth = 50;
-    const barHeight = 4;
-    const barX = x - barWidth / 2;
-    const barY = y - 50;
+    // Инициализация данных кораблей
+    setPlayerShips(playerFleet.map(s => ({
+      id: s.id,
+      ship_type: s.ship_type,
+      current_hp: s.current_hp,
+      max_hp: s.max_hp,
+      attack: s.attack,
+      defense: s.defense,
+      speed: s.speed,
+      destroyed: s.current_hp <= 0,
+    })));
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    setEnemyShips(enemyFleet.map(s => ({
+      id: s.id,
+      ship_type: s.ship_type,
+      current_hp: s.current_hp,
+      max_hp: s.max_hp,
+      attack: s.attack,
+      defense: s.defense,
+      speed: s.speed,
+      destroyed: s.current_hp <= 0,
+    })));
 
-    const hpPercent = ship.current_hp / ship.max_hp;
-    ctx.fillStyle = hpPercent > 0.5 ? '#00ff88' : hpPercent > 0.25 ? '#ffaa00' : '#ff3333';
-    ctx.fillRect(barX, barY, barWidth * hpPercent, barHeight);
-  };
+    // Анимационный цикл
+    const animate = () => {
+      requestAnimationFrame(animate);
 
-  // Отрисовка лазера
-  const drawLaser = (ctx: CanvasRenderingContext2D, laser: any) => {
-    const progress = laser.progress;
+      // Вращение звезд
+      stars.rotation.y += 0.0002;
 
-    if (progress >= 1) return;
-
-    const x = laser.fromX + (laser.toX - laser.fromX) * progress;
-    const y = laser.fromY + (laser.toY - laser.fromY) * progress;
-
-    // Основной луч
-    ctx.strokeStyle = laser.color;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = laser.color;
-    ctx.shadowBlur = 15;
-
-    ctx.beginPath();
-    ctx.moveTo(laser.fromX, laser.fromY);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-
-    // Яркая точка на конце
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-  };
-
-  // Отрисовка взрыва
-  const drawExplosion = (ctx: CanvasRenderingContext2D, explosion: any) => {
-    const progress = explosion.progress;
-
-    if (progress >= 1) return;
-
-    const x = explosion.x;
-    const y = explosion.y;
-    const radius = 30 * progress;
-    const alpha = 1 - progress;
-
-    // Внешнее кольцо
-    ctx.strokeStyle = `rgba(255, 100, 0, ${alpha})`;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#ff6600';
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Внутреннее свечение
-    ctx.fillStyle = `rgba(255, 200, 0, ${alpha * 0.5})`;
-    ctx.beginPath();
-    ctx.arc(x, y, radius * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Искры
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const sparkDist = radius * 1.2;
-      const sparkX = x + Math.cos(angle) * sparkDist;
-      const sparkY = y + Math.sin(angle) * sparkDist;
-
-      ctx.fillStyle = `rgba(255, 255, 100, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(sparkX, sparkY, 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.shadowBlur = 0;
-  };
-
-  // Главный цикл отрисовки
-  const draw = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Очистка с эффектом звездного неба
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, width, height);
-
-    // Звезды (статичные точки)
-    ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 100; i++) {
-      const x = (i * 73) % width; // Псевдослучайное распределение
-      const y = (i * 137) % height;
-      const size = (i % 3) * 0.5 + 0.5;
-      ctx.fillRect(x, y, size, size);
-    }
-
-    // Плавное вращение кораблей к целевому углу
-    const updateRotation = (ships: ShipData[]) => {
-      return ships.map(ship => {
-        if (ship.destroyed) return ship;
-
-        const diff = ship.targetRotation - ship.rotation;
-        const step = diff * 0.1; // Плавное вращение
-
-        return {
-          ...ship,
-          rotation: ship.rotation + step,
-        };
+      // Легкая анимация кораблей (покачивание)
+      playerShipsRef.current.forEach((ship, i) => {
+        if (ship.visible) {
+          ship.position.y = -5 + Math.sin(Date.now() * 0.001 + i) * 0.2;
+          ship.rotation.z = Math.sin(Date.now() * 0.0015 + i) * 0.05;
+        }
       });
+
+      enemyShipsRef.current.forEach((ship, i) => {
+        if (ship.visible) {
+          ship.position.y = 5 + Math.sin(Date.now() * 0.001 + i + 10) * 0.2;
+          ship.rotation.z = Math.sin(Date.now() * 0.0015 + i + 10) * 0.05;
+        }
+      });
+
+      renderer.render(scene, camera);
     };
 
-    setPlayerShips(prev => updateRotation(prev));
-    setEnemyShips(prev => updateRotation(prev));
+    animate();
 
-    // Отрисовка кораблей игрока (внизу)
-    const playerY = height - 150;
-    playerShips.forEach((ship, index) => {
-      const x = (width / (playerShips.length + 1)) * (index + 1);
-      drawWireframeShip(ctx, x, playerY, ship, '#00bfff');
-    });
+    // Обработка изменения размера окна
+    const handleResize = () => {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    };
 
-    // Отрисовка кораблей врага (вверху)
-    const enemyY = 150;
-    enemyShips.forEach((ship, index) => {
-      const x = (width / (enemyShips.length + 1)) * (index + 1);
-      drawWireframeShip(ctx, x, enemyY, ship, '#ff4444');
-    });
-
-    // Отрисовка лазеров
-    lasers.forEach(laser => drawLaser(ctx, laser));
-
-    // Отрисовка взрывов
-    explosions.forEach(explosion => drawExplosion(ctx, explosion));
-
-    // Обновление прогресса анимаций
-    setLasers(prev =>
-      prev
-        .map(l => ({ ...l, progress: l.progress + 0.05 }))
-        .filter(l => l.progress < 1)
-    );
-
-    setExplosions(prev =>
-      prev
-        .map(e => ({ ...e, progress: e.progress + 0.04 }))
-        .filter(e => e.progress < 1)
-    );
-
-    animationFrameRef.current = requestAnimationFrame(draw);
-  };
-
-  // Запуск анимационного цикла
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    draw();
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      window.removeEventListener('resize', handleResize);
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, [playerFleet, enemyFleet]);
+
+  // Создание лазерного выстрела
+  const createLaser = (fromPos: THREE.Vector3, toPos: THREE.Vector3, color: number) => {
+    if (!sceneRef.current) return;
+
+    const points = [fromPos, toPos];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+    const laser = new THREE.Line(geometry, material);
+
+    sceneRef.current.add(laser);
+    lasersRef.current.push(laser);
+
+    // Удаляем лазер через 300мс
+    setTimeout(() => {
+      if (sceneRef.current) {
+        sceneRef.current.remove(laser);
+        lasersRef.current = lasersRef.current.filter(l => l !== laser);
+      }
+    }, 300);
+  };
+
+  // Создание взрыва
+  const createExplosion = (pos: THREE.Vector3) => {
+    if (!sceneRef.current) return;
+
+    // Создаем частицы взрыва
+    const particlesGeometry = new THREE.BufferGeometry();
+    const particlesMaterial = new THREE.PointsMaterial({
+      color: 0xff6600,
+      size: 0.3,
+      transparent: true,
+    });
+
+    const particlesCount = 20;
+    const positions = [];
+
+    for (let i = 0; i < particlesCount; i++) {
+      positions.push(pos.x, pos.y, pos.z);
+    }
+
+    particlesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+    sceneRef.current.add(particles);
+
+    // Анимация разлета частиц
+    let frame = 0;
+    const animateExplosion = () => {
+      frame++;
+      const posArray = particlesGeometry.attributes.position.array as Float32Array;
+
+      for (let i = 0; i < particlesCount; i++) {
+        const i3 = i * 3;
+        const angle = (i / particlesCount) * Math.PI * 2;
+        const speed = 0.1;
+        posArray[i3] += Math.cos(angle) * speed;
+        posArray[i3 + 1] += Math.sin(angle) * speed;
+      }
+
+      particlesGeometry.attributes.position.needsUpdate = true;
+      particlesMaterial.opacity = 1 - (frame / 30);
+
+      if (frame < 30) {
+        requestAnimationFrame(animateExplosion);
+      } else {
+        if (sceneRef.current) {
+          sceneRef.current.remove(particles);
+        }
       }
     };
-  }, [playerShips, enemyShips, lasers, explosions]);
 
-  // Получить позицию корабля на канвасе
-  const getShipPosition = (fleet: ShipData[], shipId: number | string, isPlayer: boolean) => {
-    const index = fleet.findIndex(s => s.id === shipId);
-    if (index === -1) return null;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    const x = (canvas.width / (fleet.length + 1)) * (index + 1);
-    const y = isPlayer ? canvas.height - 150 : 150;
-
-    return { x, y };
+    animateExplosion();
   };
 
   // Воспроизведение боя
@@ -416,7 +423,44 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
     const action = battleLog[currentActionIndex];
 
     const timer = setTimeout(() => {
-      // Обновляем HP и добавляем вращение при попадании
+      // Получаем индексы атакующего и цели
+      const attackerIndex = action.attacker.index;
+      const targetIndex = action.target.index;
+
+      // Получаем 3D модели
+      const attackerMesh = action.attacker.fleet === 1
+        ? playerShipsRef.current[attackerIndex]
+        : enemyShipsRef.current[attackerIndex];
+
+      const targetMesh = action.target.fleet === 1
+        ? playerShipsRef.current[targetIndex]
+        : enemyShipsRef.current[targetIndex];
+
+      if (attackerMesh && targetMesh) {
+        // Создаем лазер
+        const color = action.attacker.fleet === 1 ? 0x00ffff : 0xff0000;
+        createLaser(
+          attackerMesh.position.clone(),
+          targetMesh.position.clone(),
+          color
+        );
+
+        // Анимация попадания через 200мс
+        setTimeout(() => {
+          createExplosion(targetMesh.position.clone());
+
+          // Тряска цели
+          const originalPos = targetMesh.position.clone();
+          targetMesh.position.x += (Math.random() - 0.5) * 0.5;
+          targetMesh.position.y += (Math.random() - 0.5) * 0.5;
+
+          setTimeout(() => {
+            targetMesh.position.copy(originalPos);
+          }, 100);
+        }, 200);
+      }
+
+      // Обновляем HP
       if (action.target.fleet === 1) {
         setPlayerShips(prev =>
           prev.map(ship =>
@@ -425,12 +469,18 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
                   ...ship,
                   current_hp: action.targetRemainingHP,
                   destroyed: action.isKill,
-                  targetRotation: ship.targetRotation + (action.isCrit ? 60 : 30), // Поворот при попадании
-                  scale: action.isCrit ? 0.8 : 0.9, // Эффект сжатия
                 }
               : ship
           )
         );
+
+        // Скрываем уничтоженный корабль
+        if (action.isKill) {
+          const targetMesh = playerShipsRef.current[targetIndex];
+          if (targetMesh) {
+            targetMesh.visible = false;
+          }
+        }
       } else {
         setEnemyShips(prev =>
           prev.map(ship =>
@@ -439,84 +489,44 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
                   ...ship,
                   current_hp: action.targetRemainingHP,
                   destroyed: action.isKill,
-                  targetRotation: ship.targetRotation - (action.isCrit ? 60 : 30),
-                  scale: action.isCrit ? 0.8 : 0.9,
                 }
               : ship
           )
         );
-      }
 
-      // Восстанавливаем масштаб через 200мс
-      setTimeout(() => {
-        const resetScale = (ships: ShipData[]) =>
-          ships.map(s => s.id === action.target.shipId ? { ...s, scale: 1.0 } : s);
-
-        if (action.target.fleet === 1) {
-          setPlayerShips(prev => resetScale(prev));
-        } else {
-          setEnemyShips(prev => resetScale(prev));
+        // Скрываем уничтоженный корабль
+        if (action.isKill) {
+          const targetMesh = enemyShipsRef.current[targetIndex];
+          if (targetMesh) {
+            targetMesh.visible = false;
+          }
         }
-      }, 200);
-
-      // Создаем лазер
-      const attackerFleet = action.attacker.fleet === 1 ? playerShips : enemyShips;
-      const targetFleet = action.target.fleet === 1 ? playerShips : enemyShips;
-
-      const fromPos = getShipPosition(attackerFleet, action.attacker.shipId, action.attacker.fleet === 1);
-      const toPos = getShipPosition(targetFleet, action.target.shipId, action.target.fleet === 1);
-
-      if (fromPos && toPos) {
-        setLasers(prev => [
-          ...prev,
-          {
-            fromX: fromPos.x,
-            fromY: fromPos.y,
-            toX: toPos.x,
-            toY: toPos.y,
-            progress: 0,
-            color: action.attacker.fleet === 1 ? '#00ffff' : '#ff0000',
-          },
-        ]);
-
-        // Создаем взрыв после полета лазера
-        setTimeout(() => {
-          setExplosions(prev => [
-            ...prev,
-            {
-              x: toPos.x,
-              y: toPos.y,
-              progress: 0,
-            },
-          ]);
-        }, 600);
       }
 
       setCurrentActionIndex(prev => prev + 1);
-    }, 1200); // 1.2 сек на действие
+    }, 800); // 800мс на действие
 
     return () => clearTimeout(timer);
-  }, [battleActive, currentActionIndex, battleLog, playerShips, enemyShips]);
+  }, [battleActive, currentActionIndex, battleLog]);
 
   return (
     <div className="elite-battle-container">
-      <canvas ref={canvasRef} className="elite-canvas" />
+      <div ref={mountRef} className="threejs-container" />
 
-      {/* HUD в стиле Elite */}
+      {/* HUD */}
       <div className="elite-hud">
         <div className="elite-hud-top">
-          <div className="elite-scanner">
-            <div className="scanner-grid"></div>
-            {playerShips.filter(s => !s.destroyed).map((_, i) => (
-              <div key={i} className="scanner-dot player-dot" style={{ left: `${20 + i * 15}%`, top: '70%' }} />
-            ))}
-            {enemyShips.filter(s => !s.destroyed).map((_, i) => (
-              <div key={i} className="scanner-dot enemy-dot" style={{ left: `${20 + i * 15}%`, top: '30%' }} />
-            ))}
-          </div>
           <div className="elite-status">
             <div className="status-line">BATTLE IN PROGRESS</div>
-            <div className="status-line">ROUND: {currentActionIndex + 1} / {battleLog.length}</div>
+            <div className="status-line">
+              ROUND: {Math.min(currentActionIndex + 1, battleLog.length)} / {battleLog.length}
+            </div>
+            <div className="status-line">
+              PLAYER: {playerShips.filter(s => !s.destroyed).length} / {playerShips.length}
+            </div>
+            <div className="status-line">
+              ENEMY: {enemyShips.filter(s => !s.destroyed).length} / {enemyShips.length}
+            </div>
           </div>
         </div>
       </div>
@@ -528,9 +538,7 @@ const BattleScreenElite: React.FC<BattleScreenEliteProps> = ({
             <div className="elite-result-title">
               {winner === 1 ? '🏆 VICTORY 🏆' : '💀 DEFEAT 💀'}
             </div>
-            <div className="elite-result-reward">
-              REWARD: {reward} CS
-            </div>
+            <div className="elite-result-reward">REWARD: {reward} CS</div>
             <button className="elite-result-btn" onClick={onBattleEnd}>
               ← RETURN TO BASE
             </button>
