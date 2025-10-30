@@ -1,4 +1,4 @@
-/* Elite Battle Screen - Простая красивая визуализация */
+/* Elite Battle Screen - Профессиональная Canvas визуализация */
 
 .elite-battle-container {
   position: fixed;
@@ -6,116 +6,18 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: #000814;
+  background: #000;
   overflow: hidden;
   font-family: 'Courier New', monospace;
 }
 
-/* Космический фон */
-.space-background {
+.battle-canvas {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-}
-
-.star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: white;
-  border-radius: 50%;
-  animation: twinkle 3s infinite;
-}
-
-@keyframes twinkle {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-}
-
-/* Корабли */
-.ship {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  transition: all 0.3s ease;
-  z-index: 2;
-}
-
-.ship.destroyed {
-  opacity: 0.3;
-  filter: grayscale(100%);
-}
-
-.ship-emoji {
-  font-size: 48px;
-  text-align: center;
-  filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.8));
-  animation: float 3s ease-in-out infinite;
-}
-
-.ship-emoji.enemy {
-  filter: drop-shadow(0 0 10px rgba(255, 68, 68, 0.8));
-  transform: scaleY(-1);
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.ship-hp-bar {
-  width: 60px;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.7);
-  border: 1px solid #00ff88;
-  border-radius: 3px;
-  margin: 5px auto;
-  overflow: hidden;
-}
-
-.ship-hp-fill {
-  height: 100%;
-  transition: width 0.5s ease, background-color 0.3s ease;
-  box-shadow: 0 0 10px currentColor;
-}
-
-.ship-hp-text {
-  text-align: center;
-  color: #00ff88;
-  font-size: 10px;
-  text-shadow: 0 0 5px rgba(0, 255, 136, 0.8);
-  font-weight: bold;
-}
-
-/* Лазеры */
-.laser-beam {
-  animation: laser-pulse 0.4s ease-out;
-  filter: drop-shadow(0 0 8px currentColor);
-}
-
-@keyframes laser-pulse {
-  0% {
-    opacity: 0;
-    stroke-width: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
+  display: block;
 }
 
 /* HUD */
@@ -254,21 +156,8 @@
   transform: scale(0.98);
 }
 
-/* Адаптивность для мобильных */
+/* Адаптивность */
 @media (max-width: 768px) {
-  .ship-emoji {
-    font-size: 36px;
-  }
-
-  .ship-hp-bar {
-    width: 50px;
-    height: 5px;
-  }
-
-  .ship-hp-text {
-    font-size: 9px;
-  }
-
   .elite-status {
     min-width: auto;
     padding: 12px 18px;
@@ -296,18 +185,4 @@
   .elite-result-box {
     padding: 35px 50px;
   }
-}
-
-/* Эффект попадания */
-@keyframes hit-flash {
-  0%, 100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(2) drop-shadow(0 0 20px #ff0000);
-  }
-}
-
-.ship.hit {
-  animation: hit-flash 0.3s ease;
 }
