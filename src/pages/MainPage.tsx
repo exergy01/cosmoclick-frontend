@@ -345,9 +345,9 @@ const MainPage: React.FC = () => {
       }
       
       try {
-        const response = await axios.get(`${API_URL}/api/admin/check/${player.telegram_id}`);
+        const response = await axios.get(`${API_URL}/api/admin/auth/check/${player.telegram_id}`);
         const adminStatus = response.data.isAdmin;
-        
+
         setIsAdmin(adminStatus);
       } catch (error) {
         setIsAdmin(false);

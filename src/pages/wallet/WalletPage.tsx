@@ -458,7 +458,10 @@ const WalletPage: React.FC = () => {
 
   // ИСПРАВЛЕННАЯ ФУНКЦИЯ ВЫВОДА - создает заявку вместо отправки
   const handleWithdraw = async () => {
+    console.log('🔥 handleWithdraw called!', { userAddress, withdrawAmount, player: player?.telegram_id });
+
     if (!userAddress) {
+      console.log('❌ No wallet address');
       setError('Сначала подключите кошелек для указания адреса вывода');
       return;
     }
@@ -466,14 +469,20 @@ const WalletPage: React.FC = () => {
     const amount = parseFloat(withdrawAmount);
     const playerBalance = parseFloat(player?.ton || '0');
 
+    console.log('💰 Amount validation:', { amount, playerBalance, withdrawAmount });
+
     if (isNaN(amount) || amount < 0.1 || amount > playerBalance) {
+      console.log('❌ Invalid amount');
       setError('Неверная сумма для вывода (минимум 0.1 TON)');
       return;
     }
 
+    console.log('✅ Calling createWithdrawalRequest...');
     try {
       await createWithdrawalRequest(amount, userAddress);
+      console.log('✅ createWithdrawalRequest completed successfully');
     } catch (err: any) {
+      console.error('❌ createWithdrawalRequest failed:', err);
       setError('Ошибка создания заявки на вывод');
     }
   };
@@ -800,6 +809,11 @@ const WalletPage: React.FC = () => {
     
     <button
       onClick={() => {
+        console.log('🔥 Withdraw button clicked!', {
+          playerTON: player?.ton,
+          parsed: parseFloat(player?.ton || '0'),
+          disabled: parseFloat(player?.ton || '0') <= 0.1
+        });
         setShowWithdrawModal(true);
         setError(null);
         setSuccess(null);
