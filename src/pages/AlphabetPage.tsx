@@ -114,7 +114,8 @@ const AlphabetPage: React.FC = () => {
                 { code: 'fr', name: t('fr'), flag: '🇫🇷' },
                 { code: 'de', name: t('de'), flag: '🇩🇪' },
                 { code: 'zh', name: t('zh'), flag: '🇨🇳' },
-                { code: 'ja', name: t('ja'), flag: '🇯🇵' }
+                { code: 'ja', name: t('ja'), flag: '🇯🇵' },
+                { code: 'hi', name: t('hi'), flag: '🇮🇳' }
               ].map(({ code, name, flag }) => (
                 <button
                   key={code}
