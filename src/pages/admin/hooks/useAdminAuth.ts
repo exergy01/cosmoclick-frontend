@@ -42,7 +42,7 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
           if (process.env.NODE_ENV === 'development') console.log('📱 Найден ID в Telegram WebApp:', telegramId);
           
           // Проверяем админа с ID из WebApp
-          const response = await axios.get(`${apiUrl}/api/admin/check/${telegramId}`);
+          const response = await axios.get(`${apiUrl}/api/admin/auth/check/${telegramId}`);
           setIsAdmin(response.data.isAdmin);
           if (process.env.NODE_ENV === 'development') console.log('🔐 Результат проверки админа (WebApp ID):', response.data.isAdmin);
           
@@ -58,9 +58,9 @@ export const useAdminAuth = (): UseAdminAuthReturn => {
       }
       
       if (process.env.NODE_ENV === 'development') console.log('🔍 Проверяем админский статус для ID:', player.telegram_id);
-      
+
       // Используем прямой axios запрос как в ReferralsPage
-      const response = await axios.get(`${apiUrl}/api/admin/check/${player.telegram_id}`);
+      const response = await axios.get(`${apiUrl}/api/admin/auth/check/${player.telegram_id}`);
       
       setIsAdmin(response.data.isAdmin);
       if (process.env.NODE_ENV === 'development') console.log('🔐 Результат проверки админа:', response.data.isAdmin);
